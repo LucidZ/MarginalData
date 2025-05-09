@@ -15,15 +15,15 @@ export default function Home() {
       <nav>
         <ul className="project-list">
           <li>
-            <Link to="/2025/USAIDSize">How big was USAID?</Link>
+            <Link to="#/2025/USAIDSize">How big was USAID?</Link>
           </li>
           <li>
-            <Link to="/2025/ForeignAid">
+            <Link to="#/2025/ForeignAid">
               How does US Foreign Aid rank globally?
             </Link>
           </li>
           <li>
-            <Link to="/2025/FederalEmployment">
+            <Link to="#/2025/FederalEmployment">
               How big is US Federal Employment?
             </Link>
           </li>
