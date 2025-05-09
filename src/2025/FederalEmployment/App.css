@@ -1,0 +1,107 @@
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.app-container {
+  max-width: 600px; /* Adjust the value as needed */
+  margin: 0 auto; /* Center the container horizontally */
+  padding: 20px; /* Optional: Add some padding */
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* sources.css */
+.sources-section {
+  margin-top: 3rem;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+.sources-list {
+  padding-left: 1.5rem;
+}
+
+.source-item {
+  margin-bottom: 0.75rem;
+}
+
+.source-title {
+  font-weight: bold;
+}
+
+.tick line {
+  stroke: darkgray;
+}
+.tick text {
+  fill: darkgray;
+}
+
+.mark {
+  transition: fill 0s ease;
+}
+
+.axis-label {
+  font-size: 2.5em;
+  fill: darkgray;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse-element {
+  animation: pulse 2s infinite;
+}
+
+.no-select {
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE/Edge */
+}
