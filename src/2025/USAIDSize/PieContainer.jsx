@@ -28,7 +28,12 @@ export const PieContainer = ({
     },
   });
   return (
-    <svg width={width} height={height} {...(isDraggable ? eventHandlers : {})}>
+    <svg
+      style={{ touchAction: "none" }} // Prevents scrolling on mobile
+      width={width}
+      height={height}
+      {...(isDraggable ? eventHandlers : {})}
+    >
       <g transform={`translate(${centerX}, ${centerY})`}>{children}</g>
       {isDraggable && <DragMePrompt />}
     </svg>
