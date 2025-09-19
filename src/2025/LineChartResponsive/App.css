@@ -15,7 +15,7 @@ body,
   justify-content: center; /* Centers items vertically */
   align-items: center; /* Centers items horizontally */
   min-height: 100vh; /* Minimum height of the full viewport height */
-  width: 100vw; /* Sets width to 50% of the viewport width */
+  width: 100vw; /* Sets width to 100% of the viewport width */
   padding: 20px; /* Provides internal spacing */
   box-sizing: border-box; /* Includes padding in the element's total width and height */
   background-color: #f0f0f0; /* Optional: for visual debugging */

@@ -1,50 +1,92 @@
+/* Sets up the viewport for responsive behavior */
+html,
+body,
 #root {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
-.app-container {
-  max-width: 600px; /* Adjust the value as needed */
-  margin: 0 auto; /* Center the container horizontally */
-  padding: 20px; /* Optional: Add some padding */
+.container {
+  display: flex;
+  flex-direction: column; /* Stacks text block vertically */
+  justify-content: center; /* Centers items vertically */
+  align-items: center; /* Centers items horizontally */
+  min-height: 100vh; /* Minimum height of the full viewport height */
+  width: 100vw; /* Sets width to 100% of the viewport width */
+  padding: 20px; /* Provides internal spacing */
+  box-sizing: border-box; /* Includes padding in the element's total width and height */
+  background-color: #f0f0f0; /* Optional: for visual debugging */
+  border: 2px solid #333; /* Optional: for visual debugging */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  max-width: 100vw; /* Prevent container from exceeding viewport */
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Ensure all children respect container boundaries */
+.container > * {
+  max-width: calc(100vw - 44px); /* Account for container padding + border */
+  box-sizing: border-box;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.container p {
+  text-align: justify; /* Aligns text to both the left and right margins */
+  max-width: min(
+    800px,
+    calc(100vw - 44px)
+  ); /* Prevents text from stretching too wide, account for container constraints */
+  hyphens: auto; /* Helps justify text by hyphenating words when necessary */
+  box-sizing: border-box;
+}
+
+.container h2 {
+  max-width: min(
+    800px,
+    calc(100vw - 44px)
+  ); /* Same constraint as paragraph text */
+  text-align: center; /* Center the question */
+  word-wrap: break-word; /* Allow long words to break if necessary */
+  box-sizing: border-box;
+}
+
+/* Make SVG responsive and prevent overflow */
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block; /* Remove any inline spacing */
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
   }
-  to {
-    transform: rotate(360deg);
+
+  .container > * {
+    max-width: calc(
+      100vw - 24px
+    ); /* Account for reduced mobile padding + border */
   }
-}
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  .container p,
+  .container h2 {
+    max-width: calc(100vw - 24px); /* Override the min() function for mobile */
   }
-}
 
-.card {
-  padding: 2em;
-}
+  .axis-label {
+    font-size: 2em !important;
+  }
 
-.read-the-docs {
-  color: #888;
+  .tick text {
+    font-size: 12px;
+  }
+
+  .container h2 {
+    font-size: 1.3em; /* Slightly smaller on mobile */
+    line-height: 1.4;
+    margin: 10px 0;
+  }
 }
 
 /* sources.css */

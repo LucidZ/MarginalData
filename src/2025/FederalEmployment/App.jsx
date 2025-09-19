@@ -21,16 +21,78 @@ import { Answer } from "./Answer.jsx";
 import { useAtomValue } from "jotai";
 import { hasSubmittedAtom } from "./atoms.js";
 
-const width = 960;
-const height = 500;
-const margin = { top: 20, right: 30, bottom: 65, left: 90 };
-const xAxisLabelOffset = 50;
-const yAxisLabelOffset = 45;
+const useResponsiveDimensions = () => {
+  const [dimensions, setDimensions] = useState({
+    width: 960,
+    height: 500,
+  });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      const containerPadding = 40; // Account for container padding (20px each side)
+      const availableWidth = window.innerWidth - containerPadding;
+      const availableHeight = window.innerHeight * 0.6; // 60% of viewport height
+
+      // Get chart margins based on available width
+      const isMobile = availableWidth < 768;
+      const chartMargins = {
+        left: isMobile ? 60 : 90,
+        right: isMobile ? 20 : 30,
+        top: 20,
+        bottom: isMobile ? 50 : 65,
+      };
+
+      // Calculate the total margin space needed
+      const totalMarginWidth = chartMargins.left + chartMargins.right;
+      const totalMarginHeight = chartMargins.top + chartMargins.bottom;
+
+      // Set max dimensions
+      const maxTotalWidth = 960;
+      const maxTotalHeight = 500;
+      const minTotalHeight = 300;
+
+      // Calculate final total dimensions (SVG size including margins)
+      const finalTotalWidth = Math.min(availableWidth, maxTotalWidth);
+      const finalTotalHeight = Math.max(
+        Math.min(availableHeight, maxTotalHeight),
+        minTotalHeight
+      );
+
+      setDimensions({
+        width: finalTotalWidth,
+        height: finalTotalHeight,
+      });
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
+
+  return dimensions;
+};
+
+const getResponsiveMargins = (width) => {
+  const isMobile = width < 768;
+  return {
+    top: 20,
+    right: isMobile ? 20 : 30,
+    bottom: isMobile ? 50 : 65,
+    left: isMobile ? 60 : 90,
+  };
+};
 const lastPointOfPreview = 252;
 
 const App = () => {
   const data = useData();
   const hasSubmitted = useAtomValue(hasSubmittedAtom);
+  const { width, height } = useResponsiveDimensions();
+  const margin = getResponsiveMargins(width);
+
+  // Calculate responsive offsets
+  const xAxisLabelOffset = width < 768 ? 40 : 50;
+  const yAxisLabelOffset = width < 768 ? 35 : 45;
 
   if (!data) {
     return <pre>Data is Loading...</pre>;
@@ -60,7 +122,7 @@ const App = () => {
   const lastDataPointOfPreview = data[lastPointOfPreview - 1];
 
   return (
-    <>
+    <div className="container">
       <Question />
 
       <ChartContainer
@@ -137,7 +199,7 @@ const App = () => {
         />
       </ChartContainer>
       {!hasSubmitted ? <SubmitButton /> : <Answer />}
-    </>
+    </div>
   );
 };
 
