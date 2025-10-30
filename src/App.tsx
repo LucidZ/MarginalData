@@ -23,10 +23,6 @@ function App() {
               path="/2025/FederalEmployment"
               element={<FederalEmployment />}
             />
-            <Route
-              path="/2025/LineChartResponsive"
-              element={<LineChartResponsive />}
-            />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>
