@@ -1,13 +1,6 @@
 import "./App.css";
 import { useEffect, useState } from "react";
-import {
-  scaleLinear,
-  scaleTime,
-  max,
-  format,
-  timeFormat,
-  extent,
-} from "d3";
+import { scaleLinear, scaleTime, max, format, timeFormat, extent } from "d3";
 import { useData, type FederalEmploymentData } from "./useData";
 import { AxisBottom } from "./AxisBottom";
 import { AxisLeft } from "./AxisLeft";
