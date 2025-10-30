@@ -8,7 +8,6 @@ import NotFound from "./pages/NotFound";
 const USAIDSize = lazy(() => import("./2025/USAIDSize"));
 const ForeignAid = lazy(() => import("./2025/ForeignAid"));
 const FederalEmployment = lazy(() => import("./2025/FederalEmployment"));
-const LineChartResponsive = lazy(() => import("./2025/LineChartResponsive"));
 
 function App() {
   return (
