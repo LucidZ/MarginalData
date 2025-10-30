@@ -1,7 +1,6 @@
 import "./App.css";
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
-  csv,
   scaleLinear,
   scaleTime,
   max,
@@ -9,15 +8,15 @@ import {
   timeFormat,
   extent,
 } from "d3";
-import { useData } from "./useData.js";
+import { useData, type FederalEmploymentData } from "./useData";
 import { AxisBottom } from "./AxisBottom";
 import { AxisLeft } from "./AxisLeft";
 import { Marks } from "./Marks";
-import { ChartContainer } from "./ChartContainer.jsx";
-import { GuessRegion } from "./GuessRegion.jsx";
-import { Question } from "./Question.jsx";
-import { SubmitButton } from "./SubmitButton.jsx";
-import { Answer } from "./Answer.jsx";
+import { ChartContainer } from "./ChartContainer";
+import { GuessRegion } from "./GuessRegion";
+import { Question } from "./Question";
+import { SubmitButton } from "./SubmitButton";
+import { Answer } from "./Answer";
 import { useAtomValue } from "jotai";
 import { hasSubmittedAtom } from "./atoms.js";
 
@@ -32,19 +31,6 @@ const useResponsiveDimensions = () => {
       const containerPadding = 40; // Account for container padding (20px each side)
       const availableWidth = window.innerWidth - containerPadding;
       const availableHeight = window.innerHeight * 0.6; // 60% of viewport height
-
-      // Get chart margins based on available width
-      const isMobile = availableWidth < 768;
-      const chartMargins = {
-        left: isMobile ? 60 : 90,
-        right: isMobile ? 20 : 30,
-        top: 20,
-        bottom: isMobile ? 50 : 65,
-      };
-
-      // Calculate the total margin space needed
-      const totalMarginWidth = chartMargins.left + chartMargins.right;
-      const totalMarginHeight = chartMargins.top + chartMargins.bottom;
 
       // Set max dimensions
       const maxTotalWidth = 960;
@@ -73,7 +59,7 @@ const useResponsiveDimensions = () => {
   return dimensions;
 };
 
-const getResponsiveMargins = (width) => {
+const getResponsiveMargins = (width: number) => {
   const isMobile = width < 768;
   return {
     top: 20,
@@ -101,21 +87,21 @@ const App = () => {
   const innerHeight = height - margin.top - margin.bottom;
   const innerWidth = width - margin.left - margin.right;
 
-  const xValue = (d) => d.timestamp;
+  const xValue = (d: FederalEmploymentData) => d.timestamp;
   const xAxisTickFormat = timeFormat("%Y");
   const xAxisLabel = "Time";
 
-  const yValue = (d) => d.Federal / d.TotalNonFarm;
+  const yValue = (d: FederalEmploymentData) => d.Federal / d.TotalNonFarm;
   const yAxisTickFormat = format(".0%");
   const yAxisLabel = "Percent";
 
   const xScale = scaleTime()
-    .domain(extent(data, xValue))
+    .domain(extent(data, xValue) as [Date, Date])
     .range([0, innerWidth])
     .nice();
 
   const yScale = scaleLinear()
-    .domain([0, max(data, yValue) + 0.01])
+    .domain([0, (max(data, yValue) || 0) + 0.01])
     .range([innerHeight, 0])
     .nice();
 
