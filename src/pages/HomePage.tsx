@@ -27,6 +27,11 @@ export default function Home() {
               How big is US Federal Employment?
             </Link>
           </li>
+          <li>
+            <Link to="/2025/FuelEconomyTool">
+              Compare vehicle fuel efficiency
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>

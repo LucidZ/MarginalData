@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 const USAIDSize = lazy(() => import("./2025/USAIDSize"));
 const ForeignAid = lazy(() => import("./2025/ForeignAid"));
 const FederalEmployment = lazy(() => import("./2025/FederalEmployment"));
+const FuelEconomyTool = lazy(() => import("./2025/FuelEconomyTool"));
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
               path="/2025/FederalEmployment"
               element={<FederalEmployment />}
             />
+            <Route path="/2025/FuelEconomyTool" element={<FuelEconomyTool />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>
