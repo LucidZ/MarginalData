@@ -57,6 +57,9 @@ function App() {
   const [customPrices, setCustomPrices] = useState<Partial<FuelPrices>>({});
   const [annualMiles, setAnnualMiles] = useState<number>(12000); // Default 12,000 miles/year
 
+  // Driving mix state (percentage of highway driving)
+  const [highwayPercent, setHighwayPercent] = useState<number>(55); // EPA uses 55% highway, 45% city for combined rating
+
   // Load years and fuel prices on mount
   useEffect(() => {
     loadYears();
@@ -179,6 +182,17 @@ function App() {
     return isElectricVehicle(fuelType) ? "MPGe" : "MPG";
   }
 
+  // Calculate custom combined MPG based on user's driving mix
+  function calculateCustomCombinedMPG(vehicle: VehicleData): number {
+    const cityPercent = (100 - highwayPercent) / 100;
+    const hwPercent = highwayPercent / 100;
+
+    // Harmonic mean formula (same as EPA uses)
+    // 1/combined = (city% / cityMPG) + (highway% / highwayMPG)
+    const customCombined = 1 / ((cityPercent / vehicle.mpgCity) + (hwPercent / vehicle.mpgHighway));
+    return Math.round(customCombined);
+  }
+
   // Map vehicle fuel type to price key
   function getFuelPriceKey(fuelType: string): keyof FuelPrices {
     const lowerFuel = fuelType.toLowerCase();
@@ -205,30 +219,34 @@ function App() {
 
   // Calculate annual fuel cost
   function calculateAnnualCost(vehicle: VehicleData): number {
+    const customCombined = calculateCustomCombinedMPG(vehicle);
+
     if (isElectricVehicle(vehicle.fuelType)) {
       // For EVs: MPGe represents equivalent energy, convert to kWh
       // 1 gallon of gas = 33.7 kWh (EPA standard)
       const pricePerKwh = getEffectivePrice(vehicle.fuelType);
-      const kwhPer100Miles = 33.7 / vehicle.mpgCombined * 100;
+      const kwhPer100Miles = 33.7 / customCombined * 100;
       const kwhPerYear = (annualMiles / 100) * kwhPer100Miles;
       return kwhPerYear * pricePerKwh;
     } else {
       const pricePerGallon = getEffectivePrice(vehicle.fuelType);
-      const gallonsPerYear = annualMiles / vehicle.mpgCombined;
+      const gallonsPerYear = annualMiles / customCombined;
       return gallonsPerYear * pricePerGallon;
     }
   }
 
   // Calculate cost per mile
   function calculateCostPerMile(vehicle: VehicleData): number {
+    const customCombined = calculateCustomCombinedMPG(vehicle);
+
     if (isElectricVehicle(vehicle.fuelType)) {
       // For EVs: convert MPGe to kWh per mile
       const pricePerKwh = getEffectivePrice(vehicle.fuelType);
-      const kwhPerMile = 33.7 / vehicle.mpgCombined;
+      const kwhPerMile = 33.7 / customCombined;
       return kwhPerMile * pricePerKwh;
     } else {
       const pricePerGallon = getEffectivePrice(vehicle.fuelType);
-      return pricePerGallon / vehicle.mpgCombined;
+      return pricePerGallon / customCombined;
     }
   }
 
@@ -238,6 +256,13 @@ function App() {
       ...customPrices,
       [priceKey]: value,
     });
+  }
+
+  // Reset all settings to defaults
+  function handleResetSettings() {
+    setCustomPrices({});
+    setAnnualMiles(12000);
+    setHighwayPercent(55);
   }
 
   return (
@@ -254,7 +279,12 @@ function App() {
       <main className="comparison-container">
         {fuelPrices && (
           <section className="gas-prices-section">
-            <h2>Gas Prices & Settings</h2>
+            <div className="section-header">
+              <h2>Gas Prices & Settings</h2>
+              <button onClick={handleResetSettings} className="reset-button">
+                Reset to Defaults
+              </button>
+            </div>
             <div className="gas-prices-grid">
               <div className="price-input-group">
                 <label>Regular Gas</label>
@@ -330,6 +360,35 @@ function App() {
                 <span className="price-hint">{annualMiles.toLocaleString()} mi/yr</span>
               </div>
             </div>
+
+            <div className="driving-mix-section">
+              <h3>Driving Mix</h3>
+              <p className="driving-mix-description">
+                Adjust the slider to match your typical driving habits. EPA standard is 55% highway, 45% city.
+              </p>
+              <div className="slider-container">
+                <div className="slider-labels">
+                  <span className="slider-label-left">City: {100 - highwayPercent}%</span>
+                  <span className="slider-label-right">Highway: {highwayPercent}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={highwayPercent}
+                  onChange={(e) => setHighwayPercent(parseInt(e.target.value))}
+                  className="driving-mix-slider"
+                />
+                <div className="slider-markers">
+                  <span>0%</span>
+                  <span>25%</span>
+                  <span>50%</span>
+                  <span>75%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
+
             <p className="gas-prices-note">
               National average prices shown. Edit any field to use your local prices.
             </p>
@@ -446,8 +505,12 @@ function App() {
                       <span>{vehicle.mpgHighway}</span>
                     </div>
                     <div className="mpg-stat">
-                      <label>Combined {getEfficiencyUnit(vehicle.fuelType)}:</label>
+                      <label>EPA Combined {getEfficiencyUnit(vehicle.fuelType)}:</label>
                       <span>{vehicle.mpgCombined}</span>
+                    </div>
+                    <div className="mpg-stat mpg-stat-custom">
+                      <label>Your Combined {getEfficiencyUnit(vehicle.fuelType)}:</label>
+                      <span className="custom-mpg">{calculateCustomCombinedMPG(vehicle)}</span>
                     </div>
                   </div>
                   <div className="vehicle-details">
