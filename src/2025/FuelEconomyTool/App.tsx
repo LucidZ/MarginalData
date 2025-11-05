@@ -6,9 +6,11 @@ import {
   getModels,
   getVehicleOptions,
   getVehicle,
+  getFuelPrices,
   type MenuMake,
   type MenuModel,
   type VehicleOption,
+  type FuelPrices,
 } from "./api";
 
 // Types for vehicle data
@@ -50,9 +52,15 @@ function App() {
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
-  // Load years on mount
+  // Fuel prices state
+  const [fuelPrices, setFuelPrices] = useState<FuelPrices | null>(null);
+  const [customPrices, setCustomPrices] = useState<Partial<FuelPrices>>({});
+  const [annualMiles, setAnnualMiles] = useState<number>(12000); // Default 12,000 miles/year
+
+  // Load years and fuel prices on mount
   useEffect(() => {
     loadYears();
+    loadFuelPrices();
   }, []);
 
   // Load makes when year changes
@@ -93,6 +101,11 @@ function App() {
     const yearList = await getYears();
     setYears(yearList.sort((a, b) => b - a)); // Sort descending
     setIsLoadingYears(false);
+  }
+
+  async function loadFuelPrices() {
+    const prices = await getFuelPrices();
+    setFuelPrices(prices);
   }
 
   async function loadMakes(year: number) {
@@ -155,6 +168,78 @@ function App() {
     setSelectedVehicles(selectedVehicles.filter((v) => v.id !== id));
   }
 
+  // Check if a vehicle is electric
+  function isElectricVehicle(fuelType: string): boolean {
+    const lowerFuel = fuelType.toLowerCase();
+    return lowerFuel.includes("electric") || lowerFuel.includes("electricity");
+  }
+
+  // Get the correct efficiency unit (MPG or MPGe)
+  function getEfficiencyUnit(fuelType: string): string {
+    return isElectricVehicle(fuelType) ? "MPGe" : "MPG";
+  }
+
+  // Map vehicle fuel type to price key
+  function getFuelPriceKey(fuelType: string): keyof FuelPrices {
+    const lowerFuel = fuelType.toLowerCase();
+    if (lowerFuel.includes("premium")) return "premium";
+    if (lowerFuel.includes("midgrade") || lowerFuel.includes("mid-grade"))
+      return "midgrade";
+    if (lowerFuel.includes("diesel")) return "diesel";
+    if (lowerFuel.includes("e85")) return "e85";
+    if (lowerFuel.includes("electric") || lowerFuel.includes("electricity"))
+      return "electric";
+    if (lowerFuel.includes("cng")) return "cng";
+    if (lowerFuel.includes("lpg")) return "lpg";
+    return "regular"; // Default to regular
+  }
+
+  // Get the effective price for a fuel type (custom or default)
+  function getEffectivePrice(fuelType: string): number {
+    const priceKey = getFuelPriceKey(fuelType);
+    const customPrice = customPrices[priceKey];
+    if (customPrice) return parseFloat(customPrice);
+    if (fuelPrices) return parseFloat(fuelPrices[priceKey]);
+    return 0;
+  }
+
+  // Calculate annual fuel cost
+  function calculateAnnualCost(vehicle: VehicleData): number {
+    if (isElectricVehicle(vehicle.fuelType)) {
+      // For EVs: MPGe represents equivalent energy, convert to kWh
+      // 1 gallon of gas = 33.7 kWh (EPA standard)
+      const pricePerKwh = getEffectivePrice(vehicle.fuelType);
+      const kwhPer100Miles = 33.7 / vehicle.mpgCombined * 100;
+      const kwhPerYear = (annualMiles / 100) * kwhPer100Miles;
+      return kwhPerYear * pricePerKwh;
+    } else {
+      const pricePerGallon = getEffectivePrice(vehicle.fuelType);
+      const gallonsPerYear = annualMiles / vehicle.mpgCombined;
+      return gallonsPerYear * pricePerGallon;
+    }
+  }
+
+  // Calculate cost per mile
+  function calculateCostPerMile(vehicle: VehicleData): number {
+    if (isElectricVehicle(vehicle.fuelType)) {
+      // For EVs: convert MPGe to kWh per mile
+      const pricePerKwh = getEffectivePrice(vehicle.fuelType);
+      const kwhPerMile = 33.7 / vehicle.mpgCombined;
+      return kwhPerMile * pricePerKwh;
+    } else {
+      const pricePerGallon = getEffectivePrice(vehicle.fuelType);
+      return pricePerGallon / vehicle.mpgCombined;
+    }
+  }
+
+  // Update a custom fuel price
+  function handlePriceChange(priceKey: keyof FuelPrices, value: string) {
+    setCustomPrices({
+      ...customPrices,
+      [priceKey]: value,
+    });
+  }
+
   return (
     <div className="fuel-economy-app">
       <header className="project-header">
@@ -167,6 +252,90 @@ function App() {
       </header>
 
       <main className="comparison-container">
+        {fuelPrices && (
+          <section className="gas-prices-section">
+            <h2>Gas Prices & Settings</h2>
+            <div className="gas-prices-grid">
+              <div className="price-input-group">
+                <label>Regular Gas</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder={fuelPrices.regular}
+                  value={customPrices.regular || ""}
+                  onChange={(e) => handlePriceChange("regular", e.target.value)}
+                  className="price-input"
+                />
+                <span className="price-hint">
+                  ${customPrices.regular || fuelPrices.regular}/gal
+                </span>
+              </div>
+
+              <div className="price-input-group">
+                <label>Premium Gas</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder={fuelPrices.premium}
+                  value={customPrices.premium || ""}
+                  onChange={(e) => handlePriceChange("premium", e.target.value)}
+                  className="price-input"
+                />
+                <span className="price-hint">
+                  ${customPrices.premium || fuelPrices.premium}/gal
+                </span>
+              </div>
+
+              <div className="price-input-group">
+                <label>Diesel</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder={fuelPrices.diesel}
+                  value={customPrices.diesel || ""}
+                  onChange={(e) => handlePriceChange("diesel", e.target.value)}
+                  className="price-input"
+                />
+                <span className="price-hint">
+                  ${customPrices.diesel || fuelPrices.diesel}/gal
+                </span>
+              </div>
+
+              <div className="price-input-group">
+                <label>Electricity</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder={fuelPrices.electric}
+                  value={customPrices.electric || ""}
+                  onChange={(e) => handlePriceChange("electric", e.target.value)}
+                  className="price-input"
+                />
+                <span className="price-hint">
+                  ${customPrices.electric || fuelPrices.electric}/kWh
+                </span>
+              </div>
+
+              <div className="price-input-group">
+                <label>Annual Miles</label>
+                <input
+                  type="number"
+                  step="1000"
+                  value={annualMiles}
+                  onChange={(e) =>
+                    setAnnualMiles(parseInt(e.target.value) || 12000)
+                  }
+                  className="price-input"
+                />
+                <span className="price-hint">{annualMiles.toLocaleString()} mi/yr</span>
+              </div>
+            </div>
+            <p className="gas-prices-note">
+              National average prices shown. Edit any field to use your local prices.
+            </p>
+          </section>
+        )}
+
         <section className="vehicle-search">
           <h2>Search for Vehicles</h2>
           <div className="search-interface">
@@ -269,15 +438,15 @@ function App() {
                   </div>
                   <div className="mpg-stats">
                     <div className="mpg-stat">
-                      <label>City MPG:</label>
+                      <label>City {getEfficiencyUnit(vehicle.fuelType)}:</label>
                       <span>{vehicle.mpgCity}</span>
                     </div>
                     <div className="mpg-stat">
-                      <label>Highway MPG:</label>
+                      <label>Highway {getEfficiencyUnit(vehicle.fuelType)}:</label>
                       <span>{vehicle.mpgHighway}</span>
                     </div>
                     <div className="mpg-stat">
-                      <label>Combined MPG:</label>
+                      <label>Combined {getEfficiencyUnit(vehicle.fuelType)}:</label>
                       <span>{vehicle.mpgCombined}</span>
                     </div>
                   </div>
@@ -289,6 +458,40 @@ function App() {
                       <strong>Engine:</strong> {vehicle.engine}
                     </p>
                   </div>
+
+                  {fuelPrices && (
+                    <div className="cost-stats">
+                      <div className="cost-stat">
+                        <label>
+                          {isElectricVehicle(vehicle.fuelType)
+                            ? "Electricity Price:"
+                            : "Fuel Price:"}
+                        </label>
+                        <span>
+                          ${getEffectivePrice(vehicle.fuelType).toFixed(2)}
+                          {isElectricVehicle(vehicle.fuelType) ? "/kWh" : "/gal"}
+                        </span>
+                      </div>
+                      <div className="cost-stat">
+                        <label>Cost per Mile:</label>
+                        <span>
+                          ${calculateCostPerMile(vehicle).toFixed(3)}
+                        </span>
+                      </div>
+                      <div className="cost-stat-highlight">
+                        <label>Annual {isElectricVehicle(vehicle.fuelType) ? "Electricity" : "Fuel"} Cost:</label>
+                        <span className="cost-amount">
+                          ${calculateAnnualCost(vehicle).toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
+                      </div>
+                      <p className="cost-note">
+                        Based on {annualMiles.toLocaleString()} miles/year
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

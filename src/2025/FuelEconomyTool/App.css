@@ -208,6 +208,119 @@
   font-style: italic;
 }
 
+/* Gas Prices Section */
+.gas-prices-section {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.gas-prices-section h2 {
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+}
+
+.gas-prices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.price-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.price-input-group label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.price-input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: white;
+}
+
+.price-input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.price-hint {
+  font-size: 0.85rem;
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.gas-prices-note {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Cost Stats */
+.cost-stats {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #3498db;
+}
+
+.cost-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+.cost-stat label {
+  color: #555;
+  font-weight: 500;
+}
+
+.cost-stat span {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.cost-stat-highlight {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  background: #e8f4f8;
+  border-radius: 4px;
+}
+
+.cost-stat-highlight label {
+  color: #2c3e50;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.cost-amount {
+  color: #27ae60;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.cost-note {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .fuel-economy-app {
@@ -220,6 +333,10 @@
 
   .search-controls {
     flex-direction: column;
+  }
+
+  .gas-prices-grid {
+    grid-template-columns: 1fr;
   }
 
   .comparison-grid {

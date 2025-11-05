@@ -140,3 +140,30 @@ export async function getVehicle(id: number): Promise<ApiVehicle | null> {
     return null;
   }
 }
+
+export interface FuelPrices {
+  regular: string;
+  midgrade: string;
+  premium: string;
+  diesel: string;
+  e85: string;
+  electric: string;
+  cng: string;
+  lpg: string;
+}
+
+// Fetch current national average fuel prices
+export async function getFuelPrices(): Promise<FuelPrices | null> {
+  try {
+    const response = await fetch(`${BASE_URL}/fuelprices`, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching fuel prices:', error);
+    return null;
+  }
+}
