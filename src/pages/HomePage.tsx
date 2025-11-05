@@ -32,6 +32,11 @@ export default function Home() {
               Compare vehicle fuel efficiency
             </Link>
           </li>
+          <li>
+            <Link to="/2025/FuelEconomyCurve">
+              Fuel economy curve visualization
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
