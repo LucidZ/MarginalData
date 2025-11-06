@@ -26,6 +26,7 @@ import {
   getCachedFuelPrices,
   setCachedFuelPrices,
 } from "./cache";
+import { DEFAULT_VEHICLE_DATA } from "./defaultVehicleData";
 
 interface PlotVehicle {
   id: number;
@@ -120,14 +121,20 @@ function App() {
   }
 
   async function loadFuelPrices() {
-    // Check cache first
+    // Use static pre-fetched data first
+    if (DEFAULT_VEHICLE_DATA.fuelPrices) {
+      setFuelPrices(DEFAULT_VEHICLE_DATA.fuelPrices);
+      return;
+    }
+
+    // Fallback: Check cache
     const cachedPrices = getCachedFuelPrices();
     if (cachedPrices) {
       setFuelPrices(cachedPrices);
       return;
     }
 
-    // Fetch from API and cache
+    // Last resort: Fetch from API and cache
     const prices = await getFuelPrices();
     setFuelPrices(prices);
     setCachedFuelPrices(prices);
@@ -139,14 +146,19 @@ function App() {
 
     for (const defaultVehicle of DEFAULT_VEHICLES) {
       try {
-        // Check cache first
-        let vehicleData = getCachedVehicle(defaultVehicle.id);
+        // 1. Check static pre-fetched data first (instant load)
+        let vehicleData = DEFAULT_VEHICLE_DATA.vehicleData[defaultVehicle.id];
 
         if (!vehicleData) {
-          // Not in cache, fetch from API
+          // 2. Fallback: Check cache
+          vehicleData = getCachedVehicle(defaultVehicle.id);
+        }
+
+        if (!vehicleData) {
+          // 3. Last resort: Fetch from API
           vehicleData = await getVehicle(defaultVehicle.id);
           if (vehicleData) {
-            // Cache the result
+            // Cache the result for next time
             setCachedVehicle(defaultVehicle.id, vehicleData);
           }
           // Small delay to avoid rate limiting (only when fetching from API)
