@@ -20,6 +20,12 @@ import {
   CATEGORY_NAMES,
   type VehicleCategory,
 } from "./defaultVehicles";
+import {
+  getCachedVehicle,
+  setCachedVehicle,
+  getCachedFuelPrices,
+  setCachedFuelPrices,
+} from "./cache";
 
 interface PlotVehicle {
   id: number;
@@ -114,8 +120,17 @@ function App() {
   }
 
   async function loadFuelPrices() {
+    // Check cache first
+    const cachedPrices = getCachedFuelPrices();
+    if (cachedPrices) {
+      setFuelPrices(cachedPrices);
+      return;
+    }
+
+    // Fetch from API and cache
     const prices = await getFuelPrices();
     setFuelPrices(prices);
+    setCachedFuelPrices(prices);
   }
 
   async function loadDefaultVehicles() {
@@ -124,7 +139,20 @@ function App() {
 
     for (const defaultVehicle of DEFAULT_VEHICLES) {
       try {
-        const vehicleData = await getVehicle(defaultVehicle.id);
+        // Check cache first
+        let vehicleData = getCachedVehicle(defaultVehicle.id);
+
+        if (!vehicleData) {
+          // Not in cache, fetch from API
+          vehicleData = await getVehicle(defaultVehicle.id);
+          if (vehicleData) {
+            // Cache the result
+            setCachedVehicle(defaultVehicle.id, vehicleData);
+          }
+          // Small delay to avoid rate limiting (only when fetching from API)
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+
         if (vehicleData) {
           const plotVehicle = convertApiVehicleToPlotVehicle(vehicleData);
           if (plotVehicle) {
@@ -132,8 +160,6 @@ function App() {
             loadedVehicles.push(plotVehicle);
           }
         }
-        // Small delay to avoid rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 50));
       } catch (error) {
         console.warn(`Failed to load default vehicle ${defaultVehicle.id}:`, error);
       }
@@ -234,7 +260,18 @@ function App() {
     setIsSearching(true);
     try {
       const vehicleId = parseInt(selectedOption);
-      const vehicleData = await getVehicle(vehicleId);
+
+      // Check cache first
+      let vehicleData = getCachedVehicle(vehicleId);
+
+      if (!vehicleData) {
+        // Not in cache, fetch from API
+        vehicleData = await getVehicle(vehicleId);
+        if (vehicleData) {
+          // Cache the result
+          setCachedVehicle(vehicleId, vehicleData);
+        }
+      }
 
       if (vehicleData) {
         const plotVehicle = convertApiVehicleToPlotVehicle(vehicleData);
