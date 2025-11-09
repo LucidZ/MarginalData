@@ -277,3 +277,39 @@
     padding: 1rem;
   }
 }
+
+/* Data Sources Footer */
+.data-sources {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  text-align: center;
+}
+
+.data-sources h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.data-sources p {
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.data-sources a {
+  color: #3498db;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.data-sources a:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}

@@ -531,7 +531,7 @@ function App() {
               </svg>
 
               {/* Tooltip */}
-              {hoveredVehicle && (
+              {hoveredVehicle && fuelPrices && (
                 <div className="custom-tooltip" style={{ display: "block" }}>
                   <p className="tooltip-title">
                     {hoveredVehicle.year} {hoveredVehicle.make}{" "}
@@ -546,6 +546,17 @@ function App() {
                   </p>
                   <p className="tooltip-detail">
                     <strong>Fuel Type:</strong> {hoveredVehicle.fuelType}
+                  </p>
+                  <p className="tooltip-detail" style={{ fontSize: "11px", color: "#666" }}>
+                    <strong>Assumed price:</strong> ${
+                      hoveredVehicle.fuelType.toLowerCase().includes("electric") || hoveredVehicle.fuelType.toLowerCase().includes("electricity")
+                        ? parseFloat(fuelPrices.electric).toFixed(2) + "/kWh"
+                        : hoveredVehicle.fuelType.toLowerCase().includes("premium")
+                        ? parseFloat(fuelPrices.premium).toFixed(2) + "/gal"
+                        : hoveredVehicle.fuelType.toLowerCase().includes("diesel")
+                        ? parseFloat(fuelPrices.diesel).toFixed(2) + "/gal"
+                        : parseFloat(fuelPrices.regular).toFixed(2) + "/gal"
+                    }
                   </p>
                 </div>
               )}
@@ -590,6 +601,37 @@ function App() {
           </section>
         )}
       </main>
+
+      <footer className="data-sources">
+        <h3>Data Sources</h3>
+        <p>
+          Vehicle fuel economy data provided by the{" "}
+          <a
+            href="https://www.fueleconomy.gov/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            U.S. Environmental Protection Agency (EPA)
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://www.fueleconomy.gov/feg/ws/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            fueleconomy.gov API
+          </a>
+          . National average fuel prices from{" "}
+          <a
+            href="https://www.fueleconomy.gov/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            fueleconomy.gov
+          </a>
+          . Annual fuel cost calculations assume 12,000 miles driven per year.
+        </p>
+      </footer>
     </div>
   );
 }
