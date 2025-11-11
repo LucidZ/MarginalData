@@ -231,6 +231,49 @@ function App() {
     }
   }
 
+  function categorizeVehicle(vehicle: ApiVehicle): VehicleCategory | undefined {
+    const vClass = vehicle.VClass?.toLowerCase() || "";
+    const fuelType = (vehicle.fuelType1 || vehicle.fuelType || "").toLowerCase();
+
+    // Check for electric first
+    if (fuelType.includes("electric") || fuelType.includes("electricity")) {
+      return "electric";
+    }
+
+    // Check for hybrid
+    if (fuelType.includes("hybrid")) {
+      return "hybrid";
+    }
+
+    // Check vehicle class
+    if (vClass.includes("pickup") || vClass.includes("truck")) {
+      return "truck";
+    }
+
+    if (vClass.includes("suv") || vClass.includes("sport utility")) {
+      return "suv";
+    }
+
+    if (vClass.includes("sedan") || vClass.includes("compact") || vClass.includes("subcompact") ||
+        vClass.includes("midsize") || vClass.includes("large") || vClass.includes("minicompact")) {
+      return "sedan";
+    }
+
+    if (vClass.includes("sport") || vClass.includes("two seater")) {
+      return "sports";
+    }
+
+    // Default based on make/model if VClass isn't clear
+    const model = vehicle.model?.toLowerCase() || "";
+    if (model.includes("f-150") || model.includes("silverado") || model.includes("ram") ||
+        model.includes("tundra") || model.includes("tacoma") || model.includes("ranger")) {
+      return "truck";
+    }
+
+    // Fallback to sedan as default
+    return "sedan";
+  }
+
   function convertApiVehicleToPlotVehicle(
     vehicle: ApiVehicle
   ): PlotVehicle | null {
@@ -256,6 +299,7 @@ function App() {
         mpgCombined,
         annualCost,
         fuelType,
+        category: categorizeVehicle(vehicle),
       };
     } catch (error) {
       console.error("Error converting vehicle data:", vehicle.id, error);
@@ -527,39 +571,47 @@ function App() {
                       style={{ cursor: "pointer" }}
                     />
                   ))}
+
+                  {/* Tooltip overlay */}
+                  {hoveredVehicle && fuelPrices && (
+                    <foreignObject
+                      x={innerWidth - 280}
+                      y={10}
+                      width={270}
+                      height={200}
+                      style={{ pointerEvents: "none" }}
+                    >
+                      <div className="custom-tooltip" style={{ display: "block", margin: 0 }}>
+                        <p className="tooltip-title">
+                          {hoveredVehicle.year} {hoveredVehicle.make}{" "}
+                          {hoveredVehicle.model}
+                        </p>
+                        <p className="tooltip-detail">
+                          <strong>MPG:</strong> {hoveredVehicle.mpgCombined}
+                        </p>
+                        <p className="tooltip-detail">
+                          <strong>Annual Cost:</strong> $
+                          {hoveredVehicle.annualCost.toFixed(0)}
+                        </p>
+                        <p className="tooltip-detail">
+                          <strong>Fuel Type:</strong> {hoveredVehicle.fuelType}
+                        </p>
+                        <p className="tooltip-detail" style={{ fontSize: "11px", color: "#666" }}>
+                          <strong>Assumed price:</strong> ${
+                            hoveredVehicle.fuelType.toLowerCase().includes("electric") || hoveredVehicle.fuelType.toLowerCase().includes("electricity")
+                              ? parseFloat(fuelPrices.electric).toFixed(2) + "/kWh"
+                              : hoveredVehicle.fuelType.toLowerCase().includes("premium")
+                              ? parseFloat(fuelPrices.premium).toFixed(2) + "/gal"
+                              : hoveredVehicle.fuelType.toLowerCase().includes("diesel")
+                              ? parseFloat(fuelPrices.diesel).toFixed(2) + "/gal"
+                              : parseFloat(fuelPrices.regular).toFixed(2) + "/gal"
+                          }
+                        </p>
+                      </div>
+                    </foreignObject>
+                  )}
                 </g>
               </svg>
-
-              {/* Tooltip */}
-              {hoveredVehicle && fuelPrices && (
-                <div className="custom-tooltip" style={{ display: "block" }}>
-                  <p className="tooltip-title">
-                    {hoveredVehicle.year} {hoveredVehicle.make}{" "}
-                    {hoveredVehicle.model}
-                  </p>
-                  <p className="tooltip-detail">
-                    <strong>MPG:</strong> {hoveredVehicle.mpgCombined}
-                  </p>
-                  <p className="tooltip-detail">
-                    <strong>Annual Cost:</strong> $
-                    {hoveredVehicle.annualCost.toFixed(0)}
-                  </p>
-                  <p className="tooltip-detail">
-                    <strong>Fuel Type:</strong> {hoveredVehicle.fuelType}
-                  </p>
-                  <p className="tooltip-detail" style={{ fontSize: "11px", color: "#666" }}>
-                    <strong>Assumed price:</strong> ${
-                      hoveredVehicle.fuelType.toLowerCase().includes("electric") || hoveredVehicle.fuelType.toLowerCase().includes("electricity")
-                        ? parseFloat(fuelPrices.electric).toFixed(2) + "/kWh"
-                        : hoveredVehicle.fuelType.toLowerCase().includes("premium")
-                        ? parseFloat(fuelPrices.premium).toFixed(2) + "/gal"
-                        : hoveredVehicle.fuelType.toLowerCase().includes("diesel")
-                        ? parseFloat(fuelPrices.diesel).toFixed(2) + "/gal"
-                        : parseFloat(fuelPrices.regular).toFixed(2) + "/gal"
-                    }
-                  </p>
-                </div>
-              )}
             </div>
           )}
 
