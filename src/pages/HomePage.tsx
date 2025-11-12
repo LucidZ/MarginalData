@@ -37,6 +37,11 @@ export default function Home() {
               Fuel economy curve visualization
             </Link>
           </li>
+          <li>
+            <Link to="/2025/PizzaAreaComparison">
+              How much more pizza is a large?
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
