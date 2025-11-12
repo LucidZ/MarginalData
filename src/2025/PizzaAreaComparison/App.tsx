@@ -1,9 +1,12 @@
 import "./App.css";
 import React, { useState, useRef } from "react";
-import { Pizza } from "./Pizza";
 
 const App = () => {
   const [radius, setRadius] = useState(120);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [startRadius, setStartRadius] = useState(radius);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   // Convert pixels to inches (20 pixels = 1 inch)
   const radiusInches = radius / 20;
@@ -34,119 +37,184 @@ const App = () => {
   // Calculate crust percentage
   const crustPercentage = (crustAreaSquareInches / totalAreaSquareInches) * 100;
 
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartY(e.clientY);
+    setStartRadius(radius);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const deltaY = e.clientY - startY;
+    const newRadius = Math.max(50, Math.min(200, startRadius + deltaY));
+    setRadius(Math.round(newRadius / 10) * 10);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setStartY(e.touches[0].clientY);
+    setStartRadius(radius);
+    e.preventDefault();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const deltaY = e.touches[0].clientY - startY;
+    const newRadius = Math.max(50, Math.min(200, startRadius + deltaY));
+    setRadius(Math.round(newRadius / 10) * 10);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div className="container">
       <h2>How much more pizza is a large?</h2>
-      <div className="pizza-container">
-        <div style={{ position: "relative" }}>
-          <Pizza radius={radius} setRadius={setRadius} strokeWidth={20} />
-          <svg
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              pointerEvents: "none"
-            }}
-            width={radius * 2 + 20}
-            height={30}
-          >
-            {/* Left arrow */}
-            <line x1={10} y1={15} x2={20} y2={15} stroke="#fff" strokeWidth={3} />
-            <polygon points="10,15 16,11 16,19" fill="#fff" />
-            {/* Right arrow */}
-            <line x1={radius * 2 + 20 - 20} y1={15} x2={radius * 2 + 20 - 10} y2={15} stroke="#fff" strokeWidth={3} />
-            <polygon points={`${radius * 2 + 20 - 10},15 ${radius * 2 + 20 - 16},11 ${radius * 2 + 20 - 16},19`} fill="#fff" />
-            {/* Horizontal line */}
-            <line x1={20} y1={15} x2={radius * 2 + 20 - 20} y2={15} stroke="#fff" strokeWidth={3} />
-            {/* Text with black outline */}
-            <text
-              x={(radius * 2 + 20) / 2}
-              y={12}
-              textAnchor="middle"
-              fontSize="16"
-              fill="#fff"
-              fontWeight="bold"
-              stroke="#000"
-              strokeWidth={0.5}
-            >
-              {diameterInches}"
-            </text>
-          </svg>
-        </div>
-      </div>
+      <svg
+        ref={svgRef}
+        width={radius * 2 + 40}
+        height={radius * 2 + 40}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          cursor: isDragging ? "grabbing" : "grab",
+          userSelect: "none",
+          touchAction: "none",
+          display: "block",
+          margin: "0 auto"
+        }}
+      >
+        {/* Pizza circle */}
+        <circle
+          cx={radius + 20}
+          cy={radius + 20}
+          r={radius}
+          fill="#FFB84D"
+          stroke="#D2691E"
+          strokeWidth={20}
+        />
+        {/* Diameter dimension arrow */}
+        <polygon points={`10,${radius + 20} 18,${radius + 14} 18,${radius + 26}`} fill="#fff" />
+        <line x1={18} y1={radius + 20} x2={radius * 2 + 22} y2={radius + 20} stroke="#fff" strokeWidth={5} />
+        <polygon points={`${radius * 2 + 30},${radius + 20} ${radius * 2 + 22},${radius + 14} ${radius * 2 + 22},${radius + 26}`} fill="#fff" />
+        <text
+          x={radius + 20}
+          y={radius + 10}
+          textAnchor="middle"
+          fontSize="40"
+          fill="#fff"
+          fontWeight="bold"
+          stroke="#000"
+          strokeWidth={1}
+        >
+          <tspan>{diameterInches}</tspan>
+          <tspan fontSize="30">"</tspan>
+        </text>
+      </svg>
 
       <div className="rectangle-container">
         <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
-          {/* Vertical dimension arrow (5") */}
-          <svg width={50} height={rectHeightPx + 4} style={{ marginTop: 0 }}>
-            {/* Top arrow */}
-            <line x1={15} y1={7} x2={15} y2={17} stroke="#666" strokeWidth={2} />
-            <polygon points="15,7 12,12 18,12" fill="#666" />
-            {/* Bottom arrow */}
-            <line x1={15} y1={rectHeightPx - 13} x2={15} y2={rectHeightPx - 3} stroke="#666" strokeWidth={2} />
-            <polygon points={`15,${rectHeightPx - 3} 12,${rectHeightPx - 8} 18,${rectHeightPx - 8}`} fill="#666" />
-            {/* Vertical line */}
-            <line x1={15} y1={17} x2={15} y2={rectHeightPx - 13} stroke="#666" strokeWidth={2} />
-            {/* Text with more space from arrow */}
-            <text
-              x={30}
-              y={(rectHeightPx + 4) / 2 + 4}
-              textAnchor="middle"
-              fontSize="14"
-              fill="#666"
-              transform={`rotate(-90, 30, ${(rectHeightPx + 4) / 2 + 4})`}
-            >
-              5"
-            </text>
-          </svg>
-
           <div>
-            <svg width={totalWidthPx + 4} height={rectHeightPx + 4} style={{ border: "1px solid #ccc" }}>
-              {/* Crust section (left side) */}
+            {/* Horizontal dimension arrow above rectangle */}
+            <svg width={rectHeightPx + 4} height={30} style={{ marginBottom: "0.5rem" }}>
+              {/* Left arrow */}
+              <polygon points="5,15 12,11 12,19" fill="#666" />
+              {/* Horizontal line */}
+              <line x1={12} y1={15} x2={rectHeightPx - 8} y2={15} stroke="#666" strokeWidth={4} />
+              {/* Right arrow */}
+              <polygon points={`${rectHeightPx - 1},15 ${rectHeightPx - 8},11 ${rectHeightPx - 8},19`} fill="#666" />
+              {/* Text */}
+              <text x={(rectHeightPx + 4) / 2} y={10} textAnchor="middle" fontSize="36" fill="#666" fontWeight="bold">
+                5"
+              </text>
+            </svg>
+
+            <div style={{ display: "flex", gap: "1rem" }}>
+              {/* Vertical dimension arrow on left */}
+              <svg width={60} height={totalWidthPx + 4}>
+                {/* Top arrow */}
+                <polygon points="45,0 41,8 49,8" fill="#666" />
+                {/* Vertical line */}
+                <line x1={45} y1={8} x2={45} y2={totalWidthPx - 4} stroke="#666" strokeWidth={4} />
+                {/* Bottom arrow */}
+                <polygon points={`45,${totalWidthPx + 4} 41,${totalWidthPx - 4} 49,${totalWidthPx - 4}`} fill="#666" />
+                {/* Text with rotation - positioned to the left */}
+                <text
+                  x={8}
+                  y={(totalWidthPx + 4) / 2}
+                  textAnchor="middle"
+                  fontSize="36"
+                  fill="#666"
+                  fontWeight="bold"
+                  transform={`rotate(-90, 8, ${(totalWidthPx + 4) / 2})`}
+                >
+                  {totalWidth.toFixed(1)}"
+                </text>
+              </svg>
+
+              {/* Vertical rectangle */}
+              <svg width={rectHeightPx + 4} height={totalWidthPx + 4} style={{ border: "1px solid #ccc" }}>
+              {/* Crust section (top) */}
               <rect
                 x={2}
                 y={2}
-                width={crustWidthPx}
-                height={rectHeightPx}
+                width={rectHeightPx}
+                height={crustWidthPx}
                 fill="#D2691E"
               />
-              {/* Cheese section (right side) */}
+              {/* Cheese section (bottom) */}
               <rect
-                x={crustWidthPx + 2}
-                y={2}
-                width={cheeseWidthPx}
-                height={rectHeightPx}
+                x={2}
+                y={crustWidthPx + 2}
+                width={rectHeightPx}
+                height={cheeseWidthPx}
                 fill="#FFB84D"
               />
               {/* Crust percentage label */}
               {crustWidthPx > 40 && (
                 <text
-                  x={crustWidthPx / 2 + 2}
-                  y={rectHeightPx / 2 + 6}
+                  x={rectHeightPx / 2 + 2}
+                  y={crustWidthPx / 2 + 6}
                   textAnchor="middle"
-                  fontSize="14"
+                  fontSize="18"
                   fill="#fff"
                   fontWeight="bold"
                 >
-                  {crustPercentage.toFixed(0)}%
+                  {crustPercentage.toFixed(0)}% crust
                 </text>
               )}
-            </svg>
+              </svg>
 
-            {/* Horizontal dimension arrow below */}
-            <div className="dimension-label">
-              <svg width={totalWidthPx + 4} height={30}>
-                {/* Left arrow */}
-                <line x1={5} y1={15} x2={15} y2={15} stroke="#666" strokeWidth={2} />
-                <polygon points="5,15 10,12 10,18" fill="#666" />
-                {/* Right arrow */}
-                <line x1={totalWidthPx - 11} y1={15} x2={totalWidthPx - 1} y2={15} stroke="#666" strokeWidth={2} />
-                <polygon points={`${totalWidthPx - 1},15 ${totalWidthPx - 6},12 ${totalWidthPx - 6},18`} fill="#666" />
-                {/* Horizontal line */}
-                <line x1={15} y1={15} x2={totalWidthPx - 11} y2={15} stroke="#666" strokeWidth={2} />
-                {/* Text */}
-                <text x={(totalWidthPx + 4) / 2} y={12} textAnchor="middle" fontSize="14" fill="#666">
+              {/* Vertical dimension arrow on right (mirror) */}
+              <svg width={60} height={totalWidthPx + 4}>
+                {/* Top arrow */}
+                <polygon points="15,0 11,8 19,8" fill="#fff" />
+                {/* Vertical line */}
+                <line x1={15} y1={8} x2={15} y2={totalWidthPx - 4} stroke="#fff" strokeWidth={4} />
+                {/* Bottom arrow */}
+                <polygon points={`15,${totalWidthPx + 4} 11,${totalWidthPx - 4} 19,${totalWidthPx - 4}`} fill="#fff" />
+                {/* Text with rotation - positioned to the right */}
+                <text
+                  x={52}
+                  y={(totalWidthPx + 4) / 2}
+                  textAnchor="middle"
+                  fontSize="36"
+                  fill="#fff"
+                  fontWeight="bold"
+                  transform={`rotate(-90, 52, ${(totalWidthPx + 4) / 2})`}
+                >
                   {totalWidth.toFixed(1)}"
                 </text>
               </svg>

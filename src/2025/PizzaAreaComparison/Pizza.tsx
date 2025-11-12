@@ -17,20 +17,17 @@ export const Pizza: React.FC<PizzaProps> = ({ radius, setRadius, strokeWidth }) 
   const centerX = svgSize / 2;
   const centerY = svgSize / 2;
 
-  // Helper function to get mouse position relative to SVG center
-  const getDistanceFromCenter = (clientX: number, clientY: number): number => {
+  // Helper function to get mouse Y position relative to SVG center
+  const getYPositionFromCenter = (clientY: number): number => {
     if (!svgRef.current) return 0;
     const rect = svgRef.current.getBoundingClientRect();
-    const svgCenterX = rect.left + rect.width / 2;
     const svgCenterY = rect.top + rect.height / 2;
-    const dx = clientX - svgCenterX;
-    const dy = clientY - svgCenterY;
-    return Math.sqrt(dx * dx + dy * dy);
+    return clientY - svgCenterY;
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
-    setStartDistance(getDistanceFromCenter(e.clientX, e.clientY));
+    setStartDistance(getYPositionFromCenter(e.clientY));
     setStartRadius(radius);
     e.preventDefault();
   };
@@ -38,11 +35,12 @@ export const Pizza: React.FC<PizzaProps> = ({ radius, setRadius, strokeWidth }) 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
 
-    const currentDistance = getDistanceFromCenter(e.clientX, e.clientY);
-    const deltaDistance = currentDistance - startDistance;
-    // Scale factor: 1 pixel of distance change = 1 pixel of radius change
+    const currentY = getYPositionFromCenter(e.clientY);
+    const deltaY = currentY - startDistance;
+    // Dragging down from top increases radius, dragging up decreases it
+    // Scale factor: 1 pixel of Y change = 1 pixel of radius change
     // Min radius 50px (2.5"), Max radius 200px (10") = Min diameter 5", Max diameter 20"
-    const newRadius = Math.max(50, Math.min(200, startRadius + deltaDistance));
+    const newRadius = Math.max(50, Math.min(200, startRadius + deltaY));
     // Snap to multiples of 10
     setRadius(Math.round(newRadius / 10) * 10);
   };
@@ -59,7 +57,7 @@ export const Pizza: React.FC<PizzaProps> = ({ radius, setRadius, strokeWidth }) 
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     const touch = e.touches[0];
-    setStartDistance(getDistanceFromCenter(touch.clientX, touch.clientY));
+    setStartDistance(getYPositionFromCenter(touch.clientY));
     setStartRadius(radius);
     e.preventDefault();
   };
@@ -68,10 +66,10 @@ export const Pizza: React.FC<PizzaProps> = ({ radius, setRadius, strokeWidth }) 
     if (!isDragging) return;
 
     const touch = e.touches[0];
-    const currentDistance = getDistanceFromCenter(touch.clientX, touch.clientY);
-    const deltaDistance = currentDistance - startDistance;
+    const currentY = getYPositionFromCenter(touch.clientY);
+    const deltaY = currentY - startDistance;
     // Min radius 50px (2.5"), Max radius 200px (10") = Min diameter 5", Max diameter 20"
-    const newRadius = Math.max(50, Math.min(200, startRadius + deltaDistance));
+    const newRadius = Math.max(50, Math.min(200, startRadius + deltaY));
     // Snap to multiples of 10
     setRadius(Math.round(newRadius / 10) * 10);
   };
