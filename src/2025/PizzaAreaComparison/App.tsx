@@ -112,15 +112,14 @@ const App = () => {
         <text
           x={radius + 20}
           y={radius + 10}
-          textAnchor="middle"
           fontSize="40"
           fill="#fff"
           fontWeight="bold"
           stroke="#000"
           strokeWidth={1}
         >
-          <tspan>{diameterInches}</tspan>
-          <tspan fontSize="30">"</tspan>
+          <tspan textAnchor="middle">{diameterInches}</tspan>
+          <tspan fontSize="30" textAnchor="start">"</tspan>
         </text>
       </svg>
 
@@ -128,37 +127,37 @@ const App = () => {
         <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
           <div>
             {/* Horizontal dimension arrow above rectangle */}
-            <svg width={rectHeightPx + 4} height={30} style={{ marginBottom: "0.5rem" }}>
+            <svg width={rectHeightPx + 4} height={60} style={{ marginBottom: "0.5rem" }}>
               {/* Left arrow */}
-              <polygon points="5,15 12,11 12,19" fill="#666" />
+              <polygon points="5,45 12,41 12,49" fill="#666" />
               {/* Horizontal line */}
-              <line x1={12} y1={15} x2={rectHeightPx - 8} y2={15} stroke="#666" strokeWidth={4} />
+              <line x1={12} y1={45} x2={rectHeightPx - 8} y2={45} stroke="#666" strokeWidth={4} />
               {/* Right arrow */}
-              <polygon points={`${rectHeightPx - 1},15 ${rectHeightPx - 8},11 ${rectHeightPx - 8},19`} fill="#666" />
+              <polygon points={`${rectHeightPx - 1},45 ${rectHeightPx - 8},41 ${rectHeightPx - 8},49`} fill="#666" />
               {/* Text */}
-              <text x={(rectHeightPx + 4) / 2} y={10} textAnchor="middle" fontSize="36" fill="#666" fontWeight="bold">
+              <text x={(rectHeightPx + 4) / 2} y={32} textAnchor="middle" fontSize="36" fill="#666" fontWeight="bold">
                 5"
               </text>
             </svg>
 
             <div style={{ display: "flex", gap: "1rem" }}>
               {/* Vertical dimension arrow on left */}
-              <svg width={60} height={totalWidthPx + 4}>
+              <svg width={120} height={totalWidthPx + 4}>
                 {/* Top arrow */}
-                <polygon points="45,0 41,8 49,8" fill="#666" />
+                <polygon points="75,0 71,8 79,8" fill="#666" />
                 {/* Vertical line */}
-                <line x1={45} y1={8} x2={45} y2={totalWidthPx - 4} stroke="#666" strokeWidth={4} />
+                <line x1={75} y1={8} x2={75} y2={totalWidthPx - 4} stroke="#666" strokeWidth={4} />
                 {/* Bottom arrow */}
-                <polygon points={`45,${totalWidthPx + 4} 41,${totalWidthPx - 4} 49,${totalWidthPx - 4}`} fill="#666" />
+                <polygon points={`75,${totalWidthPx + 4} 71,${totalWidthPx - 4} 79,${totalWidthPx - 4}`} fill="#666" />
                 {/* Text with rotation - positioned to the left */}
                 <text
-                  x={8}
+                  x={38}
                   y={(totalWidthPx + 4) / 2}
                   textAnchor="middle"
                   fontSize="36"
                   fill="#666"
                   fontWeight="bold"
-                  transform={`rotate(-90, 8, ${(totalWidthPx + 4) / 2})`}
+                  transform={`rotate(-90, 38, ${(totalWidthPx + 4) / 2})`}
                 >
                   {totalWidth.toFixed(1)}"
                 </text>
@@ -198,22 +197,22 @@ const App = () => {
               </svg>
 
               {/* Vertical dimension arrow on right (mirror) */}
-              <svg width={60} height={totalWidthPx + 4}>
+              <svg width={120} height={totalWidthPx + 4}>
                 {/* Top arrow */}
-                <polygon points="15,0 11,8 19,8" fill="#fff" />
+                <polygon points="45,0 41,8 49,8" fill="#fff" />
                 {/* Vertical line */}
-                <line x1={15} y1={8} x2={15} y2={totalWidthPx - 4} stroke="#fff" strokeWidth={4} />
+                <line x1={45} y1={8} x2={45} y2={totalWidthPx - 4} stroke="#fff" strokeWidth={4} />
                 {/* Bottom arrow */}
-                <polygon points={`15,${totalWidthPx + 4} 11,${totalWidthPx - 4} 19,${totalWidthPx - 4}`} fill="#fff" />
+                <polygon points={`45,${totalWidthPx + 4} 41,${totalWidthPx - 4} 49,${totalWidthPx - 4}`} fill="#fff" />
                 {/* Text with rotation - positioned to the right */}
                 <text
-                  x={52}
+                  x={82}
                   y={(totalWidthPx + 4) / 2}
                   textAnchor="middle"
                   fontSize="36"
                   fill="#fff"
                   fontWeight="bold"
-                  transform={`rotate(-90, 52, ${(totalWidthPx + 4) / 2})`}
+                  transform={`rotate(-90, 82, ${(totalWidthPx + 4) / 2})`}
                 >
                   {totalWidth.toFixed(1)}"
                 </text>
