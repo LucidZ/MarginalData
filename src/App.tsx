@@ -11,6 +11,7 @@ const FederalEmployment = lazy(() => import("./2025/FederalEmployment"));
 const FuelEconomyTool = lazy(() => import("./2025/FuelEconomyTool"));
 const FuelEconomyCurve = lazy(() => import("./2025/FuelEconomyCurve"));
 const PizzaAreaComparison = lazy(() => import("./2025/PizzaAreaComparison"));
+const SolarAnimation = lazy(() => import("./2025/SolarAnimation"));
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/2025/FuelEconomyTool" element={<FuelEconomyTool />} />
             <Route path="/2025/FuelEconomyCurve" element={<FuelEconomyCurve />} />
             <Route path="/2025/PizzaAreaComparison" element={<PizzaAreaComparison />} />
+            <Route path="/2025/SolarAnimation" element={<SolarAnimation />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>

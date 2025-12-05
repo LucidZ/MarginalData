@@ -1,0 +1,25 @@
+.solar-animation-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+.solar-animation-container svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.solar-animation-container button {
+  font-family: inherit;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .solar-animation-container svg {
+    width: 100%;
+    height: auto;
+  }
+}
