@@ -3,32 +3,74 @@ import { useData } from "./useData";
 import { DailyCurvesChart } from "./DailyCurvesChart";
 import { YearOverviewChart } from "./YearOverviewChart";
 import { PlayControls } from "./PlayControls";
+import { StepOverlay } from "./StepOverlay";
+import { StepControls } from "./StepControls";
 import type { KeyDate } from "./types";
 import "./App.css";
 
 const ANIMATION_SPEED = 100; // milliseconds per day
+const TOTAL_STEPS = 8;
 
 export default function App() {
   const data = useData();
+  const [step, setStep] = useState(0);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [permanentDays, setPermanentDays] = useState<Set<number>>(new Set());
-  const [displayedKeyDates, setDisplayedKeyDates] = useState<Set<string>>(new Set());
+  const [hoveredDayIndex, setHoveredDayIndex] = useState<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(Date.now());
 
-  // Check if current day is a key date (only peak and min)
-  const currentKeyDate: KeyDate | null =
-    data?.key_dates.find(
-      (kd) =>
-        kd.date === data.daily_totals[currentDayIndex]?.date &&
-        (kd.label === "Peak Generation Day" ||
-          kd.label === "Minimum Generation Day")
-    ) || null;
+  // Find specific day indices
+  const sunnyDayIndex = data?.daily_totals.findIndex((d) => d.date === "2024-06-21") ?? 0; // Summer solstice
+  const cloudyDayIndex = data?.daily_totals.findIndex((d) => d.date === "2024-06-23") ?? 14; // A cloudy summer day (2 days after June 21)
+  const minDayIndex = data?.daily_totals.findIndex(
+    (d) => d.date === data?.key_dates.find((kd) => kd.label === "Minimum Generation Day")?.date
+  ) ?? 21;
+  const maxDayIndex = data?.daily_totals.findIndex(
+    (d) => d.date === data?.key_dates.find((kd) => kd.label === "Peak Generation Day")?.date
+  ) ?? 180;
 
-  // Animation loop using requestAnimationFrame
+  // Step-specific effects
   useEffect(() => {
-    if (!isPlaying || !data) return;
+    if (!data) return;
+
+    switch (step) {
+      case 1: // Show single sunny day
+        setCurrentDayIndex(sunnyDayIndex);
+        setPermanentDays(new Set());
+        break;
+      case 2: // Add cloudy day
+        setCurrentDayIndex(cloudyDayIndex);
+        setPermanentDays(new Set([sunnyDayIndex]));
+        break;
+      case 3: // Show yearly pattern
+        const june25Index = sunnyDayIndex + 4;
+        setCurrentDayIndex(june25Index); // June 25 (4 days after June 21)
+        setPermanentDays(new Set()); // No permanent days - focus on the timeline
+        break;
+      case 4: // Jump to minimum day
+        setCurrentDayIndex(minDayIndex);
+        setPermanentDays(new Set([minDayIndex]));
+        break;
+      case 5: // Jump to maximum day
+        setCurrentDayIndex(maxDayIndex);
+        setPermanentDays(new Set([minDayIndex, maxDayIndex]));
+        break;
+      case 6: // Start full year animation
+        setCurrentDayIndex(0);
+        setPermanentDays(new Set());
+        setIsPlaying(true);
+        break;
+      case 7: // Free exploration mode
+        setIsPlaying(false);
+        break;
+    }
+  }, [step, data, sunnyDayIndex, cloudyDayIndex, minDayIndex, maxDayIndex]);
+
+  // Animation loop
+  useEffect(() => {
+    if (!isPlaying || !data || step !== 6) return;
 
     const animate = () => {
       const now = Date.now();
@@ -38,7 +80,7 @@ export default function App() {
         setCurrentDayIndex((prev) => {
           const nextDayIndex = prev + 1;
           if (nextDayIndex < data.metadata.total_days) {
-            // Check if this is a key date (peak or min) and add to permanent set
+            // Check for key dates
             const nextDate = data.daily_totals[nextDayIndex].date;
             const keyDate = data.key_dates.find(
               (kd) =>
@@ -49,13 +91,13 @@ export default function App() {
 
             if (keyDate) {
               setPermanentDays((prev) => new Set(prev).add(nextDayIndex));
-              setDisplayedKeyDates((prev) => new Set(prev).add(keyDate.label));
             }
 
             return nextDayIndex;
           } else {
-            // Reached end
+            // Animation complete, move to final step
             setIsPlaying(false);
+            setStep(7);
             return prev;
           }
         });
@@ -72,18 +114,39 @@ export default function App() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, data]);
+  }, [isPlaying, data, step]);
 
-  const handlePlayPause = () => {
-    if (!isPlaying && currentDayIndex >= (data?.metadata.total_days || 1) - 1) {
-      // Reset if at end
-      setCurrentDayIndex(0);
-      setPermanentDays(new Set());
-      setDisplayedKeyDates(new Set());
+  const handleNext = () => {
+    if (step < TOTAL_STEPS - 1) {
+      setStep(step + 1);
     }
+  };
 
-    lastUpdateTimeRef.current = Date.now();
-    setIsPlaying(!isPlaying);
+  const handleBack = () => {
+    if (step > 0) {
+      setStep(step - 1);
+      setIsPlaying(false);
+    }
+  };
+
+  const handleTimelineHover = (dayIndex: number | null) => {
+    if (step === 7) {
+      setHoveredDayIndex(dayIndex);
+    }
+  };
+
+  const handleTimelineClick = (dayIndex: number) => {
+    if (step === 7) {
+      setPermanentDays((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(dayIndex)) {
+          newSet.delete(dayIndex);
+        } else {
+          newSet.add(dayIndex);
+        }
+        return newSet;
+      });
+    }
   };
 
   if (!data) {
@@ -103,83 +166,86 @@ export default function App() {
     );
   }
 
-  const trailingDays = 7;
-
-  // Chart dimensions
+  const trailingDays = step === 3 ? 7 : 0; // Only show trailing days on step 3 (4/8)
   const width = 1000;
   const curvesHeight = 400;
   const overviewHeight = 150;
-
   const curvesMargin = { top: 40, right: 40, bottom: 60, left: 80 };
   const overviewMargin = { top: 20, right: 40, bottom: 40, left: 80 };
 
   const dates = data.daily_totals.map((d) => d.date);
-  const currentDate = dates[currentDayIndex];
+  const displayDayIndex = hoveredDayIndex ?? currentDayIndex;
+  const currentDate = dates[displayDayIndex];
+
+  const currentKeyDate: KeyDate | null =
+    data.key_dates.find(
+      (kd) =>
+        kd.date === data.daily_totals[currentDayIndex]?.date &&
+        (kd.label === "Peak Generation Day" ||
+          kd.label === "Minimum Generation Day")
+    ) || null;
+
+  const showOverview = step >= 3;
+  const showPlayControls = step === 6;
 
   return (
     <div className="solar-animation-container">
-      <h1
-        style={{
-          textAlign: "center",
-          color: "#333",
-          marginBottom: "10px",
-        }}
-      >
-        California Solar Generation 2024
-      </h1>
-      <p
-        style={{
-          textAlign: "center",
-          color: "#666",
-          marginBottom: "30px",
-          fontSize: "14px",
-        }}
-      >
-        Explore how solar generation varies throughout the year
-      </p>
+      {/* Step overlay/instructions - always at the top */}
+      {step === 0 && (
+        <div style={{ marginBottom: "40px" }}>
+          <StepOverlay step={step} onBegin={handleNext} />
+        </div>
+      )}
 
-      <PlayControls
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        currentDate={currentDate}
-        keyDateInfo={currentKeyDate}
+      {step > 0 && step < 7 && (
+        <div
+          style={{
+            position: "relative",
+            minHeight: "60px",
+            textAlign: "center",
+            marginBottom: "40px",
+          }}
+        >
+          <StepOverlay step={step} />
+        </div>
+      )}
+
+      {step === 7 && (
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "40px",
+            color: "#666",
+            fontSize: "16px",
+          }}
+        >
+          <strong>Explore:</strong> Hover over the timeline to see any day. Click to pin days for comparison.
+        </div>
+      )}
+
+      {/* Navigation controls - above the charts */}
+      <StepControls
+        step={step}
+        totalSteps={TOTAL_STEPS}
+        onNext={handleNext}
+        onBack={handleBack}
       />
 
-      {/* Key date text overlays - simple text without background */}
-      <div style={{ position: "relative", minHeight: "60px" }}>
-        {data.key_dates
-          .filter(
-            (kd) =>
-              displayedKeyDates.has(kd.label) &&
-              (kd.label === "Peak Generation Day" ||
-                kd.label === "Minimum Generation Day")
-          )
-          .map((kd, index) => (
-            <div
-              key={kd.label}
-              style={{
-                textAlign: "center",
-                color: "#666",
-                fontSize: "13px",
-                marginTop: index === 0 ? "0" : "8px",
-                lineHeight: "1.5",
-              }}
-            >
-              <strong style={{ color: "#e74c3c" }}>
-                {kd.label} ({new Date(kd.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })})
-              </strong>
-              : {kd.commentary}
-            </div>
-          ))}
-      </div>
+      {showPlayControls && (
+        <PlayControls
+          isPlaying={isPlaying}
+          onPlayPause={() => setIsPlaying(!isPlaying)}
+          currentDate={currentDate}
+          keyDateInfo={currentKeyDate}
+        />
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
-        {/* Daily Curves Chart (Top) */}
         <svg width={width} height={curvesHeight}>
           <DailyCurvesChart
-            currentDayIndex={currentDayIndex}
+            currentDayIndex={step === 3 ? -1 : displayDayIndex}
             trailingDays={trailingDays}
-            permanentDays={permanentDays}
+            permanentDays={step === 3 ? new Set() : permanentDays}
             curves={data.intraday_curves}
             dates={dates}
             width={width}
@@ -188,61 +254,88 @@ export default function App() {
           />
         </svg>
 
-        {/* Year Overview Chart (Bottom) */}
-        <svg width={width} height={overviewHeight}>
-          <YearOverviewChart
-            dailyTotals={data.daily_totals}
-            currentDayIndex={currentDayIndex}
-            width={width}
-            height={overviewHeight}
-            margin={overviewMargin}
-          />
-        </svg>
+        {showOverview && (
+          <svg width={width} height={overviewHeight}>
+            <YearOverviewChart
+              dailyTotals={data.daily_totals}
+              currentDayIndex={currentDayIndex}
+              hoveredDayIndex={hoveredDayIndex}
+              width={width}
+              height={overviewHeight}
+              margin={overviewMargin}
+              onHover={handleTimelineHover}
+              onClick={handleTimelineClick}
+              interactive={step === 7}
+              showCurrentDay={step !== 3 && step !== 7}
+            />
+          </svg>
+        )}
       </div>
 
-      {/* Sources */}
-      <div
-        style={{
-          marginTop: "40px",
-          padding: "20px",
-          borderTop: "1px solid #ddd",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#888" }}>
-          <strong>Data Sources:</strong>
-        </p>
-        <p style={{ margin: "0", fontSize: "11px", color: "#999", lineHeight: "1.6" }}>
-          Solar generation data from{" "}
-          <a
-            href="https://www.caiso.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#ff8c00" }}
+      {step === 7 && permanentDays.size > 0 && (
+        <div style={{ textAlign: "center", marginTop: "20px" }}>
+          <button
+            onClick={() => setPermanentDays(new Set())}
+            style={{
+              fontSize: "14px",
+              padding: "8px 20px",
+              backgroundColor: "#ddd",
+              color: "#333",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "500",
+            }}
           >
-            CAISO
-          </a>{" "}
-          (California Independent System Operator) via{" "}
-          <a
-            href="https://github.com/kmax12/gridstatus"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#ff8c00" }}
-          >
-            GridStatus
-          </a>
-          . Solar irradiance data from NREL's{" "}
-          <a
-            href="https://nsrdb.nrel.gov/"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#ff8c00" }}
-          >
-            NSRDB
-          </a>{" "}
-          (National Solar Radiation Database).
-        </p>
-      </div>
+            Clear All Pinned Days
+          </button>
+        </div>
+      )}
+
+      {step === 7 && (
+        <div
+          style={{
+            marginTop: "40px",
+            padding: "20px",
+            borderTop: "1px solid #ddd",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#888" }}>
+            <strong>Data Sources:</strong>
+          </p>
+          <p style={{ margin: "0", fontSize: "11px", color: "#999", lineHeight: "1.6" }}>
+            Solar generation data from{" "}
+            <a
+              href="https://www.caiso.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#ff8c00" }}
+            >
+              CAISO
+            </a>{" "}
+            (California Independent System Operator) via{" "}
+            <a
+              href="https://github.com/kmax12/gridstatus"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#ff8c00" }}
+            >
+              GridStatus
+            </a>
+            . Solar irradiance data from NREL's{" "}
+            <a
+              href="https://nsrdb.nrel.gov/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#ff8c00" }}
+            >
+              NSRDB
+            </a>{" "}
+            (National Solar Radiation Database).
+          </p>
+        </div>
+      )}
     </div>
   );
 }
