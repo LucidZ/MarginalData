@@ -11,6 +11,75 @@ import "./App.css";
 const ANIMATION_SPEED = 100; // milliseconds per day
 const TOTAL_STEPS = 8;
 
+const useResponsiveDimensions = () => {
+  const [dimensions, setDimensions] = useState({
+    width: 1000,
+    curvesHeight: 400,
+    overviewHeight: 150,
+  });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      const containerPadding = 40;
+      const availableWidth = window.innerWidth - containerPadding;
+
+      // Max dimensions
+      const maxWidth = 1000;
+      const maxCurvesHeight = 400;
+      const maxOverviewHeight = 150;
+
+      // Min dimensions
+      const minWidth = 320;
+      const minCurvesHeight = 250;
+      const minOverviewHeight = 100;
+
+      // Calculate final dimensions
+      const finalWidth = Math.max(Math.min(availableWidth, maxWidth), minWidth);
+
+      // Scale heights proportionally on smaller screens
+      const scale = finalWidth / maxWidth;
+      const finalCurvesHeight = Math.max(
+        Math.min(maxCurvesHeight * scale, maxCurvesHeight),
+        minCurvesHeight
+      );
+      const finalOverviewHeight = Math.max(
+        Math.min(maxOverviewHeight * scale, maxOverviewHeight),
+        minOverviewHeight
+      );
+
+      setDimensions({
+        width: finalWidth,
+        curvesHeight: finalCurvesHeight,
+        overviewHeight: finalOverviewHeight,
+      });
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
+
+  return dimensions;
+};
+
+const getResponsiveMargins = (width: number) => {
+  const isMobile = width < 600;
+  return {
+    curves: {
+      top: 40,
+      right: isMobile ? 20 : 40,
+      bottom: isMobile ? 50 : 60,
+      left: isMobile ? 50 : 80,
+    },
+    overview: {
+      top: 20,
+      right: isMobile ? 20 : 40,
+      bottom: isMobile ? 35 : 40,
+      left: isMobile ? 50 : 80,
+    },
+  };
+};
+
 export default function App() {
   const data = useData();
   const [step, setStep] = useState(0);
@@ -20,6 +89,9 @@ export default function App() {
   const [hoveredDayIndex, setHoveredDayIndex] = useState<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(Date.now());
+
+  const { width, curvesHeight, overviewHeight } = useResponsiveDimensions();
+  const margins = getResponsiveMargins(width);
 
   // Find specific day indices
   const sunnyDayIndex = data?.daily_totals.findIndex((d) => d.date === "2024-06-21") ?? 0; // Summer solstice
@@ -129,6 +201,14 @@ export default function App() {
     }
   };
 
+  // Clear displayed days when entering the final exploration step
+  useEffect(() => {
+    if (step === 7) {
+      setPermanentDays(new Set());
+      setHoveredDayIndex(null);
+    }
+  }, [step]);
+
   const handleTimelineHover = (dayIndex: number | null) => {
     if (step === 7) {
       setHoveredDayIndex(dayIndex);
@@ -167,15 +247,15 @@ export default function App() {
   }
 
   const trailingDays = step === 3 ? 7 : 0; // Only show trailing days on step 3 (4/8)
-  const width = 1000;
-  const curvesHeight = 400;
-  const overviewHeight = 150;
-  const curvesMargin = { top: 40, right: 40, bottom: 60, left: 80 };
-  const overviewMargin = { top: 20, right: 40, bottom: 40, left: 80 };
+  const curvesMargin = margins.curves;
+  const overviewMargin = margins.overview;
 
   const dates = data.daily_totals.map((d) => d.date);
-  const displayDayIndex = hoveredDayIndex ?? currentDayIndex;
-  const currentDate = dates[displayDayIndex];
+  // On step 7, only show day when hovering (not a default day)
+  const displayDayIndex = step === 7
+    ? (hoveredDayIndex !== null ? hoveredDayIndex : -1)
+    : (hoveredDayIndex ?? currentDayIndex);
+  const currentDate = dates[displayDayIndex >= 0 ? displayDayIndex : currentDayIndex];
 
   const currentKeyDate: KeyDate | null =
     data.key_dates.find(
@@ -191,13 +271,7 @@ export default function App() {
   return (
     <div className="solar-animation-container">
       {/* Step overlay/instructions - always at the top */}
-      {step === 0 && (
-        <div style={{ marginBottom: "40px" }}>
-          <StepOverlay step={step} onBegin={handleNext} />
-        </div>
-      )}
-
-      {step > 0 && step < 7 && (
+      {step >= 0 && step < 7 && (
         <div
           style={{
             position: "relative",
@@ -216,10 +290,10 @@ export default function App() {
             textAlign: "center",
             marginBottom: "40px",
             color: "#666",
-            fontSize: "16px",
+            fontSize: "clamp(14px, 3vw, 16px)",
           }}
         >
-          <strong>Explore:</strong> Hover over the timeline to see any day. Click to pin days for comparison.
+          <strong>Explore:</strong> Hover (or drag on mobile) over the timeline to see any day. Click or release to pin days for comparison.
         </div>
       )}
 
@@ -243,9 +317,9 @@ export default function App() {
       <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
         <svg width={width} height={curvesHeight}>
           <DailyCurvesChart
-            currentDayIndex={step === 3 ? -1 : displayDayIndex}
+            currentDayIndex={step === 0 || step === 3 ? -1 : displayDayIndex}
             trailingDays={trailingDays}
-            permanentDays={step === 3 ? new Set() : permanentDays}
+            permanentDays={step === 0 || step === 3 ? new Set() : permanentDays}
             curves={data.intraday_curves}
             dates={dates}
             width={width}

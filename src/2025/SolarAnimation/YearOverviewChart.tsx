@@ -101,6 +101,58 @@ export const YearOverviewChart = ({
     }
   };
 
+  // Touch event handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent<SVGRectElement>) => {
+    if (!interactive) return;
+    e.preventDefault(); // Prevent scrolling while dragging
+
+    const svgRect = e.currentTarget.getBoundingClientRect();
+    const touchX = e.touches[0].clientX - svgRect.left;
+
+    // Find closest day index
+    const touchedDate = xScale.invert(touchX);
+    const dayIndex = dailyTotals.findIndex((d) => {
+      const date = new Date(d.date);
+      return Math.abs(date.getTime() - touchedDate.getTime()) < 12 * 60 * 60 * 1000;
+    });
+
+    if (dayIndex !== -1) {
+      onHover(dayIndex);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<SVGRectElement>) => {
+    if (!interactive) return;
+    e.preventDefault(); // Prevent scrolling while dragging
+
+    const svgRect = e.currentTarget.getBoundingClientRect();
+    const touchX = e.touches[0].clientX - svgRect.left;
+
+    // Find closest day index
+    const touchedDate = xScale.invert(touchX);
+    const dayIndex = dailyTotals.findIndex((d) => {
+      const date = new Date(d.date);
+      return Math.abs(date.getTime() - touchedDate.getTime()) < 12 * 60 * 60 * 1000;
+    });
+
+    if (dayIndex !== -1 && dayIndex !== hoveredDayIndex) {
+      onHover(dayIndex);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<SVGRectElement>) => {
+    if (!interactive) return;
+    e.preventDefault();
+
+    // Pin the currently hovered day
+    if (hoveredDayIndex !== null) {
+      onClick(hoveredDayIndex);
+    }
+
+    // Clear hover state
+    onHover(null);
+  };
+
   // Calculate hover indicator position
   const hoveredX = hoveredDayIndex !== null
     ? xScale(new Date(dailyTotals[hoveredDayIndex].date))
@@ -293,7 +345,7 @@ export const YearOverviewChart = ({
         </>
       )}
 
-      {/* Interactive overlay rect for mouse events */}
+      {/* Interactive overlay rect for mouse and touch events */}
       <rect
         x={0}
         y={0}
@@ -303,7 +355,10 @@ export const YearOverviewChart = ({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
-        style={{ cursor: interactive ? "pointer" : "default" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ cursor: interactive ? "pointer" : "default", touchAction: "none" }}
       />
     </g>
   );

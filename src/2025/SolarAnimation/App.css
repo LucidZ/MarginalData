@@ -16,10 +16,9 @@
   font-family: inherit;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .solar-animation-container svg {
-    width: 100%;
-    height: auto;
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .solar-animation-container {
+    padding: 20px 10px;
   }
 }

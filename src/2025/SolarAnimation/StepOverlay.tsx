@@ -1,9 +1,8 @@
 interface StepOverlayProps {
   step: number;
-  onBegin?: () => void;
 }
 
-export const StepOverlay = ({ step, onBegin }: StepOverlayProps) => {
+export const StepOverlay = ({ step }: StepOverlayProps) => {
   const stepContent = [
     {
       // Step 0: Introduction
@@ -18,7 +17,7 @@ export const StepOverlay = ({ step, onBegin }: StepOverlayProps) => {
     {
       // Step 2: Weather Variations
       title: "Weather Matters",
-      text: "Two days later on June 23, atmospheric conditions like clouds and fog significantly reduce solar output compared to the clear day.",
+      text: "Two days later on June 23, atmospheric conditions like clouds and fog reduce solar output compared to the clear day.",
     },
     {
       // Step 3: Yearly Pattern
@@ -52,13 +51,14 @@ export const StepOverlay = ({ step, onBegin }: StepOverlayProps) => {
   return (
     <div
       style={{
-        position: step === 0 ? "relative" : "absolute",
-        top: step === 0 ? "auto" : "50%",
-        left: step === 0 ? "auto" : "50%",
-        transform: step === 0 ? "none" : "translate(-50%, -50%)",
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "calc(100vw - 60px)",
         maxWidth: "500px",
-        margin: step === 0 ? "0 auto" : "0",
-        padding: "30px",
+        margin: "0",
+        padding: "clamp(20px, 4vw, 30px)",
         backgroundColor: "rgba(255, 255, 255, 0.95)",
         border: "2px solid #ff8c00",
         borderRadius: "12px",
@@ -72,7 +72,7 @@ export const StepOverlay = ({ step, onBegin }: StepOverlayProps) => {
         style={{
           margin: "0 0 15px 0",
           color: "#333",
-          fontSize: "24px",
+          fontSize: "clamp(20px, 4vw, 24px)",
           fontWeight: "bold",
         }}
       >
@@ -82,38 +82,12 @@ export const StepOverlay = ({ step, onBegin }: StepOverlayProps) => {
         style={{
           margin: 0,
           color: "#555",
-          fontSize: "16px",
+          fontSize: "clamp(14px, 3vw, 16px)",
           lineHeight: "1.6",
         }}
       >
         {content.text}
       </p>
-
-      {step === 0 && onBegin && (
-        <button
-          onClick={onBegin}
-          style={{
-            marginTop: "24px",
-            fontSize: "18px",
-            padding: "12px 32px",
-            backgroundColor: "#ff8c00",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#e67e00";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#ff8c00";
-          }}
-        >
-          Begin →
-        </button>
-      )}
     </div>
   );
 };
