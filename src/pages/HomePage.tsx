@@ -42,6 +42,11 @@ export default function Home() {
               How much more pizza is a large?
             </Link>
           </li>
+          <li>
+            <Link to="/2025/SolarAnimation">
+              Solar Generation Explorer
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
