@@ -18,6 +18,8 @@
 ## Project Structure
 
 ### Component Organization
+- **All new visualizations/tools must be React components** - not standalone HTML files
+- Follow the same pattern as existing tools (USAIDSize, ForeignAid, SolarAnimation, etc.)
 - **One component per file** - no giant monolithic App.tsx files
 - Break features into multiple smaller components
 - Place related components in feature directories (e.g., `src/2025/SolarAnimation/`)

@@ -47,6 +47,11 @@ export default function Home() {
               Solar Generation Explorer
             </Link>
           </li>
+          <li>
+            <Link to="/2025/ImageScrambler">
+              Image Scrambler
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
