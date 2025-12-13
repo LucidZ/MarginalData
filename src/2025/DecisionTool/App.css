@@ -1,0 +1,295 @@
+.decision-tool {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.decision-tool header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.decision-tool h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.decision-tool .subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+.tool-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* Comparison Table Styles */
+.comparison-table {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.comparison-table h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.table-headers {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 50px;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #555;
+}
+
+.table-headers input {
+  font-weight: 600;
+  text-align: center;
+  padding: 8px;
+  border: 2px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.table-headers input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 50px;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.table-row:hover {
+  background-color: #f5f5f5;
+}
+
+.table-row.active {
+  background-color: #e3f2fd;
+  border: 2px solid #4a90e2;
+}
+
+.table-row.placed {
+  opacity: 0.6;
+}
+
+.table-row input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.table-row input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.table-row button {
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px;
+}
+
+.table-row button:hover {
+  background: #cc0000;
+}
+
+.add-row-button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.add-row-button:hover {
+  background: #357abd;
+}
+
+/* Value Joy Chart Styles */
+.value-joy-chart {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.value-joy-chart h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  touch-action: none;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.axis-line {
+  stroke: #666;
+  stroke-width: 2;
+}
+
+.axis-label {
+  fill: #333;
+  font-size: 14px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.grid-line {
+  stroke: #e0e0e0;
+  stroke-width: 1;
+  stroke-dasharray: 4;
+}
+
+.dot {
+  cursor: grab;
+  transition: r 0.2s;
+}
+
+.dot:hover {
+  r: 10;
+}
+
+.dot:active {
+  cursor: grabbing;
+}
+
+.dot.option-a {
+  fill: #4a90e2;
+  stroke: #2c5aa0;
+  stroke-width: 2;
+}
+
+.dot.option-b {
+  fill: #ff8c42;
+  stroke: #cc6a2a;
+  stroke-width: 2;
+}
+
+.connecting-line {
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.category-label {
+  fill: #333;
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+.instruction-text {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 20px;
+  font-size: 0.9rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.legend-dot.option-a {
+  background-color: #4a90e2;
+  border-color: #2c5aa0;
+}
+
+.legend-dot.option-b {
+  background-color: #ff8c42;
+  border-color: #cc6a2a;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .decision-tool h1 {
+    font-size: 2rem;
+  }
+
+  .decision-tool .subtitle {
+    font-size: 1rem;
+  }
+
+  .table-headers,
+  .table-row {
+    grid-template-columns: 1.5fr 1.5fr 1.5fr 40px;
+    gap: 5px;
+    font-size: 0.85rem;
+  }
+
+  .table-headers input,
+  .table-row input {
+    padding: 6px;
+    font-size: 0.85rem;
+  }
+
+  .comparison-table,
+  .value-joy-chart {
+    padding: 15px;
+  }
+
+  .axis-label {
+    font-size: 12px;
+  }
+
+  .category-label {
+    font-size: 10px;
+  }
+}

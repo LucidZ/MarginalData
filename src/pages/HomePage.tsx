@@ -52,6 +52,11 @@ export default function Home() {
               Image Scrambler
             </Link>
           </li>
+          <li>
+            <Link to="/2025/DecisionTool">
+              Decision Tool
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
