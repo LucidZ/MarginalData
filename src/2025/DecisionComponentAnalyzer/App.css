@@ -410,11 +410,11 @@
   }
 
   .decision-tool .subtitle {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .intro-text {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     padding: 0 10px;
   }
 
@@ -426,7 +426,7 @@
   .table-row {
     grid-template-columns: 25px 1.2fr 1.5fr 1.5fr 35px;
     gap: 4px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
   .drag-handle {
@@ -436,7 +436,7 @@
   .table-headers input,
   .table-row input {
     padding: 6px 4px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
   .comparison-table,
@@ -449,34 +449,38 @@
   .comparison-table h2,
   .value-joy-chart h2,
   .component-sliders h2 {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     margin-bottom: 12px;
   }
 
   .step-description {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     margin: -8px 0 12px 0;
   }
 
   .axis-label {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .category-label {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .endpoint-label {
-    font-size: 11px;
+    font-size: 12px;
+  }
+
+  .aggregate-label {
+    font-size: 13px;
   }
 
   .tool-footer {
     padding: 15px 10px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .tool-footer .insight-tip {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .tool-footer .insight-tip ul {
@@ -651,7 +655,7 @@
   }
 
   .component-sliders h2 {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     margin-bottom: 12px;
   }
 
@@ -661,7 +665,7 @@
 
   .slider-axis-labels {
     padding: 0 70px;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     margin-bottom: 8px;
   }
 
@@ -672,12 +676,12 @@
   }
 
   .slider-label {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     padding-right: 6px;
   }
 
   .slider-section-title {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     margin-bottom: 10px;
   }
 
@@ -686,7 +690,7 @@
   }
 
   .marker-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     top: -20px;
     padding: 1px 4px;
   }
@@ -697,7 +701,7 @@
   }
 
   .tick-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     top: 18px;
   }
 }

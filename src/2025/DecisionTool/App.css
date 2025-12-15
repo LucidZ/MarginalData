@@ -389,11 +389,11 @@
   }
 
   .decision-tool .subtitle {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .intro-text {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     padding: 0 10px;
   }
 
@@ -405,7 +405,7 @@
   .table-row {
     grid-template-columns: 25px 1.2fr 1.5fr 1.5fr 35px;
     gap: 4px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
   .drag-handle {
@@ -415,7 +415,7 @@
   .table-headers input,
   .table-row input {
     padding: 6px 4px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
   .comparison-table,
@@ -426,38 +426,42 @@
 
   .comparison-table h2,
   .value-joy-chart h2 {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     margin-bottom: 12px;
   }
 
   .step-description {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     margin: -8px 0 12px 0;
   }
 
   .instruction-text {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     margin-bottom: 15px;
   }
 
   .axis-label {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .axis-title {
-    font-size: 10px;
-  }
-
-  .category-label {
-    font-size: 9px;
-  }
-
-  .endpoint-label {
     font-size: 11px;
   }
 
+  .category-label {
+    font-size: 11px;
+  }
+
+  .endpoint-label {
+    font-size: 12px;
+  }
+
+  .aggregate-label {
+    font-size: 13px;
+  }
+
   .chart-legend {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     gap: 20px;
   }
 
@@ -468,11 +472,11 @@
 
   .tool-footer {
     padding: 15px 10px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .tool-footer .insight-tip {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .tool-footer .insight-tip ul {
