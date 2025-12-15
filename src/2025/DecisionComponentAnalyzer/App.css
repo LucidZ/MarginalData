@@ -401,42 +401,90 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  .decision-tool {
+    padding: 10px;
+  }
+
   .decision-tool h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
   .decision-tool .subtitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .intro-text {
+    font-size: 0.85rem;
+    padding: 0 10px;
+  }
+
+  .tool-container {
+    gap: 25px;
   }
 
   .table-headers,
   .table-row {
-    grid-template-columns: 25px 1.5fr 1.5fr 1.5fr 35px;
-    gap: 5px;
-    font-size: 0.85rem;
+    grid-template-columns: 25px 1.2fr 1.5fr 1.5fr 35px;
+    gap: 4px;
+    font-size: 0.8rem;
   }
 
   .drag-handle {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .table-headers input,
   .table-row input {
-    padding: 6px;
-    font-size: 0.85rem;
+    padding: 6px 4px;
+    font-size: 0.8rem;
   }
 
   .comparison-table,
-  .value-joy-chart {
-    padding: 15px;
+  .value-joy-chart,
+  .component-sliders {
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .comparison-table h2,
+  .value-joy-chart h2,
+  .component-sliders h2 {
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+  }
+
+  .step-description {
+    font-size: 0.85rem;
+    margin: -8px 0 12px 0;
   }
 
   .axis-label {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .category-label {
-    font-size: 10px;
+    font-size: 9px;
+  }
+
+  .endpoint-label {
+    font-size: 11px;
+  }
+
+  .tool-footer {
+    padding: 15px 10px;
+    font-size: 0.85rem;
+  }
+
+  .tool-footer .insight-tip {
+    font-size: 0.85rem;
+  }
+
+  .tool-footer .insight-tip ul {
+    padding-left: 1.2rem;
+  }
+
+  .tool-footer .insight-tip li {
+    margin-bottom: 0.3rem;
   }
 }
 
@@ -596,32 +644,60 @@
   font-weight: 500;
 }
 
-/* Mobile Responsive */
+/* Mobile Responsive for Sliders */
 @media (max-width: 768px) {
   .component-sliders {
-    padding: 15px;
+    padding: 12px;
+  }
+
+  .component-sliders h2 {
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+  }
+
+  .slider-section {
+    margin-bottom: 30px;
   }
 
   .slider-axis-labels {
-    padding: 0 80px;
-    font-size: 0.75rem;
+    padding: 0 70px;
+    font-size: 0.7rem;
+    margin-bottom: 8px;
   }
 
   .slider-row {
-    grid-template-columns: 80px 1fr;
-    gap: 10px;
+    grid-template-columns: 70px 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
   }
 
   .slider-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    padding-right: 6px;
   }
 
   .slider-section-title {
-    font-size: 1rem;
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+  }
+
+  .slider-track {
+    height: 36px;
   }
 
   .marker-label {
-    font-size: 0.7rem;
-    top: -22px;
+    font-size: 0.65rem;
+    top: -20px;
+    padding: 1px 4px;
+  }
+
+  .slider-marker {
+    width: 18px;
+    height: 18px;
+  }
+
+  .tick-label {
+    font-size: 0.65rem;
+    top: 18px;
   }
 }

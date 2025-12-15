@@ -380,41 +380,106 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  .decision-tool {
+    padding: 10px;
+  }
+
   .decision-tool h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
   .decision-tool .subtitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .intro-text {
+    font-size: 0.85rem;
+    padding: 0 10px;
+  }
+
+  .tool-container {
+    gap: 25px;
   }
 
   .table-headers,
   .table-row {
-    grid-template-columns: 25px 1.5fr 1.5fr 1.5fr 35px;
-    gap: 5px;
-    font-size: 0.85rem;
+    grid-template-columns: 25px 1.2fr 1.5fr 1.5fr 35px;
+    gap: 4px;
+    font-size: 0.8rem;
   }
 
   .drag-handle {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .table-headers input,
   .table-row input {
-    padding: 6px;
-    font-size: 0.85rem;
+    padding: 6px 4px;
+    font-size: 0.8rem;
   }
 
   .comparison-table,
   .value-joy-chart {
-    padding: 15px;
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .comparison-table h2,
+  .value-joy-chart h2 {
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+  }
+
+  .step-description {
+    font-size: 0.85rem;
+    margin: -8px 0 12px 0;
+  }
+
+  .instruction-text {
+    font-size: 0.85rem;
+    margin-bottom: 15px;
   }
 
   .axis-label {
-    font-size: 12px;
+    font-size: 11px;
+  }
+
+  .axis-title {
+    font-size: 10px;
   }
 
   .category-label {
-    font-size: 10px;
+    font-size: 9px;
+  }
+
+  .endpoint-label {
+    font-size: 11px;
+  }
+
+  .chart-legend {
+    font-size: 0.85rem;
+    gap: 20px;
+  }
+
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+  }
+
+  .tool-footer {
+    padding: 15px 10px;
+    font-size: 0.85rem;
+  }
+
+  .tool-footer .insight-tip {
+    font-size: 0.85rem;
+  }
+
+  .tool-footer .insight-tip ul {
+    padding-left: 1.2rem;
+  }
+
+  .tool-footer .insight-tip li {
+    margin-bottom: 0.3rem;
   }
 }
