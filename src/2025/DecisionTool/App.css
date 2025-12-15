@@ -403,19 +403,24 @@
 
   .table-headers,
   .table-row {
-    grid-template-columns: 25px 1.2fr 1.5fr 1.5fr 35px;
-    gap: 4px;
+    grid-template-columns: 20px 1fr 1.2fr 1.2fr 30px;
+    gap: 3px;
     font-size: 0.85rem;
   }
 
   .drag-handle {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .table-headers input,
   .table-row input {
-    padding: 6px 4px;
+    padding: 5px 2px;
     font-size: 0.85rem;
+  }
+
+  .table-row button {
+    font-size: 1rem;
+    padding: 2px;
   }
 
   .comparison-table,
