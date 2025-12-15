@@ -113,7 +113,19 @@ export default function DecisionTool() {
       </div>
 
       <footer className="tool-footer">
-        <p>
+        <div className="insight-tip">
+          <p style={{ fontStyle: "italic", marginBottom: "0.5rem" }}>
+            <strong>Still unsure?</strong> Try using the tool again with different scenarios:
+          </p>
+          <ul style={{ textAlign: "left", maxWidth: "600px", margin: "0 auto", paddingLeft: "1.5rem" }}>
+            <li>Fill everything out assuming the best-case scenario, then the worst-case</li>
+            <li>Assume the best for one option and the worst for the other</li>
+          </ul>
+          <p style={{ fontStyle: "italic", marginTop: "0.5rem" }}>
+            The goal isn't always to find the optimal choice, but to gain new insights about what matters most to you.
+          </p>
+        </div>
+        <p style={{ marginTop: "1.5rem" }}>
           Inspired by{" "}
           <a
             href="https://labs.davidbauer.ch/priority-compass/"
