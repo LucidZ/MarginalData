@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 import ComparisonTable from "./ComparisonTable";
-import ValueJoyChart from "./ValueJoyChart";
+import ComponentSliders from "./ComponentSliders";
 import VectorAdditionChart from "./VectorAdditionChart";
 
 export interface ComparisonRow {
@@ -9,13 +9,15 @@ export interface ComparisonRow {
   category: string;
   optionA: string;
   optionB: string;
-  chartData?: {
-    aPosition: { x: number; y: number };
-    bPosition: { x: number; y: number };
+  sliderData?: {
+    joyA: number; // 0 to 1, where 0 is "Ugh!" and 1 is "Sparks Joy!"
+    joyB: number;
+    valueA: number; // 0 to 1, where 0 is "Low Value" and 1 is "High Value"
+    valueB: number;
   };
 }
 
-export default function DecisionTool() {
+export default function DecisionComponentAnalyzer() {
   const [optionAName, setOptionAName] = useState("");
   const [optionBName, setOptionBName] = useState("");
   const [rows, setRows] = useState<ComparisonRow[]>([
@@ -49,14 +51,16 @@ export default function DecisionTool() {
     setRows(rows.map((row) => (row.id === id ? { ...row, ...updates } : row)));
   };
 
-  const updateChartData = (
+  const updateSliderData = (
     id: string,
-    aPosition: { x: number; y: number },
-    bPosition: { x: number; y: number }
+    joyA: number,
+    joyB: number,
+    valueA: number,
+    valueB: number
   ) => {
     setRows(
       rows.map((row) =>
-        row.id === id ? { ...row, chartData: { aPosition, bPosition } } : row
+        row.id === id ? { ...row, sliderData: { joyA, joyB, valueA, valueB } } : row
       )
     );
   };
@@ -71,14 +75,13 @@ export default function DecisionTool() {
   return (
     <div className="decision-tool">
       <header>
-        <h1>Decision Vectorizer</h1>
+        <h1>Decision Component Analyzer</h1>
         <p className="subtitle">
-          No decision tool is perfect, but some are useful.
+          Break down complex decisions into manageable components.
         </p>
         <p className="intro-text">
-          Choosing between two options? This tool helps you see the full picture by
-          mapping both the facts and your feelings about each choice. Perfect for
-          job offers, living situations, or any major decision.
+          Analyze decisions by breaking them into individual factors and visualizing
+          how each component contributes to the overall choice.
         </p>
       </header>
 
@@ -97,12 +100,11 @@ export default function DecisionTool() {
           reorderRows={reorderRows}
         />
 
-        <ValueJoyChart
+        <ComponentSliders
           optionAName={optionAName}
           optionBName={optionBName}
           rows={rows}
-          activeRowId={activeRowId}
-          updateChartData={updateChartData}
+          updateSliderData={updateSliderData}
         />
 
         <VectorAdditionChart

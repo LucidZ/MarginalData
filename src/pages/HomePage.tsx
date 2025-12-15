@@ -54,7 +54,12 @@ export default function Home() {
           </li>
           <li>
             <Link to="/2025/DecisionTool">
-              Decision Tool
+              Decision Vectorizer
+            </Link>
+          </li>
+          <li>
+            <Link to="/2025/DecisionComponentAnalyzer">
+              Decision Component Analyzer
             </Link>
           </li>
         </ul>

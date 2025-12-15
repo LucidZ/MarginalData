@@ -88,10 +88,8 @@ export default function ComparisonTable({
           <div
             key={row.id}
             className={`table-row ${activeRowId === row.id ? "active" : ""} ${
-              row.chartData ? "placed" : ""
-            } ${draggedIndex === index ? "dragging" : ""} ${
-              dragOverIndex === index ? "drag-over" : ""
-            }`}
+              draggedIndex === index ? "dragging" : ""
+            } ${dragOverIndex === index ? "drag-over" : ""}`}
             onClick={() => setActiveRowId(row.id)}
             draggable
             onDragStart={(e) => handleDragStart(e, index)}
