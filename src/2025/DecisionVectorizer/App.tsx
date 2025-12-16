@@ -16,14 +16,38 @@ export interface ComparisonRow {
 }
 
 export default function DecisionTool() {
-  const [optionAName, setOptionAName] = useState("");
-  const [optionBName, setOptionBName] = useState("");
+  const [optionAName, setOptionAName] = useState("Current Job");
+  const [optionBName, setOptionBName] = useState("New Job");
   const [rows, setRows] = useState<ComparisonRow[]>([
     {
       id: "1",
-      category: "",
-      optionA: "",
-      optionB: "",
+      category: "Compensation",
+      optionA: "$50k",
+      optionB: "$45k",
+      chartData: {
+        aPosition: { x: 0.7, y: 0.55 },
+        bPosition: { x: 0.4, y: 0.45 },
+      },
+    },
+    {
+      id: "2",
+      category: "Tech",
+      optionA: "Legacy",
+      optionB: "Modern Greenfield",
+      chartData: {
+        aPosition: { x: 0.4, y: 0.5 },
+        bPosition: { x: 0.6, y: 0.9 },
+      },
+    },
+    {
+      id: "3",
+      category: "People",
+      optionA: "Toxic",
+      optionB: "Kind",
+      chartData: {
+        aPosition: { x: 0.5, y: 0.3 },
+        bPosition: { x: 0.51, y: 0.6 },
+      },
     },
   ]);
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
@@ -76,9 +100,9 @@ export default function DecisionTool() {
           No decision tool is perfect, but some are useful.
         </p>
         <p className="intro-text">
-          Choosing between two options? This tool helps you see the full picture by
-          mapping both the facts and your feelings about each choice. Perfect for
-          job offers, living situations, or any major decision.
+          Choosing between two options? This tool helps you see the full picture
+          by mapping both the facts and your feelings about each choice. Perfect
+          for job offers, living situations, or any major decision.
         </p>
       </header>
 
@@ -115,14 +139,26 @@ export default function DecisionTool() {
       <footer className="tool-footer">
         <div className="insight-tip">
           <p style={{ fontStyle: "italic", marginBottom: "0.5rem" }}>
-            <strong>Still unsure?</strong> Try using the tool again with different scenarios:
+            <strong>Still unsure?</strong> Try using the tool again with
+            different scenarios:
           </p>
-          <ul style={{ textAlign: "left", maxWidth: "600px", margin: "0 auto", paddingLeft: "1.5rem" }}>
-            <li>Fill everything out assuming the best-case scenario, then the worst-case</li>
+          <ul
+            style={{
+              textAlign: "left",
+              maxWidth: "600px",
+              margin: "0 auto",
+              paddingLeft: "1.5rem",
+            }}
+          >
+            <li>
+              Fill everything out assuming the best-case scenario, then the
+              worst-case
+            </li>
             <li>Assume the best for one option and the worst for the other</li>
           </ul>
           <p style={{ fontStyle: "italic", marginTop: "0.5rem" }}>
-            The goal isn't always to find the optimal choice, but to gain new insights about what matters most to you.
+            The goal isn't always to find the optimal choice, but to gain new
+            insights about what matters most to you.
           </p>
         </div>
         <p style={{ marginTop: "1.5rem" }}>

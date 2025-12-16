@@ -379,6 +379,15 @@ export default function ValueJoyChart({
                   onPointerDown={(e) => handlePointerDown(e, activeRow.id, "a")}
                   style={{ cursor: dragState.isDragging ? "grabbing" : "grab" }}
                 />
+                <text
+                  className="endpoint-label"
+                  x={aPos.x}
+                  y={aPos.y - 15}
+                  textAnchor="middle"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {activeRow.optionA || "A"}
+                </text>
                 <circle
                   className="dot option-b active"
                   cx={bPos.x}
@@ -387,6 +396,15 @@ export default function ValueJoyChart({
                   onPointerDown={(e) => handlePointerDown(e, activeRow.id, "b")}
                   style={{ cursor: dragState.isDragging ? "grabbing" : "grab" }}
                 />
+                <text
+                  className="endpoint-label"
+                  x={bPos.x}
+                  y={bPos.y - 15}
+                  textAnchor="middle"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {activeRow.optionB || "B"}
+                </text>
               </g>
             );
           })()}

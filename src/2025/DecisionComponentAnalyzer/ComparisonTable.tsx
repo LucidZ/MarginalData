@@ -55,7 +55,8 @@ export default function ComparisonTable({
     <div className="comparison-table">
       <h2>Compare the Facts</h2>
       <p className="step-description">
-        List the objective differences between your options (salary, commute time, etc.)
+        List the objective differences between your options (salary, commute
+        time, etc.)
       </p>
 
       <div className="table-headers">
@@ -79,9 +80,9 @@ export default function ComparisonTable({
       {rows.map((row, index) => {
         // Define placeholder example
         const placeholder = {
-          category: "e.g. Salary / Commute / Tech",
-          optionA: "e.g. $40k / 25 min / Modern Greenfield",
-          optionB: "e.g. $50k / 40 min / Old School Legacy",
+          category: "Category",
+          optionA: "Value",
+          optionB: "Value",
         };
 
         return (

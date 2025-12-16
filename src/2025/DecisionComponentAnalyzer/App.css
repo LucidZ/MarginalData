@@ -422,21 +422,44 @@
     gap: 25px;
   }
 
+  .comparison-table {
+    padding: 12px;
+    border-radius: 6px;
+    margin: 0 -10px; /* Extend to screen edges */
+    width: calc(100% + 20px);
+  }
+
   .table-headers,
   .table-row {
-    grid-template-columns: 20px 1fr 1.2fr 1.2fr 30px;
-    gap: 3px;
+    grid-template-columns: 20px 1fr 1fr 1fr 30px;
+    gap: 4px;
     font-size: 0.85rem;
+    transition: grid-template-columns 0.2s ease;
   }
 
   .drag-handle {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .table-headers input,
   .table-row input {
-    padding: 5px 2px;
+    padding: 6px 2px;
     font-size: 0.85rem;
+    min-width: 0; /* Allow inputs to shrink */
+    transition: transform 0.2s ease;
+  }
+
+  /* Expand focused input column */
+  .table-row:has(input:nth-child(2):focus) {
+    grid-template-columns: 20px 2fr 0.5fr 0.5fr 30px;
+  }
+
+  .table-row:has(input:nth-child(3):focus) {
+    grid-template-columns: 20px 0.5fr 2fr 0.5fr 30px;
+  }
+
+  .table-row:has(input:nth-child(4):focus) {
+    grid-template-columns: 20px 0.5fr 0.5fr 2fr 30px;
   }
 
   .table-row button {
@@ -444,7 +467,6 @@
     padding: 2px;
   }
 
-  .comparison-table,
   .value-joy-chart,
   .component-sliders {
     padding: 12px;

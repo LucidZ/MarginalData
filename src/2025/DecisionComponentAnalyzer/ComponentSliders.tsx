@@ -2,8 +2,6 @@ import { useRef, useState } from "react";
 import { ComparisonRow } from "./App";
 
 interface ComponentSlidersProps {
-  optionAName: string;
-  optionBName: string;
   rows: ComparisonRow[];
   updateSliderData: (
     id: string,
@@ -22,8 +20,6 @@ interface DragState {
 }
 
 export default function ComponentSliders({
-  optionAName,
-  optionBName,
   rows,
   updateSliderData,
 }: ComponentSlidersProps) {
@@ -35,7 +31,10 @@ export default function ComponentSliders({
   });
   const sliderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const getSliderValue = (e: React.PointerEvent, sliderEl: HTMLDivElement): number => {
+  const getSliderValue = (
+    e: React.PointerEvent,
+    sliderEl: HTMLDivElement
+  ): number => {
     const rect = sliderEl.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const value = Math.max(0, Math.min(1, x / rect.width));
@@ -53,8 +52,17 @@ export default function ComponentSliders({
     setDragState({ isDragging: true, rowId, sliderType, markerType });
   };
 
-  const handlePointerMove = (e: React.PointerEvent, rowId: string, sliderType: "joy" | "value") => {
-    if (!dragState.isDragging || dragState.rowId !== rowId || dragState.sliderType !== sliderType) return;
+  const handlePointerMove = (
+    e: React.PointerEvent,
+    rowId: string,
+    sliderType: "joy" | "value"
+  ) => {
+    if (
+      !dragState.isDragging ||
+      dragState.rowId !== rowId ||
+      dragState.sliderType !== sliderType
+    )
+      return;
 
     const sliderEl = sliderRefs.current.get(`${rowId}-${sliderType}`);
     if (!sliderEl) return;
@@ -70,15 +78,39 @@ export default function ComponentSliders({
 
     if (sliderType === "joy") {
       if (dragState.markerType === "a") {
-        updateSliderData(rowId, newValue, currentJoyB, currentValueA, currentValueB);
+        updateSliderData(
+          rowId,
+          newValue,
+          currentJoyB,
+          currentValueA,
+          currentValueB
+        );
       } else {
-        updateSliderData(rowId, currentJoyA, newValue, currentValueA, currentValueB);
+        updateSliderData(
+          rowId,
+          currentJoyA,
+          newValue,
+          currentValueA,
+          currentValueB
+        );
       }
     } else {
       if (dragState.markerType === "a") {
-        updateSliderData(rowId, currentJoyA, currentJoyB, newValue, currentValueB);
+        updateSliderData(
+          rowId,
+          currentJoyA,
+          currentJoyB,
+          newValue,
+          currentValueB
+        );
       } else {
-        updateSliderData(rowId, currentJoyA, currentJoyB, currentValueA, newValue);
+        updateSliderData(
+          rowId,
+          currentJoyA,
+          currentJoyB,
+          currentValueA,
+          newValue
+        );
       }
     }
   };
@@ -86,7 +118,12 @@ export default function ComponentSliders({
   const handlePointerUp = (e: React.PointerEvent) => {
     if (dragState.isDragging) {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      setDragState({ isDragging: false, rowId: null, sliderType: null, markerType: null });
+      setDragState({
+        isDragging: false,
+        rowId: null,
+        sliderType: null,
+        markerType: null,
+      });
     }
   };
 
@@ -94,7 +131,8 @@ export default function ComponentSliders({
     <div className="component-sliders">
       <h2>Rate Each Component</h2>
       <p className="step-description">
-        For each category, position the markers to show how each option feels and its importance
+        For each category, position the markers to show how each option feels
+        and its importance
       </p>
 
       {/* Joy/Feeling Section */}
@@ -124,23 +162,30 @@ export default function ComponentSliders({
                 <div className="slider-line"></div>
                 {/* Tick marks for joy slider */}
                 <div className="slider-tick" style={{ left: "25%" }}></div>
-                <div className="slider-tick slider-tick-middle" style={{ left: "50%" }}>
+                <div
+                  className="slider-tick slider-tick-middle"
+                  style={{ left: "50%" }}
+                >
                   <span className="tick-label">Neutral</span>
                 </div>
                 <div className="slider-tick" style={{ left: "75%" }}></div>
                 <div
                   className="slider-marker marker-a"
                   style={{ left: `${joyA * 100}%` }}
-                  onPointerDown={(e) => handlePointerDown(e, row.id, "joy", "a")}
+                  onPointerDown={(e) =>
+                    handlePointerDown(e, row.id, "joy", "a")
+                  }
                 >
-                  <div className="marker-label">{optionAName || "A"}</div>
+                  <div className="marker-label">{row.optionA || "A"}</div>
                 </div>
                 <div
                   className="slider-marker marker-b"
                   style={{ left: `${joyB * 100}%` }}
-                  onPointerDown={(e) => handlePointerDown(e, row.id, "joy", "b")}
+                  onPointerDown={(e) =>
+                    handlePointerDown(e, row.id, "joy", "b")
+                  }
                 >
-                  <div className="marker-label">{optionBName || "B"}</div>
+                  <div className="marker-label">{row.optionB || "B"}</div>
                 </div>
               </div>
             </div>
@@ -150,7 +195,7 @@ export default function ComponentSliders({
 
       {/* Value/Importance Section */}
       <div className="slider-section">
-        <h3 className="slider-section-title">How valuable/important is this factor?</h3>
+        <h3 className="slider-section-title">How valuable is this factor?</h3>
         <div className="slider-axis-labels">
           <span>Low Value</span>
           <span>High Value</span>
@@ -175,21 +220,28 @@ export default function ComponentSliders({
                 <div className="slider-line"></div>
                 {/* Tick marks for value slider */}
                 <div className="slider-tick" style={{ left: "25%" }}></div>
-                <div className="slider-tick slider-tick-middle" style={{ left: "50%" }}></div>
+                <div
+                  className="slider-tick slider-tick-middle"
+                  style={{ left: "50%" }}
+                ></div>
                 <div className="slider-tick" style={{ left: "75%" }}></div>
                 <div
                   className="slider-marker marker-a"
                   style={{ left: `${valueA * 100}%` }}
-                  onPointerDown={(e) => handlePointerDown(e, row.id, "value", "a")}
+                  onPointerDown={(e) =>
+                    handlePointerDown(e, row.id, "value", "a")
+                  }
                 >
-                  <div className="marker-label">{optionAName || "A"}</div>
+                  <div className="marker-label">{row.optionA || "A"}</div>
                 </div>
                 <div
                   className="slider-marker marker-b"
                   style={{ left: `${valueB * 100}%` }}
-                  onPointerDown={(e) => handlePointerDown(e, row.id, "value", "b")}
+                  onPointerDown={(e) =>
+                    handlePointerDown(e, row.id, "value", "b")
+                  }
                 >
-                  <div className="marker-label">{optionBName || "B"}</div>
+                  <div className="marker-label">{row.optionB || "B"}</div>
                 </div>
               </div>
             </div>
