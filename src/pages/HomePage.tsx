@@ -62,6 +62,11 @@ export default function Home() {
               Decision Component Analyzer
             </Link>
           </li>
+          <li>
+            <Link to="/2025/HowMany13ers">
+              How Many 13ers? Colorado Summits Explorer
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
