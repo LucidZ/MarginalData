@@ -15,6 +15,7 @@ const SolarAnimation = lazy(() => import("./2025/SolarAnimation"));
 const ImageScrambler = lazy(() => import("./2025/ImageScrambler"));
 const DecisionVectorizer = lazy(() => import("./2025/DecisionVectorizer"));
 const DecisionComponentAnalyzer = lazy(() => import("./2025/DecisionComponentAnalyzer"));
+const HowMany13ers = lazy(() => import("./2025/HowMany13ers"));
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="/2025/ImageScrambler" element={<ImageScrambler />} />
             <Route path="/2025/DecisionVectorizer" element={<DecisionVectorizer />} />
             <Route path="/2025/DecisionComponentAnalyzer" element={<DecisionComponentAnalyzer />} />
+            <Route path="/2025/HowMany13ers" element={<HowMany13ers />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>

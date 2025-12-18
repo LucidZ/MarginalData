@@ -13,19 +13,24 @@
   },
   "homepage": "https://LucidZ.github.io/MarginalData/",
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
     "d3": "^7.9.0",
     "jotai": "^2.12.3",
+    "leva": "^0.10.1",
     "path": "^0.12.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.3",
-    "recharts": "^3.3.0"
+    "recharts": "^3.3.0",
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@types/d3": "^7.4.3",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "@types/three": "^0.182.0",
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.22.0",
     "eslint-plugin-react-hooks": "^5.2.0",
