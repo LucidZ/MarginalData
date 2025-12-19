@@ -80,20 +80,19 @@ function App() {
   // Check for portrait orientation and handle significant resizes
   useEffect(() => {
     let resizeTimeout: number;
-    const initialWidth = window.innerWidth;
-    const initialHeight = window.innerHeight;
+    const initialOrientation = window.innerHeight > window.innerWidth;
 
     const handleOrientationCheck = () => {
       const newIsPortrait = window.innerHeight > window.innerWidth;
       setIsPortrait(newIsPortrait);
 
-      // If window size changed significantly (more than 20%), reload after a delay
+      // Only reload if orientation actually changed (landscape <-> portrait)
+      // This prevents iOS Safari menu bar appearing/disappearing from triggering reload
       clearTimeout(resizeTimeout);
       resizeTimeout = window.setTimeout(() => {
-        const widthChange = Math.abs(window.innerWidth - initialWidth) / initialWidth;
-        const heightChange = Math.abs(window.innerHeight - initialHeight) / initialHeight;
+        const currentOrientation = window.innerHeight > window.innerWidth;
 
-        if (widthChange > 0.2 || heightChange > 0.2) {
+        if (currentOrientation !== initialOrientation) {
           window.location.reload();
         }
       }, 500); // Wait 500ms after resize stops
