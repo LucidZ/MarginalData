@@ -21,9 +21,10 @@ interface Summit {
 
 interface ColoradoMapProps {
   summits: Summit[];
+  height?: number;
 }
 
-function ColoradoMap({ summits }: ColoradoMapProps) {
+function ColoradoMap({ summits, height = 600 }: ColoradoMapProps) {
   // Center of Colorado
   const center: [number, number] = [39.0, -105.5];
 
@@ -50,7 +51,7 @@ function ColoradoMap({ summits }: ColoradoMapProps) {
         maxZoom={13}
         maxBounds={coloradoBounds}
         maxBoundsViscosity={0.8}
-        style={{ height: '600px', width: '100%' }}
+        style={{ height: `${height}px`, width: '100%' }}
         scrollWheelZoom={true}
       >
         {/* Terrain basemap - USGS Topo or Esri World Topo work better at all zoom levels */}

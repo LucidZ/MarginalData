@@ -1,10 +1,44 @@
-import { useState, useMemo, lazy, Suspense } from 'react';
-import SummitTable from './SummitTable';
-import FilterControls from './FilterControls';
-import summitsData from './data/all-colorado-summits.json';
+import { useState, useMemo, lazy, Suspense, useEffect } from "react";
+import SummitTable from "./SummitTable";
+import FilterControls from "./FilterControls";
+import ElevationHistogram from "./ElevationHistogram";
+import summitsData from "./data/all-colorado-summits.json";
 
 // Lazy load the map component to avoid loading Leaflet on initial page load
-const ColoradoMap = lazy(() => import('./ColoradoMap'));
+const ColoradoMap = lazy(() => import("./ColoradoMap"));
+
+const useResponsiveDimensions = () => {
+  const [dimensions, setDimensions] = useState({
+    histogramWidth: 200,
+    histogramHeight: 600,
+  });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      // Account for container padding (20px each side) + gap (10px)
+      const containerPadding = 40;
+      const gapSize = 10;
+      const availableWidth = window.innerWidth - containerPadding - gapSize;
+      const availableHeight = window.innerHeight * 0.8;
+
+      // For mobile landscape (horizontal), use 1/4 for histogram width
+      const histogramWidth = Math.min(availableWidth * 0.25, 200);
+      const histogramHeight = Math.min(availableHeight, 600);
+
+      setDimensions({
+        histogramWidth,
+        histogramHeight,
+      });
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
+
+  return dimensions;
+};
 
 interface Summit {
   type: string;
@@ -31,65 +65,117 @@ const data = summitsData as SummitsGeoJSON;
 
 function App() {
   const [minElevation, setMinElevation] = useState(13000);
-  const [maxElevation, setMaxElevation] = useState(15000);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCounty, setSelectedCounty] = useState<string>('');
+  const [maxElevation, setMaxElevation] = useState(14000);
+  const [searchTerm, setSearchTerm] = useState("");
+  const { histogramWidth, histogramHeight } = useResponsiveDimensions();
 
   const filteredSummits = useMemo(() => {
     return data.features.filter((summit) => {
       const elevation = summit.properties.elevation;
       const name = summit.properties.name.toLowerCase();
-      const county = summit.properties.county;
 
-      const meetsElevation = elevation >= minElevation && elevation <= maxElevation;
-      const meetsSearch = searchTerm === '' || name.includes(searchTerm.toLowerCase());
-      const meetsCounty = selectedCounty === '' || county === selectedCounty;
+      const meetsElevation =
+        elevation >= minElevation && elevation <= maxElevation;
+      const meetsSearch =
+        searchTerm === "" || name.includes(searchTerm.toLowerCase());
 
-      return meetsElevation && meetsSearch && meetsCounty;
+      return meetsElevation && meetsSearch;
     });
-  }, [minElevation, maxElevation, searchTerm, selectedCounty]);
+  }, [minElevation, maxElevation, searchTerm]);
 
-  const counties = useMemo(() => {
-    const countySet = new Set(data.features.map((s) => s.properties.county));
-    return Array.from(countySet).sort();
-  }, []);
-
-  const elevationExtent = useMemo(() => {
+  const { elevationExtent, allElevations } = useMemo(() => {
     const elevations = data.features.map((s) => s.properties.elevation);
-    return [Math.min(...elevations), Math.max(...elevations)] as [number, number];
+    return {
+      elevationExtent: [Math.min(...elevations), Math.max(...elevations)] as [
+        number,
+        number
+      ],
+      allElevations: elevations,
+    };
   }, []);
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1 style={{ marginBottom: '10px' }}>How Many 13ers? Colorado Summits Explorer</h1>
-      <p style={{ marginBottom: '30px', color: '#666' }}>
-        Explore all {data.features.length.toLocaleString()} named summits in Colorado.
-        Currently showing {filteredSummits.length.toLocaleString()} summits.
+    <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
+      <h1 style={{ marginBottom: "10px" }}>
+        How Many 13ers? Colorado Peaks Explorer
+      </h1>
+      <p style={{ marginBottom: "30px", color: "#666", lineHeight: "1.6" }}>
+        Coloradoans are obsessed with 14ers (mountains over 14,000 feet tall)...
+        but what about 13ers? Or 12ers? Use the interactive histogram on the left
+        to explore all {data.features.length.toLocaleString()} named peaks in Colorado.
+        Drag the blue handles to adjust the elevation range and discover how many peaks
+        fall within different elevation bands. Currently showing{" "}
+        {filteredSummits.length.toLocaleString()} peaks.
       </p>
 
-      <FilterControls
-        minElevation={minElevation}
-        maxElevation={maxElevation}
-        setMinElevation={setMinElevation}
-        setMaxElevation={setMaxElevation}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        selectedCounty={selectedCounty}
-        setSelectedCounty={setSelectedCounty}
-        counties={counties}
-        elevationExtent={elevationExtent}
-      />
-
-      <div style={{ marginTop: '30px' }}>
+      <div>
         <h2>Map View</h2>
-        <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading map...</div>}>
-          <ColoradoMap summits={filteredSummits} />
-        </Suspense>
+        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+          <div style={{ flexShrink: 0 }}>
+            <ElevationHistogram
+              elevations={allElevations}
+              minElevation={minElevation}
+              maxElevation={maxElevation}
+              setMinElevation={setMinElevation}
+              setMaxElevation={setMaxElevation}
+              elevationExtent={elevationExtent}
+              width={histogramWidth}
+              height={histogramHeight}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Suspense
+              fallback={
+                <div style={{ padding: "40px", textAlign: "center" }}>
+                  Loading map...
+                </div>
+              }
+            >
+              <ColoradoMap summits={filteredSummits} height={histogramHeight} />
+            </Suspense>
+          </div>
+        </div>
       </div>
 
-      <div style={{ marginTop: '40px' }}>
+      <div style={{ marginTop: "30px" }}>
+        <FilterControls searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      </div>
+
+      <div style={{ marginTop: "40px" }}>
         <h2>Summit List</h2>
         <SummitTable summits={filteredSummits} />
+      </div>
+
+      <div
+        style={{
+          marginTop: "40px",
+          padding: "20px",
+          backgroundColor: "#f5f5f5",
+          borderRadius: "8px",
+          fontSize: "14px",
+          lineHeight: "1.6",
+          color: "#555",
+        }}
+      >
+        <h3 style={{ marginTop: 0, fontSize: "16px", color: "#333" }}>
+          About the Data
+        </h3>
+        <p style={{ margin: "10px 0" }}>
+          <strong>Peak Names:</strong> Geographic Names Information System
+          (GNIS), U.S. Geological Survey
+        </p>
+        <p style={{ margin: "10px 0" }}>
+          <strong>Elevation Data:</strong> USGS Elevation Point Query Service
+          using 1/3 arc-second resolution (~10 meter) digital elevation models
+        </p>
+        <p style={{ margin: "10px 0", fontStyle: "italic" }}>
+          Note: Elevations may differ slightly from commonly reported values.
+          The USGS data reflects the elevation at the latitude/longitude
+          coordinates associated with each peak name in GNIS, which may not
+          always precisely align with the true high point. Additionally,
+          elevation measurements can vary depending on the data source, survey
+          method, and when the measurement was taken.
+        </p>
       </div>
     </div>
   );
