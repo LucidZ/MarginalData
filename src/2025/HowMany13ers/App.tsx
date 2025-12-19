@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
-import { scaleLinear } from 'd3-scale';
-import ColoradoMap from './ColoradoMap';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import SummitTable from './SummitTable';
 import FilterControls from './FilterControls';
 import summitsData from './data/all-colorado-summits.json';
+
+// Lazy load the map component to avoid loading Leaflet on initial page load
+const ColoradoMap = lazy(() => import('./ColoradoMap'));
 
 interface Summit {
   type: string;
@@ -55,7 +56,7 @@ function App() {
 
   const elevationExtent = useMemo(() => {
     const elevations = data.features.map((s) => s.properties.elevation);
-    return [Math.min(...elevations), Math.max(...elevations)];
+    return [Math.min(...elevations), Math.max(...elevations)] as [number, number];
   }, []);
 
   return (
@@ -81,7 +82,9 @@ function App() {
 
       <div style={{ marginTop: '30px' }}>
         <h2>Map View</h2>
-        <ColoradoMap summits={filteredSummits} />
+        <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading map...</div>}>
+          <ColoradoMap summits={filteredSummits} />
+        </Suspense>
       </div>
 
       <div style={{ marginTop: '40px' }}>

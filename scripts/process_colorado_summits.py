@@ -9,7 +9,6 @@ import json
 import time
 import requests
 from pathlib import Path
-from typing import List, Dict, Any
 
 def parse_dms_to_decimal(dms: str) -> float:
     """
@@ -43,37 +42,37 @@ def parse_dms_to_decimal(dms: str) -> float:
 
     return decimal
 
-def get_elevation_batch(coordinates: List[tuple]) -> List[float]:
+def get_elevation_usgs(lat: float, lon: float) -> float:
     """
-    Fetch elevations for a batch of coordinates using Open-Elevation API.
-    Returns elevations in meters.
+    Fetch elevation for a single coordinate using USGS Elevation Point Query Service.
+    Returns elevation in feet. This uses high-resolution 1/3 arc-second data.
     """
-    if not coordinates:
-        return []
-
-    # Open-Elevation API expects locations in format: {"latitude": lat, "longitude": lon}
-    locations = [{"latitude": lat, "longitude": lon} for lat, lon in coordinates]
-
     try:
-        response = requests.post(
-            'https://api.open-elevation.com/api/v1/lookup',
-            json={"locations": locations},
-            timeout=30
+        response = requests.get(
+            'https://epqs.nationalmap.gov/v1/json',
+            params={
+                'x': lon,
+                'y': lat,
+                'units': 'Feet',
+                'wkid': 4326,
+                'includeDate': False
+            },
+            timeout=10
         )
         response.raise_for_status()
-        results = response.json()['results']
-        return [r['elevation'] for r in results]
+        result = response.json()
+        return result['value']
     except Exception as e:
-        print(f"Error fetching elevations: {e}")
-        return [None] * len(coordinates)
+        print(f"Error fetching elevation for {lat}, {lon}: {e}")
+        return None
 
-def process_summits(input_file: Path, output_file: Path, batch_size: int = 100):
+def process_summits(input_file: Path, output_file: Path):
     """
     Process USGS data to extract summits and enrich with elevation data.
     """
     summits = []
 
-    print(f"Reading USGS data from {input_file}")
+    print(f"Reading USGS data from {input_file}", flush=True)
 
     # Read the pipe-delimited file
     with open(input_file, 'r', encoding='utf-8-sig') as f:
@@ -100,25 +99,26 @@ def process_summits(input_file: Path, output_file: Path, batch_size: int = 100):
                 'map_name': row['map_name'],
             })
 
-    print(f"Found {len(summits)} summits")
-    print("Fetching elevations...")
+    print(f"Found {len(summits)} summits", flush=True)
+    print("Fetching elevations from USGS (this will take a while)...", flush=True)
 
-    # Fetch elevations in batches
-    for i in range(0, len(summits), batch_size):
-        batch = summits[i:i + batch_size]
-        coordinates = [(s['lat'], s['lon']) for s in batch]
+    # Fetch elevations one at a time from USGS
+    for i, summit in enumerate(summits):
+        elevation_feet = get_elevation_usgs(summit['lat'], summit['lon'])
 
-        elevations = get_elevation_batch(coordinates)
+        if elevation_feet:
+            summit['elevation_feet'] = round(elevation_feet)
+            summit['elevation_meters'] = round(elevation_feet / 3.28084)
+        else:
+            summit['elevation_feet'] = None
+            summit['elevation_meters'] = None
 
-        for summit, elevation in zip(batch, elevations):
-            summit['elevation_meters'] = elevation
-            summit['elevation_feet'] = round(elevation * 3.28084) if elevation else None
+        # Progress update every 100 summits
+        if (i + 1) % 100 == 0:
+            print(f"Processed {i + 1}/{len(summits)} summits", flush=True)
 
-        print(f"Processed {min(i + batch_size, len(summits))}/{len(summits)} summits")
-
-        # Be nice to the API
-        if i + batch_size < len(summits):
-            time.sleep(1)
+        # Be nice to the API - small delay between requests
+        time.sleep(0.1)
 
     # Convert to GeoJSON
     features = []
@@ -150,15 +150,15 @@ def process_summits(input_file: Path, output_file: Path, batch_size: int = 100):
     with open(output_file, 'w') as f:
         json.dump(geojson, f, indent=2)
 
-    print(f"\nWrote {len(features)} summits to {output_file}")
+    print(f"\nWrote {len(features)} summits to {output_file}", flush=True)
 
     # Print some statistics
     elevations = [f['properties']['elevation'] for f in features]
-    print(f"\nStatistics:")
-    print(f"  Min elevation: {min(elevations)} ft")
-    print(f"  Max elevation: {max(elevations)} ft")
-    print(f"  Summits over 13,000 ft: {sum(1 for e in elevations if e >= 13000)}")
-    print(f"  Summits over 14,000 ft: {sum(1 for e in elevations if e >= 14000)}")
+    print(f"\nStatistics:", flush=True)
+    print(f"  Min elevation: {min(elevations)} ft", flush=True)
+    print(f"  Max elevation: {max(elevations)} ft", flush=True)
+    print(f"  Summits over 13,000 ft: {sum(1 for e in elevations if e >= 13000)}", flush=True)
+    print(f"  Summits over 14,000 ft: {sum(1 for e in elevations if e >= 14000)}", flush=True)
 
 if __name__ == '__main__':
     input_file = Path('data/raw/DomesticNames_CO.txt')
