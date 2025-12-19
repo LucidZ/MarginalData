@@ -18,8 +18,13 @@ const useResponsiveDimensions = () => {
       // Account for container padding (20px each side) + gap (10px)
       const containerPadding = 40;
       const gapSize = 10;
-      const availableWidth = window.innerWidth - containerPadding - gapSize;
-      const availableHeight = window.innerHeight * 0.8;
+
+      // Use the longer dimension as width to encourage landscape orientation
+      const screenWidth = Math.max(window.innerWidth, window.innerHeight);
+      const screenHeight = Math.min(window.innerWidth, window.innerHeight);
+
+      const availableWidth = screenWidth - containerPadding - gapSize;
+      const availableHeight = screenHeight * 0.8;
 
       // For mobile landscape (horizontal), use 1/4 for histogram width
       const histogramWidth = Math.min(availableWidth * 0.25, 200);
@@ -67,7 +72,39 @@ function App() {
   const [minElevation, setMinElevation] = useState(13000);
   const [maxElevation, setMaxElevation] = useState(14000);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isPortrait, setIsPortrait] = useState(
+    window.innerHeight > window.innerWidth
+  );
   const { histogramWidth, histogramHeight } = useResponsiveDimensions();
+
+  // Check for portrait orientation and handle significant resizes
+  useEffect(() => {
+    let resizeTimeout: number;
+    const initialWidth = window.innerWidth;
+    const initialHeight = window.innerHeight;
+
+    const handleOrientationCheck = () => {
+      const newIsPortrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(newIsPortrait);
+
+      // If window size changed significantly (more than 20%), reload after a delay
+      clearTimeout(resizeTimeout);
+      resizeTimeout = window.setTimeout(() => {
+        const widthChange = Math.abs(window.innerWidth - initialWidth) / initialWidth;
+        const heightChange = Math.abs(window.innerHeight - initialHeight) / initialHeight;
+
+        if (widthChange > 0.2 || heightChange > 0.2) {
+          window.location.reload();
+        }
+      }, 500); // Wait 500ms after resize stops
+    };
+
+    window.addEventListener("resize", handleOrientationCheck);
+    return () => {
+      window.removeEventListener("resize", handleOrientationCheck);
+      clearTimeout(resizeTimeout);
+    };
+  }, []);
 
   const filteredSummits = useMemo(() => {
     return data.features.filter((summit) => {
@@ -94,12 +131,36 @@ function App() {
     };
   }, []);
 
+  // Show rotate screen message if in portrait mode
+  if (isPortrait) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          backgroundColor: "#000",
+          color: "#fff",
+          fontSize: "24px",
+          textAlign: "center",
+          padding: "20px",
+        }}
+      >
+        <div>
+          <div style={{ fontSize: "48px", marginBottom: "20px" }}>📱 ↻</div>
+          <div>Please rotate your device to landscape mode</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
-      <h1 style={{ marginBottom: "10px" }}>
+      <h1 style={{ marginBottom: "10px", maxWidth: "800px" }}>
         How Many 13ers? Colorado Peaks Explorer
       </h1>
-      <p style={{ marginBottom: "30px", color: "#666", lineHeight: "1.6" }}>
+      <p style={{ marginBottom: "30px", color: "#666", lineHeight: "1.6", maxWidth: "800px" }}>
         Coloradoans are obsessed with 14ers (mountains over 14,000 feet tall)...
         but what about 13ers? Or 12ers? Use the interactive histogram on the left
         to explore all {data.features.length.toLocaleString()} named peaks in Colorado.
