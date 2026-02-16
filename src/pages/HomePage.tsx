@@ -67,6 +67,11 @@ export default function Home() {
               How Many 13ers? Colorado Summits Explorer
             </Link>
           </li>
+          <li>
+            <Link to="/2025/SpaceTraveler">
+              Expanse-Style Space Travel Simulator
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
