@@ -399,7 +399,7 @@ export default function App() {
             </a>
             . Solar irradiance data from NREL's{" "}
             <a
-              href="https://nsrdb.nrel.gov/"
+              href="https://nsrdb.nlr.gov/"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "#ff8c00" }}
