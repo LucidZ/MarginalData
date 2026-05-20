@@ -17,6 +17,7 @@ const DecisionVectorizer = lazy(() => import("./2025/DecisionVectorizer"));
 const DecisionComponentAnalyzer = lazy(() => import("./2025/DecisionComponentAnalyzer"));
 const HowMany13ers = lazy(() => import("./2025/HowMany13ers"));
 const SpaceTraveler = lazy(() => import("./2025/SpaceTraveler"));
+const MarginalTax = lazy(() => import("./financial-literacy/MarginalTax"));
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
             <Route path="/2025/DecisionComponentAnalyzer" element={<DecisionComponentAnalyzer />} />
             <Route path="/2025/HowMany13ers" element={<HowMany13ers />} />
             <Route path="/2025/SpaceTraveler" element={<SpaceTraveler />} />
+            <Route path="/financial-literacy/marginal-tax" element={<MarginalTax />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>

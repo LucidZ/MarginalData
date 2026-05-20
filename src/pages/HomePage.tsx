@@ -72,6 +72,11 @@ export default function Home() {
               Expanse-Style Space Travel Simulator
             </Link>
           </li>
+          <li>
+            <Link to="/financial-literacy/marginal-tax">
+              How Marginal Tax Rates Actually Work
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
