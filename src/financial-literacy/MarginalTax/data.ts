@@ -46,13 +46,20 @@ export function computeTax(income: number): TaxResult {
   return { taxesPaid, marginalRate, bracketIndex, effectiveRate, kept: income - taxesPaid };
 }
 
-// Piecewise scroll-to-income mapping: gives each bracket proportional scroll space
+// Piecewise scroll-to-income mapping.
+// Bracket 1 gets extra scroll space so bills flow more slowly there.
+// Flat pause segments at each bracket boundary: income freezes, bills suspend,
+// the knife shifts, and the user absorbs the new rate before bills resume.
 const SCROLL_SEGMENTS = [
-  { p0: 0.00, p1: 0.18, i0:       0, i1:  11_925 },
-  { p0: 0.18, p1: 0.38, i0:  11_925, i1:  48_475 },
-  { p0: 0.38, p1: 0.60, i0:  48_475, i1: 103_350 },
-  { p0: 0.60, p1: 0.80, i0: 103_350, i1: 197_300 },
-  { p0: 0.80, p1: 1.00, i0: 197_300, i1: 250_525 },
+  { p0: 0.00, p1: 0.22, i0:       0, i1:  11_925 }, // 10%: wide — deliberate pace
+  { p0: 0.22, p1: 0.26, i0:  11_925, i1:  11_925 }, // pause — knife shifts to 12%
+  { p0: 0.26, p1: 0.44, i0:  11_925, i1:  48_475 }, // 12%
+  { p0: 0.44, p1: 0.48, i0:  48_475, i1:  48_475 }, // pause — knife shifts to 22%
+  { p0: 0.48, p1: 0.65, i0:  48_475, i1: 103_350 }, // 22%
+  { p0: 0.65, p1: 0.69, i0: 103_350, i1: 103_350 }, // pause — knife shifts to 24%
+  { p0: 0.69, p1: 0.82, i0: 103_350, i1: 197_300 }, // 24%
+  { p0: 0.82, p1: 0.86, i0: 197_300, i1: 197_300 }, // pause — knife shifts to 32%
+  { p0: 0.86, p1: 1.00, i0: 197_300, i1: 250_525 }, // 32%
 ];
 
 export function incomeFromProgress(progress: number): number {

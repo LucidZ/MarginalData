@@ -27,8 +27,8 @@ const RIGHT_PILE_CX = VW * 0.79; // 411
 
 const STATS_Y = 405;
 
-// Stream: 3 bills in flight, $100 per cycle
-const N_STREAM = 3;
+// One bill in flight at a time, $100 per cycle — landing syncs exactly with stat increment
+const N_STREAM = 1;
 const INCOME_PER_BILL = 100;
 
 // Phase threshold at which bill starts splitting (0–1)
@@ -58,9 +58,15 @@ export default function TaxViz({ income }: Props) {
   const knifeRef = useRef<SVGGElement>(null);
   const prevBracketRef = useRef<number>(-1);
 
-  const { taxesPaid, marginalRate, bracketIndex, effectiveRate, kept } = useMemo(
-    () => computeTax(income),
-    [income],
+  // Knife position and bracket label driven by continuous income (scroll-driven)
+  const { marginalRate, bracketIndex } = useMemo(() => computeTax(income), [income]);
+
+  // Stats and pile heights driven by discrete income: update only when a bill lands
+  const billCycles = income / INCOME_PER_BILL;
+  const discreteIncome = Math.floor(billCycles) * INCOME_PER_BILL;
+  const { taxesPaid, effectiveRate, kept } = useMemo(
+    () => computeTax(discreteIncome),
+    [discreteIncome],
   );
 
   const bracket = BRACKETS[bracketIndex];
@@ -90,7 +96,6 @@ export default function TaxViz({ income }: Props) {
   }, []);
 
   // ── Stream bills ────────────────────────────────────────────────────────────
-  const billCycles = income / INCOME_PER_BILL;
   const currentPhase = billCycles % 1;
 
   const streamBills: { slot: number; phase: number }[] = [];
@@ -102,7 +107,7 @@ export default function TaxViz({ income }: Props) {
   }
 
   // ── Pile sizes ──────────────────────────────────────────────────────────────
-  const pileH = PILE_MAX_H * Math.min(1, income / (MAX_STORY_INCOME * 0.5));
+  const pileH = PILE_MAX_H * Math.min(1, discreteIncome / (MAX_STORY_INCOME * 0.5));
   const leftPileX = LEFT_PILE_CX - PILE_W / 2;
   const rightPileX = RIGHT_PILE_CX - PILE_W / 2;
 
