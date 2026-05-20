@@ -57,7 +57,8 @@
 .scrolly-step {
   min-height: 450vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 12vh;
 }
 
 .step-inner h2 {
