@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import * as d3 from 'd3';
 import { computeTax, BRACKETS, MAX_STORY_INCOME } from './data';
 
@@ -6,203 +6,241 @@ interface Props {
   income: number;
 }
 
+// ── Layout ───────────────────────────────────────────────────────────────────
 const VW = 520;
-const VH = 340;
-const ML = 28;
-const MR = 28;
-const BW = VW - ML - MR; // 464
+const VH = 440;
 
-const BILL_Y = 52;
-const BILL_H = 72;
-const KNIFE_H = 26;
+const BILL_W = 172;
+const BILL_H = 46;
+const BILL_LX = VW / 2 - BILL_W / 2; // 174
 
-const BAR_Y = 200;
-const BAR_H = 42;
+const TOP_Y = 18;
+const KNIFE_TIP_Y = 172;
+const KNIFE_BLADE_Y = 204;
 
+// Two piles flanking the knife
+const PILE_W = 106;
+const PILE_MAX_H = 90;
+const PILE_BOTTOM_Y = 348;
+const LEFT_PILE_CX = VW * 0.21; // 109
+const RIGHT_PILE_CX = VW * 0.79; // 411
+
+const STATS_Y = 405;
+
+// Stream: 3 bills in flight, $100 per cycle
+const N_STREAM = 3;
+const INCOME_PER_BILL = 100;
+
+// Phase threshold at which bill starts splitting (0–1)
+const CUT_THRESH = 0.70;
+
+// ── Colors ───────────────────────────────────────────────────────────────────
+const COLOR_BILL = '#2da065';
 const COLOR_KEPT = '#1a7a4a';
 const COLOR_TAX = '#74c69d';
-const COLOR_EMPTY = '#dff0e8';
+const COLOR_KNIFE = '#1a1a1a';
 
 const fmt$ = d3.format('$,.0f');
 const fmtPct = d3.format('.1%');
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function billYForPhase(phase: number): number {
+  if (phase >= CUT_THRESH) return KNIFE_TIP_Y;
+  return TOP_Y + (phase / CUT_THRESH) * (KNIFE_TIP_Y - TOP_Y);
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 export default function TaxViz({ income }: Props) {
-  const knifeGroupRef = useRef<SVGGElement>(null);
-  const keptBillRef = useRef<SVGRectElement>(null);
-
-  const { taxesPaid, marginalRate, bracketIndex, effectiveRate, kept } = computeTax(income);
-  const bracket = BRACKETS[bracketIndex];
-
-  const cutX = ML + BW * (1 - marginalRate);
-
-  // D3 transition the knife + kept-rect only when bracket changes
+  const knifeRef = useRef<SVGGElement>(null);
   const prevBracketRef = useRef<number>(-1);
+
+  const { taxesPaid, marginalRate, bracketIndex, effectiveRate, kept } = useMemo(
+    () => computeTax(income),
+    [income],
+  );
+
+  const bracket = BRACKETS[bracketIndex];
+  // Where the knife tip sits along the bill width
+  const cutOffset = BILL_W * (1 - marginalRate); // px from BILL_LX
+
+  // D3 transitions knife position when bracket changes
   useEffect(() => {
+    if (!knifeRef.current) return;
+    const newOffset = BILL_W * (1 - bracket.rate);
     if (prevBracketRef.current === bracketIndex) return;
     prevBracketRef.current = bracketIndex;
 
-    const newCutX = ML + BW * (1 - bracket.rate);
-
-    if (knifeGroupRef.current) {
-      d3.select(knifeGroupRef.current)
-        .interrupt()
-        .transition().duration(500).ease(d3.easeCubicInOut)
-        .attr('transform', `translate(${newCutX}, 0)`);
-    }
-    if (keptBillRef.current) {
-      d3.select(keptBillRef.current)
-        .interrupt()
-        .transition().duration(500).ease(d3.easeCubicInOut)
-        .attr('width', newCutX - ML);
-    }
+    d3.select(knifeRef.current)
+      .interrupt()
+      .transition().duration(600).ease(d3.easeCubicInOut)
+      .attr('transform', `translate(${BILL_LX + newOffset}, 0)`);
   }, [bracketIndex, bracket.rate]);
 
-  // Sync initial position without transition on first render
+  // Set initial knife position without transition
   useEffect(() => {
-    const initX = ML + BW * (1 - BRACKETS[0].rate);
-    if (knifeGroupRef.current) {
-      d3.select(knifeGroupRef.current).attr('transform', `translate(${initX}, 0)`);
-    }
-    if (keptBillRef.current) {
-      d3.select(keptBillRef.current).attr('width', initX - ML);
-    }
+    if (!knifeRef.current) return;
+    const init = BILL_W * (1 - BRACKETS[0].rate);
+    d3.select(knifeRef.current).attr('transform', `translate(${BILL_LX + init}, 0)`);
     prevBracketRef.current = 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const barTotalW = BW * (income / MAX_STORY_INCOME);
-  const keptBarW = income > 0 ? barTotalW * (kept / income) : 0;
+  // ── Stream bills ────────────────────────────────────────────────────────────
+  const billCycles = income / INCOME_PER_BILL;
+  const currentPhase = billCycles % 1;
 
-  const knifeStartX = ML + BW * (1 - BRACKETS[0].rate); // initial position for SSR
+  const streamBills: { slot: number; phase: number }[] = [];
+  for (let slot = 0; slot < N_STREAM; slot++) {
+    const minIncome = slot * (INCOME_PER_BILL / N_STREAM);
+    if (income < minIncome) continue;
+    const phase = (currentPhase + slot * (1 / N_STREAM)) % 1;
+    streamBills.push({ slot, phase });
+  }
 
-  const keptLabelWidth = cutX - ML;
-  const taxLabelWidth = ML + BW - cutX;
+  // ── Pile sizes ──────────────────────────────────────────────────────────────
+  const pileH = PILE_MAX_H * Math.min(1, income / (MAX_STORY_INCOME * 0.5));
+  const leftPileX = LEFT_PILE_CX - PILE_W / 2;
+  const rightPileX = RIGHT_PILE_CX - PILE_W / 2;
+
+  // Half widths (for a single bill cut at current marginal rate)
+  const leftHalfW = cutOffset;
+  const rightHalfW = BILL_W - cutOffset;
+
+  // Target landing positions for halves
+  const leftLandX = LEFT_PILE_CX - leftHalfW / 2;
+  const rightLandX = RIGHT_PILE_CX - rightHalfW / 2;
 
   return (
     <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
 
-      {/* === SECTION 1: THE BILL + KNIFE === */}
-
-      {/* Marginal rate label */}
-      <text
-        x={VW / 2} y={BILL_Y - 14}
-        textAnchor="middle" fontSize={12} fill="#555" fontWeight={600}
-        fontFamily="inherit"
-      >
-        Marginal rate: {bracket.label}
+      {/* ── Bracket label ── */}
+      <text x={VW / 2} y={12} textAnchor="middle" fontSize={11} fill="#888" fontFamily="inherit">
+        {bracket.label} bracket · {fmt$(bracket.min)}
+        {bracket.max != null ? ` – ${fmt$(bracket.max)}` : '+'}
       </text>
 
-      {/* Bill background (full = tax color) */}
-      <rect x={ML} y={BILL_Y} width={BW} height={BILL_H} fill={COLOR_TAX} rx={3} />
+      {/* ── BILLS ── */}
+      {streamBills.map(({ slot, phase }) => {
+        const billY = billYForPhase(phase);
+        const isCutting = phase >= CUT_THRESH;
+        const splitT = isCutting ? (phase - CUT_THRESH) / (1 - CUT_THRESH) : 0;
+        const opacity = isCutting ? Math.max(0, 1 - splitT) : 1;
 
-      {/* Kept portion — D3 animates width */}
-      <rect
-        ref={keptBillRef}
-        x={ML} y={BILL_Y}
-        width={knifeStartX - ML}
-        height={BILL_H}
-        fill={COLOR_KEPT}
-        rx={3}
+        if (!isCutting) {
+          return (
+            <g key={slot} opacity={opacity}>
+              <rect
+                x={BILL_LX} y={billY}
+                width={BILL_W} height={BILL_H}
+                fill={COLOR_BILL} rx={4}
+              />
+              {/* Faint cut preview line */}
+              <line
+                x1={BILL_LX + cutOffset} y1={billY + 6}
+                x2={BILL_LX + cutOffset} y2={billY + BILL_H - 6}
+                stroke="rgba(0,0,0,0.18)" strokeWidth={1.5}
+              />
+              <text
+                x={BILL_LX + BILL_W / 2} y={billY + BILL_H / 2 + 5}
+                textAnchor="middle" fontSize={13} fill="white" fontWeight={700}
+                fontFamily="inherit"
+              >
+                $100
+              </text>
+            </g>
+          );
+        }
+
+        // Splitting halves
+        const leftX = lerp(BILL_LX, leftLandX, splitT);
+        const leftY = lerp(KNIFE_TIP_Y, PILE_BOTTOM_Y - BILL_H / 2, splitT);
+        const rightX = lerp(BILL_LX + cutOffset, rightLandX, splitT);
+        const rightY = leftY;
+
+        return (
+          <g key={slot} opacity={opacity}>
+            {/* Left (kept) half */}
+            <rect
+              x={leftX} y={leftY}
+              width={leftHalfW} height={BILL_H}
+              fill={COLOR_KEPT} rx={3}
+            />
+            {/* Right (tax) half */}
+            <rect
+              x={rightX} y={rightY}
+              width={rightHalfW} height={BILL_H}
+              fill={COLOR_TAX} rx={3}
+            />
+          </g>
+        );
+      })}
+
+      {/* ── KNIFE ── */}
+      {/* Horizontal blade */}
+      <line
+        x1={LEFT_PILE_CX + PILE_W / 2 + 8} y1={KNIFE_BLADE_Y}
+        x2={RIGHT_PILE_CX - PILE_W / 2 - 8} y2={KNIFE_BLADE_Y}
+        stroke={COLOR_KNIFE} strokeWidth={1.5}
       />
 
-      {/* Labels inside bill */}
-      {keptLabelWidth > 72 && (
-        <text
-          x={ML + keptLabelWidth / 2} y={BILL_Y + BILL_H / 2 + 5}
-          textAnchor="middle" fontSize={11} fill="white" fontWeight={700}
-          fontFamily="inherit" pointerEvents="none"
-        >
-          You keep
-        </text>
-      )}
-      {taxLabelWidth > 50 && (
-        <text
-          x={cutX + taxLabelWidth / 2} y={BILL_Y + BILL_H / 2 + 5}
-          textAnchor="middle" fontSize={11} fill="#1a4a2a" fontWeight={700}
-          fontFamily="inherit" pointerEvents="none"
-        >
-          Tax
-        </text>
-      )}
-
-      {/* Knife group — D3 animates transform */}
-      <g ref={knifeGroupRef} transform={`translate(${knifeStartX}, 0)`}>
-        {/* Cut line */}
-        <line
-          x1={0} y1={BILL_Y}
-          x2={0} y2={BILL_Y + BILL_H}
-          stroke="#111" strokeWidth={2}
-        />
-        {/* Triangle pointing up: tip at bottom of bill */}
+      {/* Knife group: D3 animates transform */}
+      <g ref={knifeRef}>
+        {/* Isosceles triangle pointing up: tip at top, base on blade */}
         <polygon
-          points={`0,${BILL_Y + BILL_H} -11,${BILL_Y + BILL_H + KNIFE_H} 11,${BILL_Y + BILL_H + KNIFE_H}`}
-          fill="#111"
+          points={`0,${KNIFE_TIP_Y} -11,${KNIFE_BLADE_Y} 11,${KNIFE_BLADE_Y}`}
+          fill={COLOR_KNIFE}
         />
-        {/* Rate annotation */}
-        <text
-          y={BILL_Y + BILL_H + KNIFE_H + 16}
-          textAnchor="middle" fontSize={10} fill="#333"
-          fontFamily="inherit"
-        >
-          {bracket.label} bracket
-        </text>
-        {/* Bracket range */}
-        <text
-          y={BILL_Y + BILL_H + KNIFE_H + 30}
-          textAnchor="middle" fontSize={9} fill="#888"
-          fontFamily="inherit"
-        >
-          {fmt$(bracket.min)}
-          {bracket.max != null ? ` – ${fmt$(bracket.max)}` : '+'}
-        </text>
       </g>
 
-      {/* === SECTION 2: CUMULATIVE BAR === */}
-
+      {/* ── LEFT PILE (kept) ── */}
+      <rect
+        x={leftPileX} y={PILE_BOTTOM_Y - pileH}
+        width={PILE_W} height={Math.max(0, pileH)}
+        fill={COLOR_KEPT} rx={3}
+      />
       <text
-        x={ML} y={BAR_Y - 12}
-        fontSize={11} fill="#555"
-        fontFamily="inherit"
+        x={LEFT_PILE_CX} y={PILE_BOTTOM_Y + 16}
+        textAnchor="middle" fontSize={11} fill="#555" fontFamily="inherit"
       >
-        Cumulative income: <tspan fontWeight={700} fill="#222">{fmt$(income)}</tspan>
+        kept
       </text>
 
-      {/* Empty bar track */}
-      <rect x={ML} y={BAR_Y} width={BW} height={BAR_H} fill={COLOR_EMPTY} rx={3} />
+      {/* ── RIGHT PILE (tax) ── */}
+      <rect
+        x={rightPileX} y={PILE_BOTTOM_Y - pileH}
+        width={PILE_W} height={Math.max(0, pileH)}
+        fill={COLOR_TAX} rx={3}
+      />
+      <text
+        x={RIGHT_PILE_CX} y={PILE_BOTTOM_Y + 16}
+        textAnchor="middle" fontSize={11} fill="#555" fontFamily="inherit"
+      >
+        taxes
+      </text>
 
-      {/* Kept portion */}
-      <rect x={ML} y={BAR_Y} width={keptBarW} height={BAR_H} fill={COLOR_KEPT} rx={3} />
-      {/* Tax portion (no rounded left corners) */}
-      {taxesPaid > 0 && (
-        <rect
-          x={ML + keptBarW} y={BAR_Y}
-          width={barTotalW - keptBarW} height={BAR_H}
-          fill={COLOR_TAX}
-        />
-      )}
-
-      {/* === SECTION 3: STATS === */}
-
-      <text x={ML} y={BAR_Y + BAR_H + 22} fontFamily="inherit">
-        <tspan fontSize={13} fontWeight={700} fill={COLOR_KEPT}>{fmt$(kept)}</tspan>
+      {/* ── STATS ── */}
+      <text x={leftPileX} y={STATS_Y} fontFamily="inherit">
+        <tspan fontSize={14} fontWeight={700} fill={COLOR_KEPT}>{fmt$(kept)}</tspan>
         <tspan fontSize={10} fill="#888"> kept</tspan>
       </text>
 
-      <text x={VW / 2} y={BAR_Y + BAR_H + 22} textAnchor="middle" fontFamily="inherit">
-        <tspan fontSize={13} fontWeight={700} fill="#1a5e38">{fmt$(taxesPaid)}</tspan>
+      <text x={VW / 2} y={STATS_Y} textAnchor="middle" fontFamily="inherit">
+        <tspan fontSize={14} fontWeight={700} fill="#1a5e38">{fmt$(taxesPaid)}</tspan>
         <tspan fontSize={10} fill="#888"> tax paid</tspan>
       </text>
 
-      <text x={ML + BW} y={BAR_Y + BAR_H + 22} textAnchor="end" fontFamily="inherit">
-        <tspan fontSize={15} fontWeight={800} fill="#222">{fmtPct(effectiveRate)}</tspan>
+      <text x={rightPileX + PILE_W} y={STATS_Y} textAnchor="end" fontFamily="inherit">
+        <tspan fontSize={16} fontWeight={800} fill="#111">{fmtPct(effectiveRate)}</tspan>
         <tspan fontSize={10} fill="#888"> effective rate</tspan>
       </text>
 
-      {/* Marginal vs effective note */}
       <text
-        x={VW / 2} y={BAR_Y + BAR_H + 42}
-        textAnchor="middle" fontSize={10} fill="#aaa"
-        fontFamily="inherit"
+        x={VW / 2} y={STATS_Y + 18}
+        textAnchor="middle" fontSize={9} fill="#ccc" fontFamily="inherit"
       >
         marginal {bracket.label} · effective {fmtPct(effectiveRate)}
       </text>
