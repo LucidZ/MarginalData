@@ -50,12 +50,12 @@
 
 .scrolly-steps {
   flex: 1;
-  padding-top: 35vh;
-  padding-bottom: 40vh;
+  padding-top: 40vh;
+  padding-bottom: 50vh;
 }
 
 .scrolly-step {
-  min-height: 100vh;
+  min-height: 450vh;
   display: flex;
   align-items: center;
 }
@@ -130,11 +130,11 @@
     justify-content: flex-start;
   }
   .scrolly-step {
-    min-height: 80vh;
+    min-height: 250vh;
   }
   .scrolly-steps {
     padding-top: 4vh;
-    padding-bottom: 20vh;
+    padding-bottom: 30vh;
   }
   .step-inner p {
     max-width: 100%;
