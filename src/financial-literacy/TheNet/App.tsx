@@ -4,68 +4,97 @@ import FlowViz, { VizPhase } from './FlowViz';
 import { Sources } from '../shared/Sources';
 import {
   ARCHETYPES,
-  SCROLLY_ARCHETYPE_IDX,
   netMonthly,
 } from './data';
 import './App.css';
 
 // ── Scroll steps ──────────────────────────────────────────────────────────────
 const STEPS: { headline: string; body: string }[] = [
+  // ── Student (steps 0–2) ──────────────────────────────────────────────────────
   {
-    headline: 'Payday',
-    body: '$6,500 arrives at the start of the month. Before a single bill is paid, this is everything — the full gross. The job now: keep as much of it as possible.',
+    headline: 'Meet Alex',
+    body: "$1,500/mo before taxes. Part-time barista, age 22. This is the full paycheck — everything. The month's job is to hold on to as much of it as possible.",
   },
   {
-    headline: 'Taxes come first — before you see a dime',
-    body: "$1,300 is withheld before the paycheck hits the bank. Federal income tax, FICA, state. You never get the choice to spend it. That's 20% of gross, gone before any decision is made.",
+    headline: "Here's where it goes",
+    body: "Rent split with roommates. Food, phone, a social life. Nothing extravagant. Each one felt like the only reasonable choice.",
   },
   {
-    headline: 'The mortgage and cars',
-    body: "The two biggest fixed costs lock in next. $2,100 for the mortgage — principal, interest, property tax, insurance bundled together. $700 for two cars — payments and insurance. These are contracts. They don't budge.",
+    headline: 'The gap: −$200/mo',
+    body: "After take-home and expenses, Alex ends each month $200 short. Not a crisis — but nothing building either. The shortfall gets covered somehow: a parent, a card, a savings account slowly draining.",
+  },
+  // ── First Job (steps 2–7) ────────────────────────────────────────────────────
+  {
+    headline: 'Four years later',
+    body: "Alex is 26. Landed an analyst job at $54K/yr. $4,500/mo gross — three times the barista wage. This should change everything.",
   },
   {
-    headline: 'Healthcare, childcare, subscriptions',
-    body: "Healthcare eats $420 (family plan). Childcare takes $500 — one of the fastest-growing household expenses in America. Subscriptions add up quietly: streaming, software, memberships. Another $75. Every one was a decision. Most feel non-negotiable now.",
+    headline: 'Taxes come first — always',
+    body: "$850 withheld before a single bill is paid. Federal income tax, FICA, state — about 19% effective. Take-home: $3,650.",
   },
   {
-    headline: 'Groceries, gas, utilities',
-    body: "Necessary but somewhat flexible. Groceries: $580. Gas: $180. Utilities: $200. Unlike fixed costs, these can bend a little with effort. But they don't bend much.",
+    headline: 'Fixed costs lock in',
+    body: "Rent for a 1BR: $1,500. Car payment and insurance: $350. Phone, healthcare, subscriptions. $2,080 committed to contracts before any real choice is made.",
   },
   {
-    headline: 'The only truly flexible layer',
-    body: "$280 on dining and entertainment. $120 on clothing and miscellaneous. This is where real choice lives — and it's 8% of take-home. The only lever most families actually have.",
+    headline: 'The necessities',
+    body: "Groceries and gas. These can flex a little — but not much. They don't budge when a surprise hits.",
   },
   {
-    headline: "Let's organize this",
-    body: "Four categories. Taxes you never touch. Fixed costs you've committed to. Variable necessities. And a sliver of discretionary. The structure looks the same for almost everyone — only the dollar amounts change.",
+    headline: 'The flexible layer',
+    body: "Dining, entertainment, clothing. The only layer that actually bends with intention. $930/mo — about a quarter of take-home.",
   },
   {
-    headline: 'The gap: $45',
-    body: "After everything, $45 remains. One car repair, one medical bill, one missed shift — and it's gone. The Fed's 2024 SHED survey found 37% of adults can't cover a $400 emergency with cash. Now you can see why.",
+    headline: 'The gap: +$250/mo',
+    body: "$250 left at the end of the month. That's 6.8% of take-home — slightly above the national savings rate. Better than before, definitely. Just not as much better as the raise felt like it would be.",
+  },
+  // ── Established (steps 8–13) ─────────────────────────────────────────────────
+  {
+    headline: 'Eight years later',
+    body: "Alex is 34. A partner, a house, $102K/yr combined. The income bar represents nearly double the take-home of eight years ago.",
   },
   {
-    headline: 'Month 2. Same story.',
-    body: "Another paycheck arrives. The same fixed costs are waiting. The same groceries, the same gas. The gap, if there is one, begins to accumulate. The cycle repeats.",
+    headline: 'The fixed costs grew with the income',
+    body: "Mortgage, tax, insurance: $2,200. Two cars: $750. A family healthcare plan: $350. $3,300 locked in before a single grocery run — more than Alex's entire take-home at the first job.",
   },
   {
-    headline: 'Month after month. The same $45.',
-    body: "The gap is a flow — what you generate each month. Savings and debt are stocks — what has accumulated over time. That $45, repeated month after month, is exactly what the next section is about.",
+    headline: 'So did everything else',
+    body: "Nicer groceries. Utilities on a house. More dining out — earned, at this point. A real vacation each year. Each one a reasonable call at the time.",
+  },
+  {
+    headline: 'The gap: still +$250/mo',
+    body: "Income grew $4,000/mo since the first job. The gap didn't move. Every raise brought a proportional expansion in spending. Lifestyle creep is silent and total.",
+  },
+  {
+    headline: 'This isn\'t just Alex',
+    body: "In 2022, roughly half of U.S. families saved nothing at all. And 16% of households earning over $216,000 saved nothing. The gap doesn't manage itself — not at $54K, not at $216K.",
+  },
+  {
+    headline: 'Month after month',
+    body: "That $250, repeated every month, is either building something or it isn't. What you do with the gap — and how to make it bigger — is what comes next.",
   },
 ];
 
-// ── Viz mapping: step index → FlowViz props ───────────────────────────────────
-// Median Family has 11 display items (1 taxes + 10 budget items)
-const VIZ_MAP: { visibleItems: number; phase: VizPhase }[] = [
-  { visibleItems: 0,  phase: 'items'   }, // 0: payday
-  { visibleItems: 1,  phase: 'items'   }, // 1: taxes
-  { visibleItems: 3,  phase: 'items'   }, // 2: + mortgage, cars
-  { visibleItems: 6,  phase: 'items'   }, // 3: + healthcare, childcare, subscriptions
-  { visibleItems: 9,  phase: 'items'   }, // 4: + groceries, gas, utilities
-  { visibleItems: 11, phase: 'items'   }, // 5: + dining, clothing
-  { visibleItems: 11, phase: 'grouped' }, // 6: group into categories
-  { visibleItems: 11, phase: 'gap'     }, // 7: highlight gap
-  { visibleItems: 11, phase: 'month2'  }, // 8: month 2 auto-animates
-  { visibleItems: 11, phase: 'month3'  }, // 9: month 3 auto-animates
+// ── Viz mapping ───────────────────────────────────────────────────────────────
+// archetypeIdx: 0 = Student (8 display items), 1 = First Job (11), 2 = Established (11)
+// First Job items: [taxes, rent, car, phone, healthcare, subs, groceries, gas, dining, entertainment, clothing]
+// Established items: [taxes, mortgage, cars, healthcare, subs, groceries, gas, utilities, dining, travel, clothing]
+const VIZ_MAP: { archetypeIdx: number; visibleItems: number; phase: VizPhase }[] = [
+  { archetypeIdx: 0, visibleItems: 0,  phase: 'items'   }, //  0: student — income bar, empty
+  { archetypeIdx: 0, visibleItems: 8,  phase: 'items'   }, //  1: all student items fly out
+  { archetypeIdx: 0, visibleItems: 8,  phase: 'gap'     }, //  2: student gap (grouped+gap shown)
+  { archetypeIdx: 1, visibleItems: 0,  phase: 'items'   }, //  3: first job — income bar, nothing yet
+  { archetypeIdx: 1, visibleItems: 1,  phase: 'items'   }, //  4: taxes land
+  { archetypeIdx: 1, visibleItems: 6,  phase: 'items'   }, //  5: + all 5 fixed costs
+  { archetypeIdx: 1, visibleItems: 8,  phase: 'items'   }, //  6: + groceries, gas
+  { archetypeIdx: 1, visibleItems: 11, phase: 'items'   }, //  7: + dining, entertainment, clothing
+  { archetypeIdx: 1, visibleItems: 11, phase: 'gap'     }, //  8: first job gap
+  { archetypeIdx: 2, visibleItems: 0,  phase: 'items'   }, //  9: established — income bar, nothing yet
+  { archetypeIdx: 2, visibleItems: 5,  phase: 'items'   }, // 10: + taxes + 4 fixed costs
+  { archetypeIdx: 2, visibleItems: 11, phase: 'items'   }, // 11: + variable + discretionary
+  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'     }, // 12: established gap
+  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'     }, // 13: stats
+  { archetypeIdx: 2, visibleItems: 11, phase: 'month2'  }, // 14: month 2 repeats
 ];
 
 // ── Sources ───────────────────────────────────────────────────────────────────
@@ -78,21 +107,15 @@ const SOURCES = [
   },
   {
     org: 'Federal Reserve',
-    title: 'Report on the Economic Well-Being of U.S. Households (SHED) 2024',
-    url: 'https://www.federalreserve.gov/publications/report-economic-well-being-us-households.htm',
-    note: '37% stat: share of adults who cannot cover a $400 emergency with cash',
+    title: '2022 Survey of Consumer Finances',
+    url: 'https://www.federalreserve.gov/econres/scfindex.htm',
+    note: '~47% of families saved nothing in 2022; 16% of families earning $216K+ saved nothing in 2022',
   },
   {
     org: 'IRS',
     title: 'Rev. Proc. 2024-40 — Tax Year 2025 Inflation Adjustments',
     url: 'https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2025',
-    note: 'Federal income tax brackets used in archetype tax estimates',
-  },
-  {
-    org: 'Zillow / Apartment List',
-    title: 'Rental Market Trends — 2024',
-    url: 'https://www.apartmentlist.com/research/national-rent-data',
-    note: 'Median rent estimates used in HCOL archetype',
+    note: 'Federal income tax brackets used in tax estimates for all three life stages',
   },
 ];
 
@@ -119,8 +142,8 @@ export default function App() {
     return () => observer.disconnect();
   }, []);
 
-  const scrollyArchetype = ARCHETYPES[SCROLLY_ARCHETYPE_IDX];
   const vizProps = VIZ_MAP[Math.min(currentStep, VIZ_MAP.length - 1)];
+  const scrollyArchetype = ARCHETYPES[vizProps.archetypeIdx];
 
   return (
     <div className="the-net-story">
@@ -138,6 +161,7 @@ export default function App() {
             archetype={scrollyArchetype}
             visibleItems={vizProps.visibleItems}
             phase={vizProps.phase}
+            stage={vizProps.archetypeIdx}
           />
         </div>
 
@@ -161,10 +185,10 @@ export default function App() {
       {/* ── ARCHETYPE EXPLORER ──────────────────────────────────────── */}
       <section className="archetype-explorer">
         <div className="explorer-header">
-          <h2>Four households, four nets</h2>
+          <h2>Alex at three stages of life</h2>
           <p>
-            The same waterfall structure, four very different outcomes. Two of these households
-            earn more than the median — and still end the month with almost nothing.
+            Same person, same budget structure. Income nearly doubled from the first job to
+            the established stage — but the monthly gap barely moved.
           </p>
         </div>
 

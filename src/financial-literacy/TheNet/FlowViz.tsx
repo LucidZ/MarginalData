@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Archetype, CategoryType, netMonthly } from './data';
+import { AlexAvatarSvg } from './AlexAvatar';
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 const VW = 520;
@@ -67,10 +68,12 @@ export default function FlowViz({
   archetype,
   visibleItems,
   phase,
+  stage,
 }: {
   archetype: Archetype;
   visibleItems: number;
   phase: VizPhase;
+  stage?: number;
 }) {
   const items = buildDisplayItems(archetype);
   const n = items.length;
@@ -175,14 +178,12 @@ export default function FlowViz({
         {fmt$(gross)}/mo gross
       </text>
 
-      {monthLabel && (
-        <text
-          x={BAR_X + BAR_W / 2} y={64}
-          textAnchor="middle" fontSize={9} fill="#aaa" fontFamily="inherit"
-        >
-          {monthLabel}
-        </text>
-      )}
+      <text
+        x={BAR_X + BAR_W / 2} y={64}
+        textAnchor="middle" fontSize={9} fill="#aaa" fontFamily="inherit"
+      >
+        {monthLabel ?? archetype.description}
+      </text>
 
       {/* Income bar outline — always full height, the "container" */}
       <rect
@@ -307,6 +308,13 @@ export default function FlowViz({
       >
         Net: {net >= 0 ? '+' : ''}{fmt$(net)}/mo
       </text>
+
+      {/* Life stage avatar — upper-right clear zone, placeholder for commissioned art */}
+      {stage !== undefined && (
+        <g style={{ transition: 'opacity 400ms ease' }}>
+          <AlexAvatarSvg stage={stage} />
+        </g>
+      )}
     </svg>
   );
 }

@@ -1,19 +1,20 @@
-// Archetype budgets grounded in BLS Consumer Expenditure Survey 2024
-// Source: https://www.bls.gov/news.release/cesan.nr0.htm
+// Alex's budget at three life stages — grounded in BLS Consumer Expenditure Survey 2024
+// and the 2022 Survey of Consumer Finances (Federal Reserve, DOI: https://doi.org/10.17016/8799)
 //
-// 2024 income quintile thresholds:
+// BLS CEX 2024 income quintile thresholds:
 //   Q1 < $29,932 | Q2 $29,932–57,452 | Q3 $57,452–94,511
 //   Q4 $94,511–155,925 | Q5 > $155,925
 //
-// Average annual expenditures by quintile:
-//   Q1 $35,046 | Q2 $55,267 | Q3 $74,547 | Q4 $100,523 | Q5 $150,342
+// SCF 2022 savings findings (used as reveal stats in the narrative):
+//   ~47% of U.S. families reported saving no money in 2022
+//   16% of families earning $216K+ reported saving no money in 2022
 //
-// Overall: avg income $104,207, avg expenditures $78,535
-// Housing as % of spending: Q1 41.6%, all 33.4%, Q5 29.3%
+// Tax estimates use 2024 brackets (IRS Rev. Proc. 2024-40):
+//   Stage 1 ($18K, single): mostly FICA; minimal income tax after standard deduction
+//   Stage 2 ($54K, single): ~19% effective (fed $375 + FICA $344 + state $131)
+//   Stage 3 ($102K, MFJ couple): ~21% effective (fed $806 + FICA $650 + state $344)
 //
-// Individual archetype line items are BLS-grounded approximations.
-// Single-person and family figures differ from quintile averages, which
-// pool many household compositions.
+// Budget line items are BLS-grounded approximations for illustrative purposes.
 
 export type CategoryType = 'taxes' | 'fixed' | 'variable' | 'discretionary';
 export type SegKey = CategoryType | 'net';
@@ -51,114 +52,91 @@ export function netMonthly(a: Archetype): number {
   return takeHome(a) - totalSpend(a);
 }
 
-// ── Archetype 1: Getting By ───────────────────────────────────────────────────
-// Single renter, $38K/yr gross (Q2). Annual spending ~$29.5K.
-// Fed ~$215/mo + FICA ~$242/mo + state ~$95/mo = $552/mo taxes (17.4% effective).
-// Net: $160/mo — one unexpected bill erases it.
-const GETTING_BY: Archetype = {
-  id: 'getting-by',
-  name: 'Getting By',
-  description: 'Single · renter · $38K/yr',
-  quintileNote: 'Income quintile 2 ($30K–$57K). BLS avg annual expenditures for Q2: $55,267.',
-  grossMonthly: 3_167,
-  taxesMonthly: 552,
+// ── Stage 1: Student ──────────────────────────────────────────────────────────
+// Alex, 22. Part-time barista while finishing school. $18K/yr gross.
+// FICA $115/mo + minimal income tax $20/mo + small state $15/mo = $150/mo taxes.
+// Rent split with roommates, no car. Monthly gap: -$200.
+// Shortfall covered by student loans, parents, or credit card creep.
+const STUDENT: Archetype = {
+  id: 'student',
+  name: 'Student',
+  description: 'Alex · age 22 · part-time · $18K/yr',
+  quintileNote: 'Income quintile 1 (under $29,932). Tax estimate: mostly FICA on $1,500/mo gross; federal income tax near zero after standard deduction.',
+  grossMonthly: 1_500,
+  taxesMonthly: 150,
   items: [
-    { label: 'Rent', amount: 1_100, type: 'fixed' },
-    { label: 'Car payment + insurance', amount: 330, type: 'fixed' },
-    { label: 'Phone + utilities', amount: 150, type: 'fixed' },
-    { label: 'Healthcare (HDHP)', amount: 150, type: 'fixed' },
-    { label: 'Subscriptions', amount: 45, type: 'fixed' },
-    { label: 'Groceries', amount: 280, type: 'variable' },
-    { label: 'Gas', amount: 100, type: 'variable' },
-    { label: 'Dining + entertainment', amount: 160, type: 'discretionary' },
-    { label: 'Clothing + misc', amount: 140, type: 'discretionary' },
+    { label: 'Rent (split with roommates)', amount: 650, type: 'fixed' },
+    { label: 'Phone',                       amount:  45, type: 'fixed' },
+    { label: 'Subscriptions',               amount:  25, type: 'fixed' },
+    { label: 'Groceries',                   amount: 270, type: 'variable' },
+    { label: 'Bus pass + transport',         amount:  80, type: 'variable' },
+    { label: 'Dining + social',              amount: 310, type: 'discretionary' },
+    { label: 'Clothing + misc',              amount: 170, type: 'discretionary' },
   ],
 };
+// Net check: takeHome = 1,500 - 150 = 1,350. totalSpend = 1,550. net = -200. ✓
 
-// ── Archetype 2: Median Family ────────────────────────────────────────────────
-// Couple + child, $78K combined gross (Q3 median). Homeowner.
-// MFJ standard deduction lowers federal burden; FICA on two earners.
-// Fed ~$453/mo + FICA ~$497/mo + state ~$325/mo ≈ $1,300/mo (20% effective).
-// Net: $45/mo — the "invisible net" at the median.
-const MEDIAN_FAMILY: Archetype = {
-  id: 'median-family',
-  name: 'Median Family',
-  description: 'Couple + child · homeowner · $78K/yr',
-  quintileNote: 'Income quintile 3 ($57K–$95K). BLS avg annual expenditures for Q3: $74,547.',
-  grossMonthly: 6_500,
-  taxesMonthly: 1_300,
+// ── Stage 2: First Job ────────────────────────────────────────────────────────
+// Alex, 26. Entry-level analyst, first real salary. $54K/yr gross.
+// Fed $375/mo + FICA $344/mo + state $131/mo = $850/mo taxes (~19% effective).
+// Renting solo, bought a used car. Monthly gap: +$250 (~6.8% of take-home).
+// Slightly above the national personal savings rate — but not by much.
+const FIRST_JOB: Archetype = {
+  id: 'first-job',
+  name: 'First Job',
+  description: 'Alex · age 26 · analyst · $54K/yr',
+  quintileNote: 'Income quintile 2 ($29,932–$57,452). BLS avg annual expenditures for Q2: $55,267. Tax estimate: single filer, 2024 brackets.',
+  grossMonthly: 4_500,
+  taxesMonthly: 850,
   items: [
-    { label: 'Mortgage + property tax + insurance', amount: 2_100, type: 'fixed' },
-    { label: 'Two cars', amount: 700, type: 'fixed' },
-    { label: 'Healthcare (family plan)', amount: 420, type: 'fixed' },
-    { label: 'Childcare', amount: 500, type: 'fixed' },
-    { label: 'Subscriptions', amount: 75, type: 'fixed' },
-    { label: 'Groceries', amount: 580, type: 'variable' },
-    { label: 'Gas', amount: 180, type: 'variable' },
-    { label: 'Utilities', amount: 200, type: 'variable' },
-    { label: 'Dining + entertainment', amount: 280, type: 'discretionary' },
-    { label: 'Clothing + misc', amount: 120, type: 'discretionary' },
+    { label: 'Rent (1BR)',              amount: 1_500, type: 'fixed' },
+    { label: 'Car payment + insurance', amount:   350, type: 'fixed' },
+    { label: 'Phone',                   amount:    60, type: 'fixed' },
+    { label: 'Healthcare (basic plan)', amount:   120, type: 'fixed' },
+    { label: 'Subscriptions',           amount:    50, type: 'fixed' },
+    { label: 'Groceries',               amount:   300, type: 'variable' },
+    { label: 'Gas',                     amount:    90, type: 'variable' },
+    { label: 'Dining + social',         amount:   500, type: 'discretionary' },
+    { label: 'Entertainment',           amount:   200, type: 'discretionary' },
+    { label: 'Clothing + misc',         amount:   230, type: 'discretionary' },
   ],
 };
+// Net check: takeHome = 4,500 - 850 = 3,650. totalSpend = 3,400. net = +250. ✓
 
-// ── Archetype 3: Comfortable ──────────────────────────────────────────────────
-// Dual income, no kids (DINK), $130K combined gross (Q4). Homeowner.
-// Higher marginal rates; no dependent deductions.
-// Fed ~$1,223/mo + FICA ~$829/mo + state ~$542/mo ≈ $2,833/mo (26% effective).
-// Net: $1,400/mo — clearly positive, but lifestyle creep is invisible.
-const COMFORTABLE: Archetype = {
-  id: 'comfortable',
-  name: 'Comfortable',
-  description: 'Dual income, no kids · homeowner · $130K/yr',
-  quintileNote: 'Income quintile 4 ($95K–$156K). BLS avg annual expenditures for Q4: $100,523.',
-  grossMonthly: 10_833,
-  taxesMonthly: 2_833,
+// ── Stage 3: Established ──────────────────────────────────────────────────────
+// Alex, 34. Bought a house, two incomes, $102K/yr combined gross.
+// MFJ: fed $806/mo + FICA $650/mo + state $344/mo = $1,800/mo taxes (~21% effective).
+// Income nearly doubled since the first job — but so did spending. Monthly gap: +$250 (~3.7% of take-home).
+// Same dollar gap as stage 2 despite income growing by $4,000/mo. Lifestyle absorbed every raise.
+const ESTABLISHED: Archetype = {
+  id: 'established',
+  name: 'Established',
+  description: 'Alex · age 34 · homeowners · $102K/yr',
+  quintileNote: 'Income quintile 3–4 ($57K–$155K). BLS avg annual expenditures for Q3: $74,547; Q4: $100,523. Tax estimate: married filing jointly, 2024 brackets.',
+  grossMonthly: 8_500,
+  taxesMonthly: 1_800,
   items: [
-    { label: 'Mortgage + property tax + insurance', amount: 2_700, type: 'fixed' },
-    { label: 'Two cars', amount: 900, type: 'fixed' },
-    { label: 'Healthcare', amount: 300, type: 'fixed' },
-    { label: 'Subscriptions', amount: 150, type: 'fixed' },
-    { label: 'Groceries', amount: 700, type: 'variable' },
-    { label: 'Gas + utilities', amount: 370, type: 'variable' },
-    { label: 'Dining + bars', amount: 700, type: 'discretionary' },
-    { label: 'Travel + hobbies', amount: 500, type: 'discretionary' },
-    { label: 'Shopping + misc', amount: 280, type: 'discretionary' },
+    { label: 'Mortgage + tax + insurance', amount: 2_200, type: 'fixed' },
+    { label: 'Two cars',                   amount:   750, type: 'fixed' },
+    { label: 'Healthcare (family plan)',   amount:   350, type: 'fixed' },
+    { label: 'Subscriptions',             amount:   120, type: 'fixed' },
+    { label: 'Groceries',                 amount:   600, type: 'variable' },
+    { label: 'Gas',                       amount:   120, type: 'variable' },
+    { label: 'Utilities',                 amount:   300, type: 'variable' },
+    { label: 'Dining + entertainment',    amount: 1_100, type: 'discretionary' },
+    { label: 'Travel + hobbies',          amount:   650, type: 'discretionary' },
+    { label: 'Clothing + misc',           amount:   260, type: 'discretionary' },
   ],
 };
-
-// ── Archetype 4: HCOL Trap ────────────────────────────────────────────────────
-// Single, $90K/yr gross in San Francisco (Q3/Q4 income, Q1 net outcome).
-// CA state income tax ~9% effective; combined burden 28%.
-// Fed ~$969/mo + FICA ~$574/mo + CA state ~$540/mo ≈ $2,100/mo (28% effective).
-// Rent alone is 52% of take-home. Net: $30/mo — same income band as Q3,
-// radically worse outcome due to geography and student debt.
-const HCOL_TRAP: Archetype = {
-  id: 'hcol-trap',
-  name: 'HCOL Trap',
-  description: 'Single · San Francisco renter · $90K/yr',
-  quintileNote: 'Q3/Q4 income nationally, but rent + student debt produce a Q1 net.',
-  grossMonthly: 7_500,
-  taxesMonthly: 2_100,
-  items: [
-    { label: 'Rent (SF 1BR)', amount: 2_800, type: 'fixed' },
-    { label: 'Student loans', amount: 500, type: 'fixed' },
-    { label: 'Healthcare', amount: 250, type: 'fixed' },
-    { label: 'Subscriptions', amount: 80, type: 'fixed' },
-    { label: 'Transit + rideshare', amount: 200, type: 'variable' },
-    { label: 'Groceries', amount: 500, type: 'variable' },
-    { label: 'Utilities', amount: 120, type: 'variable' },
-    { label: 'Dining + social', amount: 500, type: 'discretionary' },
-    { label: 'Entertainment + travel', amount: 300, type: 'discretionary' },
-    { label: 'Clothing + misc', amount: 120, type: 'discretionary' },
-  ],
-};
+// Net check: takeHome = 8,500 - 1,800 = 6,700. totalSpend = 6,450. net = +250. ✓
 
 export const ARCHETYPES: Archetype[] = [
-  GETTING_BY,
-  MEDIAN_FAMILY,
-  COMFORTABLE,
-  HCOL_TRAP,
+  STUDENT,
+  FIRST_JOB,
+  ESTABLISHED,
 ];
 
-// The archetype used in the scrollytelling walkthrough
-export const SCROLLY_ARCHETYPE_IDX = 1; // Median Family
+// The stage used in the scrollytelling walkthrough.
+// Established has 11 display items (taxes + 10 budget items) — same count as the
+// previous Median Family, so VIZ_MAP step counts remain valid during story rewrite.
+export const SCROLLY_ARCHETYPE_IDX = 2; // Established
