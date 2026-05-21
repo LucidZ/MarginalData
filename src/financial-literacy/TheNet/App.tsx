@@ -1,46 +1,71 @@
 import { useEffect, useRef, useState } from 'react';
 import WaterfallViz from './WaterfallViz';
+import FlowViz, { VizPhase } from './FlowViz';
 import { Sources } from '../shared/Sources';
 import {
   ARCHETYPES,
   SCROLLY_ARCHETYPE_IDX,
-  HighlightType,
   netMonthly,
 } from './data';
 import './App.css';
 
 // ── Scroll steps ──────────────────────────────────────────────────────────────
-const STEPS: { highlight: HighlightType; headline: string; body: string }[] = [
+const STEPS: { headline: string; body: string }[] = [
   {
-    highlight: 'all',
-    headline: 'A median American family',
-    body: 'Couple with one child. Combined income of $78,000 — right in the middle of the third income quintile according to BLS data. $6,500 arrives each month before anything is subtracted.',
+    headline: 'Payday',
+    body: '$6,500 arrives at the start of the month. Before a single bill is paid, this is everything — the full gross. The job now: keep as much of it as possible.',
   },
   {
-    highlight: 'taxes',
-    headline: 'Taxes come first',
-    body: "Federal income tax, FICA, and state taxes take $1,300 before a single dollar reaches the checking account. That's 20% off the top — an effective rate, not marginal. Take-home: $5,200.",
+    headline: 'Taxes come first — before you see a dime',
+    body: "$1,300 is withheld before the paycheck hits the bank. Federal income tax, FICA, state. You never get the choice to spend it. That's 20% of gross, gone before any decision is made.",
   },
   {
-    highlight: 'fixed',
-    headline: 'Fixed: committed before the month begins',
-    body: "Mortgage, car payments, healthcare, childcare, subscriptions. These don't flex. $3,795 is spoken for before any choice is made — 73% of take-home.",
+    headline: 'The mortgage and cars',
+    body: "The two biggest fixed costs lock in next. $2,100 for the mortgage — principal, interest, property tax, insurance bundled together. $700 for two cars — payments and insurance. These are contracts. They don't budge.",
   },
   {
-    highlight: 'variable',
-    headline: 'Variable: necessary but slightly controllable',
-    body: "Groceries, gas, utilities. Not optional — but there's some give. $960 more. Combined with fixed expenses, 92% of take-home is now allocated.",
+    headline: 'Healthcare, childcare, subscriptions',
+    body: "Healthcare eats $420 (family plan). Childcare takes $500 — one of the fastest-growing household expenses in America. Subscriptions add up quietly: streaming, software, memberships. Another $75. Every one was a decision. Most feel non-negotiable now.",
   },
   {
-    highlight: 'discretionary',
-    headline: 'Discretionary: where choice lives',
-    body: 'Dining out, entertainment, clothing. The only layer with real flexibility. $400 — 8% of take-home, the only place either lever (spend less) can realistically move.',
+    headline: 'Groceries, gas, utilities',
+    body: "Necessary but somewhat flexible. Groceries: $580. Gas: $180. Utilities: $200. Unlike fixed costs, these can bend a little with effort. But they don't bend much.",
   },
   {
-    highlight: 'net',
-    headline: 'The net: $45',
-    body: "After everything, $45 remains. One car repair, one medical bill, one missed paycheck — and it's gone. The Fed's 2024 SHED survey found 37% of adults can't cover a $400 emergency with cash. Now you can see why.",
+    headline: 'The only truly flexible layer',
+    body: "$280 on dining and entertainment. $120 on clothing and miscellaneous. This is where real choice lives — and it's 8% of take-home. The only lever most families actually have.",
   },
+  {
+    headline: "Let's organize this",
+    body: "Four categories. Taxes you never touch. Fixed costs you've committed to. Variable necessities. And a sliver of discretionary. The structure looks the same for almost everyone — only the dollar amounts change.",
+  },
+  {
+    headline: 'The gap: $45',
+    body: "After everything, $45 remains. One car repair, one medical bill, one missed shift — and it's gone. The Fed's 2024 SHED survey found 37% of adults can't cover a $400 emergency with cash. Now you can see why.",
+  },
+  {
+    headline: 'Month 2. Same story.',
+    body: "Another paycheck arrives. The same fixed costs are waiting. The same groceries, the same gas. The gap, if there is one, begins to accumulate. The cycle repeats.",
+  },
+  {
+    headline: 'Month after month. The same $45.',
+    body: "The gap is a flow — what you generate each month. Savings and debt are stocks — what has accumulated over time. That $45, repeated month after month, is exactly what the next section is about.",
+  },
+];
+
+// ── Viz mapping: step index → FlowViz props ───────────────────────────────────
+// Median Family has 11 display items (1 taxes + 10 budget items)
+const VIZ_MAP: { visibleItems: number; phase: VizPhase }[] = [
+  { visibleItems: 0,  phase: 'items'   }, // 0: payday
+  { visibleItems: 1,  phase: 'items'   }, // 1: taxes
+  { visibleItems: 3,  phase: 'items'   }, // 2: + mortgage, cars
+  { visibleItems: 6,  phase: 'items'   }, // 3: + healthcare, childcare, subscriptions
+  { visibleItems: 9,  phase: 'items'   }, // 4: + groceries, gas, utilities
+  { visibleItems: 11, phase: 'items'   }, // 5: + dining, clothing
+  { visibleItems: 11, phase: 'grouped' }, // 6: group into categories
+  { visibleItems: 11, phase: 'gap'     }, // 7: highlight gap
+  { visibleItems: 11, phase: 'month2'  }, // 8: month 2 auto-animates
+  { visibleItems: 11, phase: 'month3'  }, // 9: month 3 auto-animates
 ];
 
 // ── Sources ───────────────────────────────────────────────────────────────────
@@ -77,7 +102,7 @@ export default function App() {
   const [activeArchetype, setActiveArchetype] = useState(0);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // IntersectionObserver — fire when a step enters the viewport
+  // IntersectionObserver — fire when a step is centered in the viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
@@ -88,14 +113,14 @@ export default function App() {
           }
         });
       },
-      { threshold: 0.45 }
+      { threshold: 0.4 }
     );
     stepRefs.current.forEach(el => el && observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
   const scrollyArchetype = ARCHETYPES[SCROLLY_ARCHETYPE_IDX];
-  const step = STEPS[currentStep];
+  const vizProps = VIZ_MAP[Math.min(currentStep, VIZ_MAP.length - 1)];
 
   return (
     <div className="the-net-story">
@@ -109,7 +134,11 @@ export default function App() {
       {/* ── SCROLLY SECTION ─────────────────────────────────────────── */}
       <div className="scrolly-container">
         <div className="scrolly-viz">
-          <WaterfallViz archetype={scrollyArchetype} highlight={step.highlight} />
+          <FlowViz
+            archetype={scrollyArchetype}
+            visibleItems={vizProps.visibleItems}
+            phase={vizProps.phase}
+          />
         </div>
 
         <div className="scrolly-steps">

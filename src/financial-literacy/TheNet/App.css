@@ -51,7 +51,7 @@
 }
 
 .the-net-story .scrolly-step {
-  min-height: 200vh;
+  min-height: 130vh;
   display: flex;
   align-items: flex-start;
   padding-top: 10vh;
@@ -189,7 +189,7 @@
   }
 
   .the-net-story .scrolly-step {
-    min-height: 150vh;
+    min-height: 110vh;
   }
 
   .the-net-story .scrolly-steps {
