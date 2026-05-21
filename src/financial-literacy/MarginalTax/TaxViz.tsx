@@ -8,7 +8,7 @@ interface Props {
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 const VW = 520;
-const VH = 460;
+const VH = 400;
 
 const BILL_W = 172;
 const BILL_H = 46;
@@ -22,9 +22,9 @@ const KNIFE_BLADE_Y = 204;
 const STACK_W    = BILL_W;
 const STACK_LEFT = BILL_LX;
 const STACK_BOTTOM_Y = 338;
-const STACK_MAX_H    = 120; // at MAX_STORY_INCOME
+const STACK_MAX_H    = 100; // at MAX_STORY_INCOME — leaves room for floating labels above
 
-const STATS_Y = 358;
+const STATS_Y = 355;
 
 const CUT_THRESH     = 0.70;
 const N_STREAM       = 1;
@@ -167,6 +167,14 @@ export default function TaxViz({ income }: Props) {
           points={`0,${KNIFE_TIP_Y} -11,${KNIFE_BLADE_Y} 11,${KNIFE_BLADE_Y}`}
           fill={COLOR_KNIFE}
         />
+        {/* Marginal rate label rides with knife — D3 animates both together */}
+        <text
+          x={0} y={KNIFE_BLADE_Y + 16}
+          textAnchor="middle" fontSize={11} fontWeight={700}
+          fill={COLOR_TAX} fontFamily="inherit"
+        >
+          {fmtPct(marginalRate)}
+        </text>
       </g>
 
       {/* Stack container — faint outline shows full potential height */}
@@ -184,37 +192,43 @@ export default function TaxViz({ income }: Props) {
         </g>
       ))}
 
+      {/* Effective rate label + dashed line — both follow the same x position */}
+      {effectiveRate > 0 && (() => {
+        const effX = STACK_LEFT + STACK_W * (1 - effectiveRate);
+        return (
+          <g>
+            <text
+              x={effX} y={KNIFE_BLADE_Y + 29}
+              textAnchor="middle" fontSize={11}
+              fill="#999" fontFamily="inherit"
+            >
+              {fmtPct(effectiveRate)}
+            </text>
+            <line
+              x1={effX} y1={KNIFE_BLADE_Y + 34}
+              x2={effX} y2={STACK_BOTTOM_Y}
+              stroke="rgba(255,255,255,0.65)"
+              strokeWidth={1.5}
+              strokeDasharray="3,3"
+            />
+            <line
+              x1={effX} y1={STACK_BOTTOM_Y}
+              x2={effX} y2={STACK_BOTTOM_Y + 5}
+              stroke="rgba(140,140,140,0.45)"
+              strokeWidth={1.5}
+            />
+          </g>
+        );
+      })()}
+
       {/* Stack side labels */}
       <text x={STACK_LEFT + 5}            y={KNIFE_BLADE_Y - 5} fontSize={9} fill="#555" fontFamily="inherit">kept</text>
       <text x={STACK_LEFT + STACK_W - 5}  y={KNIFE_BLADE_Y - 5} textAnchor="end" fontSize={9} fill="#999" fontFamily="inherit">tax</text>
 
-      {/* ── STATS ── */}
-      {/* Income context */}
+      {/* ── INCOME COUNTER ── */}
       <text x={VW / 2} y={STATS_Y} textAnchor="middle" fontFamily="inherit">
         <tspan fontSize={13} fontWeight={600} fill="#555">{fmt$(discreteIncome)}</tspan>
         <tspan dx={4} fontSize={10} fill="#bbb">income</tspan>
-      </text>
-
-      {/* Marginal rate */}
-      <text x={VW * 0.27} y={STATS_Y + 32} textAnchor="middle" fontFamily="inherit">
-        <tspan fontSize={26} fontWeight={800} fill={COLOR_KEPT}>{fmtPct(marginalRate)}</tspan>
-      </text>
-      <text x={VW * 0.27} y={STATS_Y + 48} textAnchor="middle" fontSize={9} fill="#aaa" fontFamily="inherit">
-        marginal rate
-      </text>
-      <text x={VW * 0.27} y={STATS_Y + 60} textAnchor="middle" fontSize={8} fill="#ccc" fontFamily="inherit">
-        your next dollar
-      </text>
-
-      {/* Effective rate */}
-      <text x={VW * 0.73} y={STATS_Y + 32} textAnchor="middle" fontFamily="inherit">
-        <tspan fontSize={26} fontWeight={800} fill="#888">{fmtPct(effectiveRate)}</tspan>
-      </text>
-      <text x={VW * 0.73} y={STATS_Y + 48} textAnchor="middle" fontSize={9} fill="#aaa" fontFamily="inherit">
-        effective rate
-      </text>
-      <text x={VW * 0.73} y={STATS_Y + 60} textAnchor="middle" fontSize={8} fill="#ccc" fontFamily="inherit">
-        on all earnings
       </text>
 
     </svg>
