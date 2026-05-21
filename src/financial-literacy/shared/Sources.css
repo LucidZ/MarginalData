@@ -1,0 +1,49 @@
+.fl-sources {
+  padding: 1.5rem 0 2rem;
+  border-top: 1px solid #eee;
+  margin-top: 3rem;
+}
+
+.fl-sources-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #aaa;
+  margin: 0 0 0.6rem;
+}
+
+.fl-sources ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fl-sources li {
+  font-size: 0.78rem;
+  color: #999;
+  line-height: 1.5;
+}
+
+.fl-sources-org {
+  font-weight: 600;
+  color: #888;
+}
+
+.fl-sources a {
+  color: #888;
+  text-decoration: underline;
+  text-decoration-color: #ddd;
+}
+
+.fl-sources a:hover {
+  color: #555;
+}
+
+.fl-sources-note {
+  color: #bbb;
+  font-style: italic;
+}

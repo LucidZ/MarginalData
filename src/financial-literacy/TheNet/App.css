@@ -1,0 +1,224 @@
+.the-net-story {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.the-net-story .story-header {
+  padding: 2.5rem 1.5rem 0.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.the-net-story .story-header h1 {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.the-net-story .story-header .subtitle {
+  font-size: clamp(0.88rem, 1.8vw, 1rem);
+  color: #666;
+  margin: 0;
+}
+
+/* ── Scrolly layout ──────────────────────────────────────────────────────────── */
+.the-net-story .scrolly-container {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.the-net-story .scrolly-viz {
+  flex: 0 0 58%;
+  max-width: 520px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+.the-net-story .scrolly-steps {
+  flex: 1;
+  padding-top: 40vh;
+  padding-bottom: 50vh;
+}
+
+.the-net-story .scrolly-step {
+  min-height: 200vh;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 10vh;
+}
+
+.the-net-story .step-inner h2 {
+  font-size: clamp(1rem, 2.2vw, 1.2rem);
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.the-net-story .step-inner p {
+  font-size: clamp(0.85rem, 1.6vw, 0.97rem);
+  line-height: 1.7;
+  color: #444;
+  margin: 0;
+  max-width: 36ch;
+}
+
+/* ── Archetype explorer ──────────────────────────────────────────────────────── */
+.archetype-explorer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem 2rem;
+}
+
+.explorer-header {
+  margin-bottom: 1.8rem;
+}
+
+.explorer-header h2 {
+  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.explorer-header p {
+  font-size: clamp(0.85rem, 1.6vw, 0.97rem);
+  color: #666;
+  margin: 0;
+  max-width: 52ch;
+  line-height: 1.6;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────────── */
+.archetype-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.archetype-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 200ms ease, background 200ms ease;
+  min-width: 150px;
+}
+
+.archetype-tab:hover {
+  border-color: #bbb;
+  background: #fafafa;
+}
+
+.archetype-tab.active {
+  border-color: #1e3a5f;
+  background: #f0f4f8;
+}
+
+.tab-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.tab-desc {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.tab-net {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+/* ── Explorer viz ────────────────────────────────────────────────────────────── */
+.explorer-viz {
+  max-width: 520px;
+}
+
+.quintile-note {
+  font-size: 0.78rem;
+  color: #aaa;
+  margin: 0.5rem 0 0;
+  max-width: 52ch;
+  line-height: 1.5;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+.story-footer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .the-net-story .scrolly-container {
+    flex-direction: column;
+    gap: 0;
+    padding: 0 1rem;
+  }
+
+  .the-net-story .scrolly-viz {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    height: min(52vh, 380px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    padding: 0.5rem 0 0;
+    justify-content: flex-start;
+  }
+
+  .the-net-story .scrolly-step {
+    min-height: 150vh;
+  }
+
+  .the-net-story .scrolly-steps {
+    padding-top: 4vh;
+    padding-bottom: 30vh;
+  }
+
+  .the-net-story .step-inner p {
+    max-width: 100%;
+  }
+
+  .the-net-story .story-header {
+    padding: 1.5rem 1rem 0.5rem;
+  }
+
+  .archetype-explorer {
+    padding: 3rem 1rem 2rem;
+  }
+
+  .archetype-tabs {
+    gap: 0.4rem;
+  }
+
+  .archetype-tab {
+    min-width: calc(50% - 0.2rem);
+    flex: 1 1 calc(50% - 0.2rem);
+  }
+
+  .story-footer {
+    padding: 0 1rem;
+  }
+}
