@@ -138,8 +138,8 @@ export default function App() {
 
         {/* Scrollable text steps */}
         <div className="scrolly-steps">
-          {STEPS.map((step) => (
-            <div className="scrolly-step" key={step.bracketPct}>
+          {STEPS.map((step, i) => (
+            <div className="scrolly-step" key={step.bracketPct} data-step={i}>
               <div className="step-inner">
                 <span className="bracket-label">{step.bracketPct}</span>
                 <h2>{step.headline}</h2>
