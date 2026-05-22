@@ -13,13 +13,13 @@ const BAR_Y = 72;
 const BAR_H = 340;
 const BAR_BOTTOM = BAR_Y + BAR_H;
 
-const EXPENSE_X = BAR_RIGHT + 36;          // 152
-const EXPENSE_W = BAR_W;                   // same width — chunks fit flush
-const EXPENSE_RIGHT = EXPENSE_X + EXPENSE_W; // 240
-const LABEL_X = EXPENSE_RIGHT + 10;        // 250
-const TRANSLATE_X = EXPENSE_X - BAR_X;    // 124 — pure horizontal slide
+const EXPENSE_X = BAR_RIGHT + 36;
+const EXPENSE_W = BAR_W;
+const EXPENSE_RIGHT = EXPENSE_X + EXPENSE_W;
+const LABEL_X = EXPENSE_RIGHT + 10;
+const TRANSLATE_X = EXPENSE_X - BAR_X;
 
-const MIN_LABEL_H = 18; // px — skip inline label if chunk is shorter than this
+const MIN_LABEL_H = 18;
 
 // ── Colors / labels ───────────────────────────────────────────────────────────
 const CAT_COLOR: Record<string, string> = {
@@ -29,6 +29,8 @@ const CAT_COLOR: Record<string, string> = {
   discretionary: '#7aa3c5',
   net:           '#2d6a4f',
 };
+
+const SCATTER_GRAY = '#b8b8b8';
 
 const CAT_LABEL: Record<string, string> = {
   taxes:         'Taxes',
@@ -59,9 +61,35 @@ function buildDisplayItems(a: Archetype): DisplayItem[] {
   ];
 }
 
-export type VizPhase = 'items' | 'grouped' | 'gap' | 'month2' | 'month3';
+export type VizPhase = 'items' | 'grouped' | 'gap' | 'month2' | 'month3' | 'scatter' | 'categorizing';
 
 const fmt$ = d3.format('$,.0f');
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+// ── Scatter positions for student stage (8 items) ─────────────────────────────
+// Hand-placed so items spread across the SVG, visually far from their stacked positions.
+const STUDENT_SCATTER: { x: number; y: number; rot: number }[] = [
+  { x: 330, y: 88,  rot: -5 }, // 0: taxes       stacked→(152, 72)
+  { x: 165, y: 228, rot:  3 }, // 1: rent        stacked→(152, 106)
+  { x: 415, y: 148, rot: -8 }, // 2: phone       stacked→(152, 254)
+  { x: 385, y: 75,  rot:  6 }, // 3: subscriptions stacked→(152, 264)
+  { x: 278, y: 382, rot: -4 }, // 4: groceries   stacked→(152, 270)
+  { x: 415, y: 298, rot:  7 }, // 5: bus pass    stacked→(152, 331)
+  { x: 155, y: 92,  rot: -6 }, // 6: dining+social stacked→(152, 349)
+  { x: 338, y: 188, rot:  4 }, // 7: clothing+misc stacked→(152, 419)
+];
+
+// Category timing within the normalized categorizeProgress (0–1).
+// Each category starts at `start` and completes within `window`.
+const CAT_TIMING: Record<string, { start: number; window: number }> = {
+  taxes:         { start: 0.00, window: 0.26 },
+  fixed:         { start: 0.20, window: 0.26 },
+  variable:      { start: 0.44, window: 0.26 },
+  discretionary: { start: 0.66, window: 0.26 },
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function FlowViz({
@@ -81,20 +109,22 @@ export default function FlowViz({
   const scale = BAR_H / gross;
   const net = netMonthly(archetype);
 
-  // Track previous visibleItems to compute stagger delay for newly-arrived items
   const prevVisibleRef = useRef(visibleItems);
 
   const [cycleProgress, setCycleProgress] = useState(0);
   const rafRef = useRef<number>(0);
   const phaseRef = useRef(phase);
 
-  // Auto-animate chunks flying out for month2 / month3
+  const [categorizeProgress, setCategorizeProgress] = useState(0);
+  const catRafRef = useRef<number>(0);
+
+  // month2 / month3 cycle animation
   useEffect(() => {
     phaseRef.current = phase;
     if (phase !== 'month2' && phase !== 'month3') return;
 
     const duration = phase === 'month2' ? 1800 : 1200;
-    setCycleProgress(0); // snaps chunks back to income bar, then animates out
+    setCycleProgress(0);
     const t0 = performance.now();
     cancelAnimationFrame(rafRef.current);
 
@@ -108,50 +138,72 @@ export default function FlowViz({
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase]);
 
-  // Capture prev before effect updates it
+  // categorizing animation
+  useEffect(() => {
+    if (phase !== 'categorizing') return;
+    setCategorizeProgress(0);
+    const duration = 3400;
+    const t0 = performance.now();
+    cancelAnimationFrame(catRafRef.current);
+
+    const tick = (now: number) => {
+      const t = Math.min((now - t0) / duration, 1);
+      setCategorizeProgress(t);
+      if (t < 1) catRafRef.current = requestAnimationFrame(tick);
+    };
+    catRafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(catRafRef.current);
+  }, [phase]);
+
   const prevVisible = prevVisibleRef.current;
   useEffect(() => {
     prevVisibleRef.current = visibleItems;
   });
 
   const isCycling = phase === 'month2' || phase === 'month3';
+  const isScatter = phase === 'scatter';
+  const isCategorizing = phase === 'categorizing';
   const showGrouped = phase === 'grouped' || phase === 'gap';
   const showGap = phase === 'gap' || (isCycling && cycleProgress >= 1);
   const monthLabel = phase === 'month2' ? 'Month 2' : phase === 'month3' ? 'Month 3' : null;
 
-  // ── Compute chunk geometry ──────────────────────────────────────────────────
+  // ── Chunk geometry ────────────────────────────────────────────────────────
   let cumulativeH = 0;
   const chunks = items.map((item, i) => {
     const h = item.amount * scale;
-    const y = BAR_Y + cumulativeH;
+    const stackedY = BAR_Y + cumulativeH;
     cumulativeH += h;
 
-    // flyProgress: 0 = chunk is in income bar, 1 = chunk is in expense box
+    // Per-category progress for categorizing animation
+    const timing = CAT_TIMING[item.category];
+    const rawCatT = timing ? (categorizeProgress - timing.start) / timing.window : 0;
+    const catProgress = d3.easeCubicInOut(Math.max(0, Math.min(1, rawCatT)));
+
     let flyProgress: number;
     if (isCycling) {
-      // Stagger: chunk i starts flying when cycleProgress passes i/n.
-      // 0.7 spread per item creates a smooth cascade.
       flyProgress = d3.easeCubicInOut(Math.max(0, Math.min(1, (cycleProgress * n - i) / 0.7)));
+    } else if (isScatter || isCategorizing) {
+      flyProgress = 1;
     } else {
       flyProgress = i < visibleItems ? 1 : 0;
     }
 
-    // CSS transition stagger only for the items phase
-    const isNewlyVisible = !isCycling && i >= prevVisible && i < visibleItems;
+    const isNewlyVisible = !isCycling && !isScatter && !isCategorizing && i >= prevVisible && i < visibleItems;
     const delay = isNewlyVisible ? `${(i - prevVisible) * 110}ms` : '0ms';
 
-    return { ...item, h, y, flyProgress, delay, isLanded: flyProgress > 0 };
+    const scatter = STUDENT_SCATTER[i] ?? { x: EXPENSE_X, y: stackedY, rot: 0 };
+
+    return { ...item, h, stackedY, flyProgress, delay, isLanded: flyProgress > 0, catProgress, scatter };
   });
 
-  // Net segment: stays in income bar; appears after the last chunk flies out
   const netY = BAR_Y + cumulativeH;
   const netH = Math.max(0, net * scale);
   const lastFlyProgress = chunks[n - 1]?.flyProgress ?? 0;
   const netOpacity = isCycling ? lastFlyProgress : visibleItems >= n ? 1 : 0;
 
-  // Category summary segments for grouped phase (bracket labels)
+  // Category summary segments (grouped / gap / categorizing)
   const catSegs: { category: string; y: number; h: number; amount: number }[] = [];
-  if (showGrouped) {
+  if (showGrouped || isCategorizing) {
     let y = BAR_Y;
     const catAmts: Record<string, number> = {};
     chunks.forEach(c => { catAmts[c.category] = (catAmts[c.category] ?? 0) + c.amount; });
@@ -185,14 +237,18 @@ export default function FlowViz({
         {monthLabel ?? archetype.description}
       </text>
 
-      {/* Income bar outline — always full height, the "container" */}
-      <rect
-        x={BAR_X} y={BAR_Y} width={BAR_W} height={BAR_H}
-        fill="none" stroke="#ccc" strokeWidth={1.5} rx={3}
-      />
+      {/* Income bar outline */}
+      <rect x={BAR_X} y={BAR_Y} width={BAR_W} height={BAR_H}
+        fill="none" stroke="#ccc" strokeWidth={1.5} rx={3} />
 
-      {/* Net segment — stays inside income bar after everything else drains */}
-      {netH > 1 && (
+      {/* Subtle fill during scatter so the bar reads as "your money" */}
+      {isScatter && (
+        <rect x={BAR_X} y={BAR_Y} width={BAR_W} height={BAR_H}
+          fill="#f5f5f5" rx={3} />
+      )}
+
+      {/* Net segment — hidden during scatter / categorizing */}
+      {!isScatter && !isCategorizing && netH > 1 && (
         <rect
           x={BAR_X} y={netY} width={BAR_W} height={netH}
           fill={CAT_COLOR.net} rx={2}
@@ -201,8 +257,94 @@ export default function FlowViz({
         />
       )}
 
-      {/* ── Chunks + expense boxes ─────────────────────────────────── */}
-      {chunks.map(chunk => {
+      {/* ── Scatter phase: items pop in at jittered positions, all gray ─── */}
+      {isScatter && chunks.map((chunk, i) => {
+        const visible = i < visibleItems;
+        const s = chunk.scatter;
+        const cx = s.x + BAR_W / 2;
+        const cy = s.y + chunk.h / 2;
+        return (
+          <g key={chunk.id} transform={`translate(${cx},${cy}) rotate(${s.rot})`}>
+            <g style={{
+              transformBox: 'fill-box' as const,
+              transformOrigin: 'center',
+              transform: visible ? 'scale(1)' : 'scale(0.4)',
+              opacity: visible ? 1 : 0,
+              transition: 'opacity 300ms ease, transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}>
+              <rect
+                x={-BAR_W / 2} y={-Math.max(chunk.h, 8) / 2}
+                width={BAR_W} height={Math.max(chunk.h, 8)}
+                fill={SCATTER_GRAY} rx={2}
+              />
+            </g>
+          </g>
+        );
+      })}
+
+      {/* ── Categorizing phase: RAF-driven slide from scatter → stack ──── */}
+      {isCategorizing && chunks.map(chunk => {
+        const s = chunk.scatter;
+        const cp = chunk.catProgress;
+
+        // Interpolate center position
+        const fromCx = s.x + BAR_W / 2;
+        const fromCy = s.y + chunk.h / 2;
+        const toCx = EXPENSE_X + BAR_W / 2;
+        const toCy = chunk.stackedY + chunk.h / 2;
+        const cx = lerp(fromCx, toCx, cp);
+        const cy = lerp(fromCy, toCy, cp);
+        const rot = lerp(s.rot, 0, cp);
+
+        const fill = d3.interpolateRgb(SCATTER_GRAY, CAT_COLOR[chunk.category])(cp);
+
+        return (
+          <g key={chunk.id}>
+            <g transform={`translate(${cx},${cy}) rotate(${rot})`}>
+              <rect
+                x={-BAR_W / 2} y={-chunk.h / 2}
+                width={BAR_W} height={Math.max(chunk.h, 4)}
+                fill={fill} rx={2}
+              />
+            </g>
+
+          </g>
+        );
+      })}
+
+      {/* Category bracket labels during categorizing — fade in after each group lands */}
+      {isCategorizing && catSegs.map(seg => {
+        const timing = CAT_TIMING[seg.category];
+        const landedAt = timing.start + timing.window * 0.85;
+        const bracketOpacity = Math.max(0, Math.min(1, (categorizeProgress - landedAt) / 0.08));
+        if (bracketOpacity <= 0) return null;
+
+        const midY = seg.y + seg.h / 2;
+        const labelY = Math.min(Math.max(midY, BAR_Y + 12), BAR_BOTTOM - 16);
+        return (
+          <g key={`cat-${seg.category}`} opacity={bracketOpacity}>
+            <line
+              x1={EXPENSE_RIGHT + 5} y1={seg.y + 2}
+              x2={EXPENSE_RIGHT + 5} y2={seg.y + seg.h - 2}
+              stroke={CAT_COLOR[seg.category]} strokeWidth={2} strokeLinecap="round"
+            />
+            <text x={LABEL_X} y={labelY - 3}
+              fontSize={10} fontWeight={700}
+              fill={CAT_COLOR[seg.category]} fontFamily="inherit"
+            >
+              {CAT_LABEL[seg.category]}
+            </text>
+            <text x={LABEL_X} y={labelY + 11}
+              fontSize={12} fontWeight={600} fill="#333" fontFamily="inherit"
+            >
+              {fmt$(seg.amount)}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* ── Normal items / grouped / gap / cycling phases ─────────────── */}
+      {!isScatter && !isCategorizing && chunks.map(chunk => {
         const tx = chunk.flyProgress * TRANSLATE_X;
         const expenseOpacity = chunk.isLanded ? (showGrouped ? 0.25 : 0.55) : 0;
         const chunkOpacity = showGap ? 0.3 : 1;
@@ -210,9 +352,8 @@ export default function FlowViz({
 
         return (
           <g key={chunk.id}>
-            {/* Expense box outline — appears when chunk arrives */}
             <rect
-              x={EXPENSE_X} y={chunk.y}
+              x={EXPENSE_X} y={chunk.stackedY}
               width={EXPENSE_W} height={Math.max(chunk.h, 0)}
               fill="none"
               stroke={CAT_COLOR[chunk.category]}
@@ -224,10 +365,8 @@ export default function FlowViz({
                   : `opacity 250ms ease ${chunk.delay}`,
               }}
             />
-
-            {/* The flying chunk — slides from income bar to expense box */}
             <rect
-              x={BAR_X} y={chunk.y}
+              x={BAR_X} y={chunk.stackedY}
               width={BAR_W} height={Math.max(chunk.h, 0)}
               fill={isCycling
                 ? d3.interpolateRgb(CAT_COLOR.net, CAT_COLOR[chunk.category])(chunk.flyProgress)
@@ -241,8 +380,6 @@ export default function FlowViz({
                   : `transform 480ms cubic-bezier(0.4, 0, 0.2, 1) ${chunk.delay}, fill 400ms ease ${chunk.delay}, opacity 450ms ease`,
               }}
             />
-
-            {/* Item label — only when chunk is tall enough */}
             {showLabel && (
               <g
                 opacity={chunk.isLanded ? 1 : 0}
@@ -252,14 +389,12 @@ export default function FlowViz({
                     : `opacity 280ms ease ${chunk.delay}`,
                 }}
               >
-                <text
-                  x={LABEL_X} y={chunk.y + chunk.h / 2 - 2}
+                <text x={LABEL_X} y={chunk.stackedY + chunk.h / 2 - 2}
                   fontSize={9} fill="#888" fontFamily="inherit"
                 >
                   {chunk.label}
                 </text>
-                <text
-                  x={LABEL_X} y={chunk.y + chunk.h / 2 + 10}
+                <text x={LABEL_X} y={chunk.stackedY + chunk.h / 2 + 10}
                   fontSize={11} fontWeight={600} fill="#222" fontFamily="inherit"
                 >
                   {fmt$(chunk.amount)}
@@ -281,15 +416,13 @@ export default function FlowViz({
               x2={EXPENSE_RIGHT + 5} y2={seg.y + seg.h - 2}
               stroke={CAT_COLOR[seg.category]} strokeWidth={2} strokeLinecap="round"
             />
-            <text
-              x={LABEL_X} y={labelY - 3}
+            <text x={LABEL_X} y={labelY - 3}
               fontSize={10} fontWeight={700}
               fill={CAT_COLOR[seg.category]} fontFamily="inherit"
             >
               {CAT_LABEL[seg.category]}
             </text>
-            <text
-              x={LABEL_X} y={labelY + 11}
+            <text x={LABEL_X} y={labelY + 11}
               fontSize={12} fontWeight={600} fill="#333" fontFamily="inherit"
             >
               {fmt$(seg.amount)}
@@ -309,7 +442,7 @@ export default function FlowViz({
         Net: {net >= 0 ? '+' : ''}{fmt$(net)}/mo
       </text>
 
-      {/* Life stage avatar — upper-right clear zone, placeholder for commissioned art */}
+      {/* Life stage avatar */}
       {stage !== undefined && (
         <g style={{ transition: 'opacity 400ms ease' }}>
           <AlexAvatarSvg stage={stage} />
