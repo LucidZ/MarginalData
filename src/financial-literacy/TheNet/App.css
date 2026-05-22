@@ -167,6 +167,55 @@
   padding: 0 1.5rem;
 }
 
+/* ── Next story card ─────────────────────────────────────────────────────────── */
+.next-story-card {
+  max-width: 900px;
+  margin: 2rem auto 0;
+  padding: 2.5rem 1.5rem 3.5rem;
+  border-top: 1px solid #eee;
+}
+
+.next-story-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #999;
+  margin: 0 0 0.5rem;
+}
+
+.next-story-title {
+  font-size: clamp(1.2rem, 3vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+}
+
+.next-story-body {
+  font-size: clamp(0.85rem, 1.6vw, 0.97rem);
+  color: #555;
+  line-height: 1.6;
+  max-width: 50ch;
+  margin: 0 0 1.4rem;
+}
+
+.next-story-link {
+  display: inline-block;
+  padding: 0.55rem 1.2rem;
+  background: #1e3a5f;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 150ms ease;
+}
+
+.next-story-link:hover {
+  background: #2a5080;
+}
+
 /* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .the-net-story .scrolly-container {

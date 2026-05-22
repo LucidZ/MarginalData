@@ -19,6 +19,7 @@ const HowMany13ers = lazy(() => import("./2025/HowMany13ers"));
 const SpaceTraveler = lazy(() => import("./2025/SpaceTraveler"));
 const MarginalTax = lazy(() => import("./financial-literacy/MarginalTax"));
 const TheNet = lazy(() => import("./financial-literacy/TheNet"));
+const TheCushion = lazy(() => import("./financial-literacy/TheCushion"));
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
             <Route path="/2025/SpaceTraveler" element={<SpaceTraveler />} />
             <Route path="/financial-literacy/marginal-tax" element={<MarginalTax />} />
             <Route path="/financial-literacy/the-net" element={<TheNet />} />
+            <Route path="/financial-literacy/the-cushion" element={<TheCushion />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>

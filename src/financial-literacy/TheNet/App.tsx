@@ -226,6 +226,19 @@ export default function App() {
       <div className="story-footer">
         <Sources sources={SOURCES} />
       </div>
+
+      {/* ── NEXT STORY ──────────────────────────────────────────────── */}
+      <div className="next-story-card">
+        <p className="next-story-label">Next in the series</p>
+        <h2 className="next-story-title">The Cushion</h2>
+        <p className="next-story-body">
+          The net tells you the direction. The cushion tells you how much room you have when something breaks.
+          Follow Alex's buffer through a full year — and find out where 37% of adults stand.
+        </p>
+        <a href="#/financial-literacy/the-cushion" className="next-story-link">
+          Continue →
+        </a>
+      </div>
     </div>
   );
 }
