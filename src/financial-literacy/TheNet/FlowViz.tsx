@@ -97,11 +97,13 @@ export default function FlowViz({
   visibleItems,
   phase,
   stage,
+  stepProgress,
 }: {
   archetype: Archetype;
   visibleItems: number;
   phase: VizPhase;
   stage?: number;
+  stepProgress: number;
 }) {
   const items = buildDisplayItems(archetype);
   const n = items.length;
@@ -109,14 +111,9 @@ export default function FlowViz({
   const scale = BAR_H / gross;
   const net = netMonthly(archetype);
 
-  const prevVisibleRef = useRef(visibleItems);
-
   const [cycleProgress, setCycleProgress] = useState(0);
   const rafRef = useRef<number>(0);
   const phaseRef = useRef(phase);
-
-  const [categorizeProgress, setCategorizeProgress] = useState(0);
-  const catRafRef = useRef<number>(0);
 
   // month2 / month3 cycle animation
   useEffect(() => {
@@ -138,34 +135,17 @@ export default function FlowViz({
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase]);
 
-  // categorizing animation
-  useEffect(() => {
-    if (phase !== 'categorizing') return;
-    setCategorizeProgress(0);
-    const duration = 3400;
-    const t0 = performance.now();
-    cancelAnimationFrame(catRafRef.current);
-
-    const tick = (now: number) => {
-      const t = Math.min((now - t0) / duration, 1);
-      setCategorizeProgress(t);
-      if (t < 1) catRafRef.current = requestAnimationFrame(tick);
-    };
-    catRafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(catRafRef.current);
-  }, [phase]);
-
-  const prevVisible = prevVisibleRef.current;
-  useEffect(() => {
-    prevVisibleRef.current = visibleItems;
-  });
-
   const isCycling = phase === 'month2' || phase === 'month3';
   const isScatter = phase === 'scatter';
   const isCategorizing = phase === 'categorizing';
   const showGrouped = phase === 'grouped' || phase === 'gap';
   const showGap = phase === 'gap' || (isCycling && cycleProgress >= 1);
   const monthLabel = phase === 'month2' ? 'Month 2' : phase === 'month3' ? 'Month 3' : null;
+
+  const itemScale = (i: number): number => {
+    if (i === visibleItems - 1) return d3.easeCubicOut(stepProgress);
+    return i < visibleItems - 1 ? 1 : 0;
+  };
 
   // ── Chunk geometry ────────────────────────────────────────────────────────
   let cumulativeH = 0;
@@ -176,7 +156,7 @@ export default function FlowViz({
 
     // Per-category progress for categorizing animation
     const timing = CAT_TIMING[item.category];
-    const rawCatT = timing ? (categorizeProgress - timing.start) / timing.window : 0;
+    const rawCatT = timing ? (stepProgress - timing.start) / timing.window : 0;
     const catProgress = d3.easeCubicInOut(Math.max(0, Math.min(1, rawCatT)));
 
     let flyProgress: number;
@@ -188,12 +168,9 @@ export default function FlowViz({
       flyProgress = i < visibleItems ? 1 : 0;
     }
 
-    const isNewlyVisible = !isCycling && !isScatter && !isCategorizing && i >= prevVisible && i < visibleItems;
-    const delay = isNewlyVisible ? `${(i - prevVisible) * 110}ms` : '0ms';
-
     const scatter = STUDENT_SCATTER[i] ?? { x: EXPENSE_X, y: stackedY, rot: 0 };
 
-    return { ...item, h, stackedY, flyProgress, delay, isLanded: flyProgress > 0, catProgress, scatter };
+    return { ...item, h, stackedY, flyProgress, isLanded: flyProgress > 0, catProgress, scatter };
   });
 
   const netY = BAR_Y + cumulativeH;
@@ -257,21 +234,16 @@ export default function FlowViz({
         />
       )}
 
-      {/* ── Scatter phase: items pop in at jittered positions, all gray ─── */}
+      {/* ── Scatter phase: items scrub in at jittered positions, all gray ─── */}
       {isScatter && chunks.map((chunk, i) => {
-        const visible = i < visibleItems;
+        const sc = itemScale(i);
+        if (sc === 0) return null;
         const s = chunk.scatter;
         const cx = s.x + BAR_W / 2;
         const cy = s.y + chunk.h / 2;
         return (
           <g key={chunk.id} transform={`translate(${cx},${cy}) rotate(${s.rot})`}>
-            <g style={{
-              transformBox: 'fill-box' as const,
-              transformOrigin: 'center',
-              transform: visible ? 'scale(1)' : 'scale(0.4)',
-              opacity: visible ? 1 : 0,
-              transition: 'opacity 300ms ease, transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-            }}>
+            <g transform={`scale(${sc})`}>
               <rect
                 x={-BAR_W / 2} y={-Math.max(chunk.h, 8) / 2}
                 width={BAR_W} height={Math.max(chunk.h, 8)}
@@ -316,7 +288,7 @@ export default function FlowViz({
       {isCategorizing && catSegs.map(seg => {
         const timing = CAT_TIMING[seg.category];
         const landedAt = timing.start + timing.window * 0.85;
-        const bracketOpacity = Math.max(0, Math.min(1, (categorizeProgress - landedAt) / 0.08));
+        const bracketOpacity = Math.max(0, Math.min(1, (stepProgress - landedAt) / 0.08));
         if (bracketOpacity <= 0) return null;
 
         const midY = seg.y + seg.h / 2;
@@ -360,9 +332,7 @@ export default function FlowViz({
               strokeWidth={1}
               opacity={expenseOpacity}
               style={{
-                transition: isCycling
-                  ? 'none'
-                  : `opacity 250ms ease ${chunk.delay}`,
+                transition: isCycling ? 'none' : 'opacity 250ms ease',
               }}
             />
             <rect
@@ -377,16 +347,14 @@ export default function FlowViz({
                 transform: `translateX(${tx}px)`,
                 transition: isCycling
                   ? 'opacity 450ms ease'
-                  : `transform 480ms cubic-bezier(0.4, 0, 0.2, 1) ${chunk.delay}, fill 400ms ease ${chunk.delay}, opacity 450ms ease`,
+                  : 'transform 480ms cubic-bezier(0.4, 0, 0.2, 1), fill 400ms ease, opacity 450ms ease',
               }}
             />
             {showLabel && (
               <g
                 opacity={chunk.isLanded ? 1 : 0}
                 style={{
-                  transition: isCycling
-                    ? 'none'
-                    : `opacity 280ms ease ${chunk.delay}`,
+                  transition: isCycling ? 'none' : 'opacity 280ms ease',
                 }}
               >
                 <text x={LABEL_X} y={chunk.stackedY + chunk.h / 2 - 2}

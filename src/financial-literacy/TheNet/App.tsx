@@ -166,6 +166,7 @@ const SOURCES = [
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [stepProgress, setStepProgress] = useState(0);
   const [activeArchetype, setActiveArchetype] = useState(0);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -185,6 +186,19 @@ export default function App() {
     stepRefs.current.forEach(el => el && observer.observe(el));
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const el = stepRefs.current[currentStep];
+      if (!el) return;
+      const { top, height } = el.getBoundingClientRect();
+      const p = (window.innerHeight / 2 - top) / height;
+      setStepProgress(Math.max(0, Math.min(1, p)));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [currentStep]);
 
   const vizProps = VIZ_MAP[Math.min(currentStep, VIZ_MAP.length - 1)];
   const scrollyArchetype = ARCHETYPES[vizProps.archetypeIdx];
@@ -207,6 +221,7 @@ export default function App() {
             visibleItems={vizProps.visibleItems}
             phase={vizProps.phase}
             stage={vizProps.archetypeIdx}
+            stepProgress={stepProgress}
           />
         </div>
 
