@@ -1,0 +1,39 @@
+.fl-series-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fl-series-nav-label {
+  color: #999;
+}
+
+.fl-series-nav-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.fl-series-nav-sep {
+  color: #ddd;
+}
+
+.fl-series-nav-current {
+  color: #1e3a5f;
+}
+
+.fl-series-nav-link {
+  color: #bbb;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.fl-series-nav-link:hover {
+  color: #555;
+}

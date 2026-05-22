@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import CompoundViz, { VizMode } from './CompoundViz';
 import { Sources } from '../shared/Sources';
+import { SeriesNav } from '../shared/SeriesNav';
 import { CROSSOVER_YEAR, ALEX_FINAL, JORDAN_FINAL, DEBT_YEAR3, DEBT_YEAR6 } from './data';
 import './App.css';
 
@@ -84,7 +85,7 @@ export default function App() {
   return (
     <div className="the-compound-story">
       <header className="story-header">
-        <p className="series-label">Financial Literacy · Chapter 3</p>
+        <SeriesNav current={3} />
         <h1>The Snowball</h1>
         <p className="subtitle">
           Compound interest is simple — returns earn returns. The part people miss is how quickly

@@ -77,6 +77,15 @@ export default function Home() {
               How Marginal Tax Rates Actually Work
             </Link>
           </li>
+          <li>
+            <Link to="/financial-literacy/the-net">1a. The Net</Link>
+          </li>
+          <li>
+            <Link to="/financial-literacy/the-cushion">1b. The Cushion</Link>
+          </li>
+          <li>
+            <Link to="/financial-literacy/the-compound">1c. The Snowball</Link>
+          </li>
         </ul>
       </nav>
     </div>

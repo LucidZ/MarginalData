@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import WaterfallViz from './WaterfallViz';
 import FlowViz, { VizPhase } from './FlowViz';
 import { Sources } from '../shared/Sources';
+import { SeriesNav } from '../shared/SeriesNav';
 import {
   ARCHETYPES,
   netMonthly,
@@ -148,6 +149,7 @@ export default function App() {
   return (
     <div className="the-net-story">
       <header className="story-header">
+        <SeriesNav current={1} />
         <h1>The Net</h1>
         <p className="subtitle">
           Income minus spending. The single most important number in your financial life.

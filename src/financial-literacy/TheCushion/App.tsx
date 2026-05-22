@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import CushionViz from './CushionViz';
 import { Sources } from '../shared/Sources';
+import { SeriesNav } from '../shared/SeriesNav';
 import './App.css';
 
 // ── Scroll steps ──────────────────────────────────────────────────────────────
@@ -109,7 +110,7 @@ export default function App() {
   return (
     <div className="the-cushion-story">
       <header className="story-header">
-        <p className="series-label">Financial Literacy · Chapter 2</p>
+        <SeriesNav current={2} />
         <h1>The Cushion</h1>
         <p className="subtitle">
           Your monthly net tells you the direction. The cushion tells you how much room you have to absorb a hit.
@@ -145,6 +146,19 @@ export default function App() {
       {/* ── SOURCES ─────────────────────────────────────────────────── */}
       <div className="story-footer">
         <Sources sources={SOURCES} />
+      </div>
+
+      {/* ── NEXT STORY ──────────────────────────────────────────────── */}
+      <div className="next-story-card">
+        <p className="next-story-label">Next in the series</p>
+        <h2 className="next-story-title">The Snowball</h2>
+        <p className="next-story-body">
+          The cushion tells you how much room you have when something breaks. The snowball shows
+          what happens when you use that room consistently — and what it costs to wait ten years to start.
+        </p>
+        <a href="#/financial-literacy/the-compound" className="next-story-link">
+          Continue →
+        </a>
       </div>
     </div>
   );
