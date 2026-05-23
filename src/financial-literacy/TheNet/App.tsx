@@ -116,7 +116,7 @@ const STEPS: { headline: string; body: string }[] = [
 // archetypeIdx: 0 = Student (8 display items), 1 = First Job (11), 2 = Established (11)
 // First Job items: [taxes, rent, car, phone, healthcare, subs, groceries, gas, dining, entertainment, clothing]
 // Established items: [taxes, mortgage, cars, healthcare, subs, groceries, gas, utilities, dining, travel, clothing]
-const VIZ_MAP: { archetypeIdx: number; visibleItems: number; phase: VizPhase; showDebt?: boolean }[] = [
+const VIZ_MAP: { archetypeIdx: number; visibleItems: number; phase: VizPhase; showDebt?: boolean; allLanded?: boolean }[] = [
   // ── Student (steps 0–11) ──────────────────────────────────────────────────
   { archetypeIdx: 0, visibleItems: 0,  phase: 'scatter'                    }, //  0: income bar, empty
   { archetypeIdx: 0, visibleItems: 1,  phase: 'scatter'                    }, //  1: taxes appear
@@ -126,7 +126,7 @@ const VIZ_MAP: { archetypeIdx: number; visibleItems: number; phase: VizPhase; sh
   { archetypeIdx: 0, visibleItems: 5,  phase: 'scatter'                    }, //  5: groceries appear
   { archetypeIdx: 0, visibleItems: 6,  phase: 'scatter'                    }, //  6: bus pass appears
   { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter'                    }, //  7: dining+social (income bills only, rect empties)
-  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter', showDebt: true    }, //  8: ghost bills appear on dining
+  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter', showDebt: true, allLanded: true }, //  8: ghost bills appear on dining
   { archetypeIdx: 0, visibleItems: 8,  phase: 'scatter', showDebt: true    }, //  9: clothing+misc (all ghost)
   { archetypeIdx: 0, visibleItems: 8,  phase: 'categorizing'               }, // 10: group animation
   { archetypeIdx: 0, visibleItems: 8,  phase: 'gap'                        }, // 11: student gap
@@ -228,6 +228,7 @@ export default function App() {
             stage={vizProps.archetypeIdx}
             stepProgress={stepProgress}
             showDebt={vizProps.showDebt}
+            allLanded={vizProps.allLanded}
           />
         </div>
 

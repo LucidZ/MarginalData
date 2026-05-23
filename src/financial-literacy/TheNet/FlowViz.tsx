@@ -163,6 +163,7 @@ export default function FlowViz({
   stage,
   stepProgress,
   showDebt = false,
+  allLanded = false,
 }: {
   archetype: Archetype;
   visibleItems: number;
@@ -170,6 +171,7 @@ export default function FlowViz({
   stage?: number;
   stepProgress: number;
   showDebt?: boolean;
+  allLanded?: boolean;
 }) {
   const items = buildDisplayItems(archetype);
   const n = items.length;
@@ -229,6 +231,7 @@ export default function FlowViz({
   const monthLabel = phase === 'month2' ? 'Month 2' : phase === 'month3' ? 'Month 3' : null;
 
   const itemScale = (i: number): number => {
+    if (allLanded) return i < visibleItems ? 1 : 0;
     if (i === visibleItems - 1) return d3.easeCubicOut(stepProgress);
     return i < visibleItems - 1 ? 1 : 0;
   };
@@ -398,24 +401,25 @@ export default function FlowViz({
           const dest = billPos(bInGroup, BILL_COLS, BILL_W, BILL_H, BILL_GAP, chunk.scatter.x, chunk.scatter.y, BILL_PAD);
 
           if (isDebtBill) {
-            // Chunks that already had income bills were visible before showDebt turned on —
-            // their ghost bills use the one-shot debtRevealProgress. Fully-debt chunks
-            // (e.g. clothing) become visible normally via their own flyProgress.
+            // Mixed chunks (hasIncomeInChunk) use stepProgress when allLanded so ghost
+            // bills are scroll-driven in both directions at the "money ran out" step.
+            // At any other step they use the one-shot debtRevealProgress so they stay
+            // visible as new items appear. Fully-debt chunks (e.g. clothing) always use
+            // their own flyProgress.
             const hasIncomeInChunk = chunkIncomeCounts[ownerIdx] > 0;
-            const gfp = hasIncomeInChunk ? debtRevealProgress : fp;
+            const gfp = hasIncomeInChunk
+              ? (allLanded ? d3.easeCubicOut(stepProgress) : debtRevealProgress)
+              : fp;
 
             const chunkIncomeBillCount = chunkIncomeCounts[ownerIdx];
             const chunkDebtCount = chunk.amount / BILL_DENOM - chunkIncomeBillCount;
             const debtBillIdxInChunk = bInGroup - chunkIncomeBillCount;
             const bfp = billFlyProgress(debtBillIdxInChunk, chunkDebtCount, gfp);
 
-            // Staging area: grid of debt bills stacked below the income rect
-            const debtBillIdx = b - incomeBills;
-            const stageCol = debtBillIdx % BILL_COLS;
-            const stageRow = Math.floor(debtBillIdx / BILL_COLS);
+            // Ghost bills originate from the center of the income bar
             const src = {
-              x: BAR_X + BILL_PAD + stageCol * (BILL_W + BILL_GAP),
-              y: BAR_BOTTOM + 10 + stageRow * (BILL_H + BILL_GAP),
+              x: BAR_X + BAR_W / 2 - BILL_W / 2,
+              y: BAR_Y + BAR_H / 2 - BILL_H / 2,
             };
 
             const gi = BILL_STROKE / 2;
