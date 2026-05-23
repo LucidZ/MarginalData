@@ -65,6 +65,8 @@ export type VizPhase = 'items' | 'grouped' | 'gap' | 'month2' | 'month3' | 'scat
 
 const fmt$ = d3.format('$,.0f');
 
+const shortLabel = (label: string) => label.replace(/\s*[,(+].*/, '').trim();
+
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
@@ -249,6 +251,23 @@ export default function FlowViz({
                 width={BAR_W} height={Math.max(chunk.h, 8)}
                 fill={SCATTER_GRAY} rx={2}
               />
+              <text
+                x={0} y={-Math.max(chunk.h, 8) / 2 - 14}
+                textAnchor="middle"
+                fontSize={8} fill="#555" fontFamily="inherit"
+                style={{ pointerEvents: 'none' }}
+              >
+                {shortLabel(chunk.label)}
+              </text>
+              <text
+                x={0} y={-Math.max(chunk.h, 8) / 2 - 3}
+                textAnchor="middle"
+                fontSize={10} fontWeight={700}
+                fill="#b5372d" fontFamily="inherit"
+                style={{ pointerEvents: 'none' }}
+              >
+                -{fmt$(chunk.amount)}
+              </text>
             </g>
           </g>
         );
