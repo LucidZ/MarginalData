@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import * as d3 from 'd3';
 import { Archetype, CategoryType, netMonthly } from './data';
 import { AlexAvatarSvg } from './AlexAvatar';
@@ -21,6 +21,15 @@ const TRANSLATE_X = EXPENSE_X - BAR_X;
 
 const MIN_LABEL_H = 18;
 
+// ── Dollar-bill grid ───────────────────────────────────────────────────────────
+const BILL_COLS  = 5;
+const BILL_PAD   = 3;
+const BILL_GAP   = 2;
+const BILL_W     = (BAR_W - 2 * BILL_PAD - (BILL_COLS - 1) * BILL_GAP) / BILL_COLS;
+const BILL_H     = (BAR_H - 2 * BILL_PAD - 29 * BILL_GAP) / 30;
+const BILL_DENOM = 10;
+const BILL_COLOR = '#4a7c59';
+
 // ── Colors / labels ───────────────────────────────────────────────────────────
 const CAT_COLOR: Record<string, string> = {
   taxes:         '#b5372d',
@@ -29,8 +38,6 @@ const CAT_COLOR: Record<string, string> = {
   discretionary: '#7aa3c5',
   net:           '#2d6a4f',
 };
-
-const SCATTER_GRAY = '#b8b8b8';
 
 const CAT_LABEL: Record<string, string> = {
   taxes:         'Taxes',
@@ -65,23 +72,77 @@ export type VizPhase = 'items' | 'grouped' | 'gap' | 'month2' | 'month3' | 'scat
 
 const fmt$ = d3.format('$,.0f');
 
-const shortLabel = (label: string) => label.replace(/\s*[,(+].*/, '').trim();
-
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+function billPos(
+  billIdx: number,
+  cols: number,
+  billW: number,
+  billH: number,
+  gap: number,
+  rectX: number,
+  rectY: number,
+  pad: number,
+): { x: number; y: number } {
+  const col = billIdx % cols;
+  const row = Math.floor(billIdx / cols);
+  return {
+    x: rectX + pad + col * (billW + gap),
+    y: rectY + pad + row * (billH + gap),
+  };
+}
+
+function billFlyProgress(billIdxInGroup: number, groupSize: number, flyProgress: number): number {
+  if (groupSize <= 1) return flyProgress;
+  const stagger = Math.min(0.015, 0.5 / (groupSize - 1));
+  const start   = billIdxInGroup * stagger;
+  const window  = 1 - (groupSize - 1) * stagger;
+  return d3.easeCubicInOut(Math.max(0, Math.min(1, (flyProgress - start) / window)));
+}
+
+// Returns SVG polygon points string that wraps the bill grid for `count` bills,
+// with BILL_PAD clearance on all four sides. L-shaped when there's a partial row
+// after full rows; the step lands exactly at the bottom edge of the last full row
+// so there's no gap inside the notch.
+function billGroupPoints(count: number, rectX: number, rectY: number): string {
+  const fullRows  = Math.floor(count / BILL_COLS);
+  const remainder = count % BILL_COLS;
+  const totalRows = fullRows + (remainder > 0 ? 1 : 0);
+  const bw = (n: number) => n * (BILL_W + BILL_GAP) - BILL_GAP;
+  const bh = (n: number) => n * (BILL_H + BILL_GAP) - BILL_GAP;
+
+  const L     = rectX;
+  const T     = rectY;
+  const fullR = rectX + BILL_PAD + bw(BILL_COLS) + BILL_PAD;
+  const B     = rectY + BILL_PAD + bh(totalRows) + BILL_PAD;
+
+  if (remainder === 0 || fullRows === 0) {
+    const R = fullRows > 0 ? fullR : rectX + BILL_PAD + bw(remainder) + BILL_PAD;
+    return `${L},${T} ${R},${T} ${R},${B} ${L},${B}`;
+  }
+
+  // L-shape: step exactly at the bottom edge of the last full row's bills
+  const stepY = rectY + BILL_PAD + bh(fullRows);
+  const partR = rectX + BILL_PAD + bw(remainder) + BILL_PAD;
+  return [
+    `${L},${T}`, `${fullR},${T}`,
+    `${fullR},${stepY}`, `${partR},${stepY}`,
+    `${partR},${B}`, `${L},${B}`,
+  ].join(' ');
+}
+
 // ── Scatter positions for student stage (8 items) ─────────────────────────────
-// Hand-placed so items spread across the SVG, visually far from their stacked positions.
 const STUDENT_SCATTER: { x: number; y: number; rot: number }[] = [
-  { x: 330, y: 88,  rot: -5 }, // 0: taxes       stacked→(152, 72)
-  { x: 165, y: 228, rot:  3 }, // 1: rent        stacked→(152, 106)
-  { x: 415, y: 148, rot: -8 }, // 2: phone       stacked→(152, 254)
-  { x: 385, y: 75,  rot:  6 }, // 3: subscriptions stacked→(152, 264)
-  { x: 278, y: 382, rot: -4 }, // 4: groceries   stacked→(152, 270)
-  { x: 415, y: 298, rot:  7 }, // 5: bus pass    stacked→(152, 331)
-  { x: 155, y: 92,  rot: -6 }, // 6: dining+social stacked→(152, 349)
-  { x: 338, y: 188, rot:  4 }, // 7: clothing+misc stacked→(152, 419)
+  { x: 330, y: 88,  rot: -5 }, // 0: taxes
+  { x: 165, y: 228, rot:  3 }, // 1: rent
+  { x: 415, y: 148, rot: -8 }, // 2: phone
+  { x: 385, y: 75,  rot:  6 }, // 3: subscriptions
+  { x: 278, y: 382, rot: -4 }, // 4: groceries
+  { x: 415, y: 298, rot:  7 }, // 5: bus pass
+  { x: 155, y: 92,  rot: -6 }, // 6: dining+social
+  { x: 338, y: 188, rot:  4 }, // 7: clothing+misc
 ];
 
 // Category timing within the normalized categorizeProgress (0–1).
@@ -164,15 +225,24 @@ export default function FlowViz({
     let flyProgress: number;
     if (isCycling) {
       flyProgress = d3.easeCubicInOut(Math.max(0, Math.min(1, (cycleProgress * n - i) / 0.7)));
-    } else if (isScatter || isCategorizing) {
+    } else if (isScatter) {
+      flyProgress = itemScale(i);
+    } else if (isCategorizing) {
       flyProgress = 1;
     } else {
       flyProgress = i < visibleItems ? 1 : 0;
     }
 
     const scatter = STUDENT_SCATTER[i] ?? { x: EXPENSE_X, y: stackedY, rot: 0 };
-
     return { ...item, h, stackedY, flyProgress, isLanded: flyProgress > 0, catProgress, scatter };
+  });
+
+  // Bill assignment for scatter phase
+  const billStarts: number[] = [];
+  let billCursor = 0;
+  chunks.forEach(chunk => {
+    billStarts.push(billCursor);
+    billCursor += chunk.amount / BILL_DENOM;
   });
 
   const netY = BAR_Y + cumulativeH;
@@ -236,49 +306,84 @@ export default function FlowViz({
         />
       )}
 
-      {/* ── Scatter phase: items scrub in at jittered positions, all gray ─── */}
-      {isScatter && chunks.map((chunk, i) => {
-        const sc = itemScale(i);
-        if (sc === 0) return null;
-        const s = chunk.scatter;
-        const cx = s.x + BAR_W / 2;
-        const cy = s.y + chunk.h / 2;
-        return (
-          <g key={chunk.id} transform={`translate(${cx},${cy}) rotate(${s.rot})`}>
-            <g transform={`scale(${sc})`}>
-              <rect
-                x={-BAR_W / 2} y={-Math.max(chunk.h, 8) / 2}
-                width={BAR_W} height={Math.max(chunk.h, 8)}
-                fill={SCATTER_GRAY} rx={2}
-              />
-              <text
-                x={0} y={-Math.max(chunk.h, 8) / 2 - 14}
-                textAnchor="middle"
-                fontSize={8} fill="#555" fontFamily="inherit"
-                style={{ pointerEvents: 'none' }}
-              >
-                {shortLabel(chunk.label)}
-              </text>
-              <text
-                x={0} y={-Math.max(chunk.h, 8) / 2 - 3}
-                textAnchor="middle"
-                fontSize={10} fontWeight={700}
-                fill="#b5372d" fontFamily="inherit"
-                style={{ pointerEvents: 'none' }}
-              >
-                -{fmt$(chunk.amount)}
-              </text>
-            </g>
-          </g>
-        );
-      })}
+      {/* ── Scatter phase: bill visualization ─────────────────────────────── */}
+      {isScatter && (() => {
+        const incomeBills = archetype.grossMonthly / BILL_DENOM;
+        const elements: JSX.Element[] = [];
 
-      {/* ── Categorizing phase: RAF-driven slide from scatter → stack ──── */}
+        // Expense outlines and labels at scatter positions (render behind bills)
+        chunks.forEach(chunk => {
+          if (chunk.flyProgress > 0) {
+            const s = chunk.scatter;
+            const labelX = s.x + BAR_W + 6;
+            const midY = s.y + chunk.h / 2;
+            elements.push(
+              <g key={`exp-outline-${chunk.id}`}>
+                <polygon
+                  points={billGroupPoints(chunk.amount / BILL_DENOM, s.x, s.y)}
+                  fill="none" stroke={BILL_COLOR} strokeWidth={1}
+                  opacity={Math.min(chunk.flyProgress * 4, 0.5)}
+                />
+                <text x={labelX} y={midY - 2}
+                  fontSize={9} fill="#888" fontFamily="inherit"
+                >
+                  {chunk.label}
+                </text>
+                <text x={labelX} y={midY + 10}
+                  fontSize={11} fontWeight={600} fill="#222" fontFamily="inherit"
+                >
+                  {fmt$(chunk.amount)}
+                </text>
+              </g>
+            );
+          }
+        });
+
+        // Bills flying from income rect (right-to-left drain) to scatter positions
+        for (let b = 0; b < incomeBills; b++) {
+          let ownerIdx = chunks.length - 1;
+          for (let ci = 0; ci < chunks.length; ci++) {
+            if (b < billStarts[ci] + chunks[ci].amount / BILL_DENOM) {
+              ownerIdx = ci;
+              break;
+            }
+          }
+          const chunk = chunks[ownerIdx];
+          const fp = chunk.flyProgress;
+          const bInGroup = b - billStarts[ownerIdx];
+          const bfp = billFlyProgress(bInGroup, chunk.amount / BILL_DENOM, fp);
+
+          // Reverse column order in income rect so drain sweeps top-right → bottom-left
+          const srcCol = BILL_COLS - 1 - (b % BILL_COLS);
+          const srcRow = Math.floor(b / BILL_COLS);
+          const src = {
+            x: BAR_X + BILL_PAD + srcCol * (BILL_W + BILL_GAP),
+            y: BAR_Y + BILL_PAD + srcRow * (BILL_H + BILL_GAP),
+          };
+          const dest = billPos(bInGroup, BILL_COLS, BILL_W, BILL_H, BILL_GAP, chunk.scatter.x, chunk.scatter.y, BILL_PAD);
+
+          const x = lerp(src.x, dest.x, bfp);
+          const y = lerp(src.y, dest.y, bfp);
+
+          elements.push(
+            <rect
+              key={b}
+              x={x} y={y}
+              width={BILL_W} height={BILL_H}
+              fill={BILL_COLOR}
+              rx={1}
+              opacity={fp > 0 || visibleItems === 0 ? 1 : 0.15}
+            />
+          );
+        }
+
+        return elements;
+      })()}
+
+      {/* ── Categorizing phase: slide from scatter → stacked, green → category color ── */}
       {isCategorizing && chunks.map(chunk => {
         const s = chunk.scatter;
         const cp = chunk.catProgress;
-
-        // Interpolate center position
         const fromCx = s.x + BAR_W / 2;
         const fromCy = s.y + chunk.h / 2;
         const toCx = EXPENSE_X + BAR_W / 2;
@@ -286,8 +391,7 @@ export default function FlowViz({
         const cx = lerp(fromCx, toCx, cp);
         const cy = lerp(fromCy, toCy, cp);
         const rot = lerp(s.rot, 0, cp);
-
-        const fill = d3.interpolateRgb(SCATTER_GRAY, CAT_COLOR[chunk.category])(cp);
+        const fill = d3.interpolateRgb(BILL_COLOR, CAT_COLOR[chunk.category])(cp);
 
         return (
           <g key={chunk.id}>
@@ -298,7 +402,6 @@ export default function FlowViz({
                 fill={fill} rx={2}
               />
             </g>
-
           </g>
         );
       })}

@@ -66,8 +66,8 @@ const STUDENT: Archetype = {
   taxesMonthly: 150,
   items: [
     { label: 'Rent (split with roommates)', amount: 650, type: 'fixed' },
-    { label: 'Phone',                       amount:  45, type: 'fixed' },
-    { label: 'Subscriptions',               amount:  25, type: 'fixed' },
+    { label: 'Phone',                       amount:  50, type: 'fixed' },
+    { label: 'Subscriptions',               amount:  20, type: 'fixed' },
     { label: 'Groceries',                   amount: 270, type: 'variable' },
     { label: 'Bus pass + transport',         amount:  80, type: 'variable' },
     { label: 'Dining + social',              amount: 310, type: 'discretionary' },
