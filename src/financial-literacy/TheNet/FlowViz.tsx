@@ -27,8 +27,9 @@ const BILL_PAD   = 3;
 const BILL_GAP   = 2;
 const BILL_W     = (BAR_W - 2 * BILL_PAD - (BILL_COLS - 1) * BILL_GAP) / BILL_COLS;
 const BILL_H     = (BAR_H - 2 * BILL_PAD - 29 * BILL_GAP) / 30;
-const BILL_DENOM = 10;
-const BILL_COLOR = '#4a7c59';
+const BILL_DENOM   = 10;
+const BILL_COLOR   = '#4a7c59';
+const BILL_STROKE  = 1.5;
 
 // ── Colors / labels ───────────────────────────────────────────────────────────
 const CAT_COLOR: Record<string, string> = {
@@ -161,12 +162,14 @@ export default function FlowViz({
   phase,
   stage,
   stepProgress,
+  showDebt = false,
 }: {
   archetype: Archetype;
   visibleItems: number;
   phase: VizPhase;
   stage?: number;
   stepProgress: number;
+  showDebt?: boolean;
 }) {
   const items = buildDisplayItems(archetype);
   const n = items.length;
@@ -175,7 +178,9 @@ export default function FlowViz({
   const net = netMonthly(archetype);
 
   const [cycleProgress, setCycleProgress] = useState(0);
+  const [debtRevealProgress, setDebtRevealProgress] = useState(0);
   const rafRef = useRef<number>(0);
+  const debtRafRef = useRef<number>(0);
   const phaseRef = useRef(phase);
 
   // month2 / month3 cycle animation
@@ -197,6 +202,24 @@ export default function FlowViz({
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase]);
+
+  // Debt reveal animation — runs once when showDebt flips true; resets on false
+  useEffect(() => {
+    cancelAnimationFrame(debtRafRef.current);
+    if (!showDebt) {
+      setDebtRevealProgress(0);
+      return;
+    }
+    const duration = 700;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const t = d3.easeCubicInOut(Math.min((now - t0) / duration, 1));
+      setDebtRevealProgress(t);
+      if (t < 1) debtRafRef.current = requestAnimationFrame(tick);
+    };
+    debtRafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(debtRafRef.current);
+  }, [showDebt]);
 
   const isCycling = phase === 'month2' || phase === 'month3';
   const isScatter = phase === 'scatter';
@@ -312,11 +335,12 @@ export default function FlowViz({
         const elements: JSX.Element[] = [];
 
         // Expense outlines and labels at scatter positions (render behind bills)
-        chunks.forEach(chunk => {
+        chunks.forEach((chunk, ci) => {
           if (chunk.flyProgress > 0) {
             const s = chunk.scatter;
             const labelX = s.x + BAR_W + 6;
             const midY = s.y + chunk.h / 2;
+            const chunkDebtCount = Math.max(0, (billStarts[ci] + chunk.amount / BILL_DENOM) - incomeBills);
             elements.push(
               <g key={`exp-outline-${chunk.id}`}>
                 <polygon
@@ -334,13 +358,33 @@ export default function FlowViz({
                 >
                   {fmt$(chunk.amount)}
                 </text>
+                {chunkDebtCount > 0 && showDebt && (
+                  <text x={labelX} y={midY + 24}
+                    fontSize={9} fill="#aaa" fontFamily="inherit"
+                    opacity={chunk.flyProgress}
+                    style={{ transition: 'opacity 600ms ease' }}
+                  >
+                    credit card
+                  </text>
+                )}
               </g>
             );
           }
         });
 
-        // Bills flying from income rect (right-to-left drain) to scatter positions
-        for (let b = 0; b < incomeBills; b++) {
+        // Per-chunk income bill count (needed to route debt bill animation)
+        const chunkIncomeCounts = chunks.map((chunk, ci) => {
+          const start = billStarts[ci];
+          const end = start + chunk.amount / BILL_DENOM;
+          return Math.max(0, Math.min(incomeBills, end) - start);
+        });
+
+        // Bills: income bills fly from income rect; debt bills fly from staging area below rect
+        const totalExpenseBills = billCursor;
+        for (let b = 0; b < totalExpenseBills; b++) {
+          const isDebtBill = b >= incomeBills;
+          if (isDebtBill && !showDebt) continue;
+
           let ownerIdx = chunks.length - 1;
           for (let ci = 0; ci < chunks.length; ci++) {
             if (b < billStarts[ci] + chunks[ci].amount / BILL_DENOM) {
@@ -351,30 +395,71 @@ export default function FlowViz({
           const chunk = chunks[ownerIdx];
           const fp = chunk.flyProgress;
           const bInGroup = b - billStarts[ownerIdx];
-          const bfp = billFlyProgress(bInGroup, chunk.amount / BILL_DENOM, fp);
-
-          // Reverse column order in income rect so drain sweeps top-right → bottom-left
-          const srcCol = BILL_COLS - 1 - (b % BILL_COLS);
-          const srcRow = Math.floor(b / BILL_COLS);
-          const src = {
-            x: BAR_X + BILL_PAD + srcCol * (BILL_W + BILL_GAP),
-            y: BAR_Y + BILL_PAD + srcRow * (BILL_H + BILL_GAP),
-          };
           const dest = billPos(bInGroup, BILL_COLS, BILL_W, BILL_H, BILL_GAP, chunk.scatter.x, chunk.scatter.y, BILL_PAD);
 
-          const x = lerp(src.x, dest.x, bfp);
-          const y = lerp(src.y, dest.y, bfp);
+          if (isDebtBill) {
+            // Chunks that already had income bills were visible before showDebt turned on —
+            // their ghost bills use the one-shot debtRevealProgress. Fully-debt chunks
+            // (e.g. clothing) become visible normally via their own flyProgress.
+            const hasIncomeInChunk = chunkIncomeCounts[ownerIdx] > 0;
+            const gfp = hasIncomeInChunk ? debtRevealProgress : fp;
 
-          elements.push(
-            <rect
-              key={b}
-              x={x} y={y}
-              width={BILL_W} height={BILL_H}
-              fill={BILL_COLOR}
-              rx={1}
-              opacity={fp > 0 || visibleItems === 0 ? 1 : 0.15}
-            />
-          );
+            const chunkIncomeBillCount = chunkIncomeCounts[ownerIdx];
+            const chunkDebtCount = chunk.amount / BILL_DENOM - chunkIncomeBillCount;
+            const debtBillIdxInChunk = bInGroup - chunkIncomeBillCount;
+            const bfp = billFlyProgress(debtBillIdxInChunk, chunkDebtCount, gfp);
+
+            // Staging area: grid of debt bills stacked below the income rect
+            const debtBillIdx = b - incomeBills;
+            const stageCol = debtBillIdx % BILL_COLS;
+            const stageRow = Math.floor(debtBillIdx / BILL_COLS);
+            const src = {
+              x: BAR_X + BILL_PAD + stageCol * (BILL_W + BILL_GAP),
+              y: BAR_BOTTOM + 10 + stageRow * (BILL_H + BILL_GAP),
+            };
+
+            const gi = BILL_STROKE / 2;
+            elements.push(
+              <rect
+                key={`debt-${b}`}
+                x={lerp(src.x, dest.x, bfp) + gi}
+                y={lerp(src.y, dest.y, bfp) + gi}
+                width={BILL_W - gi * 2} height={BILL_H - gi * 2}
+                fill="white"
+                stroke={BILL_COLOR}
+                strokeWidth={BILL_STROKE}
+                rx={1}
+                opacity={gfp}
+              />
+            );
+          } else {
+            const bfp = billFlyProgress(bInGroup, chunk.amount / BILL_DENOM, fp);
+
+            // Reverse column order in income rect so drain sweeps top-right → bottom-left
+            const srcCol = BILL_COLS - 1 - (b % BILL_COLS);
+            const srcRow = Math.floor(b / BILL_COLS);
+            const src = {
+              x: BAR_X + BILL_PAD + srcCol * (BILL_W + BILL_GAP),
+              y: BAR_Y + BILL_PAD + srcRow * (BILL_H + BILL_GAP),
+            };
+
+            const x = lerp(src.x, dest.x, bfp);
+            const y = lerp(src.y, dest.y, bfp);
+
+            const gi = BILL_STROKE / 2;
+            elements.push(
+              <rect
+                key={b}
+                x={x + gi} y={y + gi}
+                width={BILL_W - gi * 2} height={BILL_H - gi * 2}
+                fill={BILL_COLOR}
+                stroke={BILL_COLOR}
+                strokeWidth={BILL_STROKE}
+                rx={1}
+                opacity={fp > 0 || visibleItems === 0 ? 1 : 0.15}
+              />
+            );
+          }
         }
 
         return elements;

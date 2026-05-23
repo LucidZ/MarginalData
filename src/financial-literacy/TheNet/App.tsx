@@ -11,7 +11,7 @@ import './App.css';
 
 // ── Scroll steps ──────────────────────────────────────────────────────────────
 const STEPS: { headline: string; body: string }[] = [
-  // ── Student (steps 0–10) ─────────────────────────────────────────────────────
+  // ── Student (steps 0–11) ─────────────────────────────────────────────────────
   {
     headline: 'Meet Alex',
     body: "$1,500/mo before taxes. Part-time barista, age 22. This is the full paycheck — everything. The month's job is to hold on to as much of it as possible.",
@@ -45,8 +45,12 @@ const STEPS: { headline: string; body: string }[] = [
     body: "$310/mo — coffees, splitting a bill, going out with friends. Easy to underestimate because no single purchase feels like much.",
   },
   {
+    headline: 'The money just ran out.',
+    body: "Dining and social costs $310 — but after everything above, only $280 was left. The last $30 goes on the card without thinking about it. It doesn't feel like debt. It feels like Tuesday.",
+  },
+  {
     headline: 'Everything else',
-    body: "$170/mo for clothing, toiletries, and small purchases. The catch-all. It always seems like it won't add up — and it always does.",
+    body: "$170/mo for clothing, toiletries, and small purchases — and there's no income left to cover it. All of it goes on the card.",
   },
   {
     headline: "Seven expenses. Let's sort them.",
@@ -56,7 +60,7 @@ const STEPS: { headline: string; body: string }[] = [
     headline: 'The gap: −$200/mo',
     body: "After take-home and expenses, Alex ends each month $200 short. Not a crisis — but nothing building either. The shortfall gets covered somehow: a parent, a card, a savings account slowly draining.",
   },
-  // ── First Job (steps 11–16) ───────────────────────────────────────────────────
+  // ── First Job (steps 12–17) ───────────────────────────────────────────────────
   {
     headline: 'Four years later',
     body: "Alex is 26. Landed an analyst job at $54K/yr. $4,500/mo gross — three times the barista wage. This should change everything.",
@@ -81,7 +85,7 @@ const STEPS: { headline: string; body: string }[] = [
     headline: 'The gap: +$250/mo',
     body: "$250 left at the end of the month. That's 6.8% of take-home — slightly above the national savings rate. Better than before, definitely. Just not as much better as the raise felt like it would be.",
   },
-  // ── Established (steps 17–22) ────────────────────────────────────────────────
+  // ── Established (steps 18–23) ────────────────────────────────────────────────
   {
     headline: 'Eight years later',
     body: "Alex is 34. A partner, a house, $102K/yr combined. The income bar represents nearly double the take-home of eight years ago.",
@@ -112,33 +116,34 @@ const STEPS: { headline: string; body: string }[] = [
 // archetypeIdx: 0 = Student (8 display items), 1 = First Job (11), 2 = Established (11)
 // First Job items: [taxes, rent, car, phone, healthcare, subs, groceries, gas, dining, entertainment, clothing]
 // Established items: [taxes, mortgage, cars, healthcare, subs, groceries, gas, utilities, dining, travel, clothing]
-const VIZ_MAP: { archetypeIdx: number; visibleItems: number; phase: VizPhase }[] = [
-  // ── Student (steps 0–10) ──────────────────────────────────────────────────
-  { archetypeIdx: 0, visibleItems: 0,  phase: 'scatter'      }, //  0: income bar, empty
-  { archetypeIdx: 0, visibleItems: 1,  phase: 'scatter'      }, //  1: taxes appear
-  { archetypeIdx: 0, visibleItems: 2,  phase: 'scatter'      }, //  2: rent appears
-  { archetypeIdx: 0, visibleItems: 3,  phase: 'scatter'      }, //  3: phone appears
-  { archetypeIdx: 0, visibleItems: 4,  phase: 'scatter'      }, //  4: subscriptions appear
-  { archetypeIdx: 0, visibleItems: 5,  phase: 'scatter'      }, //  5: groceries appear
-  { archetypeIdx: 0, visibleItems: 6,  phase: 'scatter'      }, //  6: bus pass appears
-  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter'      }, //  7: dining+social appears
-  { archetypeIdx: 0, visibleItems: 8,  phase: 'scatter'      }, //  8: clothing+misc appears
-  { archetypeIdx: 0, visibleItems: 8,  phase: 'categorizing' }, //  9: group animation
-  { archetypeIdx: 0, visibleItems: 8,  phase: 'gap'          }, // 10: student gap
-  // ── First Job (steps 11–16) ───────────────────────────────────────────────
-  { archetypeIdx: 1, visibleItems: 0,  phase: 'items'        }, // 11: income bar, nothing yet
-  { archetypeIdx: 1, visibleItems: 1,  phase: 'items'        }, // 12: taxes land
-  { archetypeIdx: 1, visibleItems: 6,  phase: 'items'        }, // 13: + all 5 fixed costs
-  { archetypeIdx: 1, visibleItems: 8,  phase: 'items'        }, // 14: + groceries, gas
-  { archetypeIdx: 1, visibleItems: 11, phase: 'items'        }, // 15: + dining, entertainment, clothing
-  { archetypeIdx: 1, visibleItems: 11, phase: 'gap'          }, // 16: first job gap
-  // ── Established (steps 17–22) ─────────────────────────────────────────────
-  { archetypeIdx: 2, visibleItems: 0,  phase: 'items'        }, // 17: income bar, nothing yet
-  { archetypeIdx: 2, visibleItems: 5,  phase: 'items'        }, // 18: + taxes + 4 fixed costs
-  { archetypeIdx: 2, visibleItems: 11, phase: 'items'        }, // 19: + variable + discretionary
-  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 20: established gap
-  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 21: stats
-  { archetypeIdx: 2, visibleItems: 11, phase: 'month2'       }, // 22: month 2 repeats
+const VIZ_MAP: { archetypeIdx: number; visibleItems: number; phase: VizPhase; showDebt?: boolean }[] = [
+  // ── Student (steps 0–11) ──────────────────────────────────────────────────
+  { archetypeIdx: 0, visibleItems: 0,  phase: 'scatter'                    }, //  0: income bar, empty
+  { archetypeIdx: 0, visibleItems: 1,  phase: 'scatter'                    }, //  1: taxes appear
+  { archetypeIdx: 0, visibleItems: 2,  phase: 'scatter'                    }, //  2: rent appears
+  { archetypeIdx: 0, visibleItems: 3,  phase: 'scatter'                    }, //  3: phone appears
+  { archetypeIdx: 0, visibleItems: 4,  phase: 'scatter'                    }, //  4: subscriptions appear
+  { archetypeIdx: 0, visibleItems: 5,  phase: 'scatter'                    }, //  5: groceries appear
+  { archetypeIdx: 0, visibleItems: 6,  phase: 'scatter'                    }, //  6: bus pass appears
+  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter'                    }, //  7: dining+social (income bills only, rect empties)
+  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter', showDebt: true    }, //  8: ghost bills appear on dining
+  { archetypeIdx: 0, visibleItems: 8,  phase: 'scatter', showDebt: true    }, //  9: clothing+misc (all ghost)
+  { archetypeIdx: 0, visibleItems: 8,  phase: 'categorizing'               }, // 10: group animation
+  { archetypeIdx: 0, visibleItems: 8,  phase: 'gap'                        }, // 11: student gap
+  // ── First Job (steps 12–17) ───────────────────────────────────────────────
+  { archetypeIdx: 1, visibleItems: 0,  phase: 'items'        }, // 12: income bar, nothing yet
+  { archetypeIdx: 1, visibleItems: 1,  phase: 'items'        }, // 13: taxes land
+  { archetypeIdx: 1, visibleItems: 6,  phase: 'items'        }, // 14: + all 5 fixed costs
+  { archetypeIdx: 1, visibleItems: 8,  phase: 'items'        }, // 15: + groceries, gas
+  { archetypeIdx: 1, visibleItems: 11, phase: 'items'        }, // 16: + dining, entertainment, clothing
+  { archetypeIdx: 1, visibleItems: 11, phase: 'gap'          }, // 17: first job gap
+  // ── Established (steps 18–23) ─────────────────────────────────────────────
+  { archetypeIdx: 2, visibleItems: 0,  phase: 'items'        }, // 18: income bar, nothing yet
+  { archetypeIdx: 2, visibleItems: 5,  phase: 'items'        }, // 19: + taxes + 4 fixed costs
+  { archetypeIdx: 2, visibleItems: 11, phase: 'items'        }, // 20: + variable + discretionary
+  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 21: established gap
+  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 22: stats
+  { archetypeIdx: 2, visibleItems: 11, phase: 'month2'       }, // 23: month 2 repeats
 ];
 
 // ── Sources ───────────────────────────────────────────────────────────────────
@@ -222,6 +227,7 @@ export default function App() {
             phase={vizProps.phase}
             stage={vizProps.archetypeIdx}
             stepProgress={stepProgress}
+            showDebt={vizProps.showDebt}
           />
         </div>
 
