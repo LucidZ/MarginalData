@@ -123,8 +123,8 @@ function billGroupPoints(count: number, rectX: number, rectY: number): string {
     return `${L},${T} ${R},${T} ${R},${B} ${L},${B}`;
   }
 
-  // L-shape: step exactly at the bottom edge of the last full row's bills
-  const stepY = rectY + BILL_PAD + bh(fullRows);
+  // L-shape: step at the bottom of the gap after the last full row
+  const stepY = rectY + BILL_PAD + bh(fullRows) + BILL_GAP;
   const partR = rectX + BILL_PAD + bw(remainder) + BILL_PAD;
   return [
     `${L},${T}`, `${fullR},${T}`,
