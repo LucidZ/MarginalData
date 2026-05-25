@@ -65,16 +65,25 @@ const STUDENT: Archetype = {
   grossMonthly: 1_500,
   taxesMonthly: 150,
   items: [
-    { label: 'Rent (split with roommates)', amount: 650, type: 'fixed' },
-    { label: 'Phone',                       amount:  50, type: 'fixed' },
-    { label: 'Subscriptions',               amount:  20, type: 'fixed' },
-    { label: 'Groceries',                   amount: 270, type: 'variable' },
-    { label: 'Bus pass + transport',         amount:  80, type: 'variable' },
-    { label: 'Dining + social',              amount: 310, type: 'discretionary' },
-    { label: 'Clothing + misc',              amount: 170, type: 'discretionary' },
+    // fixed
+    { label: 'Rent — split 3 ways',           amount: 650, type: 'fixed' },
+    { label: 'Phone plan, autopay',            amount:  50, type: 'fixed' },
+    { label: 'Netflix + Spotify, autopay',     amount:  20, type: 'fixed' },
+    // variable — original groceries $270 + transport $80 = $350
+    { label: 'Trader Joe\'s, ~2× a week',      amount: 160, type: 'variable' },
+    { label: 'Corner store + CVS runs',        amount: 110, type: 'variable' },
+    { label: 'Metro card + a few Ubers',       amount:  80, type: 'variable' },
+    // discretionary — original dining+social $310 + clothing+misc $170 = $480
+    { label: 'Morning coffee, most days',      amount:  60, type: 'discretionary' },
+    { label: 'Lunch delivery, few times',      amount:  80, type: 'discretionary' },
+    { label: 'Friday dinner + one bar tab',    amount: 170, type: 'discretionary' },
+    { label: 'New jeans + a hoodie',           amount:  90, type: 'discretionary' },
+    { label: 'Shampoo, razors, one Amazon',    amount:  80, type: 'discretionary' },
   ],
 };
 // Net check: takeHome = 1,500 - 150 = 1,350. totalSpend = 1,550. net = -200. ✓
+// Money runs out during "Dinner & going out": $140 income left, $170 cost → $30 on card.
+// Remaining debt: clothing $90 + toiletries $80 = $170 + $30 = $200 total. ✓
 
 // ── Stage 2: First Job ────────────────────────────────────────────────────────
 // Alex, 26. Entry-level analyst, first real salary. $54K/yr gross.

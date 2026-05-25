@@ -11,7 +11,7 @@ import './App.css';
 
 // ── Scroll steps ──────────────────────────────────────────────────────────────
 const STEPS: { headline: string; body: string }[] = [
-  // ── Student (steps 0–11) ─────────────────────────────────────────────────────
+  // ── Student (steps 0–15) ─────────────────────────────────────────────────────
   {
     headline: 'Meet Alex',
     body: "$1,500/mo before taxes. Part-time barista, age 22. This is the full paycheck — everything. The month's job is to hold on to as much of it as possible.",
@@ -26,41 +26,57 @@ const STEPS: { headline: string; body: string }[] = [
   },
   {
     headline: 'A phone plan',
-    body: "$45/mo. Necessary, manageable — but committed. It shows up on the bill automatically whether the month goes well or not.",
+    body: "$50/mo on autopay. Necessary, manageable — but committed. It charges the same whether the month goes well or not.",
   },
   {
-    headline: 'Subscriptions',
-    body: "$25/mo across streaming and apps. Each one is small. They're also fixed — they charge the same whether you use them or ignored them.",
+    headline: 'Netflix + Spotify',
+    body: "$20/mo, also on autopay. Each feels optional when you sign up. Together they just become another line on the bank statement.",
   },
   {
-    headline: 'Groceries',
-    body: "$270/mo. Unlike rent, this one can flex. You can spend more or less depending on where you shop and how you cook — but you can't skip it.",
+    headline: 'Trader Joe\'s, twice a week',
+    body: "$160/mo in grocery runs. Not a budget — just what it costs when you buy what you need. Can flex, but not by much.",
   },
   {
-    headline: 'Getting around',
-    body: "$80/mo for a bus pass and occasional rides. Transportation is a necessity. The question is just what form it takes.",
+    headline: 'Corner store + CVS runs',
+    body: "$110/mo. The snacks, the paper towels, the drugstore pick-up on the way home. Each one feels like nothing. Together they're real.",
   },
   {
-    headline: 'Dining out and social life',
-    body: "$310/mo — coffees, splitting a bill, going out with friends. Easy to underestimate because no single purchase feels like much.",
+    headline: 'Metro card + a few Ubers',
+    body: "$80/mo. The pass covers the commute. The rides fill in the gaps — late nights, bad weather, when the bus just doesn't go there.",
   },
   {
-    headline: 'The money just ran out.',
-    body: "Dining and social costs $310 — but after everything above, only $280 was left. The last $30 goes on the card without thinking about it. It doesn't feel like debt. It feels like Tuesday.",
+    headline: 'Morning coffee, most days',
+    body: "$60/mo. A $4 coffee doesn't feel like a decision. But it's there every morning on the statement, five days a week.",
   },
   {
-    headline: 'Everything else',
-    body: "$170/mo for clothing, toiletries, and small purchases — and there's no income left to cover it. All of it goes on the card.",
+    headline: 'Lunch delivery, a few times',
+    body: "$80/mo. Not every day — but when the fridge is empty or a friend suggests it, it happens. A few orders a week adds up quietly.",
   },
   {
-    headline: "Seven expenses. Let's sort them.",
+    headline: 'The money runs out here.',
+    body: "Friday dinner, one bar tab — $170/mo. But after everything above, only $140 was left. The last $30 goes on the card without deciding to. It doesn't feel like debt. It feels like a regular Friday.",
+  },
+  {
+    headline: 'The card absorbs it.',
+    body: "That $30 doesn't hurt today — it's just a charge. The statement comes later, and by then there are more charges stacked on top of it.",
+  },
+  {
+    headline: 'New jeans, a hoodie',
+    body: "$90. There's no income left — it goes on the card. It was a reasonable purchase. So was everything else.",
+  },
+  {
+    headline: 'Shampoo, razors, one Amazon order',
+    body: "$80 in things you needed. All charged. The sum of small decisions you didn't track adds up to $200 over budget.",
+  },
+  {
+    headline: "Twelve expenses. Let's sort them.",
     body: "Random-looking charges become a pattern when grouped. Some are locked in by contract. Others flex. One you can't avoid at all. Learning to see these groups is the first step to managing them.",
   },
   {
     headline: 'The gap: −$200/mo',
     body: "After take-home and expenses, Alex ends each month $200 short. Not a crisis — but nothing building either. The shortfall gets covered somehow: a parent, a card, a savings account slowly draining.",
   },
-  // ── First Job (steps 12–17) ───────────────────────────────────────────────────
+  // ── First Job (steps 16–21) ───────────────────────────────────────────────────
   {
     headline: 'Four years later',
     body: "Alex is 26. Landed an analyst job at $54K/yr. $4,500/mo gross — three times the barista wage. This should change everything.",
@@ -85,7 +101,7 @@ const STEPS: { headline: string; body: string }[] = [
     headline: 'The gap: +$250/mo',
     body: "$250 left at the end of the month. That's 6.8% of take-home — slightly above the national savings rate. Better than before, definitely. Just not as much better as the raise felt like it would be.",
   },
-  // ── Established (steps 18–23) ────────────────────────────────────────────────
+  // ── Established (steps 22–27) ────────────────────────────────────────────────
   {
     headline: 'Eight years later',
     body: "Alex is 34. A partner, a house, $102K/yr combined. The income bar represents nearly double the take-home of eight years ago.",
@@ -113,37 +129,43 @@ const STEPS: { headline: string; body: string }[] = [
 ];
 
 // ── Viz mapping ───────────────────────────────────────────────────────────────
-// archetypeIdx: 0 = Student (8 display items), 1 = First Job (11), 2 = Established (11)
+// archetypeIdx: 0 = Student (12 display items), 1 = First Job (11), 2 = Established (11)
+// Student items: [taxes, rent, phone, subs, grocery runs, snacks+household, bus+rides,
+//                 coffee, lunch, dinner, clothing, toiletries+misc]
 // First Job items: [taxes, rent, car, phone, healthcare, subs, groceries, gas, dining, entertainment, clothing]
 // Established items: [taxes, mortgage, cars, healthcare, subs, groceries, gas, utilities, dining, travel, clothing]
 const VIZ_MAP: { archetypeIdx: number; visibleItems: number; phase: VizPhase; showDebt?: boolean; allLanded?: boolean }[] = [
-  // ── Student (steps 0–11) ──────────────────────────────────────────────────
+  // ── Student (steps 0–15) ──────────────────────────────────────────────────
   { archetypeIdx: 0, visibleItems: 0,  phase: 'scatter'                    }, //  0: income bar, empty
-  { archetypeIdx: 0, visibleItems: 1,  phase: 'scatter'                    }, //  1: taxes appear
-  { archetypeIdx: 0, visibleItems: 2,  phase: 'scatter'                    }, //  2: rent appears
-  { archetypeIdx: 0, visibleItems: 3,  phase: 'scatter'                    }, //  3: phone appears
-  { archetypeIdx: 0, visibleItems: 4,  phase: 'scatter'                    }, //  4: subscriptions appear
-  { archetypeIdx: 0, visibleItems: 5,  phase: 'scatter'                    }, //  5: groceries appear
-  { archetypeIdx: 0, visibleItems: 6,  phase: 'scatter'                    }, //  6: bus pass appears
-  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter'                    }, //  7: dining+social (income bills only, rect empties)
-  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter', showDebt: true, allLanded: true }, //  8: ghost bills appear on dining
-  { archetypeIdx: 0, visibleItems: 8,  phase: 'scatter', showDebt: true    }, //  9: clothing+misc (all ghost)
-  { archetypeIdx: 0, visibleItems: 8,  phase: 'categorizing'               }, // 10: group animation
-  { archetypeIdx: 0, visibleItems: 8,  phase: 'gap'                        }, // 11: student gap
-  // ── First Job (steps 12–17) ───────────────────────────────────────────────
-  { archetypeIdx: 1, visibleItems: 0,  phase: 'items'        }, // 12: income bar, nothing yet
-  { archetypeIdx: 1, visibleItems: 1,  phase: 'items'        }, // 13: taxes land
-  { archetypeIdx: 1, visibleItems: 6,  phase: 'items'        }, // 14: + all 5 fixed costs
-  { archetypeIdx: 1, visibleItems: 8,  phase: 'items'        }, // 15: + groceries, gas
-  { archetypeIdx: 1, visibleItems: 11, phase: 'items'        }, // 16: + dining, entertainment, clothing
-  { archetypeIdx: 1, visibleItems: 11, phase: 'gap'          }, // 17: first job gap
-  // ── Established (steps 18–23) ─────────────────────────────────────────────
-  { archetypeIdx: 2, visibleItems: 0,  phase: 'items'        }, // 18: income bar, nothing yet
-  { archetypeIdx: 2, visibleItems: 5,  phase: 'items'        }, // 19: + taxes + 4 fixed costs
-  { archetypeIdx: 2, visibleItems: 11, phase: 'items'        }, // 20: + variable + discretionary
-  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 21: established gap
-  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 22: stats
-  { archetypeIdx: 2, visibleItems: 11, phase: 'month2'       }, // 23: month 2 repeats
+  { archetypeIdx: 0, visibleItems: 1,  phase: 'scatter'                    }, //  1: taxes
+  { archetypeIdx: 0, visibleItems: 2,  phase: 'scatter'                    }, //  2: rent
+  { archetypeIdx: 0, visibleItems: 3,  phase: 'scatter'                    }, //  3: phone
+  { archetypeIdx: 0, visibleItems: 4,  phase: 'scatter'                    }, //  4: subscriptions
+  { archetypeIdx: 0, visibleItems: 5,  phase: 'scatter'                    }, //  5: grocery runs
+  { archetypeIdx: 0, visibleItems: 6,  phase: 'scatter'                    }, //  6: snacks & household
+  { archetypeIdx: 0, visibleItems: 7,  phase: 'scatter'                    }, //  7: bus pass + rides
+  { archetypeIdx: 0, visibleItems: 8,  phase: 'scatter'                    }, //  8: coffee & cafés
+  { archetypeIdx: 0, visibleItems: 9,  phase: 'scatter'                    }, //  9: lunch out
+  { archetypeIdx: 0, visibleItems: 10, phase: 'scatter'                    }, // 10: dinner & going out (income runs out mid-item)
+  { archetypeIdx: 0, visibleItems: 10, phase: 'scatter', showDebt: true, allLanded: true }, // 11: ghost bills reveal on dinner
+  { archetypeIdx: 0, visibleItems: 11, phase: 'scatter', showDebt: true    }, // 12: new clothing (all ghost)
+  { archetypeIdx: 0, visibleItems: 12, phase: 'scatter', showDebt: true    }, // 13: toiletries & misc (all ghost)
+  { archetypeIdx: 0, visibleItems: 12, phase: 'categorizing'               }, // 14: group animation
+  { archetypeIdx: 0, visibleItems: 12, phase: 'gap'                        }, // 15: student gap
+  // ── First Job (steps 16–21) ───────────────────────────────────────────────
+  { archetypeIdx: 1, visibleItems: 0,  phase: 'items'        }, // 16: income bar, nothing yet
+  { archetypeIdx: 1, visibleItems: 1,  phase: 'items'        }, // 17: taxes land
+  { archetypeIdx: 1, visibleItems: 6,  phase: 'items'        }, // 18: + all 5 fixed costs
+  { archetypeIdx: 1, visibleItems: 8,  phase: 'items'        }, // 19: + groceries, gas
+  { archetypeIdx: 1, visibleItems: 11, phase: 'items'        }, // 20: + dining, entertainment, clothing
+  { archetypeIdx: 1, visibleItems: 11, phase: 'gap'          }, // 21: first job gap
+  // ── Established (steps 22–27) ─────────────────────────────────────────────
+  { archetypeIdx: 2, visibleItems: 0,  phase: 'items'        }, // 22: income bar, nothing yet
+  { archetypeIdx: 2, visibleItems: 5,  phase: 'items'        }, // 23: + taxes + 4 fixed costs
+  { archetypeIdx: 2, visibleItems: 11, phase: 'items'        }, // 24: + variable + discretionary
+  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 25: established gap
+  { archetypeIdx: 2, visibleItems: 11, phase: 'gap'          }, // 26: stats
+  { archetypeIdx: 2, visibleItems: 11, phase: 'month2'       }, // 27: month 2 repeats
 ];
 
 // ── Sources ───────────────────────────────────────────────────────────────────

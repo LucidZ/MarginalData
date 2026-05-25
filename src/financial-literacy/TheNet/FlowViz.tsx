@@ -134,16 +134,20 @@ function billGroupPoints(count: number, rectX: number, rectY: number): string {
   ].join(' ');
 }
 
-// ── Scatter positions for student stage (8 items) ─────────────────────────────
+// ── Scatter positions for student stage (12 items: taxes + 11 budget items) ───
 const STUDENT_SCATTER: { x: number; y: number; rot: number }[] = [
-  { x: 330, y: 88,  rot: -5 }, // 0: taxes
-  { x: 165, y: 228, rot:  3 }, // 1: rent
-  { x: 415, y: 148, rot: -8 }, // 2: phone
-  { x: 385, y: 75,  rot:  6 }, // 3: subscriptions
-  { x: 278, y: 382, rot: -4 }, // 4: groceries
-  { x: 415, y: 298, rot:  7 }, // 5: bus pass
-  { x: 155, y: 92,  rot: -6 }, // 6: dining+social
-  { x: 338, y: 188, rot:  4 }, // 7: clothing+misc
+  { x: 330, y: 88,  rot: -5 }, //  0: taxes
+  { x: 162, y: 215, rot:  3 }, //  1: rent
+  { x: 415, y: 148, rot: -8 }, //  2: phone
+  { x: 390, y: 75,  rot:  6 }, //  3: subscriptions
+  { x: 275, y: 360, rot: -4 }, //  4: grocery runs
+  { x: 412, y: 272, rot:  7 }, //  5: snacks & household
+  { x: 415, y: 215, rot: -3 }, //  6: bus pass + rides
+  { x: 155, y: 88,  rot: -6 }, //  7: coffee & cafés
+  { x: 248, y: 145, rot:  4 }, //  8: lunch out
+  { x: 340, y: 185, rot: -3 }, //  9: dinner & going out
+  { x: 162, y: 380, rot:  5 }, // 10: new clothing
+  { x: 248, y: 82,  rot: -7 }, // 11: toiletries & misc
 ];
 
 // Category timing within the normalized categorizeProgress (0–1).
