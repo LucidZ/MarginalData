@@ -21,6 +21,7 @@ const MarginalTax = lazy(() => import("./financial-literacy/MarginalTax"));
 const TheNet = lazy(() => import("./financial-literacy/TheNet"));
 const TheCushion = lazy(() => import("./financial-literacy/TheCushion"));
 const TheCompound = lazy(() => import("./financial-literacy/TheCompound"));
+const BudgetDeciles = lazy(() => import("./financial-literacy/BudgetDeciles"));
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
             <Route path="/financial-literacy/the-net" element={<TheNet />} />
             <Route path="/financial-literacy/the-cushion" element={<TheCushion />} />
             <Route path="/financial-literacy/the-compound" element={<TheCompound />} />
+            <Route path="/financial-literacy/budget-deciles" element={<BudgetDeciles />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>

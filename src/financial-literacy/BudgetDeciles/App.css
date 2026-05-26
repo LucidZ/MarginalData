@@ -1,0 +1,208 @@
+/* ── Root ───────────────────────────────────────────────────────────────────── */
+.bd-story {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.bd-story h1 {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.bd-subtitle {
+  font-size: clamp(0.88rem, 1.8vw, 1rem);
+  color: #666;
+  margin: 0 0 2rem;
+}
+
+/* ── Controls ───────────────────────────────────────────────────────────────── */
+.bd-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bd-mode-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bd-mode-toggle button {
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: #666;
+  transition: background 120ms, color 120ms;
+}
+
+.bd-mode-toggle button.active {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.bd-mode-toggle button:not(.active):hover {
+  background: #f0f0f0;
+}
+
+.bd-x-note {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+/* ── Chart wrapper ───────────────────────────────────────────────────────────── */
+.bd-chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────────────────── */
+.decile-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  max-width: 210px;
+  z-index: 10;
+}
+
+.dt-decile {
+  color: #888;
+  font-size: 0.76rem;
+  margin-bottom: 0.2rem;
+}
+
+.dt-cat {
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.dt-value {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 0.15rem;
+}
+
+.dt-share {
+  color: #888;
+  font-size: 0.76rem;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────────────────── */
+.bd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  margin-top: 0.75rem;
+}
+
+.bd-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: #444;
+  transition: border-color 120ms, opacity 120ms;
+}
+
+.bd-legend-item:hover {
+  border-color: #aaa;
+}
+
+.bd-legend-item.active {
+  border-color: #333;
+  background: #f8f8f8;
+  color: #111;
+  font-weight: 600;
+}
+
+.bd-legend-item.dimmed {
+  opacity: 0.45;
+}
+
+.bd-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Insight box ─────────────────────────────────────────────────────────────── */
+.bd-insight {
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  background: #f7f7f5;
+  border-left: 3px solid #ddd;
+  border-radius: 0 6px 6px 0;
+}
+
+.bd-insight p {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #444;
+  margin: 0 0 0.75rem;
+}
+
+.bd-insight p:last-child {
+  margin-bottom: 0;
+}
+
+.bd-inline-highlight {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+  color: #2d6a4f;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.bd-inline-highlight:hover {
+  text-decoration-style: solid;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+.bd-footer {
+  margin-top: 2.5rem;
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .bd-story {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .bd-controls {
+    gap: 0.75rem;
+  }
+
+  .bd-insight {
+    padding: 1rem 1.1rem;
+  }
+}
