@@ -66,10 +66,10 @@
 }
 
 .the-compound-story .scrolly-step {
-  min-height: 130vh;
+  min-height: 35vh;
   display: flex;
   align-items: flex-start;
-  padding-top: 10vh;
+  padding-top: 8vh;
 }
 
 .the-compound-story .step-inner h2 {
@@ -116,7 +116,7 @@
   }
 
   .the-compound-story .scrolly-step {
-    min-height: 110vh;
+    min-height: 30vh;
   }
 
   .the-compound-story .scrolly-steps {
