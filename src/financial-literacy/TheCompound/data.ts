@@ -69,3 +69,40 @@ export const DEBT_DATA: DebtPoint[] = Array.from({ length: 9 }, (_, yr) => {
 
 export const DEBT_YEAR3 = Math.round(Math.abs(DEBT_DATA[3].totalOwed)); // ~$10,200
 export const DEBT_YEAR6 = Math.round(Math.abs(DEBT_DATA[6].totalOwed)); // ~$20,800
+
+// ── Snowball data ─────────────────────────────────────────────────────────────
+// Single $100 lump-sum at 7% annual return, tracked year by year.
+// Three components show what compounding actually does:
+//   principal      — your original $100, unchanged
+//   simpleInterest — what you'd earn without compounding ($7 × N)
+//   compoundBonus  — the extra amount compounding adds (interest on interest)
+
+const SB_RATE = 0.07;
+const SB_P    = 100;
+
+export interface SnowballPoint {
+  year:           number;
+  total:          number;
+  principal:      number;
+  simpleInterest: number;
+  compoundBonus:  number;
+  annualInterest: number; // interest earned in this specific year
+}
+
+export const SNOWBALL_DATA: SnowballPoint[] = Array.from({ length: 40 }, (_, i) => {
+  const year  = i + 1;
+  const total = SB_P * Math.pow(1 + SB_RATE, year);
+  const prev  = SB_P * Math.pow(1 + SB_RATE, year - 1);
+  return {
+    year,
+    total,
+    principal:      SB_P,
+    simpleInterest: SB_P * SB_RATE * year,
+    compoundBonus:  total - SB_P - SB_P * SB_RATE * year,
+    annualInterest: total - prev,
+  };
+});
+
+// First year when total >= 2× principal (doubles)
+export const SNOWBALL_DOUBLE_YEAR =
+  (SNOWBALL_DATA.find(d => d.total >= 2 * SB_P)?.year) ?? 11; // year 11 at 7%

@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "test:visual": "playwright test"
   },
   "homepage": "https://LucidZ.github.io/MarginalData/",
   "dependencies": {
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@playwright/test": "^1.60.0",
     "@types/d3": "^7.4.3",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -36,6 +38,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "gh-pages": "^6.3.0",
     "globals": "^16.0.0",
+    "playwright": "^1.60.0",
     "typescript": "^5.9.3",
     "vite": "^6.3.1"
   }
