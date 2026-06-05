@@ -86,6 +86,9 @@ export default function Home() {
           <li>
             <Link to="/financial-literacy/the-compound">1c. The Snowball</Link>
           </li>
+          <li>
+            <Link to="/2025/ChessboardRice">The Grain of Rice — chessboard doubling fable</Link>
+          </li>
         </ul>
       </nav>
     </div>

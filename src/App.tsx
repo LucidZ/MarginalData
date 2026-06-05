@@ -22,6 +22,7 @@ const TheNet = lazy(() => import("./financial-literacy/TheNet"));
 const TheCushion = lazy(() => import("./financial-literacy/TheCushion"));
 const TheCompound = lazy(() => import("./financial-literacy/TheCompound"));
 const BudgetDeciles = lazy(() => import("./financial-literacy/BudgetDeciles"));
+const ChessboardRice = lazy(() => import("./2025/ChessboardRice"));
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
             <Route path="/financial-literacy/the-cushion" element={<TheCushion />} />
             <Route path="/financial-literacy/the-compound" element={<TheCompound />} />
             <Route path="/financial-literacy/budget-deciles" element={<BudgetDeciles />} />
+            <Route path="/2025/ChessboardRice" element={<ChessboardRice />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>
