@@ -136,6 +136,9 @@ export default function App() {
     : null;
   const hoveredYearData = hoveredData ? getYearData(hoveredData, selectedYear) : null;
 
+  const stateCx = stateTotal ? xScale(stateTotal.pctDemOfMajor) : innerWidth / 2;
+  const stateCy = stateTotal ? yScale(stateTotal.pctMinor) : innerHeight / 2;
+
   return (
     <div className="va-root">
       <h1 className="va-title">
@@ -257,67 +260,87 @@ export default function App() {
                 50/50 split
               </text>
 
-              {/* County trails + dots */}
-              {view === "counties" && <>
-                {data.map((county) => {
-                  const trail = getTrailData(county);
-                  if (trail.length < 2) return null;
-                  const isHovered = county.county === hoveredCounty;
-                  const isHighlighted = HIGHLIGHT_COUNTIES.includes(county.county);
-                  return (
+              {/* County trails — animate with same transform as their dot */}
+              {data.map((county) => {
+                const trail = getTrailData(county);
+                if (trail.length < 2) return null;
+                const isHovered = county.county === hoveredCounty;
+                const isHighlighted = HIGHLIGHT_COUNTIES.includes(county.county);
+                const yd = getYearData(county, selectedYear);
+                if (!yd) return null;
+                const cx = xScale(yd.pctDemOfMajor);
+                const cy = yScale(yd.pctMinor);
+                const tx = view === "state" ? stateCx - cx : 0;
+                const ty = view === "state" ? stateCy - cy : 0;
+                return (
+                  <g
+                    key={`trail-${county.county}`}
+                    style={{
+                      transform: `translate(${tx}px, ${ty}px)`,
+                      opacity: view === "state" ? 0 : 1,
+                      transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s",
+                    }}
+                  >
                     <path
-                      key={`trail-${county.county}`}
                       d={trailLine(trail) ?? ""}
                       fill="none"
                       stroke={isHovered ? countyColor(trail[trail.length - 1].pctDemOfMajor) : "#bbb"}
                       strokeWidth={isHovered ? 2.5 : isHighlighted ? 1 : 0.8}
                       opacity={isHovered ? 0.9 : isHighlighted ? 0.5 : 0.3}
                     />
-                  );
-                })}
-                {data.map((county) => {
-                  const yd = getYearData(county, selectedYear);
-                  if (!yd) return null;
-                  const isHovered = county.county === hoveredCounty;
-                  const isHighlighted = HIGHLIGHT_COUNTIES.includes(county.county);
-                  const cx = xScale(yd.pctDemOfMajor);
-                  const cy = yScale(yd.pctMinor);
-                  const r = rScale(yd.total);
-                  const color = countyColor(yd.pctDemOfMajor);
-                  return (
-                    <g
-                      key={`dot-${county.county}`}
-                      style={{ cursor: "pointer" }}
-                      onMouseEnter={() => setHoveredCounty(county.county)}
-                      onMouseLeave={() => setHoveredCounty(null)}
-                    >
-                      <circle cx={cx} cy={cy} r={r + 6} fill="transparent" />
-                      <circle
-                        cx={cx} cy={cy} r={r}
-                        fill={color}
-                        fillOpacity={isHovered ? 1 : 0.75}
-                        stroke={isHovered ? "#222" : isHighlighted ? "#555" : "white"}
-                        strokeWidth={isHovered ? 2 : 1}
-                      />
-                      {(isHighlighted || isHovered) && (
-                        <text x={cx} y={cy - r - 4} textAnchor="middle" className="va-county-label" fontWeight={isHovered ? "bold" : "normal"}>
-                          {county.county}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
-              </>}
+                  </g>
+                );
+              })}
 
-              {/* State trail + dot */}
-              {view === "state" && stateTotal && (() => {
+              {/* County dots — always rendered; spread from / converge to state position */}
+              {data.map((county) => {
+                const yd = getYearData(county, selectedYear);
+                if (!yd) return null;
+                const isHovered = county.county === hoveredCounty;
+                const isHighlighted = HIGHLIGHT_COUNTIES.includes(county.county);
+                const cx = xScale(yd.pctDemOfMajor);
+                const cy = yScale(yd.pctMinor);
+                const r = rScale(yd.total);
+                const color = countyColor(yd.pctDemOfMajor);
+                const tx = view === "state" ? stateCx - cx : 0;
+                const ty = view === "state" ? stateCy - cy : 0;
+                return (
+                  <g
+                    key={`dot-${county.county}`}
+                    style={{
+                      transform: `translate(${tx}px, ${ty}px)`,
+                      opacity: view === "state" ? 0 : 1,
+                      transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s",
+                      pointerEvents: view === "state" ? "none" : "auto",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={() => setHoveredCounty(county.county)}
+                    onMouseLeave={() => setHoveredCounty(null)}
+                  >
+                    <circle cx={cx} cy={cy} r={r + 6} fill="transparent" />
+                    <circle
+                      cx={cx} cy={cy} r={r}
+                      fill={color}
+                      fillOpacity={isHovered ? 1 : 0.75}
+                      stroke={isHovered ? "#222" : isHighlighted ? "#555" : "white"}
+                      strokeWidth={isHovered ? 2 : 1}
+                    />
+                    {(isHighlighted || isHovered) && (
+                      <text x={cx} y={cy - r - 4} textAnchor="middle" className="va-county-label" fontWeight={isHovered ? "bold" : "normal"}>
+                        {county.county}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* State trail + dot — always rendered, fades in/out */}
+              {stateTotal && (() => {
                 const trail = stateByYear.filter((s) => s.year <= selectedYear);
-                const cx = xScale(stateTotal.pctDemOfMajor);
-                const cy = yScale(stateTotal.pctMinor);
                 const r = 18;
                 const color = countyColor(stateTotal.pctDemOfMajor);
                 return (
-                  <g>
+                  <g style={{ opacity: view === "state" ? 1 : 0, transition: "opacity 0.4s", pointerEvents: view === "state" ? "auto" : "none" }}>
                     {trail.length >= 2 && (
                       <path
                         d={trailLine(trail) ?? ""}
@@ -338,8 +361,8 @@ export default function App() {
                         stroke="none"
                       />
                     ))}
-                    <circle cx={cx} cy={cy} r={r} fill={color} fillOpacity={0.85} stroke="#222" strokeWidth={2} />
-                    <text x={cx} y={cy - r - 5} textAnchor="middle" className="va-county-label" fontWeight="bold">
+                    <circle cx={stateCx} cy={stateCy} r={r} fill={color} fillOpacity={0.85} stroke="#222" strokeWidth={2} />
+                    <text x={stateCx} y={stateCy - r - 5} textAnchor="middle" className="va-county-label" fontWeight="bold">
                       Colorado
                     </text>
                   </g>
