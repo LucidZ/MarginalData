@@ -24,6 +24,7 @@ const TheCompound = lazy(() => import("./financial-literacy/TheCompound"));
 const BudgetDeciles = lazy(() => import("./financial-literacy/BudgetDeciles"));
 const TheCompoundBars = lazy(() => import("./financial-literacy/TheCompoundBars"));
 const CompoundDebt = lazy(() => import("./financial-literacy/CompoundDebt"));
+const CompoundDebtCalc = lazy(() => import("./financial-literacy/CompoundDebt/Calculator"));
 const ChessboardRice = lazy(() => import("./2025/ChessboardRice"));
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
             <Route path="/financial-literacy/the-compound-bars" element={<TheCompoundBars />} />
             <Route path="/financial-literacy/budget-deciles" element={<BudgetDeciles />} />
             <Route path="/financial-literacy/compound-debt" element={<CompoundDebt />} />
+            <Route path="/financial-literacy/compound-debt/calculator" element={<CompoundDebtCalc />} />
             <Route path="/2025/ChessboardRice" element={<ChessboardRice />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />

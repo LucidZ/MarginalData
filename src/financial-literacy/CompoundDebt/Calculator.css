@@ -1,0 +1,207 @@
+.debt-calc {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.calc-back {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: #999;
+  text-decoration: none;
+  margin-bottom: 1rem;
+  transition: color 0.12s;
+}
+.calc-back:hover { color: #333; }
+
+.calc-series-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #999;
+  margin: 0 0 0.5rem;
+}
+
+.debt-calc-header h1 {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.calc-subtitle {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+  margin: 0 0 2rem;
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────────── */
+.calc-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem 2.5rem;
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+}
+
+.calc-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.control-row label {
+  font-size: 0.78rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.control-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: #1a7a4a;
+  cursor: pointer;
+}
+
+/* ── Warning ─────────────────────────────────────────────────────────────────── */
+.calc-warning {
+  background: #fff8e7;
+  border: 1px solid #e8c040;
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  color: #664400;
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+/* ── Stats ───────────────────────────────────────────────────────────────────── */
+.calc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.calc-stat {
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Chart ───────────────────────────────────────────────────────────────────── */
+.calc-chart {
+  margin-bottom: 1.5rem;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #999;
+  margin: 0.5rem 0 0;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  vertical-align: middle;
+}
+.legend-swatch--solid  { background: #1a7a4a; }
+.legend-swatch--dashed {
+  background: repeating-linear-gradient(
+    90deg,
+    #ccc 0px, #ccc 4px,
+    transparent 4px, transparent 7px
+  );
+}
+
+/* ── Insights ────────────────────────────────────────────────────────────────── */
+.calc-insight {
+  background: #f0f8f4;
+  border-left: 3px solid #1a7a4a;
+  border-radius: 0 4px 4px 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.calc-insight--warn {
+  background: #fff8e7;
+  border-left-color: #c08020;
+}
+
+/* ── Share ───────────────────────────────────────────────────────────────────── */
+.calc-share {
+  margin-top: 2.5rem;
+}
+
+.share-btn {
+  background: none;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.share-btn:hover {
+  border-color: #999;
+  color: #111;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .debt-calc {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .calc-controls {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .calc-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}

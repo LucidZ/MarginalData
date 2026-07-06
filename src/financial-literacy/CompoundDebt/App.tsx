@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import DebtBarViz from './DebtBarViz';
 import { Sources } from '../shared/Sources';
 import './App.css';
 
-// ── Cycle 1: no payments ─────────────────────────────────────────────────────
+// ── Cycle 1: no payments (7 years) ──────────────────────────────────────────
 const CYCLE1_ANNOTATIONS: Record<number, { headline: string; body: string }> = {
   0: {
     headline: 'Day 1: $1,000 on a credit card',
@@ -35,49 +36,69 @@ const CYCLE1_ANNOTATIONS: Record<number, { headline: string; body: string }> = {
   },
   60: {
     headline: 'Five years: $3,281',
-    body: '$2,281 in interest on $1,000. You never bought another thing — compound interest did the rest.',
+    body: 'Two hundred and thirty percent of what you borrowed — and the debt is still accelerating.',
+  },
+  72: {
+    headline: 'Six years: $4,161',
+    body: 'Monthly interest: $83. The bank now earns more each month from your silence than you originally spent on that car repair.',
+  },
+  84: {
+    headline: 'Seven years: $5,278',
+    body: 'Monthly interest: $106 — five times what it was on day one. Same rate. Zero new purchases.',
   },
 };
 
 // ── Transition ────────────────────────────────────────────────────────────────
 const TRANSITION_ANNOTATION = {
   headline: 'What if you pay the minimum?',
-  body: 'Same $1,000, same 24% rate. The minimum payment: 1% of your balance plus that month\'s interest — or $25, whichever is more. Each green slice is one month\'s payment.',
+  body: 'Same $1,000, same 24% rate. The minimum payment: 1% of your balance plus that month\'s interest — or $25, whichever is more. Green above the line: what you paid. Red below: what you still owe.',
 };
 
-// ── Cycle 2: minimum payments ─────────────────────────────────────────────────
+// ── Cycle 2: minimum payments (7 years) ──────────────────────────────────────
 const CYCLE2_ANNOTATIONS: Record<number, { headline: string; body: string }> = {
   0: {
     headline: 'Same starting line',
-    body: 'Red bars: what you owe. Green slices at the top: each month\'s payment. The ghost bars show the no-payment nightmare.',
+    body: 'Back to $1,000. Same rate. But now you make the minimum payment every month.',
   },
   1: {
     headline: 'Month 1: $990',
-    body: 'Payment: $30. Interest: $20. Only $10 went to principal — that thin green slice barely dents the red.',
+    body: 'Payment: $30. Interest: $20. Only $10 actually reduces your debt — the rest goes straight to the bank.',
   },
   6: {
     headline: 'Month 6: $941',
-    body: 'Six green slices so far — $174 paid, but the balance only dropped $59. The slices are thin because the payments are small.',
+    body: 'Six payments totaling $174 — but the balance has only dropped $59. Most of your money feeds the interest.',
   },
   12: {
     headline: 'One year: $886',
-    body: 'Look at all those green slices. Twelve payments, $344 total — but the red bars have barely budged.',
+    body: '$344 paid so far. The debt? Down just $114. For every dollar of progress, you\'ve paid three in interest.',
   },
   24: {
     headline: 'Two years: $782',
-    body: 'Your payment has dropped to the $25 floor. The green slices keep stacking up — but the red keeps resisting.',
+    body: 'Your payment has dropped to the $25 floor. You\'ve paid over $600, but more than half went to interest.',
   },
   36: {
     headline: 'Three years: $656',
-    body: 'Still owe two-thirds. Those green slices add up to over $1,000 now — more than the original debt.',
+    body: 'Over $1,000 in payments now — more than the original debt. And you still owe two-thirds.',
   },
   48: {
     headline: 'Four years: $496',
-    body: 'Half the debt remains. The green slices: quiet, steady, relentless. But where did all that money go?',
+    body: 'Half the balance remains. The payments are steady, quiet, relentless — but so is the interest.',
   },
   60: {
     headline: 'Five years: still $294 to go',
-    body: 'Sixty green slices. Sixty payments. Still not done. Let\'s see where all that money actually went.',
+    body: 'Sixty payments. Over $1,500 spent. Not done yet.',
+  },
+  72: {
+    headline: 'Year 6: almost there',
+    body: 'Just $39 left. One more $25 payment drops it below the minimum — the bank takes the rest.',
+  },
+  75: {
+    headline: 'Paid off — month 74',
+    body: 'Six years, two months. Over $1,900 paid to erase a $1,000 balance.',
+  },
+  84: {
+    headline: 'Year 7: free',
+    body: 'Ten months since payoff. Let\'s see where all that money actually went.',
   },
 };
 
@@ -85,30 +106,32 @@ const CYCLE2_ANNOTATIONS: Record<number, { headline: string; body: string }> = {
 const GATHER_ANNOTATIONS: Record<number, { headline: string; body: string }> = {
   0: {
     headline: 'Every payment, stacked',
-    body: 'Watch the green slices gather into a single column — sixty monthly payments, combined.',
+    body: 'Watch the green slices gather into a single column — 74 monthly payments, combined.',
   },
-  7: {
+  22: {
     headline: 'The true cost',
-    body: 'Left: what you paid. Right: what you borrowed. The gap between them — that\'s pure interest. And you still owe $294.',
+    body: 'Left: what you paid. Right: what you borrowed. The gap between them — that\'s pure interest. Nearly double the original debt, just to break even.',
   },
 };
 
 // ── Step layout ───────────────────────────────────────────────────────────────
-// Cycle 1: 61 steps (months 0–60)
+// Cycle 1: 85 steps (months 0–84)
 // Transition: 1 step
-// Cycle 2: 61 steps (months 0–60)
-// Gather: 10 steps
-const GATHER_START = 123;
-const GATHER_STEPS = 10;
-const TOTAL_STEPS = 61 + 1 + 61 + GATHER_STEPS;
+// Cycle 2: 85 steps (months 0–84)
+// Gather: 30 steps
+const CYCLE1_STEPS = 85;
+const CYCLE2_STEPS = 85;
+const GATHER_STEPS = 30;
+const GATHER_START = CYCLE1_STEPS + 1 + CYCLE2_STEPS; // 171
+const TOTAL_STEPS = CYCLE1_STEPS + 1 + CYCLE2_STEPS + GATHER_STEPS; // 201
 
 const STEPS = Array.from({ length: TOTAL_STEPS }, (_, i) => {
-  if (i <= 60) {
+  if (i <= 84) {
     return { annotation: CYCLE1_ANNOTATIONS[i] ?? null };
-  } else if (i === 61) {
+  } else if (i === 85) {
     return { annotation: TRANSITION_ANNOTATION };
-  } else if (i <= 122) {
-    const month = i - 62;
+  } else if (i <= 170) {
+    const month = i - 86;
     return { annotation: CYCLE2_ANNOTATIONS[month] ?? null };
   } else {
     const gatherStep = i - GATHER_START;
@@ -160,18 +183,18 @@ export default function App() {
   let month: number;
   let gatherProgress = 0;
 
-  if (currentStep <= 60) {
+  if (currentStep <= 84) {
     cycle = 1;
     month = currentStep;
-  } else if (currentStep === 61) {
+  } else if (currentStep === 85) {
     cycle = 1;
-    month = 60;
-  } else if (currentStep <= 122) {
+    month = 84;
+  } else if (currentStep <= 170) {
     cycle = 2;
-    month = currentStep - 62;
+    month = currentStep - 86;
   } else {
     cycle = 2;
-    month = 60;
+    month = 84;
     gatherProgress = Math.min(
       (currentStep - GATHER_START) / (GATHER_STEPS - 1),
       1,
@@ -221,6 +244,15 @@ export default function App() {
       </div>
 
       <div className="story-footer">
+        <div className="calc-cta">
+          <p className="calc-cta-text">What does this look like with your rate and balance?</p>
+          <Link
+            to="/financial-literacy/compound-debt/calculator?balance=1000&rate=24&payment=50"
+            className="calc-cta-link"
+          >
+            Run your own numbers →
+          </Link>
+        </div>
         <Sources sources={SOURCES} />
       </div>
     </div>

@@ -90,6 +90,32 @@
   padding: 0 1.5rem 3rem;
 }
 
+.compound-debt-story .calc-cta {
+  padding: 2rem 0 1.75rem;
+}
+
+.compound-debt-story .calc-cta-text {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0 0 0.75rem;
+}
+
+.compound-debt-story .calc-cta-link {
+  display: inline-block;
+  background: #1a7a4a;
+  color: #fff;
+  text-decoration: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.12s;
+}
+
+.compound-debt-story .calc-cta-link:hover {
+  background: #155f3a;
+}
+
 /* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .compound-debt-story .scrolly-container {

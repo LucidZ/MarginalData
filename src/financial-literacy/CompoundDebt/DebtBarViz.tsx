@@ -3,7 +3,8 @@ import * as d3 from 'd3';
 
 const MONTHLY_RATE = 0.24 / 12;
 const INITIAL_DEBT = 1000;
-const MAX_MONTH = 60;
+const CYCLE1_MAX = 84;
+const CYCLE2_MAX = 84;
 
 const VW = 520;
 const VH = 440;
@@ -54,7 +55,7 @@ function buildData(): MonthData[] {
     totalInterest: 0,
   });
 
-  for (let m = 1; m <= MAX_MONTH; m++) {
+  for (let m = 1; m <= CYCLE1_MAX; m++) {
     noPay *= 1 + MONTHLY_RATE;
 
     const pmt = minPayment(pay);
@@ -79,19 +80,21 @@ function buildData(): MonthData[] {
 }
 
 const ALL_DATA = buildData();
-const X_DOMAIN = Array.from({ length: MAX_MONTH + 1 }, (_, i) => i);
 
-const xScale = d3
+const xScale1 = d3
   .scaleBand<number>()
-  .domain(X_DOMAIN)
+  .domain(Array.from({ length: CYCLE1_MAX + 1 }, (_, i) => i))
   .range([0, W])
   .padding(0.08);
 
-const yScale = d3.scaleLinear().domain([-3500, 2000]).range([H, 0]);
+const xScale2 = d3
+  .scaleBand<number>()
+  .domain(Array.from({ length: CYCLE2_MAX + 1 }, (_, i) => i))
+  .range([0, W])
+  .padding(0.08);
 
-const barWidth = xScale.bandwidth();
-const debtTicks = [0, 1000, 2000, 3000];
-const xLabelMonths = [0, 12, 24, 36, 48, 60];
+const yScale1 = d3.scaleLinear().domain([-5500, 600]).range([H, 0]);
+const yScale2 = d3.scaleLinear().domain([-1200, 2100]).range([H, 0]);
 
 const GATHER_X = W * 0.28;
 const REF_X = W * 0.58;
@@ -106,7 +109,17 @@ export default function DebtBarViz({
   cycle: 1 | 2;
   gatherProgress?: number;
 }) {
-  const floored = Math.floor(Math.max(0, Math.min(currentMonth, MAX_MONTH)));
+  const maxMonth = cycle === 1 ? CYCLE1_MAX : CYCLE2_MAX;
+  const xScale = cycle === 1 ? xScale1 : xScale2;
+  const yScale = cycle === 1 ? yScale1 : yScale2;
+  const barWidth = xScale.bandwidth();
+  const debtTicks = cycle === 1 ? [0, 2000, 4000] : [0, 500, 1000];
+  const xLabelMonths =
+    cycle === 1
+      ? [0, 12, 24, 36, 48, 60, 72, 84]
+      : [0, 12, 24, 36, 48, 60, 72, 84];
+
+  const floored = Math.floor(Math.max(0, Math.min(currentMonth, maxMonth)));
   const bars: JSX.Element[] = [];
   const greenSlices: JSX.Element[] = [];
 
@@ -114,10 +127,9 @@ export default function DebtBarViz({
   const gp = Math.max(0, Math.min(1, gatherProgress));
 
   if (cycle === 1) {
-    for (let month = 0; month <= MAX_MONTH; month++) {
+    for (let month = 0; month <= floored; month++) {
       const d = ALL_DATA[month];
       const x = xScale(month)!;
-      if (month > floored) continue;
 
       bars.push(
         <rect
@@ -146,66 +158,37 @@ export default function DebtBarViz({
   } else {
     const barFade = 1 - gp * 0.85;
 
-    for (let month = 0; month <= MAX_MONTH; month++) {
+    for (let month = 0; month <= CYCLE2_MAX; month++) {
       const d = ALL_DATA[month];
       const x = xScale(month)!;
       const reached = month <= floored;
       const payment =
-        month > 0 ? d.totalPaid - ALL_DATA[month - 1].totalPaid : 0;
+        month > 0 ? ALL_DATA[month].totalPaid - ALL_DATA[month - 1].totalPaid : 0;
 
-      // Ghost no-payment bars
-      bars.push(
-        <rect
-          key={`gp${month}`}
-          x={x}
-          y={yScale(0)}
-          width={barWidth}
-          height={yScale(-INITIAL_DEBT) - yScale(0)}
-          fill={DARK_RED}
-          opacity={0.12 * barFade}
-        />,
-      );
-      if (d.noPayInterest > 0.5) {
-        bars.push(
-          <rect
-            key={`gi${month}`}
-            x={x}
-            y={yScale(-INITIAL_DEBT)}
-            width={barWidth}
-            height={yScale(-d.noPayBalance) - yScale(-INITIAL_DEBT)}
-            fill={RED}
-            opacity={0.12 * barFade}
-          />,
-        );
-      }
-
-      // Red remaining balance (offset below payment slice)
-      if (d.payBalance > 0.5) {
-        const yTop = payment > 0.5 ? yScale(-payment) : yScale(0);
-        const yBot = yScale(-(payment + d.payBalance));
-        const opacity = (reached ? 1 : 0.2) * barFade;
+      if (d.payBalance > 0.5 && reached) {
         bars.push(
           <rect
             key={`mp${month}`}
             x={x}
-            y={yTop}
+            y={yScale(0)}
             width={barWidth}
-            height={yBot - yTop}
+            height={yScale(-d.payBalance) - yScale(0)}
             fill={DARK_RED}
-            opacity={opacity}
+            opacity={barFade}
           />,
         );
       }
 
-      // Green payment slice
       if (month > 0 && reached && payment > 0.5) {
-        const sliceH = yScale(-payment) - yScale(0);
-        // Stagger: earlier months move first
-        const delay = (month / MAX_MONTH) * 0.4;
-        const t = Math.max(0, Math.min(1, (gp - delay) / (1 - delay + 0.01)));
+        const sliceH = yScale(0) - yScale(payment);
+        const delay = (month / CYCLE2_MAX) * 0.4;
+        const t =
+          gp > 0
+            ? Math.max(0, Math.min(1, (gp - delay) / (1 - delay + 0.01)))
+            : 0;
 
         const sx = lerp(x, GATHER_X, t);
-        const sy = lerp(yScale(0), yScale(d.totalPaid), t);
+        const sy = lerp(yScale(payment), yScale(ALL_DATA[month].totalPaid), t);
         const sw = lerp(barWidth, COL_W, t);
 
         greenSlices.push(
@@ -227,7 +210,6 @@ export default function DebtBarViz({
   const currentBalance =
     cycle === 1 ? currentData.noPayBalance : currentData.payBalance;
 
-  // Axis fade during gather
   const axisFade = 1 - gp * 0.7;
 
   return (
@@ -235,7 +217,7 @@ export default function DebtBarViz({
       viewBox={`0 0 ${VW} ${VH}`}
       width="100%"
       style={{ display: 'block' }}
-      aria-label="Bar chart showing credit card debt growth over months"
+      aria-label="Bar chart showing credit card debt over months"
     >
       <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
         {/* Y-axis grid + labels */}
@@ -262,31 +244,6 @@ export default function DebtBarViz({
             </text>
           </g>
         ))}
-
-        {/* Break-even line in cycle 2 */}
-        {cycle === 2 && (
-          <g opacity={axisFade}>
-            <line
-              x1={0}
-              y1={yScale(-INITIAL_DEBT)}
-              x2={W}
-              y2={yScale(-INITIAL_DEBT)}
-              stroke={MUTED}
-              strokeWidth={1}
-              strokeDasharray="4 3"
-            />
-            <text
-              x={W}
-              y={yScale(-INITIAL_DEBT) - 6}
-              textAnchor="end"
-              fontSize={9}
-              fill={MUTED}
-              fontFamily="inherit"
-            >
-              Break-even: $20/mo (interest only)
-            </text>
-          </g>
-        )}
 
         {bars}
         {greenSlices}
@@ -327,7 +284,7 @@ export default function DebtBarViz({
           </g>
         )}
 
-        {/* Total paid label (appears after gather mostly complete) */}
+        {/* Total paid label */}
         {gp > 0.6 && (
           <g opacity={Math.min(1, (gp - 0.6) / 0.3)}>
             <text
@@ -384,6 +341,32 @@ export default function DebtBarViz({
           </g>
         )}
 
+        {/* Remaining balance during gather */}
+        {gp > 0.8 && currentData.payBalance > 0.5 && (
+          <g opacity={Math.min(1, (gp - 0.8) / 0.2)}>
+            <rect
+              x={REF_X}
+              y={yScale(0)}
+              width={COL_W}
+              height={yScale(-currentData.payBalance) - yScale(0)}
+              fill={DARK_RED}
+              opacity={0.7}
+              rx={2}
+            />
+            <text
+              x={REF_X + COL_W / 2}
+              y={yScale(-currentData.payBalance) + 14}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight={600}
+              fill={DARK_RED}
+              fontFamily="inherit"
+            >
+              Still owe {fmt$(currentData.payBalance)}
+            </text>
+          </g>
+        )}
+
         {/* X-axis ticks + labels */}
         <g opacity={axisFade}>
           {xLabelMonths.map((month) => (
@@ -421,14 +404,11 @@ export default function DebtBarViz({
           </text>
         </g>
 
-        {/* Current balance label (hidden during gather) */}
+        {/* Current balance label */}
         {gp < 0.3 && currentBalance > 0 && (
           <text
             x={(xScale(floored) ?? 0) + barWidth / 2}
-            y={Math.min(
-              yScale(-(currentBalance + (floored > 0 ? ALL_DATA[floored].totalPaid - ALL_DATA[floored - 1].totalPaid : 0))) + 14,
-              H - 4,
-            )}
+            y={Math.min(yScale(-currentBalance) + 14, H - 4)}
             textAnchor="middle"
             fontSize={11}
             fontWeight={700}
@@ -474,22 +454,16 @@ export default function DebtBarViz({
 
         {/* Legend */}
         {gp < 0.5 &&
-          ([
-            {
-              color: DARK_RED,
-              label:
-                cycle === 1
-                  ? 'Original debt ($1,000)'
-                  : 'Remaining balance',
-              op: 1,
-            },
-            ...(cycle === 1
-              ? [{ color: RED, label: 'Accumulated interest', op: 1 }]
-              : [
-                  { color: GREEN, label: 'Payment (this month)', op: 1 },
-                  { color: RED, label: 'No payments (ghost)', op: 0.2 },
-                ]),
-          ] as const).map((item, i) => (
+          (cycle === 1
+            ? [
+                { color: DARK_RED, label: 'Original debt ($1,000)', op: 1 },
+                { color: RED, label: 'Accumulated interest', op: 1 },
+              ]
+            : [
+                { color: DARK_RED, label: 'Remaining balance', op: 1 },
+                { color: GREEN, label: 'Payment (this month)', op: 1 },
+              ]
+          ).map((item, i) => (
             <g
               key={i}
               transform={`translate(${i * 148}, ${H + 30})`}
