@@ -1,0 +1,219 @@
+.va-root {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #222;
+  background: #fafaf8;
+  min-height: 100vh;
+}
+
+.va-loading {
+  padding: 60px;
+  text-align: center;
+  color: #888;
+}
+
+.va-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 8px;
+  max-width: 680px;
+}
+
+.va-subtitle {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0 0 24px;
+  font-weight: 500;
+}
+
+/* Controls */
+.va-controls {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.va-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.va-toggle-btn {
+  padding: 6px 18px;
+  font-size: 0.85rem;
+  background: white;
+  border: none;
+  cursor: pointer;
+  color: #555;
+  transition: background 0.15s, color 0.15s;
+}
+
+.va-toggle-btn + .va-toggle-btn {
+  border-left: 1px solid #ccc;
+}
+
+.va-toggle-btn.active {
+  background: #333;
+  color: white;
+  font-weight: 600;
+}
+
+.va-year-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 600px;
+}
+
+.va-year-label {
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.va-slider {
+  width: 100%;
+  accent-color: #666;
+  cursor: pointer;
+}
+
+.va-year-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #888;
+  user-select: none;
+}
+
+.va-year-tick {
+  cursor: pointer;
+  padding: 1px 2px;
+  border-radius: 2px;
+  transition: color 0.1s;
+}
+
+.va-year-tick:hover {
+  color: #333;
+}
+
+.va-year-tick.active {
+  color: #222;
+  font-weight: 700;
+}
+
+/* Chart layout */
+.va-chart-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.va-legend-left {
+  min-width: 160px;
+  max-width: 180px;
+  flex-shrink: 0;
+}
+
+.va-chart-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* State summary + tooltip */
+.va-state-summary,
+.va-tooltip {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.va-state-name,
+.va-tooltip-county {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.va-state-voters,
+.va-tooltip-voters {
+  color: #777;
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+
+.va-stat {
+  font-weight: 600;
+}
+
+.va-stat.minor { color: #2a7a2a; }
+.va-stat.dem   { color: #2255bb; }
+.va-stat.rep   { color: #bb2222; }
+
+.va-tooltip-axis {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+/* SVG text styles */
+.va-ref-label {
+  font-size: 11px;
+  fill: #888;
+}
+
+.va-county-label {
+  font-size: 10px;
+  fill: #222;
+  pointer-events: none;
+}
+
+.va-tick-label {
+  font-size: 11px;
+  fill: #555;
+}
+
+.va-axis-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.va-axis-label.rep { fill: #bb2222; }
+.va-axis-label.dem { fill: #2255bb; }
+
+.va-axis-title {
+  font-size: 12px;
+  fill: #444;
+  font-weight: 500;
+}
+
+/* Footnote */
+.va-footnote {
+  margin-top: 16px;
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.5;
+  max-width: 680px;
+}
+
+@media (max-width: 600px) {
+  .va-chart-row {
+    flex-direction: column;
+  }
+  .va-legend-left {
+    max-width: 100%;
+  }
+  .va-title {
+    font-size: 1.2rem;
+  }
+}
