@@ -22,7 +22,7 @@ const KNIFE_BLADE_Y = 204;
 const STACK_W    = BILL_W;
 const STACK_LEFT = BILL_LX;
 const STACK_BOTTOM_Y = 338;
-const STACK_MAX_H    = 100; // at MAX_STORY_INCOME — leaves room for floating labels above
+const STACK_MAX_H    = 110; // at MAX_STORY_INCOME — leaves room for floating labels above
 
 const STATS_Y = 355;
 
@@ -108,7 +108,8 @@ export default function TaxViz({ income }: Props) {
   }, [discreteIncome]);
 
   return (
-    <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+    <div>
+      <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
 
       {/* Bracket label */}
       <text x={VW / 2} y={12} textAnchor="middle" fontSize={11} fill="#888" fontFamily="inherit">
@@ -126,14 +127,19 @@ export default function TaxViz({ income }: Props) {
         const rightHalfW = BILL_W - cutOffset;
 
         if (!isCutting) {
+          const clipId = `bill-clip-${slot}`;
           return (
             <g key={slot} opacity={opacity}>
-              <rect x={BILL_LX} y={billY} width={BILL_W} height={BILL_H} fill={COLOR_BILL} rx={4} />
-              <line
-                x1={BILL_LX + cutOffset} y1={billY + 6}
-                x2={BILL_LX + cutOffset} y2={billY + BILL_H - 6}
-                stroke="rgba(0,0,0,0.18)" strokeWidth={1.5}
-              />
+              <defs>
+                <clipPath id={clipId}>
+                  <rect x={BILL_LX} y={billY} width={BILL_W} height={BILL_H} rx={4} />
+                </clipPath>
+              </defs>
+              {/* Bill as two colors clipped to rounded rect */}
+              <g clipPath={`url(#${clipId})`}>
+                <rect x={BILL_LX}             y={billY} width={cutOffset}          height={BILL_H} fill={COLOR_KEPT} />
+                <rect x={BILL_LX + cutOffset} y={billY} width={BILL_W - cutOffset} height={BILL_H} fill={COLOR_TAX}  />
+              </g>
               <text
                 x={BILL_LX + BILL_W / 2} y={billY + BILL_H / 2 + 5}
                 textAnchor="middle" fontSize={13} fill="white" fontWeight={700} fontFamily="inherit"
@@ -164,18 +170,16 @@ export default function TaxViz({ income }: Props) {
       />
       <g ref={knifeRef}>
         <polygon
-          points={`0,${KNIFE_TIP_Y} -11,${KNIFE_BLADE_Y} 11,${KNIFE_BLADE_Y}`}
+          points={`0,${KNIFE_TIP_Y} -5,${KNIFE_BLADE_Y} 5,${KNIFE_BLADE_Y}`}
           fill={COLOR_KNIFE}
         />
-        {/* Marginal rate label rides with knife — D3 animates both together */}
-        <text
-          x={0} y={KNIFE_BLADE_Y + 16}
-          textAnchor="middle" fontSize={11} fontWeight={700}
-          fill={COLOR_TAX} fontFamily="inherit"
-        >
-          {fmtPct(marginalRate)}
-        </text>
       </g>
+
+      {/* Kept / tax labels below the knife blade */}
+      <text x={STACK_LEFT + 6} y={KNIFE_BLADE_Y + 16}
+        fontSize={10} fill={COLOR_KEPT} fontWeight={600} fontFamily="inherit">kept</text>
+      <text x={STACK_LEFT + STACK_W - 6} y={KNIFE_BLADE_Y + 16}
+        textAnchor="end" fontSize={10} fill={COLOR_TAX} fontWeight={600} fontFamily="inherit">tax</text>
 
       {/* Stack container — faint outline shows full potential height */}
       <rect
@@ -192,38 +196,6 @@ export default function TaxViz({ income }: Props) {
         </g>
       ))}
 
-      {/* Effective rate label + dashed line — both follow the same x position */}
-      {effectiveRate > 0 && (() => {
-        const effX = STACK_LEFT + STACK_W * (1 - effectiveRate);
-        return (
-          <g>
-            <text
-              x={effX} y={KNIFE_BLADE_Y + 29}
-              textAnchor="middle" fontSize={11}
-              fill="#999" fontFamily="inherit"
-            >
-              {fmtPct(effectiveRate)}
-            </text>
-            <line
-              x1={effX} y1={KNIFE_BLADE_Y + 34}
-              x2={effX} y2={STACK_BOTTOM_Y}
-              stroke="rgba(255,255,255,0.65)"
-              strokeWidth={1.5}
-              strokeDasharray="3,3"
-            />
-            <line
-              x1={effX} y1={STACK_BOTTOM_Y}
-              x2={effX} y2={STACK_BOTTOM_Y + 5}
-              stroke="rgba(140,140,140,0.45)"
-              strokeWidth={1.5}
-            />
-          </g>
-        );
-      })()}
-
-      {/* Stack side labels */}
-      <text x={STACK_LEFT + 5}            y={KNIFE_BLADE_Y - 5} fontSize={9} fill="#555" fontFamily="inherit">kept</text>
-      <text x={STACK_LEFT + STACK_W - 5}  y={KNIFE_BLADE_Y - 5} textAnchor="end" fontSize={9} fill="#999" fontFamily="inherit">tax</text>
 
       {/* ── INCOME COUNTER ── */}
       <text x={VW / 2} y={STATS_Y} textAnchor="middle" fontFamily="inherit">
@@ -231,6 +203,19 @@ export default function TaxViz({ income }: Props) {
         <tspan dx={4} fontSize={10} fill="#bbb">income</tspan>
       </text>
 
-    </svg>
+      </svg>
+      <div className="tax-rate-legend">
+        <div className="rate-chip rate-chip--marginal">
+          <span className="rate-chip__value">{fmtPct(marginalRate)}</span>
+          <span className="rate-chip__label">marginal rate</span>
+        </div>
+        {effectiveRate > 0 && (
+          <div className="rate-chip rate-chip--effective">
+            <span className="rate-chip__value">{fmtPct(effectiveRate)}</span>
+            <span className="rate-chip__label">effective rate</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

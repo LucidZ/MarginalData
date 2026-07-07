@@ -9,7 +9,7 @@ const fmt$ = d3.format('$,.0f');
 const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] = [
   {
     bracketPct: '10%',
-    headline: 'Your first dollar',
+    headline: 'Your first dollars',
     body: (
       <>
         <p>
@@ -17,9 +17,10 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
           Your first $12,400 of income sits in the <strong>10% bracket</strong>.
         </p>
         <p>
-          The knife above marks the cut: 90 cents stays with you (dark green),
-          10 cents goes to taxes (light green). That split is fixed for every
-          dollar you earn in this bracket.
+          Let's look at every $100 of income in sequence. The triangular divider 
+          marks the split: 90 cents stays with you (dark green), 10 cents goes 
+          to taxes (light green). That split is fixed for every ollar you earn 
+          in this bracket.
         </p>
       </>
     ),
@@ -30,7 +31,7 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
     body: (
       <>
         <p>
-          The knife just shifted left. Once income exceeds $12,400, each new dollar
+          The marginal taxes just increased. Once income exceeds $12,400, each new dollar
           is taxed at <strong>12%</strong> instead of 10%.
         </p>
         <p>
@@ -46,7 +47,7 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
     body: (
       <>
         <p>
-          The knife moves noticeably left at $50,400. Dollars above this threshold
+          An even bigger tax increase occurs at $50,400. Dollars above this threshold
           are now taxed at <strong>22%</strong>.
         </p>
         <p>
@@ -67,7 +68,7 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
     body: (
       <>
         <p>
-          The knife barely moves at $105,700. The jump from 22% to 24% is small —
+          At $105,700, the jump from 22% to 24% is small —
           just 2 percentage points on new dollars.
         </p>
         <p>
@@ -84,11 +85,11 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
     body: (
       <>
         <p>
-          At $201,775 the marginal rate becomes <strong>32%</strong>. The knife shifts
+          At $201,775 the marginal rate becomes <strong>32%</strong>. The divider shifts
           left more noticeably.
         </p>
         <p>
-          But the effective rate is still around <strong>22%</strong> at the top of
+          But the effective rate is still below <strong>23%</strong> at the top of
           this bracket. The progressive structure shields every earlier dollar from
           the higher rate.
         </p>
@@ -101,7 +102,7 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
     body: (
       <>
         <p>
-          At $256,225 the knife shifts to <strong>35%</strong>. More than a third of
+          At $256,225 the divider shifts to <strong>35%</strong>. More than a third of
           each new dollar goes to tax.
         </p>
         <p>
@@ -109,9 +110,6 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
           the high marginal rate, the effective rate stays well behind. The first
           $256k is still sheltered by everything below.
         </p>
-        <div className="effective-callout">
-          Entering this bracket, your effective rate is around <strong>23%</strong>.
-        </div>
       </>
     ),
   },
@@ -120,8 +118,8 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
     body: (
       <>
         <p>
-          At $640,600 — where the top bracket begins — the marginal rate is 35%,
-          but the effective rate is around <strong>30%</strong>. Seven-in-ten dollars
+          At $640,600 — where the top bracket begins — the marginal rate is 37%,
+          but the effective rate is still around <strong>30%</strong>. Seven-in-ten dollars
           came home with you.
         </p>
         <p>
@@ -130,8 +128,17 @@ const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] 
           worry about are ones most will never reach.
         </p>
         <div className="effective-callout">
-          The 37% bracket — the one that sounds scariest — kicks in above $640,600.
-          Fewer than 1 in 500 filers ever see it.
+          Additonally, the tax picture at this income bracket is fuzzied by deductions, 
+          credits, and capital gains rates widen the gap further — the average effective 
+          federal rate for top earners is closer to <strong>26%</strong>, not 37%.{' '}
+          That's a topic for another day.{' '}
+          <a
+            href="https://taxfoundation.org/data/all/federal/latest-federal-income-tax-data-2025/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            [Source]
+          </a>
         </div>
       </>
     ),
@@ -160,6 +167,10 @@ export default function App() {
 
   return (
     <div className="marginal-tax-story" ref={containerRef}>
+      <div className="rotate-prompt" aria-hidden="true">
+        <span className="rotate-prompt__icon">&#8635;</span>
+        <p className="rotate-prompt__text">Rotate your phone to portrait for the best experience.</p>
+      </div>
       <header className="story-header">
         <h1>How Marginal Tax Rates Actually Work</h1>
         <p className="story-intro">
@@ -176,7 +187,7 @@ export default function App() {
             [Source]
           </a>
         </p>
-        <p className="subtitle">Scroll to earn income. Watch the knife.</p>
+        <p className="subtitle">Scroll to earn income.</p>
       </header>
 
       <div className="scrolly-container">

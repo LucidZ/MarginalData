@@ -157,6 +157,38 @@
   color: #888;
 }
 
+/* Phone landscape: prompt to rotate */
+.rotate-prompt {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .rotate-prompt {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: white;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  .rotate-prompt__icon {
+    font-size: 2.5rem;
+  }
+
+  .rotate-prompt__text {
+    font-size: 1rem;
+    color: #444;
+    text-align: center;
+    max-width: 26ch;
+    line-height: 1.5;
+  }
+}
+
 @media (max-width: 600px) {
   .scrolly-container {
     flex-direction: column;

@@ -73,7 +73,7 @@ export default function Home() {
             </Link>
           </li>
           <li>
-            <Link to="/financial-literacy/marginal-tax">
+            <Link to="/2026/MarginalTax">
               How Marginal Tax Rates Actually Work
             </Link>
           </li>
