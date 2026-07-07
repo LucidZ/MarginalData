@@ -6,7 +6,7 @@ import './App.css';
 
 const fmt$ = d3.format('$,.0f');
 
-const STEPS = [
+const STEPS: { bracketPct?: string; headline: string; body: React.ReactNode }[] = [
   {
     bracketPct: '10%',
     headline: 'Your first dollar',
@@ -14,7 +14,7 @@ const STEPS = [
       <>
         <p>
           Every dollar you earn gets taxed — but not all dollars at the same rate.
-          Your first $11,925 of income sits in the <strong>10% bracket</strong>.
+          Your first $12,400 of income sits in the <strong>10% bracket</strong>.
         </p>
         <p>
           The knife above marks the cut: 90 cents stays with you (dark green),
@@ -30,11 +30,11 @@ const STEPS = [
     body: (
       <>
         <p>
-          The knife just shifted left. Once income exceeds $11,925, each new dollar
+          The knife just shifted left. Once income exceeds $12,400, each new dollar
           is taxed at <strong>12%</strong> instead of 10%.
         </p>
         <p>
-          Crucially, your first $11,925 still faces only 10%. Moving into a higher
+          Crucially, your first $12,400 still faces only 10%. Moving into a higher
           bracket does <em>not</em> retroactively raise the tax on money you already earned.
         </p>
       </>
@@ -46,11 +46,11 @@ const STEPS = [
     body: (
       <>
         <p>
-          The knife moves noticeably left at $48,475. Dollars above this threshold
+          The knife moves noticeably left at $50,400. Dollars above this threshold
           are now taxed at <strong>22%</strong>.
         </p>
         <p>
-          Watch the effective rate at the bottom — it's rising slowly despite the
+          Watch the effective rate below — it's rising slowly despite the
           jump from 12% to 22% on new dollars. The bulk of income is still
           protected by the lower rates on earlier earnings.
         </p>
@@ -67,7 +67,7 @@ const STEPS = [
     body: (
       <>
         <p>
-          The knife barely moves at $103,350. The jump from 22% to 24% is small —
+          The knife barely moves at $105,700. The jump from 22% to 24% is small —
           just 2 percentage points on new dollars.
         </p>
         <p>
@@ -84,17 +84,54 @@ const STEPS = [
     body: (
       <>
         <p>
-          At $197,300 the marginal rate becomes <strong>32%</strong>. The knife shifts
+          At $201,775 the marginal rate becomes <strong>32%</strong>. The knife shifts
           left more noticeably.
         </p>
         <p>
-          But scroll down to the cumulative bar — the effective rate at $250k is around
-          <strong> 24%</strong>, not 32%. The progressive structure shields every earlier
-          dollar from the higher rate.
+          But the effective rate is still around <strong>22%</strong> at the top of
+          this bracket. The progressive structure shields every earlier dollar from
+          the higher rate.
+        </p>
+      </>
+    ),
+  },
+  {
+    bracketPct: '35%',
+    headline: 'Into the 35% bracket',
+    body: (
+      <>
+        <p>
+          At $256,225 the knife shifts to <strong>35%</strong>. More than a third of
+          each new dollar goes to tax.
+        </p>
+        <p>
+          This bracket spans a wide range — from $256k all the way to $640k. Despite
+          the high marginal rate, the effective rate stays well behind. The first
+          $256k is still sheltered by everything below.
         </p>
         <div className="effective-callout">
-          At {fmt$(250_525)} of income, roughly <strong>$60,000</strong> goes to federal taxes.
-          The rest stays with you.
+          Entering this bracket, your effective rate is around <strong>23%</strong>.
+        </div>
+      </>
+    ),
+  },
+  {
+    headline: 'The gap that matters',
+    body: (
+      <>
+        <p>
+          At $640,600 — where the top bracket begins — the marginal rate is 35%,
+          but the effective rate is around <strong>30%</strong>. Seven-in-ten dollars
+          came home with you.
+        </p>
+        <p>
+          And to get here? You'd need to earn more than{' '}
+          <strong>99% of Americans make in a year</strong>. The brackets people
+          worry about are ones most will never reach.
+        </p>
+        <div className="effective-callout">
+          The 37% bracket — the one that sounds scariest — kicks in above $640,600.
+          Fewer than 1 in 500 filers ever see it.
         </div>
       </>
     ),
@@ -125,9 +162,21 @@ export default function App() {
     <div className="marginal-tax-story" ref={containerRef}>
       <header className="story-header">
         <h1>How Marginal Tax Rates Actually Work</h1>
-        <p className="subtitle">
-          Scroll to earn income. Watch the knife.
+        <p className="story-intro">
+          About half of Americans mistakenly believe that crossing into a higher
+          tax bracket raises their taxes on all their income.{' '}
+          This myth can cause some people to turn down hard-earned raises for
+          fear of owing higher taxes.{' '}
+          Below is a visual explanation of how marginal taxes really work.{' '}
+          <a
+            href="https://www.aei.org/economics/survey-confirms-that-many-americans-misunderstand-income-tax-brackets/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            [Source]
+          </a>
         </p>
+        <p className="subtitle">Scroll to earn income. Watch the knife.</p>
       </header>
 
       <div className="scrolly-container">
@@ -139,9 +188,9 @@ export default function App() {
         {/* Scrollable text steps */}
         <div className="scrolly-steps">
           {STEPS.map((step, i) => (
-            <div className="scrolly-step" key={step.bracketPct} data-step={i}>
+            <div className="scrolly-step" key={i} data-step={i}>
               <div className="step-inner">
-                <span className="bracket-label">{step.bracketPct}</span>
+                {step.bracketPct && <span className="bracket-label">{step.bracketPct}</span>}
                 <h2>{step.headline}</h2>
                 {step.body}
               </div>
@@ -151,7 +200,7 @@ export default function App() {
       </div>
 
       <footer className="story-sources">
-        <strong>Source:</strong> IRS Rev. Proc. 2024-40 (Tax Year 2025, Single Filer).{' '}
+        <strong>Source:</strong> IRS tax inflation adjustments for tax year 2026 (Single Filer).{' '}
         Standard deduction not applied — income shown is taxable income.{' '}
         State and local taxes not included.
       </footer>

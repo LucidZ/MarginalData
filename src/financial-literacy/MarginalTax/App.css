@@ -20,6 +20,19 @@
   letter-spacing: -0.02em;
 }
 
+.story-header .story-intro {
+  font-size: clamp(0.9rem, 1.8vw, 1.05rem);
+  line-height: 1.65;
+  color: #444;
+  max-width: 60ch;
+  margin: 0.8rem 0 0.6rem;
+}
+
+.story-header .story-intro a {
+  color: #888;
+  font-size: 0.85em;
+}
+
 .story-header .subtitle {
   font-size: clamp(0.88rem, 1.8vw, 1rem);
   color: #666;
@@ -98,6 +111,38 @@
   color: #333;
   max-width: 34ch;
 }
+
+.tax-rate-legend {
+  display: flex;
+  gap: 1.6rem;
+  justify-content: center;
+  padding: 0.2rem 0 0.8rem;
+}
+
+.rate-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.rate-chip__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.rate-chip__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rate-chip--marginal .rate-chip__value { color: #1a7a4a; }
+.rate-chip--marginal .rate-chip__label { color: #1a7a4a; opacity: 0.7; }
+.rate-chip--effective .rate-chip__value { color: #888; }
+.rate-chip--effective .rate-chip__label { color: #888; opacity: 0.7; }
 
 .story-sources {
   padding: 1.2rem 1.5rem 2rem;
