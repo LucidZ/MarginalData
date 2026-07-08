@@ -1,7 +1,7 @@
 .va-root {
-  max-width: 960px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 24px 20px;
+  padding: 16px 14px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #222;
   background: #fafaf8;
@@ -15,26 +15,25 @@
 }
 
 .va-title {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  line-height: 1.25;
-  margin: 0 0 8px;
-  max-width: 680px;
+  line-height: 1.3;
+  margin: 0 0 5px;
 }
 
 .va-subtitle {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: #555;
-  margin: 0 0 24px;
+  margin: 0 0 14px;
   font-weight: 500;
 }
 
 /* Controls */
 .va-controls {
-  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .va-toggle {
@@ -47,8 +46,8 @@
 }
 
 .va-toggle-btn {
-  padding: 6px 18px;
-  font-size: 0.85rem;
+  padding: 5px 14px;
+  font-size: 0.82rem;
   background: white;
   border: none;
   cursor: pointer;
@@ -69,12 +68,11 @@
 .va-year-control {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-width: 600px;
+  gap: 4px;
 }
 
 .va-year-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #444;
 }
 
@@ -87,8 +85,8 @@
 .va-year-ticks {
   display: flex;
   justify-content: space-between;
-  font-size: 0.72rem;
-  color: #888;
+  font-size: 0.65rem;
+  color: #999;
   user-select: none;
 }
 
@@ -108,68 +106,83 @@
   font-weight: 700;
 }
 
-/* Chart layout */
-.va-chart-row {
+/* Stats strip */
+.va-stats-strip {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.va-legend-left {
-  min-width: 160px;
-  max-width: 180px;
-  flex-shrink: 0;
-}
-
-.va-chart-wrap {
-  flex: 1;
-  min-width: 0;
-}
-
-/* State summary + tooltip */
-.va-state-summary,
-.va-tooltip {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+  padding: 7px 12px;
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e4e4e4;
   border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  margin-bottom: 12px;
+  font-size: 0.8rem;
+  min-height: 36px;
+  transition: border-color 0.2s;
 }
 
-.va-state-name,
-.va-tooltip-county {
+.va-stats-strip.is-county {
+  border-color: #bbb;
+}
+
+.va-stats-strip.is-locked {
+  border-color: #888;
+}
+
+.va-stats-unlock {
+  margin-left: auto;
+  padding: 1px 7px;
+  font-size: 0.72rem;
+  background: none;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  line-height: 1.6;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.va-stats-unlock:hover {
+  border-color: #555;
+  color: #333;
+}
+
+.va-stats-name {
   font-weight: 700;
-  font-size: 0.9rem;
-  margin-bottom: 2px;
+  font-size: 0.86rem;
+  color: #222;
 }
 
-.va-state-voters,
-.va-tooltip-voters {
-  color: #777;
-  font-size: 0.78rem;
-  margin-bottom: 6px;
+.va-stats-total {
+  color: #888;
+  font-size: 0.76rem;
 }
 
-.va-stat {
+.va-stats-minor {
+  color: #2a7a2a;
   font-weight: 600;
 }
 
-.va-stat.minor { color: #2a7a2a; }
-.va-stat.dem   { color: #2255bb; }
-.va-stat.rep   { color: #bb2222; }
-
-.va-tooltip-axis {
-  margin-top: 6px;
-  font-size: 0.75rem;
-  color: #555;
+.va-stats-dem {
+  color: #2255bb;
+  font-weight: 600;
 }
 
-/* SVG text styles */
+.va-stats-rep {
+  color: #bb2222;
+  font-weight: 600;
+}
+
+/* Chart */
+.va-chart-wrap {
+  width: 100%;
+}
+
+/* SVG text */
 .va-ref-label {
-  font-size: 11px;
-  fill: #888;
+  font-size: 10px;
+  fill: #aaa;
 }
 
 .va-county-label {
@@ -178,42 +191,68 @@
   pointer-events: none;
 }
 
+.va-county-label-hovered {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #111;
+  stroke: white;
+  stroke-width: 3.5px;
+  paint-order: stroke fill;
+  pointer-events: none;
+}
+
 .va-tick-label {
-  font-size: 11px;
-  fill: #555;
+  font-size: 10px;
+  fill: #666;
 }
 
-.va-axis-label {
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.va-axis-label.rep { fill: #bb2222; }
-.va-axis-label.dem { fill: #2255bb; }
+.va-tick-label.dem { fill: #2255bb; font-weight: 600; }
+.va-tick-label.rep { fill: #bb2222; font-weight: 600; }
+.va-tick-label.even { fill: #888; }
 
 .va-axis-title {
-  font-size: 12px;
-  fill: #444;
+  font-size: 11px;
+  fill: #555;
   font-weight: 500;
 }
 
 /* Footnote */
 .va-footnote {
-  margin-top: 16px;
-  font-size: 0.75rem;
-  color: #888;
+  margin-top: 12px;
+  font-size: 0.7rem;
+  color: #999;
   line-height: 1.5;
-  max-width: 680px;
 }
 
-@media (max-width: 600px) {
-  .va-chart-row {
-    flex-direction: column;
+/* Mobile: hide every other year tick to avoid crowding */
+@media (max-width: 480px) {
+  .va-year-tick:nth-child(even) {
+    visibility: hidden;
   }
-  .va-legend-left {
-    max-width: 100%;
+}
+
+/* Desktop: side-by-side controls */
+@media (min-width: 580px) {
+  .va-root {
+    padding: 20px 20px;
   }
+
   .va-title {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
+  }
+
+  .va-controls {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .va-year-control {
+    flex: 1;
+    max-width: 480px;
+  }
+
+  .va-year-ticks {
+    font-size: 0.68rem;
   }
 }

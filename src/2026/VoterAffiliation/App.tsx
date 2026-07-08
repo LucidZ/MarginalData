@@ -24,12 +24,10 @@ interface County {
 }
 
 const YEARS = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
-const MARGIN = { top: 40, right: 40, bottom: 58, left: 70 };
 
 const HIGHLIGHT_COUNTIES = ["Denver", "El Paso", "Jefferson", "Arapahoe", "Adams", "Boulder", "Larimer", "Weld", "Douglas", "Pueblo"];
 
 function countyColor(pctDemOfMajor: number): string {
-  // Blue for Dem, red for Rep
   if (pctDemOfMajor >= 0.5) {
     const t = (pctDemOfMajor - 0.5) / 0.5;
     const r = Math.round(60 + (1 - t) * (180 - 60));
@@ -50,7 +48,8 @@ export default function App() {
   const [selectedYear, setSelectedYear] = useState(2026);
   const [view, setView] = useState<"state" | "counties">("counties");
   const [hoveredCounty, setHoveredCounty] = useState<string | null>(null);
-  const [dimensions, setDimensions] = useState({ width: 700, height: 520 });
+  const [lockedCounty, setLockedCounty] = useState<string | null>(null);
+  const [dimensions, setDimensions] = useState({ width: 700, height: 480 });
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,7 +63,7 @@ export default function App() {
       const el = entries[0];
       if (el) {
         const w = Math.min(el.contentRect.width, 820);
-        const h = Math.min(Math.max(w * 0.72, 380), 580);
+        const h = Math.min(Math.max(w * 0.68, 300), 540);
         setDimensions({ width: w, height: h });
       }
     });
@@ -72,16 +71,28 @@ export default function App() {
     return () => obs.disconnect();
   }, []);
 
-  const innerWidth = dimensions.width - MARGIN.left - MARGIN.right;
-  const innerHeight = dimensions.height - MARGIN.top - MARGIN.bottom;
+  const { margin, innerWidth, innerHeight } = useMemo(() => {
+    const mobile = dimensions.width < 500;
+    const m = mobile
+      ? { top: 20, right: 12, bottom: 44, left: 46 }
+      : { top: 36, right: 36, bottom: 58, left: 66 };
+    return {
+      margin: m,
+      innerWidth: dimensions.width - m.left - m.right,
+      innerHeight: dimensions.height - m.top - m.bottom,
+    };
+  }, [dimensions]);
+
+  const isMobile = dimensions.width < 500;
 
   const { xScale, yScale, rScale } = useMemo(() => {
+    const mobile = dimensions.width < 500;
     const xScale = scaleLinear().domain([1, 0]).range([0, innerWidth]);
     const yScale = scaleLinear().domain([0, 1]).range([innerHeight, 0]);
     const maxTotal = data ? (max(data, (d) => max(d.years, (y) => y.total)) ?? 1) : 1;
-    const rScale = scaleSqrt().domain([0, maxTotal]).range([2, 22]);
+    const rScale = scaleSqrt().domain([0, maxTotal]).range([2, mobile ? 15 : 22]);
     return { xScale, yScale, rScale };
-  }, [innerWidth, innerHeight, data]);
+  }, [innerWidth, innerHeight, data, dimensions.width]);
 
   const trailLine = useMemo(
     () =>
@@ -93,14 +104,12 @@ export default function App() {
   );
 
   const getYearData = useCallback(
-    (county: County, year: number) =>
-      county.years.find((y) => y.year === year),
+    (county: County, year: number) => county.years.find((y) => y.year === year),
     []
   );
 
   const getTrailData = useCallback(
-    (county: County) =>
-      county.years.filter((y) => y.year <= selectedYear),
+    (county: County) => county.years.filter((y) => y.year <= selectedYear),
     [selectedYear]
   );
 
@@ -112,12 +121,7 @@ export default function App() {
       const dem = rows.reduce((s, y) => s + y.dem, 0);
       const rep = rows.reduce((s, y) => s + y.rep, 0);
       const minor = rows.reduce((s, y) => s + y.minor, 0);
-      return {
-        year,
-        dem, rep, minor, total,
-        pctDemOfMajor: dem / (dem + rep),
-        pctMinor: minor / total,
-      };
+      return { year, dem, rep, minor, total, pctDemOfMajor: dem / (dem + rep), pctMinor: minor / total };
     });
   }, [data]);
 
@@ -126,18 +130,34 @@ export default function App() {
     [stateByYear, selectedYear]
   );
 
-  const xTicks = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-  const yTicks = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+  const xTicks = isMobile ? [0, 0.25, 0.5, 0.75, 1.0] : [0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0];
+  const yTicks = isMobile ? [0, 0.25, 0.5, 0.75, 1.0] : [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
 
   if (!data) return <div className="va-loading">Loading data…</div>;
 
-  const hoveredData = hoveredCounty
-    ? data.find((c) => c.county === hoveredCounty) ?? null
-    : null;
-  const hoveredYearData = hoveredData ? getYearData(hoveredData, selectedYear) : null;
+  const activeCounty = lockedCounty ?? hoveredCounty;
+  const activeData = activeCounty ? data.find((c) => c.county === activeCounty) ?? null : null;
+  const activeYearData = activeData ? getYearData(activeData, selectedYear) : null;
 
   const stateCx = stateTotal ? xScale(stateTotal.pctDemOfMajor) : innerWidth / 2;
   const stateCy = stateTotal ? yScale(stateTotal.pctMinor) : innerHeight / 2;
+
+  const toState = view === "state";
+  const isLocked = lockedCounty !== null;
+
+  const activeStats = activeYearData && activeCounty
+    ? { name: activeCounty, ...activeYearData }
+    : stateTotal
+    ? { name: "Colorado", ...stateTotal }
+    : null;
+
+  function xTickLabel(t: number): { label: string; cls: string } {
+    if (t === 0.5) return { label: "Even", cls: "even" };
+    if (t === 0) return { label: "100% R", cls: "rep" };
+    if (t === 1) return { label: "100% D", cls: "dem" };
+    if (t > 0.5) return { label: `D ${Math.round(t * 100)}%`, cls: "dem" };
+    return { label: `R ${Math.round((1 - t) * 100)}%`, cls: "rep" };
+  }
 
   return (
     <div className="va-root">
@@ -151,13 +171,13 @@ export default function App() {
       <div className="va-controls">
         <div className="va-toggle">
           <button
-            className={`va-toggle-btn ${view === "state" ? "active" : ""}`}
-            onClick={() => setView("state")}
+            className={`va-toggle-btn ${toState ? "active" : ""}`}
+            onClick={() => { setView("state"); setLockedCounty(null); setHoveredCounty(null); }}
           >
             Statewide
           </button>
           <button
-            className={`va-toggle-btn ${view === "counties" ? "active" : ""}`}
+            className={`va-toggle-btn ${!toState ? "active" : ""}`}
             onClick={() => setView("counties")}
           >
             By county
@@ -187,237 +207,186 @@ export default function App() {
         </div>
       </div>
 
-      <div className="va-chart-row">
-        <div className="va-legend-left">
-          {stateTotal && (
-            <div className="va-state-summary">
-              <div className="va-state-name">Colorado statewide</div>
-              <div className="va-state-voters">{stateTotal.total.toLocaleString()} registered voters</div>
-              <div className="va-stat minor">{Math.round(stateTotal.minor / stateTotal.total * 100)}% Unaffiliated/Minor</div>
-              <div className="va-stat dem">{Math.round(stateTotal.dem / stateTotal.total * 100)}% Democrat</div>
-              <div className="va-stat rep">{Math.round(stateTotal.rep / stateTotal.total * 100)}% Republican</div>
-            </div>
-          )}
-          {hoveredYearData && hoveredCounty && (
-            <div className="va-tooltip">
-              <div className="va-tooltip-county">{hoveredCounty}</div>
-              <div className="va-tooltip-voters">{hoveredYearData.total.toLocaleString()} registered voters</div>
-              <div className="va-stat minor">{Math.round(hoveredYearData.pctMinor * 100)}% Unaffiliated/Minor</div>
-              <div className="va-stat dem">{Math.round(hoveredYearData.dem / hoveredYearData.total * 100)}% Democrat</div>
-              <div className="va-stat rep">{Math.round(hoveredYearData.rep / hoveredYearData.total * 100)}% Republican</div>
-              <div className="va-tooltip-axis">
-                {hoveredYearData.pctDemOfMajor >= 0.5
-                  ? `→ ${Math.round(hoveredYearData.pctDemOfMajor * 100)}% Dem of major-party voters`
-                  : `→ ${Math.round((1 - hoveredYearData.pctDemOfMajor) * 100)}% Rep of major-party voters`}
-              </div>
-            </div>
+      {activeStats && (
+        <div className={`va-stats-strip ${activeCounty ? "is-county" : ""} ${isLocked ? "is-locked" : ""}`}>
+          <span className="va-stats-name">{activeStats.name}</span>
+          <span className="va-stats-total">{activeStats.total.toLocaleString()} voters</span>
+          <span className="va-stats-minor">{Math.round(activeStats.minor / activeStats.total * 100)}% Unaffiliated</span>
+          <span className="va-stats-dem">{Math.round(activeStats.dem / activeStats.total * 100)}% Democrat</span>
+          <span className="va-stats-rep">{Math.round(activeStats.rep / activeStats.total * 100)}% Republican</span>
+          {isLocked && (
+            <button className="va-stats-unlock" onClick={() => setLockedCounty(null)}>✕</button>
           )}
         </div>
+      )}
 
-        <div className="va-chart-wrap" ref={containerRef}>
-          <svg width={dimensions.width} height={dimensions.height}>
-            <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-              {/* Grid lines */}
-              {yTicks.map((t) => (
-                <line
-                  key={t}
-                  x1={0}
-                  x2={innerWidth}
-                  y1={yScale(t)}
-                  y2={yScale(t)}
-                  stroke="#e5e5e5"
-                  strokeWidth={1}
-                />
-              ))}
-              {xTicks.map((t) => (
-                <line
-                  key={t}
-                  x1={xScale(t)}
-                  x2={xScale(t)}
-                  y1={0}
-                  y2={innerHeight}
-                  stroke="#e5e5e5"
-                  strokeWidth={1}
-                />
-              ))}
+      <div className="va-chart-wrap" ref={containerRef}>
+        <svg width={dimensions.width} height={dimensions.height}>
+          <g transform={`translate(${margin.left},${margin.top})`}>
+            {/* Grid */}
+            {yTicks.map((t) => (
+              <line key={t} x1={0} x2={innerWidth} y1={yScale(t)} y2={yScale(t)} stroke="#e8e8e8" strokeWidth={1} />
+            ))}
+            {xTicks.map((t) => (
+              <line key={t} x1={xScale(t)} x2={xScale(t)} y1={0} y2={innerHeight} stroke="#e8e8e8" strokeWidth={1} />
+            ))}
 
-              {/* 50/50 vertical reference line */}
-              <line
-                x1={xScale(0.5)}
-                x2={xScale(0.5)}
-                y1={0}
-                y2={innerHeight}
-                stroke="#bbb"
-                strokeWidth={1.5}
-                strokeDasharray="4,3"
-              />
-              <text
-                x={xScale(0.5)}
-                y={-8}
-                textAnchor="middle"
-                className="va-ref-label"
-              >
-                50/50 split
-              </text>
+            {/* 50/50 reference */}
+            <line x1={xScale(0.5)} x2={xScale(0.5)} y1={0} y2={innerHeight} stroke="#ccc" strokeWidth={1.5} strokeDasharray="4,3" />
+            {!isMobile && (
+              <text x={xScale(0.5)} y={-6} textAnchor="middle" className="va-ref-label">50/50</text>
+            )}
 
-              {/* County trails — animate with same transform as their dot */}
-              {data.map((county) => {
-                const trail = getTrailData(county);
-                if (trail.length < 2) return null;
-                const isHovered = county.county === hoveredCounty;
-                const isHighlighted = HIGHLIGHT_COUNTIES.includes(county.county);
-                const yd = getYearData(county, selectedYear);
-                if (!yd) return null;
-                const cx = xScale(yd.pctDemOfMajor);
-                const cy = yScale(yd.pctMinor);
-                const tx = view === "state" ? stateCx - cx : 0;
-                const ty = view === "state" ? stateCy - cy : 0;
-                return (
-                  <g
-                    key={`trail-${county.county}`}
-                    style={{
-                      transform: `translate(${tx}px, ${ty}px)`,
-                      opacity: view === "state" ? 0 : 1,
-                      transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s",
-                    }}
-                  >
-                    <path
-                      d={trailLine(trail) ?? ""}
-                      fill="none"
-                      stroke={isHovered ? countyColor(trail[trail.length - 1].pctDemOfMajor) : "#bbb"}
-                      strokeWidth={isHovered ? 2.5 : isHighlighted ? 1 : 0.8}
-                      opacity={isHovered ? 0.9 : isHighlighted ? 0.5 : 0.3}
-                    />
-                  </g>
-                );
-              })}
+            {/* County trails */}
+            {data.map((county) => {
+              const trail = getTrailData(county);
+              if (trail.length < 2) return null;
+              const isActive = county.county === activeCounty;
+              const yd = getYearData(county, selectedYear);
+              if (!yd) return null;
+              const cx = xScale(yd.pctDemOfMajor);
+              const cy = yScale(yd.pctMinor);
+              const tx = toState ? stateCx - cx : 0;
+              const ty = toState ? stateCy - cy : 0;
+              return (
+                <g
+                  key={`trail-${county.county}`}
+                  style={{
+                    transform: `translate(${tx}px, ${ty}px)`,
+                    opacity: toState ? 0 : 1,
+                    transition: "transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s",
+                  }}
+                >
+                  <path
+                    d={trailLine(trail) ?? ""}
+                    fill="none"
+                    stroke={isActive ? countyColor(trail[trail.length - 1].pctDemOfMajor) : "#bbb"}
+                    strokeWidth={isActive ? 2.5 : 0.8}
+                    opacity={isActive ? 0.9 : isLocked ? 0.12 : 0.28}
+                  />
+                </g>
+              );
+            })}
 
-              {/* County dots — always rendered; spread from / converge to state position */}
-              {data.map((county) => {
-                const yd = getYearData(county, selectedYear);
-                if (!yd) return null;
-                const isHovered = county.county === hoveredCounty;
-                const isHighlighted = HIGHLIGHT_COUNTIES.includes(county.county);
-                const cx = xScale(yd.pctDemOfMajor);
-                const cy = yScale(yd.pctMinor);
-                const r = rScale(yd.total);
-                const color = countyColor(yd.pctDemOfMajor);
-                const tx = view === "state" ? stateCx - cx : 0;
-                const ty = view === "state" ? stateCy - cy : 0;
-                return (
-                  <g
-                    key={`dot-${county.county}`}
-                    style={{
-                      transform: `translate(${tx}px, ${ty}px)`,
-                      opacity: view === "state" ? 0 : 1,
-                      transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s",
-                      pointerEvents: view === "state" ? "none" : "auto",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={() => setHoveredCounty(county.county)}
-                    onMouseLeave={() => setHoveredCounty(null)}
-                  >
-                    <circle cx={cx} cy={cy} r={r + 6} fill="transparent" />
-                    <circle
-                      cx={cx} cy={cy} r={r}
-                      fill={color}
-                      fillOpacity={isHovered ? 1 : 0.75}
-                      stroke={isHovered ? "#222" : isHighlighted ? "#555" : "white"}
-                      strokeWidth={isHovered ? 2 : 1}
-                    />
-                    {(isHighlighted || isHovered) && (
-                      <text x={cx} y={cy - r - 4} textAnchor="middle" className="va-county-label" fontWeight={isHovered ? "bold" : "normal"}>
-                        {county.county}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
-
-              {/* State trail + dot — always rendered, fades in/out */}
-              {stateTotal && (() => {
-                const trail = stateByYear.filter((s) => s.year <= selectedYear);
-                const r = 18;
-                const color = countyColor(stateTotal.pctDemOfMajor);
-                return (
-                  <g style={{ opacity: view === "state" ? 1 : 0, transition: "opacity 0.4s", pointerEvents: view === "state" ? "auto" : "none" }}>
-                    {trail.length >= 2 && (
-                      <path
-                        d={trailLine(trail) ?? ""}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth={2.5}
-                        opacity={0.6}
-                      />
-                    )}
-                    {trail.map((s) => s.year < selectedYear && (
-                      <circle
-                        key={s.year}
-                        cx={xScale(s.pctDemOfMajor)}
-                        cy={yScale(s.pctMinor)}
-                        r={4}
-                        fill={color}
-                        fillOpacity={0.35}
-                        stroke="none"
-                      />
-                    ))}
-                    <circle cx={stateCx} cy={stateCy} r={r} fill={color} fillOpacity={0.85} stroke="#222" strokeWidth={2} />
-                    <text x={stateCx} y={stateCy - r - 5} textAnchor="middle" className="va-county-label" fontWeight="bold">
-                      Colorado
+            {/* County dots */}
+            {data.map((county) => {
+              const yd = getYearData(county, selectedYear);
+              if (!yd) return null;
+              const isActive = county.county === activeCounty;
+              const isLockTarget = county.county === lockedCounty;
+              const isHighlighted = HIGHLIGHT_COUNTIES.includes(county.county);
+              const cx = xScale(yd.pctDemOfMajor);
+              const cy = yScale(yd.pctMinor);
+              const r = rScale(yd.total);
+              const color = countyColor(yd.pctDemOfMajor);
+              const tx = toState ? stateCx - cx : 0;
+              const ty = toState ? stateCy - cy : 0;
+              return (
+                <g
+                  key={`dot-${county.county}`}
+                  style={{
+                    transform: `translate(${tx}px, ${ty}px)`,
+                    opacity: toState ? 0.1 : isLocked && !isActive ? 0.35 : 1,
+                    transition: "transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s",
+                    pointerEvents: toState ? "none" : "auto",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={() => { if (!isLocked) setHoveredCounty(county.county); }}
+                  onMouseLeave={() => { if (!isLocked) setHoveredCounty(null); }}
+                  onClick={() => {
+                    setLockedCounty(prev => prev === county.county ? null : county.county);
+                    setHoveredCounty(null);
+                  }}
+                >
+                  <circle cx={cx} cy={cy} r={r + 6} fill="transparent" />
+                  {isLockTarget && (
+                    <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke="#111" strokeWidth={1.5} strokeDasharray="3,2.5" />
+                  )}
+                  <circle
+                    cx={cx} cy={cy} r={r}
+                    fill={color}
+                    fillOpacity={isActive ? 1 : 0.75}
+                    stroke={isActive ? "#111" : isHighlighted ? "#555" : "white"}
+                    strokeWidth={isActive ? 2 : 1}
+                  />
+                  {isActive && (
+                    <text x={cx} y={cy - r - 5} textAnchor="middle" className="va-county-label-hovered">
+                      {county.county}
                     </text>
-                  </g>
-                );
-              })()}
+                  )}
+                </g>
+              );
+            })}
 
-              {/* X axis */}
-              <g transform={`translate(0,${innerHeight})`}>
-                <line x1={0} x2={innerWidth} stroke="#999" />
-                {xTicks.map((t) => (
+            {/* State dot + trail — fades in over county view */}
+            {stateTotal && (() => {
+              const trail = stateByYear.filter((s) => s.year <= selectedYear);
+              const r = isMobile ? 13 : 18;
+              const color = countyColor(stateTotal.pctDemOfMajor);
+              return (
+                <g style={{ opacity: toState ? 1 : 0, transition: "opacity 0.5s", pointerEvents: toState ? "auto" : "none" }}>
+                  {trail.length >= 2 && (
+                    <path d={trailLine(trail) ?? ""} fill="none" stroke={color} strokeWidth={2.5} opacity={0.6} />
+                  )}
+                  {trail.map((s) => s.year < selectedYear && (
+                    <circle key={s.year} cx={xScale(s.pctDemOfMajor)} cy={yScale(s.pctMinor)} r={4} fill={color} fillOpacity={0.35} stroke="none" />
+                  ))}
+                  <circle cx={stateCx} cy={stateCy} r={r} fill={color} fillOpacity={0.9} stroke="#111" strokeWidth={2} />
+                  <text x={stateCx} y={stateCy - r - 5} textAnchor="middle" className="va-county-label-hovered">
+                    Colorado
+                  </text>
+                </g>
+              );
+            })()}
+
+            {/* X axis */}
+            <g transform={`translate(0,${innerHeight})`}>
+              <line x1={0} x2={innerWidth} stroke="#aaa" />
+              {xTicks.map((t) => {
+                const { label, cls } = xTickLabel(t);
+                return (
                   <g key={t} transform={`translate(${xScale(t)},0)`}>
-                    <line y2={5} stroke="#999" />
-                    <text y={18} textAnchor="middle" className="va-tick-label">
-                      {`${Math.round(Math.max(t, 1 - t) * 100)}%`}
-                    </text>
+                    <line y2={5} stroke="#aaa" />
+                    <text y={18} textAnchor="middle" className={`va-tick-label ${cls}`}>{label}</text>
                   </g>
-                ))}
-                <text
-                  x={innerWidth / 2}
-                  y={48}
-                  textAnchor="middle"
-                  className="va-axis-title"
-                >
-                  Share of major-party voters (Democrat ← · → Republican)
+                );
+              })}
+              {!isMobile && (
+                <text x={innerWidth / 2} y={46} textAnchor="middle" className="va-axis-title">
+                  Share of major-party voters
                 </text>
-              </g>
-
-              {/* Y axis */}
-              <g>
-                <line y1={0} y2={innerHeight} stroke="#999" />
-                {yTicks.map((t) => (
-                  <g key={t} transform={`translate(0,${yScale(t)})`}>
-                    <line x2={-5} stroke="#999" />
-                    <text x={-9} textAnchor="end" dominantBaseline="middle" className="va-tick-label">
-                      {`${Math.round(t * 100)}%`}
-                    </text>
-                  </g>
-                ))}
-                <text
-                  transform={`translate(${-52},${innerHeight / 2}) rotate(-90)`}
-                  textAnchor="middle"
-                  className="va-axis-title"
-                >
-                  % Unaffiliated / Minor party voters
-                </text>
-              </g>
+              )}
             </g>
-          </svg>
-        </div>
+
+            {/* Y axis */}
+            <g>
+              <line y1={0} y2={innerHeight} stroke="#aaa" />
+              {yTicks.map((t) => (
+                <g key={t} transform={`translate(0,${yScale(t)})`}>
+                  <line x2={-5} stroke="#aaa" />
+                  <text x={-8} textAnchor="end" dominantBaseline="middle" className="va-tick-label">
+                    {`${Math.round(t * 100)}%`}
+                  </text>
+                </g>
+              ))}
+              {!isMobile && (
+                <text
+                  transform={`translate(${-48},${innerHeight / 2}) rotate(-90)`}
+                  textAnchor="middle"
+                  className="va-axis-title"
+                >
+                  % Unaffiliated / Minor party
+                </text>
+              )}
+            </g>
+          </g>
+        </svg>
       </div>
 
       <p className="va-footnote">
         Dot size proportional to total registered voters. Trails show each county's path from 2016 through {selectedYear}.
         "Unaffiliated" includes minor party registrants (Green, Libertarian, etc.).
-        Data: Colorado Secretary of State, monthly voter registration statistics.
+        Data: Colorado Secretary of State.
       </p>
     </div>
   );
