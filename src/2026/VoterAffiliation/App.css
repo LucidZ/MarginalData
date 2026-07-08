@@ -28,6 +28,76 @@
   font-weight: 500;
 }
 
+/* Chart type toggle row */
+.va-chart-type-row {
+  margin-bottom: 12px;
+}
+
+/* Commentary block */
+.va-commentary {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid #e4e4e4;
+  border-radius: 8px;
+}
+
+@keyframes va-commentary-fade {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.va-commentary-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: va-commentary-fade 0.2s ease;
+}
+
+.va-commentary-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #333;
+}
+
+.va-commentary-caveat {
+  border-left: 3px solid #d4a800;
+  background: #fffbee;
+  padding: 8px 12px;
+  border-radius: 0 4px 4px 0;
+  color: #554;
+}
+
+.va-commentary-insight {
+  border-left: 3px solid #4a90d9;
+  background: #f0f5fb;
+  padding: 8px 12px;
+  border-radius: 0 4px 4px 0;
+  color: #334;
+}
+
+/* Ternary chart labels */
+.va-tern-vertex {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.va-tern-vertex-una { fill: #2a7a2a; }
+.va-tern-vertex-dem { fill: #2255bb; }
+.va-tern-vertex-rep { fill: #bb2222; }
+
+.va-tern-tick {
+  font-size: 9px;
+  fill: #999;
+}
+
+.va-tern-tick-mid {
+  font-size: 9px;
+  fill: #bbb;
+  font-weight: normal;
+}
+
 /* Controls */
 .va-controls {
   display: flex;
