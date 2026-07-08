@@ -15,11 +15,6 @@ export default function Home() {
       <nav>
         <ul className="project-list">
           <li>
-            <Link to="/2026/VoterAffiliation">
-              Colorado voter affiliation, 2016–2026
-            </Link>
-          </li>
-          <li>
             <Link to="/2025/USAIDSize">How big was USAID?</Link>
           </li>
           <li>
@@ -80,6 +75,11 @@ export default function Home() {
           <li>
             <Link to="/2026/MarginalTax">
               How Marginal Tax Rates Actually Work
+            </Link>
+          </li>
+          <li>
+            <Link to="/2026/VoterAffiliation">
+              Colorado voter affiliation, 2016–2026
             </Link>
           </li>
         </ul>
