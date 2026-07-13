@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import VoterChart, { type County } from "./VoterChart";
+import TernaryCartesianTranslator from "./TernaryCartesianTranslator";
 import "./App.css";
 
 const YEARS = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
@@ -251,6 +252,8 @@ export default function App() {
           ))}
         </div>
       </div>
+
+      <TernaryCartesianTranslator />
 
       <div className="va-explorer">
         <h2 className="va-explorer-title">Explore the data</h2>
