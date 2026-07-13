@@ -45,8 +45,7 @@ const STORY_STEPS: StepConfig[] = [
         </p>
         <p>
           The left-right partisan spread barely shifted by comparison. The big story is
-          vertical: unaffiliated voters are overtaking both major parties. You can see it
-          in the triangle — if you look for it. It doesn't quite announce itself.
+          vertical: unaffiliated voters are overtaking both major parties.
         </p>
       </>
     ),
@@ -58,7 +57,7 @@ const STORY_STEPS: StepConfig[] = [
     body: (
       <>
         <p>
-          <strong>Denver County</strong> is one of Colorado's most reliably Democratic
+          <strong>Denver County</strong> is one of Colorado's most Democratic
           counties. <strong>Rio Blanco County</strong>, in the northwest corner of the
           state, leans heavily Republican.
         </p>
@@ -80,8 +79,7 @@ const STORY_STEPS: StepConfig[] = [
           left (heavily Democratic), Rio Blanco sits right (heavily Republican).
         </p>
         <p className="va-step-question">
-          Did they drift toward each other over the decade, or further apart? In the
-          triangle, it's genuinely hard to say.
+          Did they drift toward each other over the decade, or further apart? In a ternary plot, it looks like they've been converging towards the center.
         </p>
       </>
     ),
@@ -95,8 +93,7 @@ const STORY_STEPS: StepConfig[] = [
         <p>
           This version collapses Democrat vs. Republican onto a single horizontal axis,
           and gives the vertical axis entirely to unaffiliated growth. That's a deliberate
-          editorial choice — it says the unaffiliated trend is the story, and everything
-          else is context.
+          editorial choice and it can have consequences.
         </p>
         <p className="va-step-question">
           What do you notice first?
@@ -111,14 +108,11 @@ const STORY_STEPS: StepConfig[] = [
     body: (
       <>
         <p>
-          The story announces itself now. Every trail points up. Some steeply, some
-          gradually — but upward. The left-right horizontal spread barely changed over
-          ten years.
+          The main story, people shifting towards unaffiliated status still announces itself clearly. 
+          Every trail points up. Some steeply, some gradually — but upward.
         </p>
         <p>
-          The ternary chart showed the same data, but the triangle's geometry distributed
-          that vertical movement across two diagonal dimensions. The scatter plot makes
-          the trend inescapable.
+          This insight feels similar to the ternary chart.
         </p>
       </>
     ),
@@ -134,7 +128,7 @@ const STORY_STEPS: StepConfig[] = [
           in both places over the decade.
         </p>
         <p>
-          Their horizontal positions tell the partisan story: Denver sits far left, Rio
+          Their horizontal positions tell a different story this time: Denver sits far left, Rio
           Blanco sits far right. Now look at where each trail starts versus where it ends.
         </p>
       </>
@@ -143,18 +137,16 @@ const STORY_STEPS: StepConfig[] = [
   {
     chartType: "cartesian",
     highlights: ["Denver", "Rio Blanco"],
-    headline: "A slight drift toward the center",
+    headline: "Drifting apart?",
     body: (
       <>
         <p>
-          Both counties drifted slightly toward the 50/50 line over the decade — a modest
-          but real signal. Denver became fractionally less Democratic among major-party
-          voters; Rio Blanco fractionally less Republican.
+          Both counties drifted away from the center over the decade — a modest
+          but real signal. This chart tells a story of increasing polarization that
+          the ternary plot did not.
         </p>
-        <p>
-          In the ternary chart, this movement was geometrically obscured by the diagonal
-          structure of the triangle. Here it's just horizontal drift. Same data; the
-          scatter plot just made it legible.
+        <p className="va-step-question">
+          But... is this drift true? Is Denver really more left leaning or is it jus that center leaning voters are now less likely to affiliate?
         </p>
       </>
     ),
@@ -173,8 +165,8 @@ const STORY_STEPS: StepConfig[] = [
           hard to read intuitively.
         </p>
         <p>
-          The scatter plot is opinionated: it declares that unaffiliated growth is the
-          story. It gives up elegance for legibility.
+          The scatter plot requires editorial decisions: * 2 categories are held in balance with eachother and the 3rd category gets visual priority. 
+          It gives up elegance for legibility.
         </p>
         <p className="va-step-question">
           What do you think?

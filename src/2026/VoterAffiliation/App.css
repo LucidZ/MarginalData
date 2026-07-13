@@ -330,6 +330,10 @@
   font-weight: 500;
 }
 
+.va-axis-title-una {
+  fill: #2a7a2a;
+}
+
 /* Ternary chart labels */
 .va-tern-vertex {
   font-size: 11px;

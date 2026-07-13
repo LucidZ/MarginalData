@@ -559,7 +559,7 @@ export default function VoterChart({
                   <text
                     transform={`translate(${-48},${innerHeight / 2}) rotate(-90)`}
                     textAnchor="middle"
-                    className="va-axis-title"
+                    className="va-axis-title va-axis-title-una"
                   >
                     % Unaffiliated / Minor party
                   </text>
