@@ -351,6 +351,16 @@
   font-weight: normal;
 }
 
+.va-tern-edge-label {
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.va-tern-edge-label-dem { fill: #2255bb; }
+.va-tern-edge-label-rep { fill: #bb2222; }
+.va-tern-edge-label-una { fill: #2a7a2a; }
+
 /* Footnote */
 .va-footnote {
   margin-top: 12px;

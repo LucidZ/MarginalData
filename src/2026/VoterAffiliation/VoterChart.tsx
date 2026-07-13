@@ -567,7 +567,43 @@ export default function VoterChart({
               </g>
             </g>
           ) : (
-            <g transform={`translate(${ternMargin.left},${ternMargin.top})`}>
+            <>
+              {/* Axis labels next to triangle edges */}
+              {/* Left edge: 100% Democrat */}
+              <text
+                x={0}
+                y={0}
+                textAnchor="end"
+                dominantBaseline="middle"
+                transform={`translate(${triW/4 - ternMargin.left/2}, ${triH - ternMargin.top*1.5 }) rotate(-60)`}
+                className="va-tern-edge-label va-tern-edge-label-dem"
+              >
+                ← 100% Democrat
+              </text>
+
+              {/* Bottom edge: 100% Republican */}
+              <text
+                x={ternMargin.left + triW - 8}
+                y={ternMargin.top + triH + 22}
+                textAnchor="end"
+                className="va-tern-edge-label va-tern-edge-label-rep"
+              >
+                100% Republican →
+              </text>
+
+              {/* Right edge: 100% Unaffiliated */}
+              <text
+                x={0}
+                y={0}
+                textAnchor="start"
+                dominantBaseline="middle"
+                transform={`translate(${triW/2+ternMargin.left*1.5}, ${ternMargin.top}) rotate(60)`}
+                className="va-tern-edge-label va-tern-edge-label-una"
+              >
+                ← 100% Unaffiliated
+              </text>
+
+              <g transform={`translate(${ternMargin.left},${ternMargin.top})`}>
               <path
                 d={`M ${triW / 2} 0 L ${triW} ${triH} L 0 ${triH} Z`}
                 fill="none"
@@ -609,31 +645,6 @@ export default function VoterChart({
                 strokeWidth={1.5}
                 strokeDasharray="4,3"
               />
-
-              <text
-                x={triW / 2}
-                y={-12}
-                textAnchor="middle"
-                className="va-tern-vertex va-tern-vertex-una"
-              >
-                Unaffiliated
-              </text>
-              <text
-                x={0}
-                y={triH + 20}
-                textAnchor="middle"
-                className="va-tern-vertex va-tern-vertex-dem"
-              >
-                Democrat
-              </text>
-              <text
-                x={triW}
-                y={triH + 20}
-                textAnchor="middle"
-                className="va-tern-vertex va-tern-vertex-rep"
-              >
-                Republican
-              </text>
               {!isMobile && (
                 <text
                   x={triW / 2}
@@ -851,6 +862,7 @@ export default function VoterChart({
                   );
                 })()}
             </g>
+            </>
           )}
         </svg>
       </div>

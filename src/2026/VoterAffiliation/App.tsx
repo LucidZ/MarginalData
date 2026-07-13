@@ -15,15 +15,16 @@ const STORY_STEPS: StepConfig[] = [
   {
     chartType: "ternary",
     highlights: [],
-    headline: "A chart I saw on USAFacts",
+    headline: "A chart I saw on USAFacts.org",
     body: (
       <>
         <p>
-          USAFacts published a ternary plot of Colorado voter registration data. The
-          ternary chart is the textbook encoding for three-part composition: each corner
-          of the triangle represents 100% of one group — Democrat, Republican, or
-          Unaffiliated. Every county sits at its balance point. No party gets a
-          privileged axis.
+          USAFacts published a series of interesting triangular plots of county level voter 
+          registration data including this one for Colorado. I had never seen these 
+          plots before and thought they looked interesting but felt hard to read. 
+          Turns out these are called ternary charts and they are a textbook encoding 
+          for three-part composition: each side of the triangle represents 0%-100% of 
+          one group — Democrat, Republican, or Unaffiliated.
         </p>
         <p className="va-step-question">
           Take a look. What's your main takeaway?
@@ -224,7 +225,7 @@ export default function App() {
   return (
     <div className="va-root">
       <header className="va-story-header">
-        <h1 className="va-title">The chart we almost made</h1>
+        <h1 className="va-title">Exploring a ternary chart</h1>
         <p className="va-subtitle">
           Colorado voter registration, 2016–2026 — two ways to visualize a three-way split
         </p>
