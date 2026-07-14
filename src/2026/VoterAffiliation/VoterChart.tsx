@@ -101,11 +101,11 @@ export default function VoterChart({
   const ternMargin = useMemo(
     () => {
       if (dimensions.width < 350) {
-        return { top: 28, right: 12, bottom: 40, left: 28 };
+        return { top: 36, right: 12, bottom: 40, left: 28 };
       }
       return isMobile
-        ? { top: 32, right: 16, bottom: 48, left: 36 }
-        : { top: 52, right: 52, bottom: 64, left: 52 };
+        ? { top: 40, right: 16, bottom: 48, left: 36 }
+        : { top: 60, right: 52, bottom: 64, left: 52 };
     },
     [isMobile, dimensions.width]
   );
@@ -117,7 +117,7 @@ export default function VoterChart({
 
   // Responsive label sizing for ternary chart
   const ternLabelSize = isMobile ? (dimensions.width < 350 ? 9 : 11) : 14;
-  const ternLabelOffset = isMobile ? (dimensions.width < 350 ? 8 : 12) : 16;
+  const ternLabelOffset = isMobile ? (dimensions.width < 350 ? 12 : 18) : 16;
 
   const { xScale, yScale, rScale } = useMemo(() => {
     const xScale = scaleLinear().domain([1, 0]).range([0, innerWidth]);
@@ -583,7 +583,7 @@ export default function VoterChart({
                 y={0}
                 textAnchor="end"
                 dominantBaseline="middle"
-                transform={`translate(${ternMargin.left + triW/4 - ternLabelOffset}, ${ternMargin.top + triH/1.8}) rotate(-60)`}
+                transform={`translate(${ternMargin.left + triW/5 - ternLabelOffset * 1.2}, ${ternMargin.top + triH/1.65}) rotate(-60)`}
                 className="va-tern-edge-label va-tern-edge-label-dem"
                 style={{ fontSize: `${ternLabelSize}px` }}
               >
@@ -607,7 +607,7 @@ export default function VoterChart({
                 y={0}
                 textAnchor="start"
                 dominantBaseline="middle"
-                transform={`translate(${ternMargin.left + triW/2 + ternLabelOffset}, ${ternMargin.top + ternLabelOffset}) rotate(60)`}
+                transform={`translate(${ternMargin.left + triW/2 + ternLabelOffset * 1.1}, ${ternMargin.top + ternLabelOffset * 0.8}) rotate(60)`}
                 className="va-tern-edge-label va-tern-edge-label-una"
                 style={{ fontSize: `${ternLabelSize}px` }}
               >
