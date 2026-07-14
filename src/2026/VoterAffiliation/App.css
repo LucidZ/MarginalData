@@ -384,7 +384,7 @@
     position: sticky;
     top: 0;
     width: 100%;
-    height: min(52vh, 380px);
+    height: min(70vh, 450px);
     z-index: 10;
   }
 
@@ -405,6 +405,24 @@
 
   .va-year-tick:nth-child(even) {
     visibility: hidden;
+  }
+}
+
+@media (max-width: 350px) {
+  .va-scrolly-step {
+    padding: 1.5rem 16px;
+  }
+
+  .va-story-header {
+    padding: 16px 16px 12px;
+  }
+
+  .va-title {
+    font-size: 1rem;
+  }
+
+  .va-subtitle {
+    font-size: 0.75rem;
   }
 }
 

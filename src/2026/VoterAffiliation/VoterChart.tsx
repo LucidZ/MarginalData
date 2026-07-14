@@ -99,17 +99,25 @@ export default function VoterChart({
   }, [dimensions, isMobile]);
 
   const ternMargin = useMemo(
-    () =>
-      isMobile
-        ? { top: 36, right: 20, bottom: 52, left: 40 }
-        : { top: 52, right: 52, bottom: 64, left: 52 },
-    [isMobile]
+    () => {
+      if (dimensions.width < 350) {
+        return { top: 28, right: 12, bottom: 40, left: 28 };
+      }
+      return isMobile
+        ? { top: 32, right: 16, bottom: 48, left: 36 }
+        : { top: 52, right: 52, bottom: 64, left: 52 };
+    },
+    [isMobile, dimensions.width]
   );
 
   const triW = dimensions.width - ternMargin.left - ternMargin.right;
   const triH = (triW * Math.sqrt(3)) / 2;
   const ternarySvgHeight = ternMargin.top + triH + ternMargin.bottom;
   const svgHeight = chartType === "ternary" ? ternarySvgHeight : dimensions.height;
+
+  // Responsive label sizing for ternary chart
+  const ternLabelSize = isMobile ? (dimensions.width < 350 ? 9 : 11) : 14;
+  const ternLabelOffset = isMobile ? (dimensions.width < 350 ? 8 : 12) : 16;
 
   const { xScale, yScale, rScale } = useMemo(() => {
     const xScale = scaleLinear().domain([1, 0]).range([0, innerWidth]);
@@ -575,18 +583,20 @@ export default function VoterChart({
                 y={0}
                 textAnchor="end"
                 dominantBaseline="middle"
-                transform={`translate(${triW/4 - ternMargin.left/2}, ${triH - ternMargin.top*1.5 }) rotate(-60)`}
+                transform={`translate(${ternMargin.left + triW/4 - ternLabelOffset}, ${ternMargin.top + triH/1.8}) rotate(-60)`}
                 className="va-tern-edge-label va-tern-edge-label-dem"
+                style={{ fontSize: `${ternLabelSize}px` }}
               >
                 ← 100% Democrat
               </text>
 
               {/* Bottom edge: 100% Republican */}
               <text
-                x={ternMargin.left + triW - 8}
-                y={ternMargin.top + triH + 22}
+                x={ternMargin.left + triW - ternLabelOffset}
+                y={ternMargin.top + triH + (isMobile ? 14 : 22)}
                 textAnchor="end"
                 className="va-tern-edge-label va-tern-edge-label-rep"
+                style={{ fontSize: `${ternLabelSize}px` }}
               >
                 100% Republican →
               </text>
@@ -597,8 +607,9 @@ export default function VoterChart({
                 y={0}
                 textAnchor="start"
                 dominantBaseline="middle"
-                transform={`translate(${triW/2+ternMargin.left*1.5}, ${ternMargin.top}) rotate(60)`}
+                transform={`translate(${ternMargin.left + triW/2 + ternLabelOffset}, ${ternMargin.top + ternLabelOffset}) rotate(60)`}
                 className="va-tern-edge-label va-tern-edge-label-una"
+                style={{ fontSize: `${ternLabelSize}px` }}
               >
                 ← 100% Unaffiliated
               </text>
