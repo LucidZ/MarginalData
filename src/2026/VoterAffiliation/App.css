@@ -426,6 +426,23 @@
   }
 }
 
+/* Force portrait orientation on mobile */
+@media (orientation: landscape) and (max-height: 600px) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: fixed;
+  }
+
+  body {
+    width: 100vh;
+    overflow-x: hidden;
+  }
+}
+
 /* ─── Desktop tweaks ─────────────────────────────────────── */
 
 @media (min-width: 600px) {
