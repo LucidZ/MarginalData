@@ -114,47 +114,6 @@
   border-radius: 0 4px 4px 0;
 }
 
-/* ─── Translator section ───────────────────────────────────── */
-
-.va-translator-section {
-  padding: 40px 20px;
-  border-top: 1px solid #e4e4e4;
-  margin-top: 20px;
-}
-
-.va-translator-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-
-.va-translator-desc {
-  font-size: 0.82rem;
-  color: #777;
-  margin: 0 0 18px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
-}
-
-.va-translator-container {
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-  background: white;
-  border: 1px solid #e4e4e4;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.va-translator-container svg {
-  max-width: 100%;
-  height: auto;
-}
-
 /* ─── Explorer section ──────────────────────────────────── */
 
 .va-explorer {
