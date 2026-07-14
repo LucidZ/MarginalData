@@ -128,8 +128,8 @@ const STORY_STEPS: StepConfig[] = [
           in both places over the decade.
         </p>
         <p>
-          Their horizontal positions tell a different story this time: Denver sits far left, Rio
-          Blanco sits far right. Now look at where each trail starts versus where it ends.
+          Their horizontal positions tell a different story this time: Denver drifts further
+          left, Rio Blanco drifts further right.
         </p>
       </>
     ),
@@ -141,12 +141,11 @@ const STORY_STEPS: StepConfig[] = [
     body: (
       <>
         <p>
-          Both counties drifted away from the center over the decade — a modest
-          but real signal. This chart tells a story of increasing polarization that
+          This chart tells a story of increasing polarization that
           the ternary plot did not.
         </p>
         <p className="va-step-question">
-          But... is this drift true? Is Denver really more left leaning or is it jus that center leaning voters are now less likely to affiliate?
+          But... is this drift true? Is Denver really more left leaning or is it just that center leaning voters are now less likely to affiliate?
         </p>
       </>
     ),
@@ -330,7 +329,7 @@ export default function App() {
           {explorerChartType === "ternary"
             ? " Ternary chart places each county at its barycentric position in Democrat / Republican / Unaffiliated space."
             : " Scatter plot collapses D/R onto a single axis so the vertical axis can be dedicated to unaffiliated growth."}
-          {" "}Data: Colorado Secretary of State.
+          {" "}Data: <a href="https://sos.colorado.gov/elections/voter-registration-statistics" target="_blank" rel="noopener noreferrer">Colorado Secretary of State</a>.
         </p>
       </div>
     </div>
