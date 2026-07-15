@@ -647,25 +647,54 @@ export default function VoterChart({
                 );
               })}
 
+              {/* 50% Democrat gridline and label */}
               <line
-                x1={triW / 2}
-                y1={0}
-                x2={triW / 2}
+                x1={(0.25) * triW}
+                y1={(0.5) * triH}
+                x2={(0.5) * triW}
                 y2={triH}
-                stroke="#ccc"
-                strokeWidth={1.5}
-                strokeDasharray="4,3"
+                stroke="#e8e8e8"
+                strokeWidth={1}
               />
-              {!isMobile && (
-                <text
-                  x={triW / 2}
-                  y={triH + 20}
-                  textAnchor="middle"
-                  className="va-tern-tick va-tern-tick-mid"
-                >
-                  50/50
-                </text>
-              )}
+              <text
+                x={(0.25) * triW - 5}
+                y={(0.5) * triH}
+                textAnchor="end"
+                dominantBaseline="middle"
+                className="va-tern-tick"
+              >
+                50%
+              </text>
+
+              {/* 50% Republican gridline and label */}
+              <line
+                x1={(0.75) * triW}
+                y1={(0.5) * triH}
+                x2={(0.5) * triW}
+                y2={triH}
+                stroke="#e8e8e8"
+                strokeWidth={1}
+              />
+              <text
+                x={(0.75) * triW + 5}
+                y={(0.5) * triH}
+                textAnchor="start"
+                dominantBaseline="middle"
+                className="va-tern-tick"
+              >
+                50%
+              </text>
+
+              {/* 50% Democrat/Republican bottom center label */}
+              <text
+                x={(0.5) * triW}
+                y={triH + (isMobile ? 10 : 16)}
+                textAnchor="middle"
+                className="va-tern-tick"
+              >
+                50%
+              </text>
+
 
               {data.map((county) => {
                 const trail = getTrailData(county);
