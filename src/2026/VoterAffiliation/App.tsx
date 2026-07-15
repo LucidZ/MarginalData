@@ -19,12 +19,13 @@ const STORY_STEPS: StepConfig[] = [
     body: (
       <>
         <p>
-          USAFacts published a series of interesting triangular plots of county level voter 
-          registration data including this one for Colorado. I had never seen these 
+          <a href="https://usafacts.org/articles/more-voters-are-registering-outside-the-two-party-system/" target="_blank" rel="noopener noreferrer">USAFacts published a series of interesting triangular plots</a> of county level voter
+          registration data including this one for Colorado. I had never seen these
           plots before and thought they looked interesting but felt hard to read. 
-          Turns out these are called ternary charts and they are a textbook encoding 
-          for three-part composition: each side of the triangle represents 0%-100% of 
-          one group — Democrat, Republican, or Unaffiliated.
+          Turns out these are called ternary charts and they are a textbook encoding
+          for three-part composition: each side of the triangle represents 0%-100% of
+          one group — Democrat, Republican, or Unaffiliated (including minor parties). Each point represents a different
+          county in Colorado.
         </p>
         <p className="va-step-question">
           Take a look. What's your main takeaway?
@@ -44,8 +45,7 @@ const STORY_STEPS: StepConfig[] = [
           is nearly universal.
         </p>
         <p>
-          The left-right partisan spread barely shifted by comparison. The big story is
-          vertical: unaffiliated voters are overtaking both major parties.
+          The big story is vertical: more and more voters are moving away from the two major parties.
         </p>
       </>
     ),
@@ -62,24 +62,9 @@ const STORY_STEPS: StepConfig[] = [
           state, leans heavily Republican.
         </p>
         <p>
-          Both are highlighted now. Find them, and follow their trails from 2016 to 2026.
-          Where are they headed?
-        </p>
-      </>
-    ),
-  },
-  {
-    chartType: "ternary",
-    highlights: ["Denver", "Rio Blanco"],
-    headline: "Did major party affiliations shift toward the center — or the extremes?",
-    body: (
-      <>
-        <p>
-          Look at the horizontal movement of Denver and Rio Blanco's trails. Denver sits
-          left (heavily Democratic), Rio Blanco sits right (heavily Republican).
-        </p>
-        <p className="va-step-question">
-          Did they drift toward each other over the decade, or further apart? In a ternary plot, it looks like they've been converging towards the center.
+          Did they drift toward each other over the decade, or further apart? In a 
+          ternary plot, it looks like they've been moving away from the two main parties
+          and towards the center.
         </p>
       </>
     ),
@@ -158,17 +143,16 @@ const STORY_STEPS: StepConfig[] = [
       <>
         <p>
           Ternary plots hold three variables in visual equality — no party gets a
-          privileged axis. (Though one could argue the apex of the triangle carries extra
-          visual weight just by virtue of being the only lone corner.) That's a genuine
-          virtue. The cost is an unfamiliar scale that most readers, myself included, find
-          hard to read intuitively.
+          privileged axis. Thats a genuine virtue... Though one could argue the apex 
+          of the triangle carries extra visual weight just by virtue of being at the top.
+          The biggest con of ternary plots is they are uncommon and thus hard to read intuitively.
         </p>
         <p>
-          The scatter plot requires editorial decisions: * 2 categories are held in balance with eachother and the 3rd category gets visual priority. 
+          The scatter plot requires 2 categories to be comibined into one axis and the 3rd category gets a distinct axis. 
           It gives up elegance for legibility.
         </p>
         <p className="va-step-question">
-          What do you think?
+          I think you could make a strong case for either chart type. What do you think?
         </p>
       </>
     ),
@@ -329,7 +313,7 @@ export default function App() {
           {explorerChartType === "ternary"
             ? " Ternary chart places each county at its barycentric position in Democrat / Republican / Unaffiliated space."
             : " Scatter plot collapses D/R onto a single axis so the vertical axis can be dedicated to unaffiliated growth."}
-          {" "}Data: <a href="https://sos.colorado.gov/elections/voter-registration-statistics" target="_blank" rel="noopener noreferrer">Colorado Secretary of State</a>.
+          {" "}Data: <a href="https://sos.colorado.gov/elections/voter-registration-statistics" target="_blank" rel="noopener noreferrer">Colorado Secretary of State</a>. Original visualization concept: <a href="https://usafacts.org/articles/more-voters-are-registering-outside-the-two-party-system/" target="_blank" rel="noopener noreferrer">USAFacts</a>.
         </p>
       </div>
     </div>
