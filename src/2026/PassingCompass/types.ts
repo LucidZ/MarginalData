@@ -15,6 +15,8 @@ export interface PassRecord {
   recipient: string | null;
   recipientId: number | null;
   possession: number;
+  x: number;
+  y: number;
   dx: number;
   dy: number;
   outcome: PassOutcome;
@@ -28,6 +30,8 @@ export interface TriangleRecord {
   pivot: string;
   pivotId: number;
   recipient: string | null;
+  pivotX: number;
+  pivotY: number;
   v1: { dx: number; dy: number };
   v2: { dx: number; dy: number };
   outcome: PassOutcome;

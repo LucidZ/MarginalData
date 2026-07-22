@@ -146,6 +146,24 @@
   display: block;
 }
 
+.pc-pitch-wrap {
+  max-width: 700px;
+}
+
+.pc-pitch {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.pc-pitch-direction {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  text-align: center;
+}
+
 .pc-mark {
   cursor: pointer;
 }
