@@ -14,7 +14,7 @@ const OUTCOME_LEGEND: { outcome: PassOutcome; label: string; varName: string }[]
 
 export default function App() {
   const data = useData();
-  const [mode, setMode] = useState<"compass" | "triangles">("compass");
+  const [mode, setMode] = useState<"compass" | "chain" | "relative">("compass");
   const [team, setTeam] = useState<string>("Argentina");
   const [player, setPlayer] = useState<string>("__all__");
 
@@ -91,10 +91,16 @@ export default function App() {
             Compass
           </button>
           <button
-            className={`pc-toggle-btn ${mode === "triangles" ? "active" : ""}`}
-            onClick={() => setMode("triangles")}
+            className={`pc-toggle-btn ${mode === "chain" ? "active" : ""}`}
+            onClick={() => setMode("chain")}
           >
-            Pivot triangles
+            Pivot chain
+          </button>
+          <button
+            className={`pc-toggle-btn ${mode === "relative" ? "active" : ""}`}
+            onClick={() => setMode("relative")}
+          >
+            Relative to player
           </button>
         </div>
       </div>
@@ -113,9 +119,12 @@ export default function App() {
       </div>
 
       <p className="pc-footnote">
-        {mode === "compass"
-          ? `Showing ${filteredPasses.length} pass attempts. Each line runs from the shared origin to that pass's true direction and length in meters; forward (the attacking direction) points up.`
-          : `Showing ${filteredTriangles.length} two-pass pivot chains (completed pass 1, into the same player who then plays pass 2). The path traces vector-added start → pivot → end.`}
+        {mode === "compass" &&
+          `Showing ${filteredPasses.length} pass attempts. Each line runs from the shared origin to that pass's true direction and length in meters; forward (the attacking direction) points up.`}
+        {mode === "chain" &&
+          `Showing ${filteredTriangles.length} two-pass pivot chains (completed pass 1, into the same player who then plays pass 2). The path traces vector-added start → pivot → end from a shared origin.`}
+        {mode === "relative" &&
+          `Showing ${filteredTriangles.length} pivot triangles centered on the receiving player. Each triangle's two outer points are where the incoming pass came from and where the outgoing pass went — fills are very transparent so common receive-and-release shapes build up density where they overlap.`}
         {" "}Data: <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">StatsBomb open data</a>.
       </p>
     </div>

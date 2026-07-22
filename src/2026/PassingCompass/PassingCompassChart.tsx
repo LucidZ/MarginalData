@@ -23,7 +23,7 @@ function toScreen(dx: number, dy: number) {
 }
 
 interface Props {
-  mode: "compass" | "triangles";
+  mode: "compass" | "chain" | "relative";
   passes: PassRecord[];
   triangles: TriangleRecord[];
 }
@@ -67,8 +67,8 @@ export default function PassingCompassChart({ mode, passes, triangles }: Props) 
     });
   }, [mode, passes]);
 
-  const triangleElements = useMemo(() => {
-    if (mode !== "triangles") return null;
+  const chainElements = useMemo(() => {
+    if (mode !== "chain") return null;
     return triangles.map((t, i) => {
       const p1 = toScreen(t.v1.dx, t.v1.dy);
       const p2 = toScreen(t.v1.dx + t.v2.dx, t.v1.dy + t.v2.dy);
@@ -103,6 +103,42 @@ export default function PassingCompassChart({ mode, passes, triangles }: Props) 
     });
   }, [mode, triangles]);
 
+  // Centered on the pivot player (origin): point A is where the incoming pass
+  // came from (-v1, since v1 runs A -> pivot), point B is where the outgoing
+  // pass ends (+v2, since v2 runs pivot -> B). Fill-only, no stroke, so
+  // hundreds of overlapping triangles build up density where they agree.
+  const fillOpacity = Math.max(0.04, Math.min(0.25, 6 / Math.max(triangles.length, 1)));
+
+  const relativeElements = useMemo(() => {
+    if (mode !== "relative") return null;
+    return triangles.map((t, i) => {
+      const a = toScreen(-t.v1.dx, -t.v1.dy);
+      const b = toScreen(t.v2.dx, t.v2.dy);
+      const color = OUTCOME_COLOR_VAR[t.outcome];
+      return (
+        <polygon
+          key={i}
+          className="pc-mark"
+          points={`${a.x},${a.y} ${CENTER},${CENTER} ${b.x},${b.y}`}
+          fill={color}
+          fillOpacity={fillOpacity}
+          stroke="none"
+          onMouseEnter={() =>
+            setHover({
+              x: CENTER,
+              y: CENTER,
+              lines: [
+                `${t.passer} → ${t.pivot} → ${t.recipient ?? "?"}`,
+                `${t.outcome} · min ${t.minute}`,
+              ],
+            })
+          }
+          onMouseLeave={() => setHover(null)}
+        />
+      );
+    });
+  }, [mode, triangles, fillOpacity]);
+
   return (
     <div className="pc-chart-wrap">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pc-chart" role="img" aria-label="Passing compass chart">
@@ -115,7 +151,8 @@ export default function PassingCompassChart({ mode, passes, triangles }: Props) 
         <text x={CENTER} y={SIZE - 14} textAnchor="middle" className="pc-axis-label">BACKWARD</text>
 
         {passElements}
-        {triangleElements}
+        {chainElements}
+        {relativeElements}
 
         <circle cx={CENTER} cy={CENTER} r={4} fill="var(--text-primary)" />
       </svg>
