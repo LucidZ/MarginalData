@@ -101,6 +101,15 @@
   border-left: 1px solid var(--baseline);
 }
 
+.pc-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
 .pc-toggle-btn.active {
   background: var(--text-primary);
   color: var(--surface-1);

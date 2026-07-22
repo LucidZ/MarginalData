@@ -22,10 +22,19 @@ function toScreen(dx: number, dy: number) {
   return { x: CENTER + scale(dy), y: CENTER - scale(dx) };
 }
 
+function rotateAround(x: number, y: number, cx: number, cy: number, angle: number) {
+  const dx = x - cx;
+  const dy = y - cy;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+}
+
 interface Props {
   mode: "compass" | "chain" | "relative";
   passes: PassRecord[];
   triangles: TriangleRecord[];
+  alignReceive?: boolean;
 }
 
 interface HoverInfo {
@@ -34,7 +43,7 @@ interface HoverInfo {
   lines: string[];
 }
 
-export default function PassingCompassChart({ mode, passes, triangles }: Props) {
+export default function PassingCompassChart({ mode, passes, triangles, alignReceive = false }: Props) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   const rings = [25, 50, 75, 100];
@@ -112,8 +121,20 @@ export default function PassingCompassChart({ mode, passes, triangles }: Props) 
   const relativeElements = useMemo(() => {
     if (mode !== "relative") return null;
     return triangles.map((t, i) => {
-      const a = toScreen(-t.v1.dx, -t.v1.dy);
-      const b = toScreen(t.v2.dx, t.v2.dy);
+      let a = toScreen(-t.v1.dx, -t.v1.dy);
+      let b = toScreen(t.v2.dx, t.v2.dy);
+
+      if (alignReceive) {
+        // Rotate the whole triangle around the player so the incoming pass
+        // always points due left — this "unwinds" absolute pitch direction
+        // and leaves only each pass's length and the turn angle to the
+        // outgoing pass, which is what actually varies triangle to triangle.
+        const angleA = Math.atan2(a.y - CENTER, a.x - CENTER);
+        const delta = Math.PI - angleA;
+        a = rotateAround(a.x, a.y, CENTER, CENTER, delta);
+        b = rotateAround(b.x, b.y, CENTER, CENTER, delta);
+      }
+
       const color = OUTCOME_COLOR_VAR[t.outcome];
       return (
         <polygon
@@ -137,7 +158,7 @@ export default function PassingCompassChart({ mode, passes, triangles }: Props) 
         />
       );
     });
-  }, [mode, triangles, fillOpacity]);
+  }, [mode, triangles, fillOpacity, alignReceive]);
 
   return (
     <div className="pc-chart-wrap">
@@ -147,8 +168,14 @@ export default function PassingCompassChart({ mode, passes, triangles }: Props) 
         ))}
         <line x1={40} y1={CENTER} x2={SIZE - 40} y2={CENTER} stroke="var(--baseline)" />
         <line x1={CENTER} y1={40} x2={CENTER} y2={SIZE - 40} stroke="var(--baseline)" />
-        <text x={CENTER} y={28} textAnchor="middle" className="pc-axis-label">FORWARD</text>
-        <text x={CENTER} y={SIZE - 14} textAnchor="middle" className="pc-axis-label">BACKWARD</text>
+        {mode === "relative" && alignReceive ? (
+          <text x={44} y={CENTER - 10} textAnchor="start" className="pc-axis-label">← RECEIVED FROM</text>
+        ) : (
+          <>
+            <text x={CENTER} y={28} textAnchor="middle" className="pc-axis-label">FORWARD</text>
+            <text x={CENTER} y={SIZE - 14} textAnchor="middle" className="pc-axis-label">BACKWARD</text>
+          </>
+        )}
 
         {passElements}
         {chainElements}

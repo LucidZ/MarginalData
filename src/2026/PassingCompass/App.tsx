@@ -17,6 +17,7 @@ export default function App() {
   const [mode, setMode] = useState<"compass" | "chain" | "relative">("compass");
   const [team, setTeam] = useState<string>("Argentina");
   const [player, setPlayer] = useState<string>("__all__");
+  const [alignReceive, setAlignReceive] = useState(false);
 
   const players = useMemo(() => {
     if (!data) return [];
@@ -103,10 +104,26 @@ export default function App() {
             Relative to player
           </button>
         </div>
+
+        {mode === "relative" && (
+          <label className="pc-checkbox">
+            <input
+              type="checkbox"
+              checked={alignReceive}
+              onChange={(e) => setAlignReceive(e.target.checked)}
+            />
+            Align: incoming pass always from the left
+          </label>
+        )}
       </div>
 
       <div className="pc-chart-area">
-        <PassingCompassChart mode={mode} passes={filteredPasses} triangles={filteredTriangles} />
+        <PassingCompassChart
+          mode={mode}
+          passes={filteredPasses}
+          triangles={filteredTriangles}
+          alignReceive={alignReceive}
+        />
 
         <div className="pc-legend">
           {OUTCOME_LEGEND.map((item) => (
@@ -123,8 +140,10 @@ export default function App() {
           `Showing ${filteredPasses.length} pass attempts. Each line runs from the shared origin to that pass's true direction and length in meters; forward (the attacking direction) points up.`}
         {mode === "chain" &&
           `Showing ${filteredTriangles.length} two-pass pivot chains (completed pass 1, into the same player who then plays pass 2). The path traces vector-added start → pivot → end from a shared origin.`}
-        {mode === "relative" &&
+        {mode === "relative" && !alignReceive &&
           `Showing ${filteredTriangles.length} pivot triangles centered on the receiving player. Each triangle's two outer points are where the incoming pass came from and where the outgoing pass went — fills are very transparent so common receive-and-release shapes build up density where they overlap.`}
+        {mode === "relative" && alignReceive &&
+          `Showing ${filteredTriangles.length} pivot triangles, each rotated so the incoming pass always arrives from the left — this removes absolute pitch direction and isolates each player's typical turn angle and pass lengths on receipt.`}
         {" "}Data: <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">StatsBomb open data</a>.
       </p>
     </div>
