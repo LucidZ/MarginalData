@@ -82,6 +82,11 @@ export default function Home() {
               Colorado voter affiliation, 2016–2026
             </Link>
           </li>
+          <li>
+            <Link to="/2026/PassingTriangleMatchingGame">
+              Passing Triangle Matching Game
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
