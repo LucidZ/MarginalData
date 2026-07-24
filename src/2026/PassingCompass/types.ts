@@ -20,6 +20,7 @@ export interface PassRecord {
   dx: number;
   dy: number;
   outcome: PassOutcome;
+  xtDelta: number;
 }
 
 export interface TriangleRecord {
@@ -35,6 +36,7 @@ export interface TriangleRecord {
   v1: { dx: number; dy: number };
   v2: { dx: number; dy: number };
   outcome: PassOutcome;
+  xtDelta: number;
 }
 
 export interface PassingCompassData {
