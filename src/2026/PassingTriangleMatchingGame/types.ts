@@ -1,11 +1,10 @@
-import type { TriangleRecord } from "../PassingCompass/types";
-
-export interface GamePitch {
+/** A lineup slot on the single shared pitch, positioned at the real pivot centroid of one player. */
+export interface GameSlot {
   id: string;
-  label: string;
+  x: number;
+  y: number;
   correctFullName: string;
-  triangles: TriangleRecord[];
 }
 
-/** Maps a pitch id to the full name of the player currently placed there, or null if empty. */
+/** Maps a slot id to the full name of the player currently placed there, or null if empty. */
 export type Assignments = Record<string, string | null>;

@@ -68,10 +68,33 @@ function convexHull(points: Pt[]): Pt[] {
   return lower.concat(upper);
 }
 
+export type PitchSlotState = "empty" | "assigned" | "active" | "correct" | "wrong";
+
+export interface PitchSlot {
+  id: string;
+  /** Pitch-space coordinates (StatsBomb x/y units), same system as TriangleRecord.pivotX/Y. */
+  x: number;
+  y: number;
+  /** Short text drawn inside the circle — must not reveal the correct player's identity while unresolved. */
+  label: string;
+  state: PitchSlotState;
+}
+
+const SLOT_STATE_COLOR: Record<PitchSlotState, string> = {
+  empty: "var(--baseline)",
+  assigned: "var(--text-primary)",
+  active: "var(--status-warning)",
+  correct: "var(--status-good)",
+  wrong: "var(--status-critical)",
+};
+
 interface Props {
   triangles: TriangleRecord[];
   /** When false, hides hover tooltips (which name the pivot player) and pointer affordance — for the matching game before answers are checked. */
   interactive?: boolean;
+  /** Lineup-slot circles drawn on top of the pitch (matching game's single-pitch mode). */
+  slots?: PitchSlot[];
+  onSlotClick?: (id: string) => void;
 }
 
 interface HoverInfo {
@@ -80,10 +103,14 @@ interface HoverInfo {
   lines: string[];
 }
 
-export default function PitchChart({ triangles, interactive = true }: Props) {
+export default function PitchChart({ triangles, interactive = true, slots, onSlotClick }: Props) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
-  const fillOpacity = Math.max(0.06, Math.min(0.35, 6 / Math.max(triangles.length, 1)));
+  // Inverse-sqrt (not inverse-linear) decay: linear decay pinned low-volume players at the
+  // 0.35 cap (making a few triangles look like a solid, "important" blob) while high-volume
+  // pivots faded almost to the floor. sqrt decays slower, so the two ends land closer together;
+  // 0.875 is picked so an n≈47 pivot still renders at ~0.128, same as before this change.
+  const fillOpacity = Math.max(0.06, Math.min(0.3, 0.875 / Math.sqrt(Math.max(triangles.length, 1))));
 
   const { coverage, marks, dots } = useMemo(() => {
     const coverage: React.ReactNode[] = [];
@@ -176,6 +203,25 @@ export default function PitchChart({ triangles, interactive = true }: Props) {
         {coverage}
         {marks}
         {dots}
+
+        {slots?.map((slot) => {
+          const p = toPx(slot.x, slot.y);
+          const color = SLOT_STATE_COLOR[slot.state];
+          return (
+            <g
+              key={slot.id}
+              onClick={onSlotClick ? () => onSlotClick(slot.id) : undefined}
+              style={onSlotClick ? { cursor: "pointer" } : undefined}
+              role={onSlotClick ? "button" : undefined}
+              aria-label={onSlotClick ? `Lineup slot, ${slot.state}` : undefined}
+            >
+              <circle cx={p.x} cy={p.y} r={3.6 * SCALE} fill="var(--surface-1)" fillOpacity={0.92} stroke={color} strokeWidth={2} />
+              <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={700} fill={color}>
+                {slot.label}
+              </text>
+            </g>
+          );
+        })}
       </svg>
 
       <div className="pc-pitch-direction">Attacking ↑</div>
