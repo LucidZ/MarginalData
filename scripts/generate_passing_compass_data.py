@@ -125,6 +125,12 @@ def build_triangles(pass_records):
             "recipient": b["recipient"],
             "pivotX": b["x"],
             "pivotY": b["y"],
+            # Where pass 1 was actually received — b["x"]/b["y"] (pivotX/Y)
+            # is where pass 2 was *played from*, which often isn't the same
+            # spot if the pivot player dribbled between receiving and
+            # releasing. Front end draws that gap as a carry.
+            "receiveX": round(a["x"] + a["dx"], 2),
+            "receiveY": round(a["y"] + a["dy"], 2),
             "v1": {"dx": a["dx"], "dy": a["dy"]},
             "v2": {"dx": b["dx"], "dy": b["dy"]},
             "outcome": b["outcome"],

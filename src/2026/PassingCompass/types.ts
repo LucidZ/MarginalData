@@ -33,6 +33,8 @@ export interface TriangleRecord {
   recipient: string | null;
   pivotX: number;
   pivotY: number;
+  receiveX: number;
+  receiveY: number;
   v1: { dx: number; dy: number };
   v2: { dx: number; dy: number };
   outcome: PassOutcome;
