@@ -5,9 +5,10 @@ export interface GamePlayer {
   number: number;
 }
 
-// Argentina players from the 2022 WC Final with at least 9 pivot triangles in
-// the dataset (StatsBomb open data, match 3869685) — enough sample size per
-// player for the pitch to read as a distinct shape.
+// Argentina's starting XI in the 2022 WC Final (4-3-3: Martínez; Molina,
+// Romero, Otamendi, Tagliafico; De Paul, Enzo Fernández, Mac Allister; Di
+// María, Messi, Álvarez) — all comfortably have 15+ pivot triangles in the
+// dataset (StatsBomb open data, match 3869685), plenty for a distinct shape.
 export const ROSTER: GamePlayer[] = [
   { fullName: "Damián Emiliano Martínez", displayName: "Emiliano Martínez", number: 23 },
   { fullName: "Nahuel Molina Lucero", displayName: "Nahuel Molina", number: 26 },
@@ -20,7 +21,4 @@ export const ROSTER: GamePlayer[] = [
   { fullName: "Ángel Fabián Di María Hernández", displayName: "Ángel Di María", number: 11 },
   { fullName: "Lionel Andrés Messi Cuccittini", displayName: "Lionel Messi", number: 10 },
   { fullName: "Julián Álvarez", displayName: "Julián Álvarez", number: 9 },
-  { fullName: "Marcos Javier Acuña", displayName: "Marcos Acuña", number: 18 },
-  { fullName: "Gonzalo Ariel Montiel", displayName: "Gonzalo Montiel", number: 4 },
-  { fullName: "Leandro Daniel Paredes", displayName: "Leandro Paredes", number: 5 },
 ];

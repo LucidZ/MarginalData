@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { TriangleRecord, PassOutcome } from "./types";
 
 const OUTCOME_COLOR_VAR: Record<PassOutcome, string> = {
@@ -9,32 +9,63 @@ const OUTCOME_COLOR_VAR: Record<PassOutcome, string> = {
   Unknown: "var(--muted)",
 };
 
-// StatsBomb pitch is 120 x 80 units; SCALE just controls SVG precision.
-const PITCH_W = 120;
-const PITCH_H = 80;
+// StatsBomb pitch is 120 (length, x) x 80 (width, y) units; SCALE just
+// controls SVG precision. Drawn portrait, attacking direction pointing up:
+// screen x = pitch width (y), screen y = pitch length (x) inverted so
+// higher x (forward) lands at a smaller screen y (closer to the top).
+const PITCH_LENGTH = 120;
+const PITCH_WIDTH = 80;
 const SCALE = 6;
-const W = PITCH_W * SCALE;
-const H = PITCH_H * SCALE;
+const W = PITCH_WIDTH * SCALE;
+const H = PITCH_LENGTH * SCALE;
+
+// Trapezoid taper widths for the two real passes — both taper thin-to-thick
+// in their direction of travel (a point at the ball's origin, widest at
+// where it ends up), same convention for pass in and pass out, so the taper
+// itself reads as direction instead of needing a separate arrowhead marker.
+const WIDE_W = 4.2;
+const NARROW_W = 0;
 
 type Pt = { x: number; y: number };
 
 function toPx(x: number, y: number): Pt {
-  return { x: x * SCALE, y: y * SCALE };
+  return { x: y * SCALE, y: (PITCH_LENGTH - x) * SCALE };
 }
 
-function sub(a: Pt, b: Pt): Pt {
-  return { x: a.x - b.x, y: a.y - b.y };
+/** Points for a quadrilateral from p1 (width w1) to p2 (width w2), centered on the p1-p2 line. */
+function trapezoid(p1: Pt, p2: Pt, w1: number, w2: number): string {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const pts = [
+    { x: p1.x + (nx * w1) / 2, y: p1.y + (ny * w1) / 2 },
+    { x: p2.x + (nx * w2) / 2, y: p2.y + (ny * w2) / 2 },
+    { x: p2.x - (nx * w2) / 2, y: p2.y - (ny * w2) / 2 },
+    { x: p1.x - (nx * w1) / 2, y: p1.y - (ny * w1) / 2 },
+  ];
+  return pts.map((p) => `${p.x},${p.y}`).join(" ");
 }
 
-function normalize(a: Pt): Pt {
-  const n = Math.hypot(a.x, a.y) || 1;
-  return { x: a.x / n, y: a.y / n };
-}
-
-/** Foot of the perpendicular from `point` onto the infinite line through `linePoint` in direction `dir` (unit vector). */
-function footOfPerpendicular(point: Pt, linePoint: Pt, dir: Pt): Pt {
-  const t = sub(point, linePoint).x * dir.x + sub(point, linePoint).y * dir.y;
-  return { x: linePoint.x + dir.x * t, y: linePoint.y + dir.y * t };
+/** Convex hull (monotone chain) of the pass-in/receive/pivot/pass-out points — the ground this one sequence covered. */
+function convexHull(points: Pt[]): Pt[] {
+  const pts = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o: Pt, a: Pt, b: Pt) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower: Pt[] = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper: Pt[] = [];
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop();
+  lower.pop();
+  return lower.concat(upper);
 }
 
 interface Props {
@@ -51,76 +82,72 @@ interface HoverInfo {
 
 export default function PitchChart({ triangles, interactive = true }: Props) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
-  const uid = useId();
 
-  const fillOpacity = Math.max(0.04, Math.min(0.3, 8 / Math.max(triangles.length, 1)));
+  const fillOpacity = Math.max(0.06, Math.min(0.35, 6 / Math.max(triangles.length, 1)));
 
-  const { gradients, groups, dots } = useMemo(() => {
-    const gradients: React.ReactNode[] = [];
-    const groups: React.ReactNode[] = [];
+  const { coverage, marks, dots } = useMemo(() => {
+    const coverage: React.ReactNode[] = [];
+    const marks: React.ReactNode[] = [];
     const dots: React.ReactNode[] = [];
 
     triangles.forEach((t, i) => {
+      const passStart = toPx(t.receiveX - t.v1.dx, t.receiveY - t.v1.dy);
+      const receive = toPx(t.receiveX, t.receiveY);
       const pivot = toPx(t.pivotX, t.pivotY);
-      const a = toPx(t.pivotX - t.v1.dx, t.pivotY - t.v1.dy);
-      const b = toPx(t.pivotX + t.v2.dx, t.pivotY + t.v2.dy);
+      const passEnd = toPx(t.pivotX + t.v2.dx, t.pivotY + t.v2.dy);
       const color = OUTCOME_COLOR_VAR[t.outcome];
 
-      // Instead of filling the whole pivot-a-b triangle, carve a 4th point M
-      // a short way from the pivot toward the midpoint of the far edge (a-b)
-      // and split into two slim triangles, pivot-a-M and pivot-b-M. Each one
-      // traces the *entire real length* of one pass line as its base edge,
-      // gradient-dark right on that line and fading to light at M — so the
-      // mark reads as two soft brushstrokes along the actual pass paths,
-      // pulled back to a light concave notch near the pivot, rather than a
-      // single flat triangular wedge.
-      const NOTCH_T = 0.25;
-      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      const m = { x: pivot.x + NOTCH_T * (mid.x - pivot.x), y: pivot.y + NOTCH_T * (mid.y - pivot.y) };
-
-      const dirPA = normalize(sub(a, pivot));
-      const dirPB = normalize(sub(b, pivot));
-      const footMOnPA = footOfPerpendicular(m, pivot, dirPA);
-      const footMOnPB = footOfPerpendicular(m, pivot, dirPB);
-
-      const gradIdA = `pc-gradA-${uid}-${i}`;
-      const gradIdB = `pc-gradB-${uid}-${i}`;
-      const peak = fillOpacity;
-      const trough = fillOpacity * 0.08;
-
-      gradients.push(
-        <linearGradient key={gradIdA} id={gradIdA} x1={footMOnPA.x} y1={footMOnPA.y} x2={m.x} y2={m.y} gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor={color} stopOpacity={peak} />
-          <stop offset="100%" stopColor={color} stopOpacity={trough} />
-        </linearGradient>,
-        <linearGradient key={gradIdB} id={gradIdB} x1={footMOnPB.x} y1={footMOnPB.y} x2={m.x} y2={m.y} gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor={color} stopOpacity={peak} />
-          <stop offset="100%" stopColor={color} stopOpacity={trough} />
-        </linearGradient>
+      const hull = convexHull([passStart, receive, pivot, passEnd]);
+      coverage.push(
+        <polygon
+          key={`cov-${i}`}
+          points={hull.map((p) => `${p.x},${p.y}`).join(" ")}
+          fill={color}
+          fillOpacity={fillOpacity * 0.35}
+          stroke="none"
+        />
       );
 
-      groups.push(
-        <g
-          key={i}
-          className="pc-mark"
-          style={interactive ? undefined : { cursor: "default" }}
-          onMouseEnter={
-            interactive
-              ? () =>
-                  setHover({
-                    x: pivot.x,
-                    y: pivot.y,
-                    lines: [
-                      `${t.passer} → ${t.pivot} → ${t.recipient ?? "?"}`,
-                      `${t.outcome} · min ${t.minute}`,
-                    ],
-                  })
-              : undefined
+      const hoverHandlers = interactive
+        ? {
+            onMouseEnter: () =>
+              setHover({
+                x: pivot.x,
+                y: pivot.y,
+                lines: [
+                  `${t.passer} → ${t.pivot} → ${t.recipient ?? "?"}`,
+                  `${t.outcome} · min ${t.minute}`,
+                ],
+              }),
+            onMouseLeave: () => setHover(null),
           }
-          onMouseLeave={interactive ? () => setHover(null) : undefined}
-        >
-          <polygon points={`${pivot.x},${pivot.y} ${a.x},${a.y} ${m.x},${m.y}`} fill={`url(#${gradIdA})`} stroke="none" />
-          <polygon points={`${pivot.x},${pivot.y} ${b.x},${b.y} ${m.x},${m.y}`} fill={`url(#${gradIdB})`} stroke="none" />
+        : {};
+
+      marks.push(
+        <g key={i} className="pc-mark" style={interactive ? undefined : { cursor: "default" }}>
+          {/* pass in: narrow at its real origin, widening toward the pivot */}
+          <polygon points={trapezoid(passStart, receive, NARROW_W, WIDE_W)} fill={color} fillOpacity={fillOpacity} stroke="none" />
+          {/* carry / dribble between receiving and releasing (zero-length and invisible if the pivot one-touched it) */}
+          <line
+            x1={receive.x}
+            y1={receive.y}
+            x2={pivot.x}
+            y2={pivot.y}
+            stroke={color}
+            strokeOpacity={fillOpacity * 2}
+            strokeWidth={1}
+            strokeDasharray="3 2.5"
+          />
+          {/* pass out: same thin-to-thick convention as pass in, read in the direction of travel */}
+          <polygon points={trapezoid(pivot, passEnd, NARROW_W, WIDE_W)} fill={color} fillOpacity={fillOpacity} stroke="none" />
+          {/* wide invisible hit area, since the visible marks are thin */}
+          <polyline
+            points={`${passStart.x},${passStart.y} ${receive.x},${receive.y} ${pivot.x},${pivot.y} ${passEnd.x},${passEnd.y}`}
+            fill="none"
+            stroke="transparent"
+            strokeWidth={9}
+            {...hoverHandlers}
+          />
         </g>
       );
 
@@ -129,28 +156,29 @@ export default function PitchChart({ triangles, interactive = true }: Props) {
       );
     });
 
-    return { gradients, groups, dots };
-  }, [triangles, fillOpacity, uid, interactive]);
+    return { coverage, marks, dots };
+  }, [triangles, fillOpacity, interactive]);
 
   return (
     <div className="pc-chart-wrap pc-pitch-wrap">
       <svg viewBox={`0 0 ${W} ${H}`} className="pc-pitch" role="img" aria-label="Passing triangles plotted on the pitch">
-        <defs>{gradients}</defs>
         <rect x={1} y={1} width={W - 2} height={H - 2} fill="none" stroke="var(--baseline)" />
-        <line x1={W / 2} y1={0} x2={W / 2} y2={H} stroke="var(--baseline)" />
+        <line x1={0} y1={H / 2} x2={W} y2={H / 2} stroke="var(--baseline)" />
         <circle cx={W / 2} cy={H / 2} r={10 * SCALE} fill="none" stroke="var(--baseline)" />
         <circle cx={W / 2} cy={H / 2} r={2} fill="var(--baseline)" />
 
-        <rect x={0} y={18 * SCALE} width={18 * SCALE} height={44 * SCALE} fill="none" stroke="var(--baseline)" />
-        <rect x={(PITCH_W - 18) * SCALE} y={18 * SCALE} width={18 * SCALE} height={44 * SCALE} fill="none" stroke="var(--baseline)" />
-        <rect x={0} y={30 * SCALE} width={6 * SCALE} height={20 * SCALE} fill="none" stroke="var(--baseline)" />
-        <rect x={(PITCH_W - 6) * SCALE} y={30 * SCALE} width={6 * SCALE} height={20 * SCALE} fill="none" stroke="var(--baseline)" />
+        {/* penalty boxes: own goal at the bottom, attacking goal at the top */}
+        <rect x={18 * SCALE} y={(PITCH_LENGTH - 18) * SCALE} width={44 * SCALE} height={18 * SCALE} fill="none" stroke="var(--baseline)" />
+        <rect x={18 * SCALE} y={0} width={44 * SCALE} height={18 * SCALE} fill="none" stroke="var(--baseline)" />
+        <rect x={30 * SCALE} y={(PITCH_LENGTH - 6) * SCALE} width={20 * SCALE} height={6 * SCALE} fill="none" stroke="var(--baseline)" />
+        <rect x={30 * SCALE} y={0} width={20 * SCALE} height={6 * SCALE} fill="none" stroke="var(--baseline)" />
 
-        {groups}
+        {coverage}
+        {marks}
         {dots}
       </svg>
 
-      <div className="pc-pitch-direction">Attacking →</div>
+      <div className="pc-pitch-direction">Attacking ↑</div>
 
       {hover && (
         <div
