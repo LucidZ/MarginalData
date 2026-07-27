@@ -156,12 +156,19 @@
   display: block;
 }
 
-.pc-pitch-direction {
-  margin-top: 0.5rem;
+.pc-pitch-end-label {
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   color: var(--muted);
   text-align: center;
+}
+
+.pc-pitch-end-label:first-child {
+  margin-bottom: 0.5rem;
+}
+
+.pc-pitch-end-label:last-child {
+  margin-top: 0.5rem;
 }
 
 .pc-mark {

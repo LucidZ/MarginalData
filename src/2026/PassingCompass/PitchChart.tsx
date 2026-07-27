@@ -190,6 +190,9 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
 
   return (
     <div className="pc-chart-wrap pc-pitch-wrap">
+      {/* labelled at each goal directly, rather than one arrowed label that
+          could be misread as describing whichever end it sits closest to */}
+      <div className="pc-pitch-end-label">Attacking</div>
       <svg viewBox={`0 0 ${W} ${H}`} className="pc-pitch" role="img" aria-label="Passing triangles plotted on the pitch">
         <rect x={1} y={1} width={W - 2} height={H - 2} fill="none" stroke="var(--baseline)" />
         <line x1={0} y1={H / 2} x2={W} y2={H / 2} stroke="var(--baseline)" />
@@ -259,7 +262,7 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
         })}
       </svg>
 
-      <div className="pc-pitch-direction">Attacking ↑</div>
+      <div className="pc-pitch-end-label">Defending</div>
 
       {hover && (
         <div
