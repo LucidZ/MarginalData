@@ -75,8 +75,10 @@ export interface PitchSlot {
   /** Pitch-space coordinates (StatsBomb x/y units), same system as TriangleRecord.pivotX/Y. */
   x: number;
   y: number;
-  /** Short text drawn inside the circle — must not reveal the correct player's identity while unresolved. */
+  /** Short text drawn inside the circle when no photo is set — must not reveal the correct player's identity while unresolved. */
   label: string;
+  /** Assigned player's photo — when set, fills the circle instead of drawing `label`. */
+  photo?: string;
   state: PitchSlotState;
 }
 
@@ -204,9 +206,11 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
         {marks}
         {dots}
 
-        {slots?.map((slot) => {
+        {slots?.map((slot, i) => {
           const p = toPx(slot.x, slot.y);
           const color = SLOT_STATE_COLOR[slot.state];
+          const r = 3.6 * SCALE;
+          const clipId = `ptmg-slot-clip-${i}`;
           return (
             <g
               key={slot.id}
@@ -215,10 +219,41 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
               role={onSlotClick ? "button" : undefined}
               aria-label={onSlotClick ? `Lineup slot, ${slot.state}` : undefined}
             >
-              <circle cx={p.x} cy={p.y} r={3.6 * SCALE} fill="var(--surface-1)" fillOpacity={0.92} stroke={color} strokeWidth={2} />
-              <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={700} fill={color}>
-                {slot.label}
-              </text>
+              <circle cx={p.x} cy={p.y} r={r} fill="var(--surface-1)" fillOpacity={0.92} stroke={color} strokeWidth={2} />
+              {slot.photo ? (
+                <>
+                  <clipPath id={clipId}>
+                    <circle cx={p.x} cy={p.y} r={r - 1.5} />
+                  </clipPath>
+                  <image
+                    href={slot.photo}
+                    x={p.x - r}
+                    y={p.y - r}
+                    width={r * 2}
+                    height={r * 2}
+                    clipPath={`url(#${clipId})`}
+                    preserveAspectRatio="xMidYMid slice"
+                  />
+                  <circle cx={p.x} cy={p.y} r={r - 1} fill="none" stroke={color} strokeWidth={2} />
+                  {/* jersey-number badge, offset outside the photo circle so it isn't clipped */}
+                  <circle cx={p.x + r * 0.75} cy={p.y + r * 0.75} r={r * 0.4} fill="#0b3866" stroke="var(--surface-1)" strokeWidth={1.5} />
+                  <text
+                    x={p.x + r * 0.75}
+                    y={p.y + r * 0.75}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={9}
+                    fontWeight={700}
+                    fill="#fff"
+                  >
+                    {slot.label}
+                  </text>
+                </>
+              ) : (
+                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={700} fill={color}>
+                  {slot.label}
+                </text>
+              )}
             </g>
           );
         })}

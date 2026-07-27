@@ -4,6 +4,7 @@ import PitchChart from "../PassingCompass/PitchChart";
 import type { PitchSlot, PitchSlotState } from "../PassingCompass/PitchChart";
 import PlayerAvatar from "./PlayerAvatar";
 import { ROSTER } from "./roster";
+import { PHOTO_CREDITS } from "./photoCredits";
 import type { GameSlot, Assignments } from "./types";
 import "../PassingCompass/App.css";
 import "./App.css";
@@ -14,7 +15,6 @@ function mean(values: number[]): number {
 
 export default function App() {
   const data = useData();
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<Assignments>({});
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
@@ -50,25 +50,25 @@ export default function App() {
   const allAssigned = slots.length > 0 && slots.every((s) => assignments[s.id]);
   const score = slots.filter((s) => assignments[s.id] === s.correctFullName).length;
 
-  const handleCardClick = (fullName: string) => {
-    setSelectedPlayer((prev) => (prev === fullName ? null : fullName));
+  // Tapping a circle only previews its passing shape — it never changes an
+  // existing guess, so re-checking your work doesn't cost you the answer.
+  // Assignment happens separately, by tapping a player in the strip (which
+  // overwrites any previous guess for the active circle); clearing one is a
+  // separate explicit action (handleClearActive).
+  const handleSlotClick = (slotId: string) => {
+    setActiveSlotId(slotId);
   };
 
-  const handleSlotClick = (slotId: string) => {
-    if (selectedPlayer) {
-      setAssignments((prev) => ({ ...prev, [slotId]: selectedPlayer }));
-      setSelectedPlayer(null);
-      setActiveSlotId(slotId);
-      setChecked(false);
-    } else {
-      const current = assignments[slotId] ?? null;
-      if (current) {
-        setAssignments((prev) => ({ ...prev, [slotId]: null }));
-        setSelectedPlayer(current);
-        setChecked(false);
-      }
-      setActiveSlotId((prev) => (prev === slotId ? null : slotId));
-    }
+  const handleCardClick = (fullName: string) => {
+    if (!activeSlotId) return;
+    setAssignments((prev) => ({ ...prev, [activeSlotId]: fullName }));
+    setChecked(false);
+  };
+
+  const handleClearActive = () => {
+    if (!activeSlotId) return;
+    setAssignments((prev) => ({ ...prev, [activeSlotId]: null }));
+    setChecked(false);
   };
 
   const handleCheck = () => {
@@ -78,7 +78,6 @@ export default function App() {
 
   const handleReset = () => {
     setAssignments({});
-    setSelectedPlayer(null);
     setActiveSlotId(null);
     setChecked(false);
   };
@@ -86,6 +85,8 @@ export default function App() {
   if (!data) return <div className="ptmg-loading">Loading match data…</div>;
 
   const playerByName = new Map(ROSTER.map((p) => [p.fullName, p]));
+  const activeAssignedName = activeSlotId ? assignments[activeSlotId] : null;
+  const activeAssignedPlayer = activeAssignedName ? playerByName.get(activeAssignedName) : null;
 
   const pitchSlots: PitchSlot[] = slots.map((s) => {
     const assignedName = assignments[s.id] ?? null;
@@ -105,6 +106,7 @@ export default function App() {
       x: s.x,
       y: s.y,
       label: assignedPlayer ? String(assignedPlayer.number) : "?",
+      photo: assignedPlayer?.photo,
       state,
     };
   });
@@ -117,40 +119,29 @@ export default function App() {
           Every pass Argentina completed in the 2022 World Cup Final traces a
           "pivot triangle" through the player who received it and passed it
           on. The 11 circles below sit at each starter's real average pivot
-          location — a rough lineup shape. Click a circle to preview the
-          passing pattern that belongs there, then pick a player from the
-          roster and click the circle you think is theirs.
+          location — a rough lineup shape. Tap a circle to preview the
+          passing pattern that belongs there, then tap the player you think
+          it is from the strip at the bottom of the screen.
         </p>
       </header>
 
-      <section className="ptmg-roster" aria-live="polite">
-        <h2 className="ptmg-section-title">
-          {availablePlayers.length > 0
-            ? `Players to place (${availablePlayers.length} left)`
-            : "All players placed"}
-        </h2>
-        <div className="ptmg-roster-grid">
-          {availablePlayers.map((p) => (
-            <button
-              key={p.fullName}
-              className={`ptmg-card ${selectedPlayer === p.fullName ? "selected" : ""}`}
-              onClick={() => handleCardClick(p.fullName)}
-            >
-              <PlayerAvatar number={p.number} />
-              <span className="ptmg-card-name">{p.displayName}</span>
-            </button>
-          ))}
-        </div>
-        {selectedPlayer ? (
-          <p className="ptmg-hint">
-            Selected: <strong>{playerByName.get(selectedPlayer)?.displayName}</strong> — click a circle on the pitch to place them.
-          </p>
-        ) : (
-          <p className="ptmg-hint">Click an empty circle to preview its passing shape before you decide.</p>
-        )}
-      </section>
-
       <section className="ptmg-board">
+        <p className="ptmg-hint" aria-live="polite">
+          {!activeSlotId ? (
+            "Tap a circle on the pitch to preview its passing shape."
+          ) : activeAssignedPlayer ? (
+            <>
+              Guessed: <strong>{activeAssignedPlayer.displayName}</strong> — tap another player
+              below to change it, or{" "}
+              <button type="button" className="ptmg-clear-btn" onClick={handleClearActive}>
+                clear
+              </button>
+              .
+            </>
+          ) : (
+            "Now tap the player below you think belongs here."
+          )}
+        </p>
         <div className="ptmg-pitch-wrap-single">
           <PitchChart
             triangles={activeTriangles}
@@ -201,6 +192,45 @@ export default function App() {
         Data: <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">StatsBomb open data</a>,
         {" "}2022 World Cup Final, Argentina vs. France.
       </p>
+
+      <details className="ptmg-credits">
+        <summary>Photo credits</summary>
+        <ul>
+          {PHOTO_CREDITS.map((c) => {
+            const player = playerByName.get(c.fullName);
+            return (
+              <li key={c.fullName}>
+                {player?.displayName ?? c.fullName}: photo by{" "}
+                <a href={c.photographerUrl} target="_blank" rel="noopener noreferrer">{c.photographer}</a>
+                {" "}(<a href={c.sourceUrl} target="_blank" rel="noopener noreferrer">source</a>), licensed{" "}
+                <a href={c.licenseUrl} target="_blank" rel="noopener noreferrer">{c.license}</a>, via Wikimedia Commons.
+              </li>
+            );
+          })}
+        </ul>
+      </details>
+
+      <nav className="ptmg-strip" aria-label="Players to place">
+        <div className="ptmg-strip-inner">
+          {availablePlayers.length === 0 ? (
+            <p className="ptmg-strip-empty">
+              {checked ? "All players placed." : "All players placed — check your answers above."}
+            </p>
+          ) : (
+            availablePlayers.map((p) => (
+              <button
+                key={p.fullName}
+                className="ptmg-chip"
+                disabled={!activeSlotId}
+                onClick={() => handleCardClick(p.fullName)}
+              >
+                <PlayerAvatar photo={p.photo} displayName={p.displayName} number={p.number} size={40} />
+                <span className="ptmg-chip-name">{p.shortName}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </nav>
     </div>
   );
 }
