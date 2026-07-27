@@ -18,6 +18,12 @@ export default function App() {
   const [assignments, setAssignments] = useState<Assignments>({});
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
+  const [hasCheckedOnce, setHasCheckedOnce] = useState(false);
+  // Slots confirmed correct on some past check — locked in for good, even
+  // across retry rounds, so fixing mistakes can't clobber an answer already
+  // earned.
+  const [lockedSlots, setLockedSlots] = useState<Set<string>>(new Set());
+  const [showTrueLineup, setShowTrueLineup] = useState(false);
 
   const slots: GameSlot[] = useMemo(() => {
     if (!data) return [];
@@ -48,7 +54,10 @@ export default function App() {
 
   const availablePlayers = ROSTER.filter((p) => !assignedNames.has(p.fullName));
   const allAssigned = slots.length > 0 && slots.every((s) => assignments[s.id]);
-  const score = slots.filter((s) => assignments[s.id] === s.correctFullName).length;
+  const score = lockedSlots.size;
+  const isSolved = slots.length > 0 && lockedSlots.size === slots.length;
+
+  const isLocked = (slotId: string) => lockedSlots.has(slotId);
 
   // Tapping a circle only previews its passing shape — it never changes an
   // existing guess, so re-checking your work doesn't cost you the answer.
@@ -60,19 +69,41 @@ export default function App() {
   };
 
   const handleCardClick = (fullName: string) => {
-    if (!activeSlotId) return;
+    if (!activeSlotId || isLocked(activeSlotId)) return;
     setAssignments((prev) => ({ ...prev, [activeSlotId]: fullName }));
-    setChecked(false);
   };
 
   const handleClearActive = () => {
-    if (!activeSlotId) return;
+    if (!activeSlotId || isLocked(activeSlotId)) return;
     setAssignments((prev) => ({ ...prev, [activeSlotId]: null }));
-    setChecked(false);
   };
 
   const handleCheck = () => {
+    setLockedSlots((prev) => {
+      const next = new Set(prev);
+      for (const s of slots) {
+        if (assignments[s.id] === s.correctFullName) next.add(s.id);
+      }
+      return next;
+    });
     setChecked(true);
+    setHasCheckedOnce(true);
+    setActiveSlotId(null);
+  };
+
+  // Every wrong slot's rightful player is, by construction, misplaced on
+  // some other still-wrong slot (never on a locked one) — so releasing all
+  // wrong slots at once always hands back exactly the players needed to
+  // refill them, with no deadlock.
+  const handleRetry = () => {
+    setAssignments((prev) => {
+      const next = { ...prev };
+      for (const s of slots) {
+        if (!lockedSlots.has(s.id)) next[s.id] = null;
+      }
+      return next;
+    });
+    setChecked(false);
     setActiveSlotId(null);
   };
 
@@ -80,6 +111,9 @@ export default function App() {
     setAssignments({});
     setActiveSlotId(null);
     setChecked(false);
+    setHasCheckedOnce(false);
+    setLockedSlots(new Set());
+    setShowTrueLineup(false);
   };
 
   if (!data) return <div className="ptmg-loading">Loading match data…</div>;
@@ -91,22 +125,31 @@ export default function App() {
   const pitchSlots: PitchSlot[] = slots.map((s) => {
     const assignedName = assignments[s.id] ?? null;
     const assignedPlayer = assignedName ? playerByName.get(assignedName) : null;
+    const locked = lockedSlots.has(s.id);
 
-    let state: PitchSlotState = "empty";
-    if (checked) {
-      state = assignedName === s.correctFullName ? "correct" : assignedName ? "wrong" : "empty";
+    let state: PitchSlotState;
+    if (locked) {
+      state = "correct";
+    } else if (checked) {
+      state = s.id === activeSlotId ? "active" : assignedName ? "wrong" : "empty";
     } else if (s.id === activeSlotId) {
       state = "active";
     } else if (assignedName) {
       state = "assigned";
+    } else {
+      state = "empty";
     }
+
+    // Own guess by default; the toggle swaps every circle to the correct
+    // player while reviewing, without touching the underlying assignment.
+    const displayPlayer = checked && showTrueLineup ? playerByName.get(s.correctFullName) ?? null : assignedPlayer;
 
     return {
       id: s.id,
       x: s.x,
       y: s.y,
-      label: assignedPlayer ? String(assignedPlayer.number) : "?",
-      photo: assignedPlayer?.photo,
+      label: displayPlayer ? String(displayPlayer.number) : "?",
+      photo: displayPlayer?.photo,
       state,
     };
   });
@@ -129,6 +172,10 @@ export default function App() {
         <p className="ptmg-hint" aria-live="polite">
           {!activeSlotId ? (
             "Tap a circle on the pitch to preview its passing shape."
+          ) : isLocked(activeSlotId) ? (
+            <>
+              Correct — <strong>{activeAssignedPlayer?.displayName}</strong> pivots here.
+            </>
           ) : activeAssignedPlayer ? (
             <>
               Guessed: <strong>{activeAssignedPlayer.displayName}</strong> — tap another player
@@ -151,17 +198,17 @@ export default function App() {
           />
         </div>
 
-        {checked && (
+        {hasCheckedOnce && (
           <ul className="ptmg-results-list">
             {slots.map((s) => {
               const assignedName = assignments[s.id] ?? null;
               const assignedPlayer = assignedName ? playerByName.get(assignedName) : null;
               const correctPlayer = playerByName.get(s.correctFullName);
-              const isCorrect = assignedName === s.correctFullName;
+              const locked = lockedSlots.has(s.id);
               return (
-                <li key={s.id} className={isCorrect ? "correct" : "wrong"}>
+                <li key={s.id} className={locked ? "correct" : "wrong"}>
                   {assignedPlayer?.displayName ?? "—"}
-                  {isCorrect ? " ✓" : ` — actually ${correctPlayer?.displayName} ✗`}
+                  {locked ? " ✓" : checked ? ` — actually ${correctPlayer?.displayName} ✗` : ""}
                 </li>
               );
             })}
@@ -170,18 +217,30 @@ export default function App() {
       </section>
 
       <div className="ptmg-actions">
-        <button className="ptmg-btn primary" disabled={!allAssigned} onClick={handleCheck}>
-          Check answers
-        </button>
+        {!checked && (
+          <button className="ptmg-btn primary" disabled={!allAssigned} onClick={handleCheck}>
+            Check answers
+          </button>
+        )}
         <button className="ptmg-btn" onClick={handleReset}>
           Reset
         </button>
+        {checked && !isSolved && (
+          <button className="ptmg-btn" onClick={handleRetry}>
+            Try the wrong ones again
+          </button>
+        )}
         {checked && (
+          <button className="ptmg-btn" onClick={() => setShowTrueLineup((v) => !v)}>
+            {showTrueLineup ? "Hide true lineup" : "Show true lineup"}
+          </button>
+        )}
+        {hasCheckedOnce && (
           <span className="ptmg-score">
             Score: {score} / {slots.length}
           </span>
         )}
-        {!allAssigned && (
+        {!checked && !allAssigned && (
           <span className="ptmg-hint-inline">
             Place all {slots.length} players to check your answers.
           </span>
@@ -221,7 +280,7 @@ export default function App() {
               <button
                 key={p.fullName}
                 className="ptmg-chip"
-                disabled={!activeSlotId}
+                disabled={!activeSlotId || isLocked(activeSlotId)}
                 onClick={() => handleCardClick(p.fullName)}
               >
                 <PlayerAvatar photo={p.photo} displayName={p.displayName} number={p.number} size={40} />
