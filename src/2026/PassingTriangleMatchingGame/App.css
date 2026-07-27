@@ -73,6 +73,28 @@
   line-height: 1.5;
 }
 
+.ptmg-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 320px;
+  margin: 0 0 1.75rem;
+}
+
+.ptmg-demo-svg {
+  width: 100%;
+  height: auto;
+}
+
+.ptmg-demo-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}
+
 .ptmg-section-title {
   font-size: 1rem;
   color: var(--text-secondary);
@@ -88,15 +110,19 @@
   min-height: 1.2em;
 }
 
-.ptmg-clear-btn {
-  font: inherit;
-  font-size: inherit;
-  color: var(--status-critical);
-  background: none;
-  border: none;
-  padding: 0;
-  text-decoration: underline;
-  cursor: pointer;
+.ptmg-chip-clear {
+  border-style: dashed;
+}
+
+.ptmg-avatar-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px dashed var(--muted);
+  color: var(--muted);
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 /* Bottom-pinned player strip: replaces the old full-width roster grid so the
@@ -131,7 +157,7 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   text-align: center;
-  width: 100%;
+  flex: 1 1 auto;
 }
 
 .ptmg-chip {
@@ -285,6 +311,37 @@
 .ptmg-hint-inline {
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.ptmg-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ptmg-history li {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--gridline);
+  background: var(--surface-1);
+}
+
+.ptmg-history li + li::before {
+  content: "→";
+  margin-right: 0.4rem;
+  color: var(--muted);
+}
+
+.ptmg-history li.solved {
+  color: var(--status-good);
+  border-color: var(--status-good);
+  font-weight: 700;
 }
 
 .ptmg-footnote {

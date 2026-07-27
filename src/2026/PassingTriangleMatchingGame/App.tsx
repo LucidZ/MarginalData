@@ -13,6 +13,46 @@ function mean(values: number[]): number {
   return values.reduce((sum, v) => sum + v, 0) / values.length;
 }
 
+function ordinal(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+}
+
+// Static schematic, not real match data — teaches the "pivot triangle" shape
+// (pass in, pivot, pass out) in one glance, before the player has tapped
+// anything on the real pitch below.
+function DemoTriangle() {
+  return (
+    <div className="ptmg-demo">
+      <svg viewBox="0 0 260 110" className="ptmg-demo-svg" role="img" aria-label="Diagram of one pivot triangle: a pass received, then a pass played on">
+        <defs>
+          <marker id="ptmg-demo-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--status-good)" />
+          </marker>
+        </defs>
+        <line x1="30" y1="88" x2="122" y2="26" stroke="var(--status-good)" strokeWidth="2.5" markerEnd="url(#ptmg-demo-arrow)" />
+        <line x1="132" y1="26" x2="222" y2="80" stroke="var(--status-good)" strokeWidth="2.5" markerEnd="url(#ptmg-demo-arrow)" />
+        <circle cx="30" cy="88" r="4" fill="var(--muted)" />
+        <circle cx="130" cy="24" r="6" fill="var(--status-warning)" />
+        <circle cx="224" cy="80" r="4" fill="var(--muted)" />
+        <text x="30" y="104" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">received</text>
+        <text x="130" y="12" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--text-primary)">pivot</text>
+        <text x="224" y="98" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">played on</text>
+      </svg>
+      <p className="ptmg-demo-caption">
+        That's one <strong>pivot triangle</strong>. Every circle on the pitch
+        below is a real player's whole pattern — many of these, overlaid.
+      </p>
+    </div>
+  );
+}
+
 export default function App() {
   const data = useData();
   const [assignments, setAssignments] = useState<Assignments>({});
@@ -23,7 +63,10 @@ export default function App() {
   // across retry rounds, so fixing mistakes can't clobber an answer already
   // earned.
   const [lockedSlots, setLockedSlots] = useState<Set<string>>(new Set());
-  const [showTrueLineup, setShowTrueLineup] = useState(false);
+  // Cumulative correct-count recorded after each "Check answers" click, so
+  // progress across retry rounds is visible (e.g. 5/11, then 7/11, then 11/11).
+  const [attemptHistory, setAttemptHistory] = useState<number[]>([]);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "shared">("idle");
 
   const slots: GameSlot[] = useMemo(() => {
     if (!data) return [];
@@ -79,13 +122,12 @@ export default function App() {
   };
 
   const handleCheck = () => {
-    setLockedSlots((prev) => {
-      const next = new Set(prev);
-      for (const s of slots) {
-        if (assignments[s.id] === s.correctFullName) next.add(s.id);
-      }
-      return next;
-    });
+    const nextLocked = new Set(lockedSlots);
+    for (const s of slots) {
+      if (assignments[s.id] === s.correctFullName) nextLocked.add(s.id);
+    }
+    setLockedSlots(nextLocked);
+    setAttemptHistory((prev) => [...prev, nextLocked.size]);
     setChecked(true);
     setHasCheckedOnce(true);
     setActiveSlotId(null);
@@ -105,6 +147,7 @@ export default function App() {
     });
     setChecked(false);
     setActiveSlotId(null);
+    setShareStatus("idle");
   };
 
   const handleReset = () => {
@@ -113,7 +156,35 @@ export default function App() {
     setChecked(false);
     setHasCheckedOnce(false);
     setLockedSlots(new Set());
-    setShowTrueLineup(false);
+    setAttemptHistory([]);
+    setShareStatus("idle");
+  };
+
+  const handleShare = async () => {
+    const triesLine = attemptHistory.length > 1
+      ? ` in ${attemptHistory.length} tries (${attemptHistory.join(" → ")})`
+      : "";
+    const text = `I scored ${score}/${slots.length} on the Passing Triangle Matching Game${triesLine} — can you place Argentina's 2022 World Cup Final lineup?`;
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text, url });
+        setShareStatus("shared");
+        setTimeout(() => setShareStatus("idle"), 2000);
+      } catch {
+        // User cancelled the native share sheet — not an error worth surfacing.
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 2000);
+    } catch {
+      setShareStatus("idle");
+    }
   };
 
   if (!data) return <div className="ptmg-loading">Loading match data…</div>;
@@ -140,16 +211,12 @@ export default function App() {
       state = "empty";
     }
 
-    // Own guess by default; the toggle swaps every circle to the correct
-    // player while reviewing, without touching the underlying assignment.
-    const displayPlayer = checked && showTrueLineup ? playerByName.get(s.correctFullName) ?? null : assignedPlayer;
-
     return {
       id: s.id,
       x: s.x,
       y: s.y,
-      label: displayPlayer ? String(displayPlayer.number) : "?",
-      photo: displayPlayer?.photo,
+      label: assignedPlayer ? String(assignedPlayer.number) : "?",
+      photo: assignedPlayer?.photo,
       state,
     };
   });
@@ -159,14 +226,13 @@ export default function App() {
       <header className="ptmg-header">
         <h1 className="ptmg-title">Passing Triangle Matching Game</h1>
         <p className="ptmg-subtitle">
-          Every pass Argentina completed in the 2022 World Cup Final traces a
-          "pivot triangle" through the player who received it and passed it
-          on. The 11 circles below sit at each starter's real average pivot
-          location — a rough lineup shape. Tap a circle to preview the
-          passing pattern that belongs there, then tap the player you think
-          it is from the strip at the bottom of the screen.
+          Every Argentina starter has a distinct "pivot triangle" — the shape
+          of the pass they received and the pass they played on, in the 2022
+          World Cup Final. Match all 11 shapes to the right player.
         </p>
       </header>
+
+      <DemoTriangle />
 
       <section className="ptmg-board">
         <p className="ptmg-hint" aria-live="polite">
@@ -179,11 +245,7 @@ export default function App() {
           ) : activeAssignedPlayer ? (
             <>
               Guessed: <strong>{activeAssignedPlayer.displayName}</strong> — tap another player
-              below to change it, or{" "}
-              <button type="button" className="ptmg-clear-btn" onClick={handleClearActive}>
-                clear
-              </button>
-              .
+              below to change it, or tap the <strong>?</strong> to clear it.
             </>
           ) : (
             "Now tap the player below you think belongs here."
@@ -230,15 +292,15 @@ export default function App() {
             Try the wrong ones again
           </button>
         )}
-        {checked && (
-          <button className="ptmg-btn" onClick={() => setShowTrueLineup((v) => !v)}>
-            {showTrueLineup ? "Hide true lineup" : "Show true lineup"}
-          </button>
-        )}
         {hasCheckedOnce && (
           <span className="ptmg-score">
             Score: {score} / {slots.length}
           </span>
+        )}
+        {hasCheckedOnce && (
+          <button className="ptmg-btn" onClick={handleShare}>
+            {shareStatus === "copied" ? "Copied!" : shareStatus === "shared" ? "Shared!" : "Share results"}
+          </button>
         )}
         {!checked && !allAssigned && (
           <span className="ptmg-hint-inline">
@@ -246,6 +308,16 @@ export default function App() {
           </span>
         )}
       </div>
+
+      {attemptHistory.length > 0 && (
+        <ol className="ptmg-history">
+          {attemptHistory.map((s, i) => (
+            <li key={i} className={s === slots.length ? "solved" : undefined}>
+              {ordinal(i + 1)} try: {s}/{slots.length}
+            </li>
+          ))}
+        </ol>
+      )}
 
       <p className="ptmg-footnote">
         Data: <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">StatsBomb open data</a>,
@@ -271,6 +343,14 @@ export default function App() {
 
       <nav className="ptmg-strip" aria-label="Players to place">
         <div className="ptmg-strip-inner">
+          <button
+            className="ptmg-chip ptmg-chip-clear"
+            disabled={!activeSlotId || isLocked(activeSlotId)}
+            onClick={handleClearActive}
+          >
+            <span className="ptmg-avatar ptmg-avatar-clear" style={{ width: 40, height: 40 }}>?</span>
+            <span className="ptmg-chip-name">Clear</span>
+          </button>
           {availablePlayers.length === 0 ? (
             <p className="ptmg-strip-empty">
               {checked ? "All players placed." : "All players placed — check your answers above."}
