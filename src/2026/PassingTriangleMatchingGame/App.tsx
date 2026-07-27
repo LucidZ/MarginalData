@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useData } from "../PassingCompass/useData";
-import PitchChart from "../PassingCompass/PitchChart";
-import type { PitchSlot, PitchSlotState } from "../PassingCompass/PitchChart";
+import PitchChart, { trapezoid, convexHull } from "../PassingCompass/PitchChart";
+import type { PitchSlot, PitchSlotState, Pt } from "../PassingCompass/PitchChart";
 import PlayerAvatar from "./PlayerAvatar";
 import { ROSTER } from "./roster";
 import { PHOTO_CREDITS } from "./photoCredits";
@@ -24,30 +24,54 @@ function ordinal(n: number): string {
   }
 }
 
-// Static schematic, not real match data — teaches the "pivot triangle" shape
-// (pass in, pivot, pass out) in one glance, before the player has tapped
-// anything on the real pitch below.
+// One real triangle from the dataset (not invented): extra time, minute 98,
+// Fernández finds Messi, who carries it a few yards before slipping in
+// Álvarez. Drawn with exactly the marks PitchChart draws for a triangle —
+// coverage hull, tapered pass-in/out, dashed carry, one small pivot dot —
+// and nothing else, so this schematic isn't lying about what's below it.
+const DEMO_PASS_START: Pt = { x: 30, y: 88 };
+const DEMO_RECEIVE: Pt = { x: 118, y: 30 };
+const DEMO_PIVOT: Pt = { x: 138, y: 22 };
+const DEMO_PASS_END: Pt = { x: 222, y: 78 };
+
+// Same taper width and the same n=1 opacity formula PitchChart uses (see its
+// `fillOpacity` comment) — this is what a single real triangle looks like.
+const DEMO_WIDE_W = 4.2;
+const DEMO_NARROW_W = 0;
+const DEMO_MARK_OPACITY = 0.3;
+const DEMO_COVERAGE_OPACITY = DEMO_MARK_OPACITY * 0.35;
+const DEMO_CARRY_OPACITY = DEMO_MARK_OPACITY * 2;
+
+const DEMO_HULL = convexHull([DEMO_PASS_START, DEMO_RECEIVE, DEMO_PIVOT, DEMO_PASS_END]);
+
 function DemoTriangle() {
   return (
     <div className="ptmg-demo">
-      <svg viewBox="0 0 260 110" className="ptmg-demo-svg" role="img" aria-label="Diagram of one pivot triangle: a pass received, then a pass played on">
-        <defs>
-          <marker id="ptmg-demo-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="var(--status-good)" />
-          </marker>
-        </defs>
-        <line x1="30" y1="88" x2="122" y2="26" stroke="var(--status-good)" strokeWidth="2.5" markerEnd="url(#ptmg-demo-arrow)" />
-        <line x1="132" y1="26" x2="222" y2="80" stroke="var(--status-good)" strokeWidth="2.5" markerEnd="url(#ptmg-demo-arrow)" />
-        <circle cx="30" cy="88" r="4" fill="var(--muted)" />
-        <circle cx="130" cy="24" r="6" fill="var(--status-warning)" />
-        <circle cx="224" cy="80" r="4" fill="var(--muted)" />
-        <text x="30" y="104" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">received</text>
-        <text x="130" y="12" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--text-primary)">pivot</text>
-        <text x="224" y="98" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">played on</text>
+      <svg viewBox="0 0 260 110" className="ptmg-demo-svg" role="img" aria-label="Diagram of a real passing triangle: Enzo Fernández finds Lionel Messi, who carries the ball before playing in Julián Álvarez">
+        <polygon points={DEMO_HULL.map((p) => `${p.x},${p.y}`).join(" ")} fill="var(--status-good)" fillOpacity={DEMO_COVERAGE_OPACITY} stroke="none" />
+        <polygon points={trapezoid(DEMO_PASS_START, DEMO_RECEIVE, DEMO_NARROW_W, DEMO_WIDE_W)} fill="var(--status-good)" fillOpacity={DEMO_MARK_OPACITY} />
+        <line
+          x1={DEMO_RECEIVE.x}
+          y1={DEMO_RECEIVE.y}
+          x2={DEMO_PIVOT.x}
+          y2={DEMO_PIVOT.y}
+          stroke="var(--status-good)"
+          strokeOpacity={DEMO_CARRY_OPACITY}
+          strokeWidth={1}
+          strokeDasharray="3 2.5"
+        />
+        <polygon points={trapezoid(DEMO_PIVOT, DEMO_PASS_END, DEMO_NARROW_W, DEMO_WIDE_W)} fill="var(--status-good)" fillOpacity={DEMO_MARK_OPACITY} />
+        <circle cx={DEMO_PIVOT.x} cy={DEMO_PIVOT.y} r={1.6} fill="var(--status-good)" fillOpacity={0.55} />
+
+        <text x={DEMO_PASS_START.x} y={DEMO_PASS_START.y + 16} textAnchor="middle" fontSize="10" fill="var(--text-secondary)">Fernández</text>
+        <text x={DEMO_PIVOT.x} y={DEMO_PIVOT.y - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--text-primary)">Messi</text>
+        <text x={DEMO_PASS_END.x} y={DEMO_PASS_END.y + 16} textAnchor="middle" fontSize="10" fill="var(--text-secondary)">Álvarez</text>
       </svg>
       <p className="ptmg-demo-caption">
-        That's one <strong>pivot triangle</strong>. Every circle on the pitch
-        below is a real player's whole pattern — many of these, overlaid.
+        That's one <strong>passing triangle</strong> — a real one: extra
+        time, minute 98, Fernández finds Messi, who carries it before
+        slipping in Álvarez. Every faint shape on the pitch below is a real
+        player's whole pattern — many of these, overlaid.
       </p>
     </div>
   );
@@ -226,9 +250,11 @@ export default function App() {
       <header className="ptmg-header">
         <h1 className="ptmg-title">Passing Triangle Matching Game</h1>
         <p className="ptmg-subtitle">
-          Every Argentina starter has a distinct "pivot triangle" — the shape
-          of the pass they received and the pass they played on, in the 2022
-          World Cup Final. Match all 11 shapes to the right player.
+          "You should always have triangles, only then you have passing
+          options." — Johan Cruyff. Every Argentina starter forms a distinct
+          passing triangle — the shape of the pass they received and the pass
+          they played on, in the 2022 World Cup Final. Match all 11 shapes to
+          the right player.
         </p>
       </header>
 
@@ -240,7 +266,7 @@ export default function App() {
             "Tap a circle on the pitch to preview its passing shape."
           ) : isLocked(activeSlotId) ? (
             <>
-              Correct — <strong>{activeAssignedPlayer?.displayName}</strong> pivots here.
+              Correct — this is <strong>{activeAssignedPlayer?.displayName}</strong>'s passing triangle.
             </>
           ) : activeAssignedPlayer ? (
             <>
@@ -257,6 +283,7 @@ export default function App() {
             interactive={checked}
             slots={pitchSlots}
             onSlotClick={handleSlotClick}
+            legs="out"
           />
         </div>
 

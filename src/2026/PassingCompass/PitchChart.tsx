@@ -26,14 +26,14 @@ const H = PITCH_LENGTH * SCALE;
 const WIDE_W = 4.2;
 const NARROW_W = 0;
 
-type Pt = { x: number; y: number };
+export type Pt = { x: number; y: number };
 
 function toPx(x: number, y: number): Pt {
   return { x: y * SCALE, y: (PITCH_LENGTH - x) * SCALE };
 }
 
 /** Points for a quadrilateral from p1 (width w1) to p2 (width w2), centered on the p1-p2 line. */
-function trapezoid(p1: Pt, p2: Pt, w1: number, w2: number): string {
+export function trapezoid(p1: Pt, p2: Pt, w1: number, w2: number): string {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
@@ -49,7 +49,7 @@ function trapezoid(p1: Pt, p2: Pt, w1: number, w2: number): string {
 }
 
 /** Convex hull (monotone chain) of the pass-in/receive/pivot/pass-out points — the ground this one sequence covered. */
-function convexHull(points: Pt[]): Pt[] {
+export function convexHull(points: Pt[]): Pt[] {
   const pts = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
   const cross = (o: Pt, a: Pt, b: Pt) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
   const lower: Pt[] = [];
@@ -97,6 +97,14 @@ interface Props {
   /** Lineup-slot circles drawn on top of the pitch (matching game's single-pitch mode). */
   slots?: PitchSlot[];
   onSlotClick?: (id: string) => void;
+  /**
+   * "both" (default) draws the incoming and outgoing pass as bold marks — the
+   * full pivot triangle. "out" draws only the outgoing pass (the pivot's own
+   * pass), so the bold marks read as that player's personal passing chart;
+   * the faint coverage hull still spans all four points, so the triangle
+   * they're part of remains visible underneath, just not double-highlighted.
+   */
+  legs?: "both" | "out";
 }
 
 interface HoverInfo {
@@ -105,7 +113,7 @@ interface HoverInfo {
   lines: string[];
 }
 
-export default function PitchChart({ triangles, interactive = true, slots, onSlotClick }: Props) {
+export default function PitchChart({ triangles, interactive = true, slots, onSlotClick, legs = "both" }: Props) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   // Inverse-sqrt (not inverse-linear) decay: linear decay pinned low-volume players at the
@@ -155,7 +163,9 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
       marks.push(
         <g key={i} className="pc-mark" style={interactive ? undefined : { cursor: "default" }}>
           {/* pass in: narrow at its real origin, widening toward the pivot */}
-          <polygon points={trapezoid(passStart, receive, NARROW_W, WIDE_W)} fill={color} fillOpacity={fillOpacity} stroke="none" />
+          {legs === "both" && (
+            <polygon points={trapezoid(passStart, receive, NARROW_W, WIDE_W)} fill={color} fillOpacity={fillOpacity} stroke="none" />
+          )}
           {/* carry / dribble between receiving and releasing (zero-length and invisible if the pivot one-touched it) */}
           <line
             x1={receive.x}

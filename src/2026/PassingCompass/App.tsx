@@ -152,11 +152,11 @@ export default function App() {
         {mode === "chain" &&
           `Showing ${filteredTriangles.length} two-pass pivot chains (completed pass 1, into the same player who then plays pass 2). The path traces vector-added start → pivot → end from a shared origin.`}
         {mode === "relative" && !alignReceive &&
-          `Showing ${filteredTriangles.length} pivot triangles centered on the receiving player. Each triangle's two outer points are where the incoming pass came from and where the outgoing pass went — fills are very transparent so common receive-and-release shapes build up density where they overlap.`}
+          `Showing ${filteredTriangles.length} passing triangles centered on the receiving player. Each triangle's two outer points are where the incoming pass came from and where the outgoing pass went — fills are very transparent so common receive-and-release shapes build up density where they overlap.`}
         {mode === "relative" && alignReceive &&
-          `Showing ${filteredTriangles.length} pivot triangles, each rotated so the incoming pass always arrives from the left — this removes absolute pitch direction and isolates each player's typical turn angle and pass lengths on receipt.`}
+          `Showing ${filteredTriangles.length} passing triangles, each rotated so the incoming pass always arrives from the left — this removes absolute pitch direction and isolates each player's typical turn angle and pass lengths on receipt.`}
         {mode === "pitch" &&
-          `Showing ${filteredTriangles.length} pivot triangles at the real pitch location where they happened — vertices are the incoming pass's origin, the pivot player, and the outgoing pass's end. Oriented to ${team}'s attacking direction (left to right), not the actual broadcast camera side.`}
+          `Showing ${filteredTriangles.length} passing triangles at the real pitch location where they happened — vertices are the incoming pass's origin, the receiving player, and the outgoing pass's end. Oriented to ${team}'s attacking direction (left to right), not the actual broadcast camera side.`}
         {" "}Data: <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">StatsBomb open data</a>.
       </p>
     </div>
