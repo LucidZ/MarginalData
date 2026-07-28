@@ -68,7 +68,7 @@ export function convexHull(points: Pt[]): Pt[] {
   return lower.concat(upper);
 }
 
-export type PitchSlotState = "empty" | "assigned" | "active" | "correct" | "wrong";
+export type PitchSlotState = "empty" | "assigned" | "active" | "correct" | "wrong" | "revealed";
 
 export interface PitchSlot {
   id: string;
@@ -88,6 +88,8 @@ const SLOT_STATE_COLOR: Record<PitchSlotState, string> = {
   active: "var(--status-warning)",
   correct: "var(--status-good)",
   wrong: "var(--status-critical)",
+  // Filled in after the player gave up — distinct from an earned "correct".
+  revealed: "var(--status-serious)",
 };
 
 interface Props {
@@ -121,6 +123,25 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
   // pivots faded almost to the floor. sqrt decays slower, so the two ends land closer together;
   // 0.875 is picked so an n≈47 pivot still renders at ~0.128, same as before this change.
   const fillOpacity = Math.max(0.06, Math.min(0.3, 0.875 / Math.sqrt(Math.max(triangles.length, 1))));
+
+  // Invisible oversized hit target for each slot circle: the drawn circle
+  // alone is well under the ~44px mobile tap-target minimum. Capped by the
+  // closest pair of slots (two players' average pivot positions can land
+  // close together) so enlarged hit areas never overlap and cause mistaps.
+  const slotHitR = useMemo(() => {
+    const baseR = 3.6 * SCALE;
+    const desired = baseR + 14;
+    if (!slots || slots.length < 2) return desired;
+    const pts = slots.map((s) => toPx(s.x, s.y));
+    let minDist = Infinity;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+        if (d < minDist) minDist = d;
+      }
+    }
+    return Math.min(desired, minDist / 2 - 2);
+  }, [slots]);
 
   const { coverage, marks, dots } = useMemo(() => {
     const coverage: React.ReactNode[] = [];
@@ -232,6 +253,7 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
               role={onSlotClick ? "button" : undefined}
               aria-label={onSlotClick ? `Lineup slot, ${slot.state}` : undefined}
             >
+              {onSlotClick && <circle cx={p.x} cy={p.y} r={slotHitR} fill="transparent" />}
               <circle cx={p.x} cy={p.y} r={r} fill="var(--surface-1)" fillOpacity={0.92} stroke={color} strokeWidth={2} />
               {slot.photo ? (
                 <>

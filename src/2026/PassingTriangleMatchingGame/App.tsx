@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "../PassingCompass/useData";
 import PitchChart, { trapezoid, convexHull } from "../PassingCompass/PitchChart";
 import type { PitchSlot, PitchSlotState, Pt } from "../PassingCompass/PitchChart";
@@ -24,11 +24,15 @@ function ordinal(n: number): string {
   }
 }
 
+// How far the strip auto-peeks to hint it scrolls (roughly one chip + gap).
+const STRIP_PEEK_PX = 96;
+
 // One real triangle from the dataset (not invented): extra time, minute 98,
 // Fernández finds Messi, who carries it a few yards before slipping in
-// Álvarez. Drawn with exactly the marks PitchChart draws for a triangle —
-// coverage hull, tapered pass-in/out, dashed carry, one small pivot dot —
-// and nothing else, so this schematic isn't lying about what's below it.
+// Álvarez. Drawn with exactly the marks PitchChart draws in `legs="out"`
+// mode (what the board below actually uses) — coverage hull, dashed carry,
+// tapered pass-out, one small pivot dot, and the pass-in left faint inside
+// the hull only — so this schematic isn't lying about what's below it.
 const DEMO_PASS_START: Pt = { x: 30, y: 88 };
 const DEMO_RECEIVE: Pt = { x: 118, y: 30 };
 const DEMO_PIVOT: Pt = { x: 138, y: 22 };
@@ -49,7 +53,6 @@ function DemoTriangle() {
     <div className="ptmg-demo">
       <svg viewBox="0 0 260 110" className="ptmg-demo-svg" role="img" aria-label="Diagram of a real passing triangle: Enzo Fernández finds Lionel Messi, who carries the ball before playing in Julián Álvarez">
         <polygon points={DEMO_HULL.map((p) => `${p.x},${p.y}`).join(" ")} fill="var(--status-good)" fillOpacity={DEMO_COVERAGE_OPACITY} stroke="none" />
-        <polygon points={trapezoid(DEMO_PASS_START, DEMO_RECEIVE, DEMO_NARROW_W, DEMO_WIDE_W)} fill="var(--status-good)" fillOpacity={DEMO_MARK_OPACITY} />
         <line
           x1={DEMO_RECEIVE.x}
           y1={DEMO_RECEIVE.y}
@@ -63,15 +66,21 @@ function DemoTriangle() {
         <polygon points={trapezoid(DEMO_PIVOT, DEMO_PASS_END, DEMO_NARROW_W, DEMO_WIDE_W)} fill="var(--status-good)" fillOpacity={DEMO_MARK_OPACITY} />
         <circle cx={DEMO_PIVOT.x} cy={DEMO_PIVOT.y} r={1.6} fill="var(--status-good)" fillOpacity={0.55} />
 
+        <text x={58} y={46} textAnchor="middle" fontSize="8" fill="var(--text-secondary)">pass</text>
+        <text x={130} y={42} textAnchor="middle" fontSize="8" fill="var(--text-secondary)">carry</text>
+        <text x={192} y={38} textAnchor="middle" fontSize="8" fill="var(--text-secondary)">pass</text>
+
         <text x={DEMO_PASS_START.x} y={DEMO_PASS_START.y + 16} textAnchor="middle" fontSize="10" fill="var(--text-secondary)">Fernández</text>
         <text x={DEMO_PIVOT.x} y={DEMO_PIVOT.y - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--text-primary)">Messi</text>
         <text x={DEMO_PASS_END.x} y={DEMO_PASS_END.y + 16} textAnchor="middle" fontSize="10" fill="var(--text-secondary)">Álvarez</text>
       </svg>
       <p className="ptmg-demo-caption">
-        That's one <strong>passing triangle</strong> — a real one: extra
-        time, minute 98, Fernández finds Messi, who carries it before
-        slipping in Álvarez. Every faint shape on the pitch below is a real
-        player's whole pattern — many of these, overlaid.
+        That's one real <strong>passing triangle</strong> with Messi as the pivot point.
+        Each circle below represents the average position of a different starting player
+        for Argentina in the 2022 World Cup final. 
+      </p>
+      <p className="ptmg-demo-caption"> Tap a circle to see every passing triangle that player
+        was the pivot for. Incomplete passes show in red.
       </p>
     </div>
   );
@@ -91,6 +100,19 @@ export default function App() {
   // progress across retry rounds is visible (e.g. 5/11, then 7/11, then 11/11).
   const [attemptHistory, setAttemptHistory] = useState<number[]>([]);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "shared">("idle");
+  // Wrong slots stay unrevealed across retries until the player explicitly
+  // gives up — checking your work shouldn't spoil the answer for free.
+  const [gaveUp, setGaveUp] = useState(false);
+  // Edge fades on the player strip hint that it scrolls sideways — recomputed
+  // on scroll/resize and whenever the chip count changes (placing a player
+  // shrinks the strip and can turn off the right-edge fade).
+  const stripInnerRef = useRef<HTMLDivElement>(null);
+  const stripNavRef = useRef<HTMLElement>(null);
+  const [stripScroll, setStripScroll] = useState({ atStart: true, atEnd: true });
+  // True once the player has ever touched/wheeled the strip themselves —
+  // gates the auto-peek teaching animation below so it never fights a real
+  // scroll gesture and stops nagging once it's done its job.
+  const [stripInteracted, setStripInteracted] = useState(false);
 
   const slots: GameSlot[] = useMemo(() => {
     if (!data) return [];
@@ -120,6 +142,83 @@ export default function App() {
   );
 
   const availablePlayers = ROSTER.filter((p) => !assignedNames.has(p.fullName));
+
+  useEffect(() => {
+    const el = stripInnerRef.current;
+    if (!el) return;
+    const update = () => {
+      setStripScroll({
+        atStart: el.scrollLeft <= 1,
+        atEnd: el.scrollLeft + el.clientWidth >= el.scrollWidth - 1,
+      });
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+    // `data` is included so this re-attaches once the loading gate lifts and
+    // the strip's DOM (and stripInnerRef) actually exists.
+  }, [availablePlayers.length, data]);
+
+  // Nudges the strip sideways and back on a loop so the motion itself — not
+  // just a static arrow — demonstrates that it scrolls. A real touch/wheel
+  // on the strip cancels this for good; it isn't re-armed on Reset since the
+  // player has already learned the mechanic by then.
+  useEffect(() => {
+    if (stripInteracted) return;
+    const el = stripInnerRef.current;
+    if (!el || availablePlayers.length === 0) return;
+
+    const markInteracted = () => setStripInteracted(true);
+    el.addEventListener("pointerdown", markInteracted, { once: true });
+    el.addEventListener("wheel", markInteracted, { once: true, passive: true });
+
+    let returnTimeout: number | undefined;
+    const peek = () => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      el.scrollTo({ left: STRIP_PEEK_PX, behavior: "smooth" });
+      returnTimeout = window.setTimeout(() => {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      }, 550);
+    };
+    const firstPeek = window.setTimeout(peek, 1000);
+    const interval = window.setInterval(peek, 3400);
+
+    return () => {
+      el.removeEventListener("pointerdown", markInteracted);
+      el.removeEventListener("wheel", markInteracted);
+      window.clearTimeout(firstPeek);
+      window.clearTimeout(returnTimeout);
+      window.clearInterval(interval);
+    };
+  }, [stripInteracted, availablePlayers.length, data]);
+
+  // The strip only appears once a slot is active (see stripVisible below),
+  // so this is the pixel test for whether it's on screen at all.
+  const stripVisible = activeSlotId !== null;
+
+  // The strip is fixed to the viewport bottom, so .ptmg-root needs matching
+  // bottom padding to keep the footnote from hiding under it — measured
+  // live since the strip's own content (hint text wrapping, chip count)
+  // changes its height. While the strip is hidden (off-screen) no padding
+  // is needed to clear it.
+  useEffect(() => {
+    if (!stripVisible) {
+      document.documentElement.style.setProperty("--strip-height", "0px");
+      return;
+    }
+    const nav = stripNavRef.current;
+    if (!nav) return;
+    const observer = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty("--strip-height", `${entry.contentRect.height}px`);
+    });
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [data, stripVisible]);
+
   const allAssigned = slots.length > 0 && slots.every((s) => assignments[s.id]);
   const score = lockedSlots.size;
   const isSolved = slots.length > 0 && lockedSlots.size === slots.length;
@@ -174,6 +273,13 @@ export default function App() {
     setShareStatus("idle");
   };
 
+  const handleGiveUp = () => {
+    setGaveUp(true);
+    setChecked(true);
+    setHasCheckedOnce(true);
+    setActiveSlotId(null);
+  };
+
   const handleReset = () => {
     setAssignments({});
     setActiveSlotId(null);
@@ -182,6 +288,7 @@ export default function App() {
     setLockedSlots(new Set());
     setAttemptHistory([]);
     setShareStatus("idle");
+    setGaveUp(false);
   };
 
   const handleShare = async () => {
@@ -221,10 +328,16 @@ export default function App() {
     const assignedName = assignments[s.id] ?? null;
     const assignedPlayer = assignedName ? playerByName.get(assignedName) : null;
     const locked = lockedSlots.has(s.id);
+    // After giving up, unlocked circles show who actually belongs there
+    // instead of the player's wrong guess.
+    const revealed = gaveUp && !locked;
+    const displayPlayer = revealed ? playerByName.get(s.correctFullName) : assignedPlayer;
 
     let state: PitchSlotState;
     if (locked) {
       state = "correct";
+    } else if (revealed) {
+      state = s.id === activeSlotId ? "active" : "revealed";
     } else if (checked) {
       state = s.id === activeSlotId ? "active" : assignedName ? "wrong" : "empty";
     } else if (s.id === activeSlotId) {
@@ -239,8 +352,8 @@ export default function App() {
       id: s.id,
       x: s.x,
       y: s.y,
-      label: assignedPlayer ? String(assignedPlayer.number) : "?",
-      photo: assignedPlayer?.photo,
+      label: displayPlayer ? String(displayPlayer.number) : "?",
+      photo: displayPlayer?.photo,
       state,
     };
   });
@@ -250,33 +363,16 @@ export default function App() {
       <header className="ptmg-header">
         <h1 className="ptmg-title">Passing Triangle Matching Game</h1>
         <p className="ptmg-subtitle">
-          "You should always have triangles, only then you have passing
-          options." — Johan Cruyff. Every Argentina starter forms a distinct
-          passing triangle — the shape of the pass they received and the pass
-          they played on, in the 2022 World Cup Final. Match all 11 shapes to
-          the right player.
+          <span className="ptmg-quote">
+            "You should always have triangles, only then you have passing
+            options." <span className="ptmg-quote-attr">— Johan Cruyff.</span>
+          </span>{" "}
         </p>
       </header>
 
       <DemoTriangle />
 
       <section className="ptmg-board">
-        <p className="ptmg-hint" aria-live="polite">
-          {!activeSlotId ? (
-            "Tap a circle on the pitch to preview its passing shape."
-          ) : isLocked(activeSlotId) ? (
-            <>
-              Correct — this is <strong>{activeAssignedPlayer?.displayName}</strong>'s passing triangle.
-            </>
-          ) : activeAssignedPlayer ? (
-            <>
-              Guessed: <strong>{activeAssignedPlayer.displayName}</strong> — tap another player
-              below to change it, or tap the <strong>?</strong> to clear it.
-            </>
-          ) : (
-            "Now tap the player below you think belongs here."
-          )}
-        </p>
         <div className="ptmg-pitch-wrap-single">
           <PitchChart
             triangles={activeTriangles}
@@ -297,7 +393,13 @@ export default function App() {
               return (
                 <li key={s.id} className={locked ? "correct" : "wrong"}>
                   {assignedPlayer?.displayName ?? "—"}
-                  {locked ? " ✓" : checked ? ` — actually ${correctPlayer?.displayName} ✗` : ""}
+                  {locked
+                    ? " ✓"
+                    : checked
+                      ? gaveUp
+                        ? ` — actually ${correctPlayer?.displayName} ✗`
+                        : " ✗"
+                      : ""}
                 </li>
               );
             })}
@@ -305,71 +407,103 @@ export default function App() {
         )}
       </section>
 
-      <div className="ptmg-actions">
-        {!checked && (
-          <button className="ptmg-btn primary" disabled={!allAssigned} onClick={handleCheck}>
-            Check answers
+      <div className="ptmg-content">
+        <div className="ptmg-actions">
+          {!checked && (
+            <button className="ptmg-btn primary" disabled={!allAssigned} onClick={handleCheck}>
+              Check answers
+            </button>
+          )}
+          <button className="ptmg-btn" onClick={handleReset}>
+            Reset
           </button>
+          {checked && !isSolved && !gaveUp && (
+            <button className="ptmg-btn" onClick={handleRetry}>
+              Try the wrong ones again
+            </button>
+          )}
+          {checked && !isSolved && !gaveUp && (
+            <button className="ptmg-btn" onClick={handleGiveUp}>
+              I give up, show me
+            </button>
+          )}
+          {hasCheckedOnce && (
+            <span className="ptmg-score">
+              Score: {score} / {slots.length}
+            </span>
+          )}
+          {hasCheckedOnce && (
+            <button className="ptmg-btn" onClick={handleShare}>
+              {shareStatus === "copied" ? "Copied!" : shareStatus === "shared" ? "Shared!" : "Share results"}
+            </button>
+          )}
+          {!checked && !allAssigned && (
+            <span className="ptmg-hint-inline">
+              Place all {slots.length} players to check your answers.
+            </span>
+          )}
+        </div>
+
+        {attemptHistory.length > 0 && (
+          <ol className="ptmg-history">
+            {attemptHistory.map((s, i) => (
+              <li key={i} className={s === slots.length ? "solved" : undefined}>
+                {ordinal(i + 1)} try: {s}/{slots.length}
+              </li>
+            ))}
+          </ol>
         )}
-        <button className="ptmg-btn" onClick={handleReset}>
-          Reset
-        </button>
-        {checked && !isSolved && (
-          <button className="ptmg-btn" onClick={handleRetry}>
-            Try the wrong ones again
-          </button>
-        )}
-        {hasCheckedOnce && (
-          <span className="ptmg-score">
-            Score: {score} / {slots.length}
-          </span>
-        )}
-        {hasCheckedOnce && (
-          <button className="ptmg-btn" onClick={handleShare}>
-            {shareStatus === "copied" ? "Copied!" : shareStatus === "shared" ? "Shared!" : "Share results"}
-          </button>
-        )}
-        {!checked && !allAssigned && (
-          <span className="ptmg-hint-inline">
-            Place all {slots.length} players to check your answers.
-          </span>
-        )}
+
+        <p className="ptmg-footnote">
+          Data: <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">StatsBomb open data</a>,
+          {" "}2022 World Cup Final, Argentina vs. France.
+        </p>
+
+        <details className="ptmg-credits">
+          <summary>Photo credits</summary>
+          <ul>
+            {PHOTO_CREDITS.map((c) => {
+              const player = playerByName.get(c.fullName);
+              return (
+                <li key={c.fullName}>
+                  {player?.displayName ?? c.fullName}: photo by{" "}
+                  <a href={c.photographerUrl} target="_blank" rel="noopener noreferrer">{c.photographer}</a>
+                  {" "}(<a href={c.sourceUrl} target="_blank" rel="noopener noreferrer">source</a>), licensed{" "}
+                  <a href={c.licenseUrl} target="_blank" rel="noopener noreferrer">{c.license}</a>, via Wikimedia Commons.
+                </li>
+              );
+            })}
+          </ul>
+        </details>
       </div>
 
-      {attemptHistory.length > 0 && (
-        <ol className="ptmg-history">
-          {attemptHistory.map((s, i) => (
-            <li key={i} className={s === slots.length ? "solved" : undefined}>
-              {ordinal(i + 1)} try: {s}/{slots.length}
-            </li>
-          ))}
-        </ol>
-      )}
-
-      <p className="ptmg-footnote">
-        Data: <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">StatsBomb open data</a>,
-        {" "}2022 World Cup Final, Argentina vs. France.
-      </p>
-
-      <details className="ptmg-credits">
-        <summary>Photo credits</summary>
-        <ul>
-          {PHOTO_CREDITS.map((c) => {
-            const player = playerByName.get(c.fullName);
-            return (
-              <li key={c.fullName}>
-                {player?.displayName ?? c.fullName}: photo by{" "}
-                <a href={c.photographerUrl} target="_blank" rel="noopener noreferrer">{c.photographer}</a>
-                {" "}(<a href={c.sourceUrl} target="_blank" rel="noopener noreferrer">source</a>), licensed{" "}
-                <a href={c.licenseUrl} target="_blank" rel="noopener noreferrer">{c.license}</a>, via Wikimedia Commons.
-              </li>
-            );
-          })}
-        </ul>
-      </details>
-
-      <nav className="ptmg-strip" aria-label="Players to place">
-        <div className="ptmg-strip-inner">
+      <nav
+        className={
+          "ptmg-strip" +
+          (stripVisible ? " visible" : "") +
+          (!stripScroll.atStart ? " can-scroll-left" : "") +
+          (!stripScroll.atEnd ? " can-scroll-right" : "")
+        }
+        aria-label="Players to place"
+        ref={stripNavRef}
+      >
+        <p className="ptmg-strip-hint" aria-live="polite">
+          {!activeSlotId ? (
+            "Tap a circle on the pitch to preview its passing shape."
+          ) : isLocked(activeSlotId) ? (
+            <>
+              Correct — this is <strong>{activeAssignedPlayer?.displayName}</strong>'s passing triangle.
+            </>
+          ) : activeAssignedPlayer ? (
+            <>
+              Guessed: <strong>{activeAssignedPlayer.displayName}</strong> — tap another player
+              below to change it, or tap the <strong>?</strong> to clear it.
+            </>
+          ) : (
+            "Now tap the player you think belongs here."
+          )}
+        </p>
+        <div className="ptmg-strip-inner" ref={stripInnerRef}>
           <button
             className="ptmg-chip ptmg-chip-clear"
             disabled={!activeSlotId || isLocked(activeSlotId)}
@@ -396,6 +530,8 @@ export default function App() {
             ))
           )}
         </div>
+        <div className="ptmg-strip-fade left" aria-hidden="true" />
+        <div className="ptmg-strip-fade right" aria-hidden="true" />
       </nav>
     </div>
   );

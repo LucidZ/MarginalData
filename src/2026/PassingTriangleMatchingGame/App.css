@@ -7,7 +7,7 @@
   --muted: #898781;
   --gridline: #e1e0d9;
   --baseline: #c3c2b7;
-  --status-good: #0ca30c;
+  --status-good: #3d8bd4;
   --status-warning: #fab219;
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
@@ -30,7 +30,7 @@
     --muted: #898781;
     --gridline: #2c2c2a;
     --baseline: #383835;
-    --status-good: #0ca30c;
+    --status-good: #3f8ad0;
     --status-warning: #fab219;
     --status-serious: #ec835a;
     --status-critical: #e66767;
@@ -46,7 +46,7 @@
   --muted: #898781;
   --gridline: #2c2c2a;
   --baseline: #383835;
-  --status-good: #0ca30c;
+  --status-good: #3f8ad0;
   --status-warning: #fab219;
   --status-serious: #ec835a;
   --status-critical: #e66767;
@@ -60,6 +60,7 @@
 
 .ptmg-header {
   margin-bottom: 1.5rem;
+  text-align: center;
 }
 
 .ptmg-title {
@@ -70,7 +71,22 @@
 .ptmg-subtitle {
   color: var(--text-secondary);
   max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
   line-height: 1.5;
+}
+
+.ptmg-quote {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ptmg-quote-attr {
+  display: block;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--text-secondary);
 }
 
 .ptmg-demo {
@@ -79,7 +95,7 @@
   align-items: center;
   gap: 0.4rem;
   max-width: 320px;
-  margin: 0 0 1.75rem;
+  margin: 0 auto 1.75rem;
 }
 
 .ptmg-demo-svg {
@@ -102,14 +118,6 @@
   font-weight: 600;
 }
 
-.ptmg-hint {
-  margin: 0 0 0.75rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  text-align: center;
-  min-height: 1.2em;
-}
-
 .ptmg-chip-clear {
   border-style: dashed;
 }
@@ -129,7 +137,10 @@
    pitch stays the dominant element on screen (mobile especially — the grid
    used to push the whole pitch below the fold). Fixed, not sticky, so it's
    always reachable without scrolling; .ptmg-root's bottom padding keeps the
-   footnote from being covered. */
+   footnote from being covered. Hidden (slid off-screen) until a pitch circle
+   is tapped, so the roster only appears once there's somewhere to place it —
+   kept mounted rather than unmounted so its scroll-hint/peek effects don't
+   have to re-attach on every tap. */
 .ptmg-strip {
   position: fixed;
   left: 0;
@@ -139,6 +150,27 @@
   background: var(--surface-1);
   border-top: 1px solid var(--gridline);
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+
+.ptmg-strip.visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Lives inside the fixed strip (not above the pitch) so the instruction
+   travels with the action instead of scrolling out of view once a player
+   is looking at the carousel. */
+.ptmg-strip-hint {
+  margin: 0 auto;
+  padding: 0.4rem 0.75rem 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  text-align: center;
+  min-height: 1.1em;
+  max-width: 1100px;
 }
 
 .ptmg-strip-inner {
@@ -149,6 +181,35 @@
   max-width: 1100px;
   margin: 0 auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Edge fades hint that the strip scrolls sideways — each only shows once
+   there's actually more content in that direction (App.tsx toggles the
+   can-scroll-* classes from real scroll position, not just presence of
+   overflow, so a fully-scrolled edge doesn't keep hinting). */
+.ptmg-strip-fade {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ptmg-strip-fade.left {
+  left: 0;
+  background: linear-gradient(to right, var(--surface-1), transparent);
+}
+
+.ptmg-strip-fade.right {
+  right: 0;
+  background: linear-gradient(to left, var(--surface-1), transparent);
+}
+
+.ptmg-strip.can-scroll-left .ptmg-strip-fade.left,
+.ptmg-strip.can-scroll-right .ptmg-strip-fade.right {
+  opacity: 1;
 }
 
 .ptmg-strip-empty {
@@ -245,6 +306,20 @@
   max-width: 640px;
 }
 
+/* Portrait pitch (2:3) sized by width alone would grow to 640x960 on any
+   wide desktop window, dwarfing the viewport. Letting the SVG shrink-to-fit
+   both max-width and a height budget (standard replaced-element sizing,
+   same as `img { max-width; max-height; width:auto; height:auto }`) caps it
+   by whichever dimension is tighter. On mobile the width constraint always
+   wins first, so this is a no-op there. */
+.ptmg-pitch-wrap-single .pc-pitch {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 68dvh;
+  margin: 0 auto;
+}
+
 .ptmg-results-list {
   list-style: none;
   margin: 0;
@@ -272,6 +347,11 @@
 .ptmg-results-list li.wrong {
   border-color: var(--status-critical);
   color: var(--status-critical);
+}
+
+.ptmg-content {
+  max-width: 640px;
+  margin: 0 auto;
 }
 
 .ptmg-actions {
