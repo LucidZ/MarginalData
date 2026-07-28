@@ -258,7 +258,16 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
               data-slot-id={slot.id}
               onClick={onSlotClick ? () => onSlotClick(slot.id) : undefined}
               onPointerDown={onSlotPointerDown ? (e) => onSlotPointerDown(slot.id, e) : undefined}
-              style={onSlotClick ? { cursor: "pointer", touchAction: "none" } : undefined}
+              style={{
+                ...(onSlotClick ? { cursor: "pointer", touchAction: "none" } : undefined),
+                // Grows the whole circle toward a dragged avatar hovering it —
+                // only when the drop would actually be accepted; a blocked
+                // (locked) target relies on the red ring alone, not growth,
+                // since it isn't somewhere the drag should feel invited to land.
+                transform: isDropTarget && !dropTarget?.blocked ? "scale(1.14)" : undefined,
+                transformOrigin: `${p.x}px ${p.y}px`,
+                transition: "transform 0.15s ease",
+              }}
               role={onSlotClick ? "button" : undefined}
               aria-label={onSlotClick ? `Lineup slot, ${slot.state}` : undefined}
             >

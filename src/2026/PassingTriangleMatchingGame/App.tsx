@@ -343,11 +343,18 @@ export default function App() {
     beginDragCandidate({ kind: "slot", slotId }, player, e);
   };
 
+  const dragLift = (pointerType: string) => (pointerType === "mouse" ? DRAG_LIFT_PX_MOUSE : DRAG_LIFT_PX);
+
+  // Where the ghost avatar is actually drawn (pointer position minus the
+  // lift) — hit-testing must use this, not the raw pointer, or a drop can
+  // land somewhere the player never visually saw the circle hovering.
+  const ghostCenter = (x: number, y: number, pointerType: string) => ({ x, y: y - dragLift(pointerType) });
+
   const positionGhost = (x: number, y: number, pointerType: string) => {
     const el = ghostRef.current;
     if (!el) return;
-    const lift = pointerType === "mouse" ? -DRAG_LIFT_PX_MOUSE : -DRAG_LIFT_PX;
-    el.style.transform = `translate(${x}px, ${y + lift}px) translate(-50%, -50%)`;
+    const { x: gx, y: gy } = ghostCenter(x, y, pointerType);
+    el.style.transform = `translate(${gx}px, ${gy}px) translate(-50%, -50%)`;
   };
 
   const findSlotUnder = (x: number, y: number): string | null => {
@@ -388,8 +395,12 @@ export default function App() {
     e.preventDefault();
     positionGhost(e.clientX, e.clientY, cand.pointerType);
 
-    const hoverId = findSlotUnder(e.clientX, e.clientY);
-    const overStripNow = cand.source.kind === "slot" && !hoverId && isOverStripRect(e.clientX, e.clientY);
+    const { x: gx, y: gy } = ghostCenter(e.clientX, e.clientY, cand.pointerType);
+    // The strip is drawn on top of the pitch (see its z-index), and can
+    // visually cover a pitch circle near the bottom (e.g. the goalie) — so a
+    // drop there must go to the strip even though a slot also sits underneath.
+    const overStripNow = cand.source.kind === "slot" && isOverStripRect(gx, gy);
+    const hoverId = overStripNow ? null : findSlotUnder(gx, gy);
     setOverStrip(overStripNow);
     setDropTarget((prev) => {
       if (!hoverId) return prev === null ? prev : null;
@@ -767,7 +778,7 @@ export default function App() {
           aria-hidden="true"
           style={{
             transform: `translate(${activeDrag.startX}px, ${
-              activeDrag.startY - (activeDrag.pointerType === "mouse" ? DRAG_LIFT_PX_MOUSE : DRAG_LIFT_PX)
+              activeDrag.startY - dragLift(activeDrag.pointerType)
             }px) translate(-50%, -50%)`,
           }}
         >
