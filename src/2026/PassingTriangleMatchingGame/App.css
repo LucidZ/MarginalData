@@ -160,6 +160,13 @@
   pointer-events: auto;
 }
 
+/* Shown while a lifted-off-the-pitch avatar hovers the strip mid-drag — the
+   gesture for sending a placed player back to the bench. */
+.ptmg-strip.drop-armed {
+  border-top-color: var(--status-warning);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08), inset 0 3px 0 var(--status-warning);
+}
+
 /* Lives inside the fixed strip (not above the pitch) so the instruction
    travels with the action instead of scrolling out of view once a player
    is looking at the carousel. */
@@ -181,6 +188,10 @@
   max-width: 1100px;
   margin: 0 auto;
   -webkit-overflow-scrolling: touch;
+  /* Let the browser keep handling horizontal swipes (scrolling the strip)
+     natively; a drag lifted vertically toward the pitch is handled by our
+     own pointermove logic instead, so it must not also pan the strip. */
+  touch-action: pan-x;
 }
 
 /* Edge fades hint that the strip scrolls sideways — each only shows once
@@ -232,18 +243,40 @@
   border: 2px solid var(--gridline);
   border-radius: 8px;
   background: var(--page);
-  cursor: pointer;
+  cursor: grab;
   font: inherit;
   transition: border-color 0.12s, opacity 0.12s;
+  /* Chips are drag sources — see the matching rule on .ptmg-strip-inner for
+     why this is pan-x (not none): horizontal swipes still scroll the strip
+     natively, only a vertical drag is intercepted by our own JS. */
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .ptmg-chip:not(:disabled):hover {
   border-color: var(--status-warning);
 }
 
+.ptmg-chip:active {
+  cursor: grabbing;
+}
+
 .ptmg-chip:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* Dimmed the same way :disabled used to be, but — unlike :disabled — this
+   never blocks pointer events, so dragging one of these chips straight onto
+   a circle still works even before a circle has been tapped/selected. Only
+   the old tap-to-assign path (which needs a selected circle) is inert here. */
+.ptmg-chip.tap-inactive {
+  opacity: 0.45;
+}
+
+.ptmg-chip.tap-inactive:hover {
+  border-color: var(--gridline);
 }
 
 .ptmg-avatar {
@@ -268,6 +301,10 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Belt-and-suspenders for the img's draggable={false} prop — Safari has
+     historically still needed this to fully suppress native image drag. */
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .ptmg-avatar-number {
@@ -284,6 +321,20 @@
   line-height: 1.3em;
   text-align: center;
   border: 1.5px solid var(--surface-1);
+}
+
+/* Floats above everything, following the pointer during a drag (position set
+   imperatively in App.tsx for smooth per-frame movement without re-renders).
+   pointer-events:none so it never itself becomes the elementFromPoint hit —
+   not that hit-testing relies on that here (we use getBoundingClientRect
+   snapshots instead), but it'd otherwise shadow real content under the cursor. */
+.ptmg-drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
 }
 
 .ptmg-chip-name {

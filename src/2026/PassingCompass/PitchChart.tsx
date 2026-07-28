@@ -88,8 +88,10 @@ const SLOT_STATE_COLOR: Record<PitchSlotState, string> = {
   active: "var(--status-warning)",
   correct: "var(--status-good)",
   wrong: "var(--status-critical)",
-  // Filled in after the player gave up — distinct from an earned "correct".
-  revealed: "var(--status-serious)",
+  // Same blue as an earned "correct" (it *is* the right answer) — dashed
+  // stroke (see the circle draws below) is what marks it as given away
+  // rather than earned.
+  revealed: "var(--status-good)",
 };
 
 interface Props {
@@ -99,6 +101,10 @@ interface Props {
   /** Lineup-slot circles drawn on top of the pitch (matching game's single-pitch mode). */
   slots?: PitchSlot[];
   onSlotClick?: (id: string) => void;
+  /** Fires on pointerdown over a slot circle — lets the caller start a drag (picking the placed avatar up off the pitch) without waiting for click/pointerup. */
+  onSlotPointerDown?: (id: string, e: React.PointerEvent<SVGGElement>) => void;
+  /** Slot currently hovered by an in-flight drag — drawn with an extra ring; `blocked` swaps it to a "not allowed" color (e.g. hovering a locked slot). */
+  dropTarget?: { id: string; blocked: boolean } | null;
   /**
    * "both" (default) draws the incoming and outgoing pass as bold marks — the
    * full pivot triangle. "out" draws only the outgoing pass (the pivot's own
@@ -115,7 +121,7 @@ interface HoverInfo {
   lines: string[];
 }
 
-export default function PitchChart({ triangles, interactive = true, slots, onSlotClick, legs = "both" }: Props) {
+export default function PitchChart({ triangles, interactive = true, slots, onSlotClick, onSlotPointerDown, dropTarget, legs = "both" }: Props) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   // Inverse-sqrt (not inverse-linear) decay: linear decay pinned low-volume players at the
@@ -245,16 +251,30 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
           const color = SLOT_STATE_COLOR[slot.state];
           const r = 3.6 * SCALE;
           const clipId = `ptmg-slot-clip-${i}`;
+          const isDropTarget = dropTarget?.id === slot.id;
           return (
             <g
               key={slot.id}
+              data-slot-id={slot.id}
               onClick={onSlotClick ? () => onSlotClick(slot.id) : undefined}
-              style={onSlotClick ? { cursor: "pointer" } : undefined}
+              onPointerDown={onSlotPointerDown ? (e) => onSlotPointerDown(slot.id, e) : undefined}
+              style={onSlotClick ? { cursor: "pointer", touchAction: "none" } : undefined}
               role={onSlotClick ? "button" : undefined}
               aria-label={onSlotClick ? `Lineup slot, ${slot.state}` : undefined}
             >
               {onSlotClick && <circle cx={p.x} cy={p.y} r={slotHitR} fill="transparent" />}
-              <circle cx={p.x} cy={p.y} r={r} fill="var(--surface-1)" fillOpacity={0.92} stroke={color} strokeWidth={2} />
+              {isDropTarget && (
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={r + 6}
+                  fill="none"
+                  stroke={dropTarget?.blocked ? "var(--status-critical)" : "var(--status-warning)"}
+                  strokeWidth={2.5}
+                  strokeDasharray={dropTarget?.blocked ? "3 3" : undefined}
+                />
+              )}
+              <circle cx={p.x} cy={p.y} r={r} fill="var(--surface-1)" fillOpacity={0.92} stroke={color} strokeWidth={2} strokeDasharray={slot.state === "revealed" ? "3 2.5" : undefined} />
               {slot.photo ? (
                 <>
                   <clipPath id={clipId}>
@@ -269,7 +289,7 @@ export default function PitchChart({ triangles, interactive = true, slots, onSlo
                     clipPath={`url(#${clipId})`}
                     preserveAspectRatio="xMidYMid slice"
                   />
-                  <circle cx={p.x} cy={p.y} r={r - 1} fill="none" stroke={color} strokeWidth={2} />
+                  <circle cx={p.x} cy={p.y} r={r - 1} fill="none" stroke={color} strokeWidth={2} strokeDasharray={slot.state === "revealed" ? "3 2.5" : undefined} />
                   {/* jersey-number badge, offset outside the photo circle so it isn't clipped */}
                   <circle cx={p.x + r * 0.75} cy={p.y + r * 0.75} r={r * 0.4} fill="#0b3866" stroke="var(--surface-1)" strokeWidth={1.5} />
                   <text
