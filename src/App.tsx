@@ -21,6 +21,7 @@ const MarginalTax = lazy(() => import("./2026/MarginalTax"));
 const VoterAffiliation = lazy(() => import("./2026/VoterAffiliation"));
 const PassingCompass = lazy(() => import("./2026/PassingCompass"));
 const PassingTriangleMatchingGame = lazy(() => import("./2026/PassingTriangleMatchingGame"));
+const PossessionShape = lazy(() => import("./2026/PossessionShape"));
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
             <Route path="/2026/VoterAffiliation" element={<VoterAffiliation />} />
             <Route path="/2026/PassingCompass" element={<PassingCompass />} />
             <Route path="/2026/PassingTriangleMatchingGame" element={<PassingTriangleMatchingGame />} />
+            <Route path="/2026/PossessionShape" element={<PossessionShape />} />
             {/* Add more projects here */}
             <Route path="*" element={<NotFound />} />
           </Routes>
