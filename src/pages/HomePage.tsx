@@ -87,6 +87,11 @@ export default function Home() {
               Passing Triangle Matching Game
             </Link>
           </li>
+          <li>
+            <Link to="/2026/PossessionShape">
+              Possession Shape: Argentina vs. France
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>

@@ -163,12 +163,35 @@
   text-align: center;
 }
 
-.pc-pitch-end-label:first-child {
+/* Explicit modifier classes, not :first-child/:last-child — the tooltip div
+   renders conditionally as a later sibling of the bottom label, which used
+   to knock it out of :last-child (and silently drop this margin, shifting
+   everything below the pitch up a few px) the moment a tooltip appeared. */
+.pc-pitch-end-label--top {
   margin-bottom: 0.5rem;
 }
 
-.pc-pitch-end-label:last-child {
+.pc-pitch-end-label--bottom {
   margin-top: 0.5rem;
+}
+
+/* Landscape: labels sit beside the pitch instead of above/below it.
+   row-reverse (not row) so the DOM order [top-label, svg, bottom-label] —
+   top-label being the high-pitch-x/attacking end — lands attacking-end on
+   the right and own-goal-end on the left, matching landscape `toPx`
+   (higher pitch-x -> further right). Margins reset since `gap` on the flex
+   container replaces them for spacing. */
+.pc-pitch-wrap--landscape {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 900px;
+}
+
+.pc-pitch-wrap--landscape .pc-pitch-end-label {
+  margin: 0;
+  max-width: 4.5rem;
 }
 
 .pc-mark {
@@ -184,10 +207,12 @@
 .pc-tooltip {
   position: absolute;
   transform: translate(-50%, -120%);
-  background: var(--text-primary);
-  color: var(--surface-1);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border: 1px solid var(--gridline);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   padding: 0.4rem 0.6rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.8rem;
   line-height: 1.4;
   white-space: nowrap;
