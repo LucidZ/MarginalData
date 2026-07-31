@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoadingSpinner from "./components/LoadingSpinner";
 import NotFound from "./pages/NotFound";
+import UmamiPageTracker from "./components/UmamiPageTracker";
 
 // Dynamically import project components
 const USAIDSize = lazy(() => import("./2025/USAIDSize"));
@@ -26,6 +27,7 @@ const PossessionShape = lazy(() => import("./2026/PossessionShape"));
 function App() {
   return (
     <Router>
+      <UmamiPageTracker />
       <main className="container">
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
