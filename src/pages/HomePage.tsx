@@ -1,4 +1,20 @@
 import { Link } from "react-router-dom";
+import { ROUTES } from "../routes";
+import "./HomePage.css";
+
+const GROUP_ORDER = [
+  "Government & Politics",
+  "Personal Finance",
+  "Soccer Analytics",
+  "Decision-Making",
+  "Everyday Comparisons",
+  "Explorers & Simulators",
+];
+
+const GROUPS = GROUP_ORDER.map((title) => ({
+  title,
+  routes: ROUTES.filter((route) => route.group === title),
+}));
 
 export default function Home() {
   return (
@@ -6,94 +22,27 @@ export default function Home() {
       <h1>Marginal Data</h1>
       <section className="blog-content">
         <p>
-          This site isn't supposed to be live yet, but welcome! I haven't
-          figured out exactly what I want to do with this site yet. For now, I'm
-          using it to play around with data interactions.
+          Marginal Data is a collection of small interactive experiments in
+          data and visualization — some serious (how marginal tax rates
+          actually work), some just for fun (how much bigger is a large
+          pizza, really?). Pick something below and poke around.
         </p>
       </section>
 
-      <nav>
-        <ul className="project-list">
-          <li>
-            <Link to="/2025/USAIDSize">How big was USAID?</Link>
-          </li>
-          <li>
-            <Link to="/2025/ForeignAid">
-              How does US Foreign Aid rank globally?
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/FederalEmployment">
-              How big is US Federal Employment?
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/FuelEconomyTool">
-              Compare vehicle fuel efficiency
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/FuelEconomyCurve">
-              Fuel economy curve visualization
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/PizzaAreaComparison">
-              How much more pizza is a large?
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/SolarAnimation">
-              Solar Generation Explorer
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/ImageScrambler">
-              Image Scrambler
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/DecisionVectorizer">
-              Decision Vectorizer
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/DecisionComponentAnalyzer">
-              Decision Component Analyzer
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/HowMany13ers">
-              How Many 13ers? Colorado Summits Explorer
-            </Link>
-          </li>
-          <li>
-            <Link to="/2025/SpaceTraveler">
-              Expanse-Style Space Travel Simulator
-            </Link>
-          </li>
-          <li>
-            <Link to="/2026/MarginalTax">
-              How Marginal Tax Rates Actually Work
-            </Link>
-          </li>
-          <li>
-            <Link to="/2026/VoterAffiliation">
-              Colorado voter affiliation, 2016–2026
-            </Link>
-          </li>
-          <li>
-            <Link to="/2026/PassingTriangleMatchingGame">
-              Passing Triangle Matching Game
-            </Link>
-          </li>
-          <li>
-            <Link to="/2026/PossessionShape">
-              Possession Shape: Argentina vs. France
-            </Link>
-          </li>
-        </ul>
-      </nav>
+      {GROUPS.map((group) => (
+        <section key={group.title} className="home-group">
+          <h2 className="home-group-title">{group.title}</h2>
+          <nav>
+            <ul className="project-list">
+              {group.routes.map((route) => (
+                <li key={route.path}>
+                  <Link to={route.path}>{route.title.split(" — ")[0]}</Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </section>
+      ))}
     </div>
   );
 }

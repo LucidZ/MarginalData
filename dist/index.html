@@ -5,8 +5,32 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Marginal Data</title>
+    <meta name="description" content="A collection of small interactive experiments in data and visualization — from marginal tax rates to soccer passing patterns to pizza math." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Marginal Data" />
+    <meta property="og:description" content="A collection of small interactive experiments in data and visualization — from marginal tax rates to soccer passing patterns to pizza math." />
+    <meta property="og:url" content="https://marginaldata.com/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Marginal Data" />
+    <meta name="twitter:description" content="A collection of small interactive experiments in data and visualization — from marginal tax rates to soccer passing patterns to pizza math." />
     <script defer src="https://cloud.umami.is/script.js" data-website-id="00edfa76-27a6-4f65-8a63-270de1921c4e" data-auto-track="false"></script>
-    <script type="module" crossorigin src="/assets/index-gHRO6h8N.js"></script>
+    <!--
+      Restores the real path after the public/404.html redirect (see that
+      file for the encoding side). Must run before BrowserRouter reads
+      location, so it's a plain synchronous script ahead of the module
+      script below.
+    -->
+    <script>
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var redirect = params.get("redirect");
+        if (redirect) {
+          history.replaceState(null, "", redirect);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-uEaSJSLE.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-M5CUtb-A.css">
   </head>
   <body>
     <div id="root"></div>
