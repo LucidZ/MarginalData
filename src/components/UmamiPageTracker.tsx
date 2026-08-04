@@ -9,8 +9,8 @@ declare global {
   }
 }
 
-// Umami's auto-track only fires on pushState/popstate, which HashRouter never triggers.
-// Auto-track is disabled in index.html; this fires the pageview manually on every route change.
+// Auto-track is disabled in index.html (data-auto-track="false") to avoid double-counting
+// pushState navigations against this manual tracker; this fires the pageview on every route change.
 export default function UmamiPageTracker() {
   const location = useLocation();
 
