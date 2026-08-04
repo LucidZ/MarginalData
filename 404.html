@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Marginal Data</title>
+    <!--
+      GitHub Pages SPA fallback (spa-github-pages pattern:
+      github.com/rafgraph/spa-github-pages). Only reached for a path with no
+      pre-generated static page. Encodes the requested path into a query
+      string and redirects to "/", where the inline script in index.html
+      restores it via history.replaceState before React Router mounts.
+    -->
+    <script>
+      var path = location.pathname + location.search + location.hash;
+      location.replace(
+        location.origin + "/?redirect=" + encodeURIComponent(path)
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
