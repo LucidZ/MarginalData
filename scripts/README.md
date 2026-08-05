@@ -4,6 +4,24 @@ Data processing and build scripts for MarginalData visualizations.
 
 ## Available Scripts
 
+### `generate_property_rights_gdp_data.py`
+
+Fetches World Bank Rule of Law (WGI) and GDP per capita (PPP) data and merges
+them into a country-year panel, for exploring institutions-vs-development
+correlations (see `sketches/property-rights-gdp.html`).
+
+**Usage**: `python scripts/generate_property_rights_gdp_data.py`
+**Output**: `data/raw/property_rights_gdp_2023.json`
+
+### `generate_ajr_settler_mortality_iv_data.py`
+
+Reproduces Acemoglu, Johnson & Robinson (2001)'s settler-mortality IV result
+from their Table 4 replication data (see
+`sketches/ajr-settler-mortality-iv.html`). Requires `pandas`.
+
+**Usage**: `python scripts/generate_ajr_settler_mortality_iv_data.py`
+**Output**: `data/raw/ajr_iv_2sls.json`
+
 ### `generate_solar_animation_data.py`
 
 Generates optimized JSON data for the solar animation D3/React visualization.

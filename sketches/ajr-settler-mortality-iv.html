@@ -1,0 +1,421 @@
+<title>Instrumenting Institutions: The AJR Settler-Mortality Strategy</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --axis:           #c3c2b7;
+    --series-1:       #2a78d6;
+    --series-2:       #eb6834;
+    --naive:          #898781;
+    --naive-wash:     rgba(137,135,129,0.16);
+    --series-1-wash:  rgba(42,120,214,0.10);
+    --border:         rgba(11,11,11,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --axis:           #383835;
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+      --naive:          #898781;
+      --naive-wash:     rgba(137,135,129,0.2);
+      --series-1-wash:  rgba(57,135,229,0.14);
+      --border:         rgba(255,255,255,0.10);
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --axis:           #383835;
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --naive:          #898781;
+    --naive-wash:     rgba(137,135,129,0.2);
+    --series-1-wash:  rgba(57,135,229,0.14);
+    --border:         rgba(255,255,255,0.10);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary);
+    padding: 32px 16px 64px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 24px; line-height: 1.5; max-width: 720px; }
+  .step-label {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--text-primary); color: var(--surface-1);
+    font-size: 11px; font-weight: 700; margin-right: 8px; flex: none;
+  }
+  .panel-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 720px) { .panel-grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 18px 12px;
+  }
+  .card h2 {
+    font-size: 14.5px; font-weight: 650; margin: 0 0 2px; display: flex; align-items: center;
+  }
+  .card .panel-note { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 10px; line-height: 1.5; }
+  .card .panel-stat { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .card .panel-stat b { color: var(--text-primary); font-weight: 650; }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .gridline { stroke: var(--gridline); stroke-width: 1; }
+  .axis-line { stroke: var(--axis); stroke-width: 1; }
+  .axis-label { fill: var(--text-muted); font-size: 10.5px; }
+  .axis-title { fill: var(--text-secondary); font-size: 11px; font-weight: 600; }
+  .trend-line { stroke-width: 2; fill: none; }
+  .trend-1 { stroke: var(--series-1); }
+  .trend-naive { stroke: var(--naive); }
+  .dot {
+    stroke: var(--surface-1);
+    stroke-width: 1.5;
+    cursor: pointer;
+  }
+  .dot-main { fill: var(--series-1); }
+  .dot-naive { fill: var(--naive); }
+  .dot:hover { stroke: var(--text-primary); }
+  .callout-label {
+    fill: var(--text-secondary);
+    font-size: 10px;
+    pointer-events: none;
+  }
+  .line-label { font-size: 11px; font-weight: 650; }
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+    opacity: 0;
+    transition: opacity 0.08s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tt-name { font-weight: 650; }
+  .tt-row { color: var(--text-secondary); }
+  .legend-row {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--text-secondary);
+    margin: 4px 0 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .caption-card {
+    margin-top: 20px; padding: 18px 20px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .caption-card h3 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); }
+  .caption-card p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.65; margin: 0 0 10px; }
+  .caption-card p:last-child { margin-bottom: 0; }
+  .caption-card strong { color: var(--text-primary); }
+  .source { font-size: 11.5px; color: var(--text-muted); margin-top: 18px; line-height: 1.6; }
+  .source a { color: var(--text-muted); }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <h1>Instrumenting institutions: the AJR settler-mortality strategy</h1>
+    <p class="subtitle">Acemoglu, Johnson &amp; Robinson (2001) don't just correlate institutions with income — they
+      use the mortality rate of European colonial settlers as an instrument, to strip out the part of "institutions"
+      that's contaminated by reverse causality. Three linked charts, same 64-country sample, show how.</p>
+
+    <div class="panel-grid">
+      <div class="card">
+        <h2><span class="step-label">1</span>First stage — is the instrument relevant?</h2>
+        <p class="panel-note">Where colonial settlers died in droves, Europeans built extractive institutions and left;
+          where they could settle safely, they replicated the property-rights institutions they had at home. If this
+          isn't a strong relationship, the instrument is useless.</p>
+        <svg id="panelA" viewBox="0 0 420 340" preserveAspectRatio="xMidYMid meet"></svg>
+        <p class="panel-stat">Slope <b>&minus;0.61</b> · R² <b>0.27</b> — settler mortality is a strong (if noisy) predictor of institutions.</p>
+      </div>
+      <div class="card">
+        <h2><span class="step-label">2</span>Reduced form — any total effect at all?</h2>
+        <p class="panel-note">Settler mortality is a 17th–19th century mortality-table artifact. It shouldn't predict
+          GDP in 1995 through <em>any</em> channel except the institutions it shaped — if there's no relationship
+          here, there's nothing for institutions to transmit.</p>
+        <svg id="panelB" viewBox="0 0 420 340" preserveAspectRatio="xMidYMid meet"></svg>
+        <p class="panel-stat">Slope <b>&minus;0.57</b> · R² <b>0.48</b> — a clear total effect survives four centuries.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step-label">3</span>The payoff — OLS vs. instrumented (2SLS)</h2>
+      <p class="panel-note">Gray dots are the raw, uninstrumented data (institutions score as actually measured) —
+        the naive OLS slope is biased by reverse causality (rich countries can afford better courts) and measurement
+        error. Blue dots replace each country's institutions score with its <em>fitted value</em> from panel 1 —
+        only the slice of variation explained by settler mortality survives. That's what "instrumenting" means
+        mechanically, and it's why the slope moves.</p>
+      <div class="legend-row">
+        <span class="legend-item"><span class="swatch" style="background:var(--naive)"></span> Raw institutions score (naive OLS)</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span> Instrument-fitted institutions (2SLS)</span>
+      </div>
+      <svg id="panelC" viewBox="0 0 880 460" preserveAspectRatio="xMidYMid meet"></svg>
+      <p class="panel-stat">Naive OLS slope <b>0.52</b> → 2SLS slope <b>0.94</b> — instrumenting <b>nearly doubles</b>
+        the estimated effect of institutions on income. (This matches AJR's published result almost exactly.)</p>
+    </div>
+
+    <div class="caption-card">
+      <h3>Caveats worth taking seriously</h3>
+      <p><strong>Disease environment, not just institutions (Sachs, 2003).</strong> Settler mortality was driven
+        mostly by malaria and yellow fever. Those same disease burdens plausibly hit 1995 GDP directly — sick
+        agricultural workforces, disease-limited land use — with no institutional channel involved. If so, the
+        <em>exclusion restriction</em> (the instrument affects income <em>only</em> through institutions) fails, and
+        panel 3's slope is partly a geography effect wearing an institutions costume.</p>
+      <p><strong>The mortality data itself is shaky (Albouy, 2012, <em>AER</em>).</strong> AJR's settler-mortality
+        series splices together European soldiers' campaign-mortality records, missionary records, and laborer
+        records — measuring different things in different eras — and roughly half the 64 countries have mortality
+        <em>imputed</em> from "comparable" regions rather than observed directly. Rebuilding the series from primary
+        sources weakens the first-stage relationship in panel 1 substantially.</p>
+      <p>Two smaller ones: the "institutions" measure may bundle in human capital colonizers also brought
+        (Glaeser, La Porta, Lopez-de-Silanes &amp; Shleifer, 2004), and the 64-country sample is small enough that a
+        handful of neo-Europes (<strong>United States, Canada, Australia, New Zealand</strong> — labeled above) sit
+        at the extreme low-mortality, high-income corner and do a lot of the work.</p>
+    </div>
+
+    <p class="source">
+      Data: replication files for Acemoglu, Johnson &amp; Robinson, "The Colonial Origins of Comparative
+      Development" (<em>American Economic Review</em>, 2001), Table 4 (<code>maketable4.dta</code>), 64-country base
+      sample. Variables: <code>logem4</code> (log settler mortality), <code>avexpr</code> (average protection
+      against expropriation risk, 1985–95, 0–10 scale), <code>logpgp95</code> (log GDP per capita, PPP, 1995).
+      Regression lines computed directly from this sample; 2SLS coefficient recovered as OLS of <code>logpgp95</code>
+      on first-stage-fitted <code>avexpr</code>, which is algebraically identical to two-stage least squares with a
+      single instrument.
+    </p>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// [code, name, logem4, avexpr, avexpr_hat, logpgp95]
+const DATA = [["AGO","Angola",5.6348,5.3636,5.9223,7.7706],["ARG","Argentina",4.2327,6.3864,6.7731,9.1335],["AUS","Australia",2.1459,9.3182,8.0393,9.898],["BFA","Burkina Faso",5.6348,4.4545,5.9223,6.8459],["BGD","Bangladesh",4.2684,5.1364,6.7514,6.8773],["BHS","Bahamas, The",4.4427,7.5,6.6457,9.2854],["BOL","Bolivia",4.2627,5.6364,6.7549,7.9266],["BRA","Brazil",4.2627,7.9091,6.7549,8.7275],["CAN","Canada",2.7788,9.7273,7.6553,9.9864],["CHL","Chile",4.2327,7.8182,6.7731,9.3361],["CIV","Cote d'Ivoire",6.5043,7.0,5.3947,7.4442],["CMR","Cameroon",5.6348,6.4545,5.9223,7.5011],["COG","Congo, Rep.",5.4806,4.6818,6.0159,7.4206],["COL","Colombia",4.2627,7.3182,6.7549,8.8099],["CRI","Costa Rica",4.358,7.0455,6.6971,8.7948],["DOM","Dominican Republic",4.8675,6.1818,6.3879,8.364],["DZA","Algeria",4.3593,6.5,6.6963,8.3894],["ECU","Ecuador",4.2627,6.5455,6.7549,8.4701],["EGY","Egypt, Arab Rep.",4.2166,6.7727,6.7829,7.9516],["ETH","Ethiopia",3.2581,5.7273,7.3645,6.1092],["GAB","Gabon",5.6348,7.8182,5.9223,8.9079],["GHA","Ghana",6.5043,6.2727,5.3947,7.3652],["GIN","Guinea",6.18,6.5455,5.5915,7.49],["GMB","Gambia, The",7.293,8.2727,4.9162,7.2724],["GTM","Guatemala",4.2627,5.1364,6.7549,8.294],["GUY","Guyana",3.4713,5.8864,7.2351,7.9047],["HKG","Hong Kong SAR, China",2.7014,8.1364,7.7023,10.0497],["HND","Honduras",4.358,5.3182,6.6971,7.6871],["HTI","Haiti",4.8675,3.7273,6.3879,7.1468],["IDN","Indonesia",5.1358,7.5909,6.2251,8.0709],["IND","India",3.8842,8.2727,6.9845,7.326],["JAM","Jamaica",4.8675,7.0909,6.3879,8.1887],["KEN","Kenya",4.9767,6.0455,6.3216,7.0562],["LKA","Sri Lanka",4.2456,6.0455,6.7653,7.7319],["MAR","Morocco",4.3593,7.0909,6.6963,8.0424],["MDG","Madagascar",6.2842,4.4545,5.5283,6.8352],["MEX","Mexico",4.2627,7.5,6.7549,8.9438],["MLI","Mali",7.9862,4.0,4.4956,6.5653],["MLT","Malta",2.7912,7.2273,7.6478,9.4271],["MYS","Malaysia",2.8736,7.9545,7.5978,8.8943],["NER","Niger",5.9915,5.0,5.7059,6.7334],["NGA","Nigeria",7.6029,5.5455,4.7281,6.8134],["NIC","Nicaragua",5.0956,5.2273,6.2495,7.5443],["NZL","New Zealand",2.1459,9.7273,8.0393,9.7561],["PAK","Pakistan",3.6106,6.0455,7.1505,7.3524],["PAN","Panama",5.0956,5.9091,6.2495,8.8364],["PER","Peru",4.2627,5.7727,6.7549,8.3962],["PRY","Paraguay",4.358,6.9545,6.6971,8.2079],["SDN","Sudan",4.4796,4.0,6.6233,7.3065],["SEN","Senegal",5.1039,6.0,6.2445,7.4025],["SGP","Singapore",2.8736,9.3182,7.5978,10.1464],["SLE","Sierra Leone",6.18,5.8182,5.5915,6.2538],["SLV","El Salvador",4.358,5.0,6.6971,7.948],["TGO","Togo",6.5043,6.9091,5.3947,7.2226],["TTO","Trinidad and Tobago",4.4427,7.4545,6.6457,8.7687],["TUN","Tunisia",4.1431,6.4545,6.8274,8.4826],["TZA","Tanzania",5.6348,6.6364,5.9223,6.2538],["UGA","Uganda",5.6348,4.4545,5.9223,6.966],["URY","Uruguay",4.2627,7.0,6.7549,9.0312],["USA","United States",2.7081,10.0,7.6982,10.2157],["VEN","Venezuela, RB",4.358,7.1364,6.6971,9.0711],["VNM","Vietnam",4.9416,6.4091,6.3429,7.2793],["ZAF","South Africa",2.7408,6.8636,7.6783,8.886],["ZAR","Congo, Dem. Rep. (Zaire)",5.4806,3.5,6.0159,6.8669]];
+const NEO_EUROPE = new Set(["USA","CAN","AUS","NZL"]);
+const CALLOUTS = new Set(["USA","CAN","AUS","NZL","MLI","GMB","HKG","SGP"]);
+
+const tooltip = document.getElementById('tooltip');
+const ns = 'http://www.w3.org/2000/svg';
+function el(tag, attrs) {
+  const e = document.createElementNS(ns, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function ols(xs, ys) {
+  const n = xs.length;
+  const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+  let cov=0, varx=0;
+  for (let i=0;i<n;i++){ cov += (xs[i]-mx)*(ys[i]-my); varx += (xs[i]-mx)**2; }
+  const b = cov/varx, a = my - b*mx;
+  const resid = ys.map((y,i)=> y - (a+b*xs[i]));
+  const sse = resid.reduce((s,r)=>s+r*r,0);
+  const sst = ys.reduce((s,y)=>s+(y-my)**2,0);
+  return { a, b, r2: 1 - sse/sst };
+}
+function attachTooltip(dot, html) {
+  dot.addEventListener('mousemove', (ev) => {
+    tooltip.innerHTML = html;
+    tooltip.style.left = (ev.pageX + 14) + 'px';
+    tooltip.style.top = (ev.pageY - 12) + 'px';
+    tooltip.style.opacity = 1;
+  });
+  dot.addEventListener('mouseleave', () => { tooltip.style.opacity = 0; });
+}
+
+// ---------- Small scatter (panels A & B) ----------
+function drawSmallPanel(svgId, xKey, yKey, opts) {
+  const svg = document.getElementById(svgId);
+  const W = 420, H = 340;
+  const M = { top: 12, right: 16, bottom: 42, left: 46 };
+  const plotW = W - M.left - M.right, plotH = H - M.top - M.bottom;
+
+  const xs = DATA.map(d => d[xKey]);
+  const ys = DATA.map(d => d[yKey]);
+  const xMin = opts.xMin ?? Math.min(...xs), xMax = opts.xMax ?? Math.max(...xs);
+  const yMin = opts.yMin ?? Math.min(...ys), yMax = opts.yMax ?? Math.max(...ys);
+  const xS = v => M.left + (v-xMin)/(xMax-xMin)*plotW;
+  const yS = v => M.top + (1-(v-yMin)/(yMax-yMin))*plotH;
+
+  for (const t of opts.xTicks) {
+    const x = xS(t);
+    svg.appendChild(el('line', { x1:x, x2:x, y1:M.top, y2:M.top+plotH, class:'gridline' }));
+    const lbl = el('text', { x, y:M.top+plotH+16, class:'axis-label', 'text-anchor':'middle' });
+    lbl.textContent = t;
+    svg.appendChild(lbl);
+  }
+  for (const t of opts.yTicks) {
+    const y = yS(t.v);
+    svg.appendChild(el('line', { x1:M.left, x2:M.left+plotW, y1:y, y2:y, class:'gridline' }));
+    const lbl = el('text', { x:M.left-8, y:y+3.5, class:'axis-label', 'text-anchor':'end' });
+    lbl.textContent = t.label;
+    svg.appendChild(lbl);
+  }
+  svg.appendChild(el('line', { x1:M.left, x2:M.left+plotW, y1:M.top+plotH, y2:M.top+plotH, class:'axis-line' }));
+  svg.appendChild(el('line', { x1:M.left, x2:M.left, y1:M.top, y2:M.top+plotH, class:'axis-line' }));
+
+  const xt = el('text', { x:M.left+plotW/2, y:H-4, class:'axis-title', 'text-anchor':'middle' });
+  xt.textContent = opts.xTitle;
+  svg.appendChild(xt);
+  const yt = el('text', { x:-(M.top+plotH/2), y:13, class:'axis-title', 'text-anchor':'middle', transform:'rotate(-90)' });
+  yt.textContent = opts.yTitle;
+  svg.appendChild(yt);
+
+  const fit = ols(xs, ys);
+  svg.appendChild(el('line', {
+    x1:xS(xMin), y1:yS(fit.a+fit.b*xMin),
+    x2:xS(xMax), y2:yS(fit.a+fit.b*xMax),
+    class:'trend-line trend-1'
+  }));
+
+  DATA.forEach(d => {
+    const [code, name, logem4, avexpr, avexpr_hat, logpgp95] = d;
+    const xv = d[xKey], yv = d[yKey];
+    const r = CALLOUTS.has(code) ? 4.5 : 3.5;
+    const dot = el('circle', { cx:xS(xv), cy:yS(yv), r, class:'dot dot-main' });
+    attachTooltip(dot, `<div class="tt-name">${name}</div>
+      <div class="tt-row">Log settler mortality: ${logem4.toFixed(2)}</div>
+      <div class="tt-row">Expropriation protection: ${avexpr.toFixed(1)}</div>
+      <div class="tt-row">GDP per capita (1995, PPP): $${Math.round(Math.exp(logpgp95)).toLocaleString()}</div>`);
+    svg.appendChild(dot);
+    if (CALLOUTS.has(code)) {
+      const lb = el('text', {
+        x: xS(xv) + (opts.labelDx ? opts.labelDx(code) : 6),
+        y: yS(yv) + (opts.labelDy ? opts.labelDy(code) : -6),
+        class:'callout-label'
+      });
+      lb.textContent = name === 'United States' ? 'USA' : name;
+      svg.appendChild(lb);
+    }
+  });
+  return fit;
+}
+
+const fitA = drawSmallPanel('panelA', 2, 3, {
+  xTitle: 'Log settler mortality →',
+  yTitle: 'Expropriation protection (0–10) →',
+  xTicks: [2,4,6,8],
+  yTicks: [{v:2,label:'2'},{v:4,label:'4'},{v:6,label:'6'},{v:8,label:'8'},{v:10,label:'10'}],
+  xMin: 1.5, xMax: 8.5, yMin: 3, yMax: 10.5,
+});
+const fitB = drawSmallPanel('panelB', 2, 5, {
+  xTitle: 'Log settler mortality →',
+  yTitle: 'GDP per capita, 1995 (log) →',
+  xTicks: [2,4,6,8],
+  yTicks: [{v:Math.log(1000),label:'$1k'},{v:Math.log(3000),label:'$3k'},{v:Math.log(10000),label:'$10k'},{v:Math.log(30000),label:'$30k'}],
+  xMin: 1.5, xMax: 8.5, yMin: 5.8, yMax: 10.6,
+});
+
+// ---------- Panel C: naive OLS vs 2SLS ----------
+(function drawPanelC() {
+  const svg = document.getElementById('panelC');
+  const W = 880, H = 460;
+  const M = { top: 16, right: 24, bottom: 46, left: 56 };
+  const plotW = W - M.left - M.right, plotH = H - M.top - M.bottom;
+
+  const xMin = 3, xMax = 10.5;
+  const yMin = 5.8, yMax = 10.6;
+  const xS = v => M.left + (v-xMin)/(xMax-xMin)*plotW;
+  const yS = v => M.top + (1-(v-yMin)/(yMax-yMin))*plotH;
+
+  for (let t=4; t<=10; t+=2) {
+    const x = xS(t);
+    svg.appendChild(el('line', { x1:x, x2:x, y1:M.top, y2:M.top+plotH, class:'gridline' }));
+    const lbl = el('text', { x, y:M.top+plotH+18, class:'axis-label', 'text-anchor':'middle' });
+    lbl.textContent = t;
+    svg.appendChild(lbl);
+  }
+  const yTicks = [1000,3000,10000,30000];
+  for (const v of yTicks) {
+    const y = yS(Math.log(v));
+    svg.appendChild(el('line', { x1:M.left, x2:M.left+plotW, y1:y, y2:y, class:'gridline' }));
+    const lbl = el('text', { x:M.left-10, y:y+4, class:'axis-label', 'text-anchor':'end' });
+    lbl.textContent = '$'+(v/1000)+'k';
+    svg.appendChild(lbl);
+  }
+  svg.appendChild(el('line', { x1:M.left, x2:M.left+plotW, y1:M.top+plotH, y2:M.top+plotH, class:'axis-line' }));
+  svg.appendChild(el('line', { x1:M.left, x2:M.left, y1:M.top, y2:M.top+plotH, class:'axis-line' }));
+  const xt = el('text', { x:M.left+plotW/2, y:H-6, class:'axis-title', 'text-anchor':'middle' });
+  xt.textContent = 'Protection against expropriation risk (0–10 scale)';
+  svg.appendChild(xt);
+  const yt = el('text', { x:-(M.top+plotH/2), y:16, class:'axis-title', 'text-anchor':'middle', transform:'rotate(-90)' });
+  yt.textContent = 'GDP per capita, 1995 PPP (log scale)';
+  svg.appendChild(yt);
+
+  const ys = DATA.map(d => d[5]);
+  const naiveFit = ols(DATA.map(d=>d[3]), ys);
+  const ivFit = ols(DATA.map(d=>d[4]), ys);
+
+  // naive OLS line + dots (drawn first, underneath)
+  svg.appendChild(el('line', {
+    x1:xS(xMin), y1:yS(naiveFit.a+naiveFit.b*xMin),
+    x2:xS(xMax), y2:yS(naiveFit.a+naiveFit.b*xMax),
+    class:'trend-line trend-naive'
+  }));
+  DATA.forEach(d => {
+    const [code, name, logem4, avexpr, avexpr_hat, logpgp95] = d;
+    const dot = el('circle', { cx:xS(avexpr), cy:yS(logpgp95), r: CALLOUTS.has(code)?4.5:3.5, class:'dot dot-naive' });
+    attachTooltip(dot, `<div class="tt-name">${name} <span style="color:var(--naive)">(raw)</span></div>
+      <div class="tt-row">Expropriation protection: ${avexpr.toFixed(1)}</div>
+      <div class="tt-row">GDP per capita (1995, PPP): $${Math.round(Math.exp(logpgp95)).toLocaleString()}</div>`);
+    svg.appendChild(dot);
+  });
+
+  // IV/fitted line + dots (on top)
+  svg.appendChild(el('line', {
+    x1:xS(xMin), y1:yS(ivFit.a+ivFit.b*xMin),
+    x2:xS(xMax), y2:yS(ivFit.a+ivFit.b*xMax),
+    class:'trend-line trend-1'
+  }));
+  DATA.forEach(d => {
+    const [code, name, logem4, avexpr, avexpr_hat, logpgp95] = d;
+    const dot = el('circle', { cx:xS(avexpr_hat), cy:yS(logpgp95), r: CALLOUTS.has(code)?4.5:3.5, class:'dot dot-main' });
+    attachTooltip(dot, `<div class="tt-name">${name} <span style="color:var(--series-1)">(instrument-fitted)</span></div>
+      <div class="tt-row">Fitted expropriation protection: ${avexpr_hat.toFixed(1)}</div>
+      <div class="tt-row">GDP per capita (1995, PPP): $${Math.round(Math.exp(logpgp95)).toLocaleString()}</div>`);
+    svg.appendChild(dot);
+    if (CALLOUTS.has(code)) {
+      const lb = el('text', { x: xS(avexpr_hat)+6, y: yS(logpgp95)-7, class:'callout-label' });
+      lb.textContent = name === 'United States' ? 'USA' : name;
+      svg.appendChild(lb);
+    }
+  });
+
+  // line-end labels
+  const naiveLbl = el('text', { x: xS(xMax)+6, y: yS(naiveFit.a+naiveFit.b*xMax)+4, class:'line-label', fill:'var(--naive)' });
+  naiveLbl.textContent = 'OLS: 0.52';
+  svg.appendChild(naiveLbl);
+  const ivLbl = el('text', { x: xS(xMax)+6, y: yS(ivFit.a+ivFit.b*xMax)+4, class:'line-label', fill:'var(--series-1)' });
+  ivLbl.textContent = '2SLS: 0.94';
+  svg.appendChild(ivLbl);
+})();
+</script>

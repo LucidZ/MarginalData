@@ -1,0 +1,366 @@
+<title>Rule of Law vs. GDP per Capita</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --axis:           #c3c2b7;
+    --series-1:       #2a78d6;
+    --series-1-wash:  rgba(42,120,214,0.10);
+    --trend:          #898781;
+    --border:         rgba(11,11,11,0.10);
+    --callout-over:   #eb6834;
+    --callout-under:  #1baf7a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --axis:           #383835;
+      --series-1:       #3987e5;
+      --series-1-wash:  rgba(57,135,229,0.14);
+      --trend:          #898781;
+      --border:         rgba(255,255,255,0.10);
+      --callout-over:   #d95926;
+      --callout-under:  #199e70;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --axis:           #383835;
+    --series-1:       #3987e5;
+    --series-1-wash:  rgba(57,135,229,0.14);
+    --trend:          #898781;
+    --border:         rgba(255,255,255,0.10);
+    --callout-over:   #d95926;
+    --callout-under:  #199e70;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary);
+    padding: 32px 16px 64px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 24px; line-height: 1.5; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 20px 8px;
+  }
+  .stat-row {
+    display: flex; gap: 28px; flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .stat { display: flex; flex-direction: column; }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 2px; }
+  .stat-value { font-size: 20px; font-weight: 650; }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .gridline { stroke: var(--gridline); stroke-width: 1; }
+  .axis-line { stroke: var(--axis); stroke-width: 1; }
+  .axis-label { fill: var(--text-muted); font-size: 11px; }
+  .axis-title { fill: var(--text-secondary); font-size: 12px; font-weight: 600; }
+  .trend-line { stroke: var(--trend); stroke-width: 2; stroke-dasharray: none; fill: none; opacity: 0.7; }
+  .dot {
+    fill: var(--series-1);
+    stroke: var(--surface-1);
+    stroke-width: 2;
+    cursor: pointer;
+  }
+  .dot.callout-over { fill: var(--callout-over); }
+  .dot.callout-under { fill: var(--callout-under); }
+  .dot:hover { stroke: var(--text-primary); }
+  .callout-label {
+    fill: var(--text-secondary);
+    font-size: 10.5px;
+    pointer-events: none;
+  }
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+    opacity: 0;
+    transition: opacity 0.08s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tt-name { font-weight: 650; }
+  .tt-row { color: var(--text-secondary); }
+  .legend-row {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    font-size: 12px; color: var(--text-secondary);
+    margin: 10px 0 18px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .caption {
+    font-size: 13.5px; color: var(--text-secondary); line-height: 1.65;
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .caption strong { color: var(--text-primary); }
+  .source { font-size: 11.5px; color: var(--text-muted); margin-top: 14px; }
+  details { margin-top: 18px; }
+  summary {
+    cursor: pointer; font-size: 13px; color: var(--text-secondary);
+    padding: 8px 0; user-select: none;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--gridline); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; cursor: pointer; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:hover { background: var(--series-1-wash); }
+  .table-scroll { max-height: 420px; overflow-y: auto; overflow-x: auto; }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <h1>Rule of law vs. GDP per capita</h1>
+    <p class="subtitle">193 countries, 2023. Does institutional quality track prosperity the way Acemoglu's "fundamental cause" thesis predicts?</p>
+
+    <div class="card">
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat-label">Correlation (r)</span>
+          <span class="stat-value">0.71</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Variance explained (r²)</span>
+          <span class="stat-value">0.50</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Countries</span>
+          <span class="stat-value">193</span>
+        </div>
+      </div>
+
+      <div class="legend-row">
+        <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span> Country</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--callout-over)"></span> Richer than rule-of-law predicts</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--callout-under)"></span> Poorer than rule-of-law predicts</span>
+      </div>
+
+      <svg id="chart" viewBox="0 0 880 520" preserveAspectRatio="xMidYMid meet"></svg>
+
+      <details>
+        <summary>View underlying data as a table (193 countries)</summary>
+        <div class="table-scroll">
+          <table id="data-table">
+            <thead>
+              <tr>
+                <th data-key="name">Country</th>
+                <th data-key="region">Region</th>
+                <th class="num" data-key="gdp">GDP per capita (PPP, $)</th>
+                <th class="num" data-key="rol">Rule of law score</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <p class="caption">
+      The overall pattern is a strong one: a country's <strong>Rule of Law</strong> score (World Bank's Worldwide
+      Governance Indicators, running roughly −2.5 to +2.5) alone explains about half the cross-country variance in
+      log GDP per capita — consistent with Acemoglu's claim that secure property rights and constraints on
+      expropriation are a "fundamental cause" sitting behind proximate drivers like capital and technology.
+      But the deviations are the more interesting part of the story: <strong>resource-rich autocracies</strong>
+      (Russia, Belarus, Turkmenistan, Qatar, Guyana) sit well above the trend line — oil, gas, and diamond rents
+      can buy GDP per capita without secure, broad-based property rights. And a cluster of <strong>small, remote
+      Pacific island states</strong> (Micronesia, Kiribati, Tuvalu, Solomon Islands, Vanuatu) sit well below it —
+      reasonable institutions can't fully offset tiny domestic markets and extreme distance from trade routes.
+      That's the standard critique of a pure institutions story: geography and resource endowments still do real
+      work, they just don't dominate the way they once seemed to.
+    </p>
+    <p class="source">
+      Source: World Bank Worldwide Governance Indicators (Rule of Law estimate, GOV_WGI_RL.EST) and World
+      Development Indicators (GDP per capita, PPP, current international $), both 2023. Correlation and
+      regression computed from the merged sample of 193 countries with non-missing values on both indicators.
+      This is a cross-sectional correlation, not a causal estimate — AJR's original identification used
+      colonial settler mortality as an instrument for institutions; see "The Colonial Origins of Comparative
+      Development" (2001).
+    </p>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const DATA = [["LUX","Luxembourg","Europe & Central Asia",152596.1,1.729],["SGP","Singapore","East Asia & Pacific",144728.4,1.424],["IRL","Ireland","Europe & Central Asia",133440.4,1.598],["QAT","Qatar","Middle East, North Africa, Afghanistan & Pakistan",129024.8,0.573],["MAC","Macao SAR, China","East Asia & Pacific",116424.4,0.779],["BMU","Bermuda","North America",113596.1,0.8],["NOR","Norway","Europe & Central Asia",107768.0,1.986],["CHE","Switzerland","Europe & Central Asia",93939.8,1.792],["CYM","Cayman Islands","Latin America & Caribbean",88395.2,0.83],["BRN","Brunei Darussalam","East Asia & Pacific",85102.7,0.638],["USA","United States","North America",82586.8,0.961],["ISL","Iceland","Europe & Central Asia",82256.5,1.59],["NLD","Netherlands","Europe & Central Asia",80391.6,1.717],["GRL","Greenland","Europe & Central Asia",78905.6,1.575],["SMR","San Marino","Europe & Central Asia",78810.3,1.41],["ARE","United Arab Emirates","Middle East, North Africa, Afghanistan & Pakistan",78019.5,0.449],["DNK","Denmark","Europe & Central Asia",77425.4,2.014],["AUT","Austria","Europe & Central Asia",74261.2,1.658],["BEL","Belgium","Europe & Central Asia",72629.6,1.272],["AUS","Australia","East Asia & Pacific",72272.7,1.503],["DEU","Germany","Europe & Central Asia",72262.2,1.586],["AND","Andorra","Europe & Central Asia",71789.8,1.41],["SAU","Saudi Arabia","Middle East, North Africa, Afghanistan & Pakistan",71623.8,0.117],["HKG","Hong Kong SAR, China","East Asia & Pacific",71519.2,0.876],["SWE","Sweden","Europe & Central Asia",68457.9,1.695],["MLT","Malta","Middle East, North Africa, Afghanistan & Pakistan",67101.1,0.794],["CAN","Canada","North America",64962.2,1.436],["BHR","Bahrain","Middle East, North Africa, Afghanistan & Pakistan",64224.0,0.126],["FIN","Finland","Europe & Central Asia",63466.8,2.02],["FRA","France","Europe & Central Asia",60927.0,0.995],["GBR","United Kingdom","Europe & Central Asia",60786.7,1.27],["ITA","Italy","Europe & Central Asia",60349.7,0.651],["CYP","Cyprus","Europe & Central Asia",59874.7,0.759],["KOR","Korea, Rep.","East Asia & Pacific",57429.8,1.184],["SVN","Slovenia","Europe & Central Asia",56150.7,0.971],["CZE","Czechia","Europe & Central Asia",56062.4,1.161],["ESP","Spain","Europe & Central Asia",55661.3,0.93],["ISR","Israel","Middle East, North Africa, Afghanistan & Pakistan",55301.4,0.664],["NZL","New Zealand","East Asia & Pacific",54949.7,1.708],["GUY","Guyana","Latin America & Caribbean",54774.1,-0.372],["KWT","Kuwait","Middle East, North Africa, Afghanistan & Pakistan",53083.4,0.191],["JPN","Japan","East Asia & Pacific",52726.2,1.508],["LTU","Lithuania","Europe & Central Asia",52720.1,1.329],["PRT","Portugal","Europe & Central Asia",49800.3,1.082],["EST","Estonia","Europe & Central Asia",48848.1,1.482],["POL","Poland","Europe & Central Asia",48473.1,0.356],["HRV","Croatia","Europe & Central Asia",47759.6,0.426],["PRI","Puerto Rico (US)","Latin America & Caribbean",47582.6,0.537],["ABW","Aruba","Latin America & Caribbean",47521.9,1.22],["HUN","Hungary","Europe & Central Asia",46376.2,0.189],["ROU","Romania","Europe & Central Asia",45981.6,0.412],["SVK","Slovak Republic","Europe & Central Asia",45864.6,0.553],["RUS","Russian Federation","Europe & Central Asia",44298.7,-1.073],["TUR","Turkiye","Europe & Central Asia",43196.3,-0.799],["LVA","Latvia","Europe & Central Asia",42783.8,1.073],["GRC","Greece","Europe & Central Asia",42613.7,0.396],["OMN","Oman","Middle East, North Africa, Afghanistan & Pakistan",41979.6,0.344],["PAN","Panama","Latin America & Caribbean",39846.2,-0.228],["BHS","Bahamas, The","Latin America & Caribbean",39122.3,0.276],["BGR","Bulgaria","Europe & Central Asia",38829.3,-0.027],["KAZ","Kazakhstan","Europe & Central Asia",38546.9,-0.378],["MYS","Malaysia","East Asia & Pacific",36496.9,0.302],["TTO","Trinidad and Tobago","Latin America & Caribbean",34651.9,-0.315],["URY","Uruguay","Latin America & Caribbean",34545.7,0.957],["KNA","St. Kitts and Nevis","Latin America & Caribbean",34007.6,0.563],["CHL","Chile","Latin America & Caribbean",33173.5,0.665],["SYC","Seychelles","Sub-Saharan Africa",31894.0,0.555],["ATG","Antigua and Barbuda","Latin America & Caribbean",31892.6,0.619],["MNE","Montenegro","Europe & Central Asia",31862.9,0.128],["BLR","Belarus","Europe & Central Asia",30859.6,-1.216],["ARG","Argentina","Latin America & Caribbean",30246.4,-0.238],["SRB","Serbia","Europe & Central Asia",29777.0,-0.184],["MUS","Mauritius","Sub-Saharan Africa",29402.9,0.663],["CRI","Costa Rica","Latin America & Caribbean",29247.9,0.643],["LCA","St. Lucia","Latin America & Caribbean",26253.9,0.512],["DOM","Dominican Republic","Latin America & Caribbean",25861.2,-0.241],["MKD","North Macedonia","Europe & Central Asia",25354.1,-0.274],["CHN","China","East Asia & Pacific",25200.1,-0.552],["MEX","Mexico","Latin America & Caribbean",25188.3,-1.078],["GEO","Georgia","Europe & Central Asia",25092.6,0.164],["ALB","Albania","Europe & Central Asia",24847.5,-0.153],["MDV","Maldives","South Asia",24806.6,0.097],["AZE","Azerbaijan","Europe & Central Asia",23671.1,-0.516],["THA","Thailand","East Asia & Pacific",23598.4,-0.196],["BIH","Bosnia and Herzegovina","Europe & Central Asia",23376.3,-0.355],["BRB","Barbados","Latin America & Caribbean",23176.0,0.734],["ARM","Armenia","Europe & Central Asia",21551.8,-0.211],["COL","Colombia","Latin America & Caribbean",21281.7,-0.565],["BRA","Brazil","Latin America & Caribbean",21193.1,-0.483],["SUR","Suriname","Latin America & Caribbean",21127.6,-0.188],["BWA","Botswana","Sub-Saharan Africa",21029.4,0.332],["GAB","Gabon","Sub-Saharan Africa",20772.8,-1.078],["DMA","Dominica","Latin America & Caribbean",20302.7,0.54],["VCT","St. Vincent and the Grenadines","Latin America & Caribbean",19836.2,0.55],["TKM","Turkmenistan","Europe & Central Asia",19644.7,-1.433],["GRD","Grenada","Latin America & Caribbean",18986.4,0.55],["IRN","Iran, Islamic Rep.","Middle East, North Africa, Afghanistan & Pakistan",18932.7,-1.2],["EGY","Egypt, Arab Rep.","Middle East, North Africa, Afghanistan & Pakistan",18540.1,-0.778],["PLW","Palau","East Asia & Pacific",18313.3,1.171],["MNG","Mongolia","East Asia & Pacific",18019.7,-0.158],["MDA","Moldova","Europe & Central Asia",17750.6,-0.194],["UKR","Ukraine","Europe & Central Asia",17679.9,-0.745],["PRY","Paraguay","Latin America & Caribbean",17585.1,-0.58],["PER","Peru","Latin America & Caribbean",17041.6,-0.479],["GNQ","Equatorial Guinea","Sub-Saharan Africa",16997.0,-1.481],["DZA","Algeria","Middle East, North Africa, Afghanistan & Pakistan",16838.4,-0.733],["BTN","Bhutan","South Asia",16228.5,0.72],["ECU","Ecuador","Latin America & Caribbean",15907.4,-0.859],["XKX","Kosovo","Europe & Central Asia",15817.4,-0.044],["IDN","Indonesia","East Asia & Pacific",15428.4,-0.082],["ZAF","South Africa","Sub-Saharan Africa",15212.3,0.04],["VNM","Viet Nam","East Asia & Pacific",15033.9,-0.34],["IRQ","Iraq","Middle East, North Africa, Afghanistan & Pakistan",14664.6,-1.5],["FJI","Fiji","East Asia & Pacific",14656.2,0.326],["LKA","Sri Lanka","South Asia",14512.1,-0.316],["TUN","Tunisia","Middle East, North Africa, Afghanistan & Pakistan",14052.2,-0.315],["LBY","Libya","Middle East, North Africa, Afghanistan & Pakistan",13858.5,-1.668],["GTM","Guatemala","Latin America & Caribbean",13751.6,-1.011],["BLZ","Belize","Latin America & Caribbean",13741.2,-0.401],["NRU","Naoero","East Asia & Pacific",13172.0,0.347],["BOL","Bolivia","Latin America & Caribbean",12902.8,-1.203],["SLV","El Salvador","Latin America & Caribbean",12667.5,-0.707],["JAM","Jamaica","Latin America & Caribbean",12661.3,-0.077],["LBN","Lebanon","Middle East, North Africa, Afghanistan & Pakistan",12585.2,-1.067],["UZB","Uzbekistan","Europe & Central Asia",11678.6,-0.674],["JOR","Jordan","Middle East, North Africa, Afghanistan & Pakistan",11450.6,0.123],["SWZ","Eswatini","Sub-Saharan Africa",11309.2,-0.727],["NAM","Namibia","Sub-Saharan Africa",11247.8,0.309],["PHL","Philippines","East Asia & Pacific",10994.9,-0.601],["CPV","Cabo Verde","Sub-Saharan Africa",10250.6,0.422],["MAR","Morocco","Middle East, North Africa, Afghanistan & Pakistan",9902.8,-0.393],["IND","India","South Asia",9853.0,-0.088],["AGO","Angola","Sub-Saharan Africa",9549.8,-1.194],["LAO","Lao PDR","East Asia & Pacific",9299.4,-0.845],["BGD","Bangladesh","South Asia",9155.3,-0.902],["NGA","Nigeria","Sub-Saharan Africa",8711.7,-0.935],["NIC","Nicaragua","Latin America & Caribbean",8326.8,-1.596],["WSM","Samoa","East Asia & Pacific",8202.6,1.053],["TON","Tonga","East Asia & Pacific",7810.1,0.8],["GHA","Ghana","Sub-Saharan Africa",7562.6,-0.003],["MHL","Marshall Islands","East Asia & Pacific",7525.2,0.836],["KHM","Cambodia","East Asia & Pacific",7436.9,-1.1],["KGZ","Kyrgyz Republic","Europe & Central Asia",7304.1,-0.974],["CIV","Cote d'Ivoire","Sub-Saharan Africa",7243.1,-0.602],["DJI","Djibouti","Middle East, North Africa, Afghanistan & Pakistan",7231.8,-1.04],["HND","Honduras","Latin America & Caribbean",7184.3,-1.156],["MRT","Mauritania","Sub-Saharan Africa",6971.7,-0.854],["COG","Congo, Rep.","Sub-Saharan Africa",6855.9,-1.183],["KEN","Kenya","Sub-Saharan Africa",6322.2,-0.428],["PSE","West Bank and Gaza","Middle East, North Africa, Afghanistan & Pakistan",6178.5,-0.886],["STP","Sao Tome and Principe","Sub-Saharan Africa",6155.1,-0.353],["PAK","Pakistan","Middle East, North Africa, Afghanistan & Pakistan",6018.9,-1.004],["MMR","Myanmar","East Asia & Pacific",5958.3,-1.724],["TUV","Tuvalu","East Asia & Pacific",5903.9,1.196],["ZWE","Zimbabwe","Sub-Saharan Africa",5796.0,-1.268],["CMR","Cameroon","Sub-Saharan Africa",5415.2,-1.24],["NPL","Nepal","South Asia",5399.7,-0.337],["TJK","Tajikistan","Europe & Central Asia",4967.7,-1.209],["TLS","Timor-Leste","East Asia & Pacific",4810.8,-0.643],["SEN","Senegal","Sub-Saharan Africa",4781.6,-0.17],["PNG","Papua New Guinea","East Asia & Pacific",4672.3,-0.511],["GIN","Guinea","Sub-Saharan Africa",4337.3,-1.107],["FSM","Micronesia, Fed. Sts.","East Asia & Pacific",4266.7,0.977],["VUT","Vanuatu","East Asia & Pacific",4201.8,0.42],["BEN","Benin","Sub-Saharan Africa",4133.4,-0.391],["ZMB","Zambia","Sub-Saharan Africa",4080.4,-0.609],["TZA","Tanzania","Sub-Saharan Africa",4021.8,-0.494],["COM","Comoros","Sub-Saharan Africa",3896.7,-1.134],["TGO","Togo","Sub-Saharan Africa",3572.0,-0.63],["KIR","Kiribati","East Asia & Pacific",3526.7,0.735],["RWA","Rwanda","Sub-Saharan Africa",3518.9,0.071],["SLE","Sierra Leone","Sub-Saharan Africa",3371.1,-0.827],["GMB","Gambia, The","Sub-Saharan Africa",3291.8,-0.34],["HTI","Haiti","Latin America & Caribbean",3264.7,-1.642],["MLI","Mali","Sub-Saharan Africa",3178.4,-1.037],["UGA","Uganda","Sub-Saharan Africa",3100.2,-0.753],["ETH","Ethiopia","Sub-Saharan Africa",3063.4,-1.039],["GNB","Guinea-Bissau","Sub-Saharan Africa",2955.5,-1.207],["LSO","Lesotho","Sub-Saharan Africa",2879.6,-0.442],["BFA","Burkina Faso","Sub-Saharan Africa",2761.6,-0.715],["TCD","Chad","Sub-Saharan Africa",2703.1,-1.455],["SLB","Solomon Islands","East Asia & Pacific",2599.0,0.152],["SDN","Sudan","Sub-Saharan Africa",2422.7,-1.656],["AFG","Afghanistan","Middle East, North Africa, Afghanistan & Pakistan",2203.5,-1.897],["NER","Niger","Sub-Saharan Africa",1902.7,-0.804],["MWI","Malawi","Sub-Saharan Africa",1832.0,-0.134],["MDG","Madagascar","Sub-Saharan Africa",1810.1,-0.955],["LBR","Liberia","Sub-Saharan Africa",1796.0,-0.9],["COD","Congo, Dem. Rep.","Sub-Saharan Africa",1732.0,-1.606],["MOZ","Mozambique","Sub-Saharan Africa",1680.2,-1.102],["SOM","Somalia, Fed. Rep.","Sub-Saharan Africa",1556.9,-2.13],["CAF","Central African Republic","Sub-Saharan Africa",1258.1,-1.725],["BDI","Burundi","Sub-Saharan Africa",1147.4,-1.308]];
+
+// [code, name, region, gdp_pc_ppp, rule_of_law]
+const OUTLIER_CODES = new Set(["RUS","BLR","TKM","QAT","GUY","FSM","KIR","TUV","SLB","VUT"]);
+const OVER_CODES = new Set(["RUS","BLR","TKM","QAT","GUY"]);
+const UNDER_CODES = new Set(["FSM","KIR","TUV","SLB","VUT"]);
+const REFERENCE_CODES = new Set(["USA","CHN","IND","NOR","DEU"]);
+
+const W = 880, H = 520;
+const M = { top: 16, right: 24, bottom: 48, left: 60 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+
+const xMin = -2.2, xMax = 2.2;
+const yMin = Math.log(700), yMax = Math.log(200000);
+
+function xScale(v) { return M.left + (v - xMin) / (xMax - xMin) * plotW; }
+function yScale(v) { return M.top + (1 - (Math.log(v) - yMin) / (yMax - yMin)) * plotH; }
+
+// simple linear regression: y = a + b*x  (y = log gdp, x = rule of law)
+const n = DATA.length;
+const xs = DATA.map(d => d[4]);
+const ys = DATA.map(d => Math.log(d[3]));
+const mx = xs.reduce((a,b)=>a+b,0)/n;
+const my = ys.reduce((a,b)=>a+b,0)/n;
+let cov = 0, varx = 0;
+for (let i=0;i<n;i++){ cov += (xs[i]-mx)*(ys[i]-my); varx += (xs[i]-mx)**2; }
+const b = cov/varx;
+const a = my - b*mx;
+
+const svg = document.getElementById('chart');
+const ns = 'http://www.w3.org/2000/svg';
+function el(tag, attrs) {
+  const e = document.createElementNS(ns, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// gridlines + x axis (rule of law, step 1)
+for (let v = -2; v <= 2; v++) {
+  const x = xScale(v);
+  svg.appendChild(el('line', { x1: x, x2: x, y1: M.top, y2: M.top+plotH, class: 'gridline' }));
+  const t = el('text', { x, y: M.top+plotH+20, class: 'axis-label', 'text-anchor': 'middle' });
+  t.textContent = v.toFixed(1);
+  svg.appendChild(t);
+}
+svg.appendChild(el('line', { x1: M.left, x2: M.left+plotW, y1: M.top+plotH, y2: M.top+plotH, class: 'axis-line' }));
+const xTitle = el('text', { x: M.left+plotW/2, y: H-6, class: 'axis-title', 'text-anchor': 'middle' });
+xTitle.textContent = 'Rule of Law score (World Bank WGI, −2.5 weak → +2.5 strong)';
+svg.appendChild(xTitle);
+
+// y axis (gdp per capita, log scale)
+const yTicks = [1000, 3000, 10000, 30000, 100000];
+for (const v of yTicks) {
+  const y = yScale(v);
+  svg.appendChild(el('line', { x1: M.left, x2: M.left+plotW, y1: y, y2: y, class: 'gridline' }));
+  const t = el('text', { x: M.left-10, y: y+4, class: 'axis-label', 'text-anchor': 'end' });
+  t.textContent = v >= 1000 ? '$' + (v/1000) + 'k' : '$' + v;
+  svg.appendChild(t);
+}
+svg.appendChild(el('line', { x1: M.left, x2: M.left, y1: M.top, y2: M.top+plotH, class: 'axis-line' }));
+const yTitle = el('text', { x: -(M.top+plotH/2), y: 16, class: 'axis-title', 'text-anchor': 'middle', transform: 'rotate(-90)' });
+yTitle.textContent = 'GDP per capita, PPP (log scale)';
+svg.appendChild(yTitle);
+
+// trend line
+const x0 = xMin, x1 = xMax;
+const y0 = a + b*x0, y1v = a + b*x1;
+svg.appendChild(el('line', {
+  x1: xScale(x0), y1: yScale(Math.exp(y0)),
+  x2: xScale(x1), y2: yScale(Math.exp(y1v)),
+  class: 'trend-line'
+}));
+
+// dots
+const tooltip = document.getElementById('tooltip');
+DATA.forEach(d => {
+  const [code, name, region, gdp, rol] = d;
+  const cx = xScale(rol), cy = yScale(gdp);
+  let cls = 'dot';
+  if (OVER_CODES.has(code)) cls += ' callout-over';
+  else if (UNDER_CODES.has(code)) cls += ' callout-under';
+  const r = OUTLIER_CODES.has(code) || REFERENCE_CODES.has(code) ? 5 : 4;
+  const dot = el('circle', { cx, cy, r, class: cls });
+  dot.addEventListener('mousemove', (ev) => {
+    tooltip.innerHTML = `<div class="tt-name">${name}</div>
+      <div class="tt-row">${region}</div>
+      <div class="tt-row">GDP per capita (PPP): $${Math.round(gdp).toLocaleString()}</div>
+      <div class="tt-row">Rule of law: ${rol.toFixed(2)}</div>`;
+    tooltip.style.left = (ev.pageX + 14) + 'px';
+    tooltip.style.top = (ev.pageY - 12) + 'px';
+    tooltip.style.opacity = 1;
+  });
+  dot.addEventListener('mouseleave', () => { tooltip.style.opacity = 0; });
+  svg.appendChild(dot);
+});
+
+// direct labels for outliers + reference points
+function addLabel(code, dx, dy, anchor) {
+  const d = DATA.find(r => r[0] === code);
+  if (!d) return;
+  const [, name, , gdp, rol] = d;
+  const t = el('text', { x: xScale(rol)+dx, y: yScale(gdp)+dy, class: 'callout-label', 'text-anchor': anchor || 'start' });
+  t.textContent = name;
+  svg.appendChild(t);
+}
+addLabel('RUS', 8, -8, 'start');
+addLabel('BLR', 8, 4, 'start');
+addLabel('TKM', 8, 4, 'start');
+addLabel('QAT', 8, -8, 'start');
+addLabel('GUY', 8, -8, 'start');
+addLabel('FSM', -8, 4, 'end');
+addLabel('KIR', 8, 14, 'start');
+addLabel('TUV', 8, -8, 'start');
+addLabel('SLB', 8, 14, 'start');
+addLabel('VUT', -8, 14, 'end');
+addLabel('USA', 8, -8, 'start');
+addLabel('CHN', -8, 14, 'end');
+addLabel('IND', 8, 14, 'start');
+addLabel('NOR', 8, -8, 'start');
+addLabel('DEU', -8, -8, 'end');
+
+// table
+const tbody = document.querySelector('#data-table tbody');
+function renderTable(rows) {
+  tbody.innerHTML = '';
+  rows.forEach(([code, name, region, gdp, rol]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${name}</td><td>${region}</td><td class="num">$${Math.round(gdp).toLocaleString()}</td><td class="num">${rol.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+renderTable([...DATA].sort((a,b) => b[3]-a[3]));
+
+let sortState = { key: 'gdp', dir: -1 };
+const keyIdx = { name: 1, region: 2, gdp: 3, rol: 4 };
+document.querySelectorAll('#data-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    sortState.dir = sortState.key === key ? -sortState.dir : 1;
+    sortState.key = key;
+    const idx = keyIdx[key];
+    const sorted = [...DATA].sort((x,y) => {
+      const vx = x[idx], vy = y[idx];
+      if (typeof vx === 'string') return vx.localeCompare(vy) * sortState.dir;
+      return (vx - vy) * sortState.dir;
+    });
+    renderTable(sorted);
+  });
+});
+</script>
