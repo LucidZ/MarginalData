@@ -75,6 +75,14 @@ export const ROUTES: RouteEntry[] = [
     group: "Soccer Analytics",
   },
   {
+    path: "/2026/PossessionShapeWWC2023",
+    title: "Possession Shape: Spain vs. England — Marginal Data",
+    description:
+      "Comparing each team's average player positioning in and out of possession during the 2023 Women's World Cup Final.",
+    component: () => import("./2026/PossessionShapeWWC2023"),
+    group: "Soccer Analytics",
+  },
+  {
     path: "/2025/DecisionVectorizer",
     title: "Decision Vectorizer — Marginal Data",
     description:
