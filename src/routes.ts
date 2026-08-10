@@ -51,6 +51,14 @@ export const ROUTES: RouteEntry[] = [
     group: "Personal Finance",
   },
   {
+    path: "/2025/ChessboardRice",
+    title: "The Chessboard and the Grain of Rice — Marginal Data",
+    description:
+      "A scrollytelling retelling of the doubling-grain fable, tracking exponential growth square by square to square 64.",
+    component: () => import("./2025/ChessboardRice"),
+    group: "Personal Finance",
+  },
+  {
     path: "/2026/PassingCompass",
     title: "Passing Compass — Marginal Data",
     description:

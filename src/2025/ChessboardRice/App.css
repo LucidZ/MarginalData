@@ -1,0 +1,443 @@
+/* ── Root ──────────────────────────────────────────────────────────────────── */
+.chessboard-rice-story {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: #fafaf8;
+  min-height: 100vh;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.chessboard-rice-story .story-header {
+  padding: 2.5rem 1.5rem 0.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.chessboard-rice-story .story-header h1 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.03em;
+  color: #1a1a1a;
+}
+
+.chessboard-rice-story .story-header .subtitle {
+  font-size: clamp(0.9rem, 1.8vw, 1.05rem);
+  color: #555;
+  margin: 0;
+  max-width: 56ch;
+  line-height: 1.65;
+}
+
+/* ── Scrolly layout ─────────────────────────────────────────────────────────── */
+.chessboard-rice-story .scrolly-container {
+  display: flex;
+  gap: 2.5rem;
+  align-items: flex-start;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.chessboard-rice-story .scrolly-viz {
+  flex: 0 0 340px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+.chessboard-rice-story .scrolly-steps {
+  flex: 1;
+  padding-top: 42vh;
+  padding-bottom: 55vh;
+}
+
+.chessboard-rice-story .scrolly-step {
+  display: flex;
+  align-items: flex-start;
+}
+
+.chessboard-rice-story .scrolly-step.has-content {
+  min-height: 40vh;
+  padding-top: 6vh;
+}
+
+.chessboard-rice-story .scrolly-step.empty-step {
+  min-height: 16vh;
+}
+
+/* ── Step card ──────────────────────────────────────────────────────────────── */
+.chessboard-rice-story .step-inner {
+  width: 100%;
+}
+
+.chessboard-rice-story .step-square-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b58863;
+  margin-bottom: 0.5rem;
+}
+
+.chessboard-rice-story .step-annotation h2 {
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+  color: #1a1a1a;
+}
+
+.chessboard-rice-story .step-annotation p {
+  font-size: clamp(0.85rem, 1.6vw, 0.97rem);
+  line-height: 1.7;
+  color: #444;
+  margin: 0 0 1.2rem;
+  max-width: 40ch;
+}
+
+/* ── Left panel: chessboard ──────────────────────────────────────────────────── */
+.chessboard-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.chessboard-svg {
+  display: block;
+  border-radius: 3px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+/* ── Board stats ─────────────────────────────────────────────────────────────── */
+.board-stats {
+  width: 284px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.board-square-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.board-sq-num {
+  font-size: 1.4rem;
+  color: #c8822a;
+}
+
+.board-sq-of {
+  font-size: 0.85rem;
+  color: #888;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+.board-stat-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.board-stat {
+  flex: 1;
+}
+
+.board-stat.full-width {
+  flex: 1 0 100%;
+}
+
+.board-stat-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  margin-bottom: 2px;
+}
+
+.board-stat-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Log scale bar ───────────────────────────────────────────────────────────── */
+.scale-bar-section {
+  width: 284px;
+}
+
+.scale-bar-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #999;
+  margin-bottom: 6px;
+}
+
+.scale-bar-track {
+  position: relative;
+  height: 6px;
+  background: #e5e0d8;
+  border-radius: 3px;
+  margin-bottom: 18px;
+}
+
+.scale-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, #b58863, #c8822a);
+  border-radius: 3px;
+  transition: width 0.15s ease;
+}
+
+.scale-bar-cursor {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: #c8822a;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  transition: left 0.15s ease;
+  pointer-events: none;
+}
+
+.scale-bar-tick {
+  position: absolute;
+  top: -14px;
+  transform: translateX(-50%);
+  font-size: 9px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.scale-tick-icon {
+  display: block;
+  font-size: 9px;
+}
+
+.scale-bar-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  color: #aaa;
+}
+
+/* ── GrainViz: early squares (dots) ────────────────────────────────────────── */
+.grain-viz {
+  width: 100%;
+}
+
+.early-grain-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.grain-dots-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grain-dots-svg {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+}
+
+.grain-dots-overflow {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.early-grain-weight {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* ── GrainViz: equivalent comparison ────────────────────────────────────────── */
+.equivalent-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.equivalent-icon {
+  font-size: 3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.equivalent-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.equivalent-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.equivalent-weight-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.equivalent-this,
+.equivalent-ref {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ew-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+}
+
+.ew-val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+}
+
+.equivalent-divider {
+  font-size: 1.1rem;
+  color: #c8822a;
+  font-weight: 700;
+  align-self: flex-end;
+  padding-bottom: 2px;
+}
+
+/* ── GrainViz: weight-only (no equivalent) ──────────────────────────────────── */
+.weight-only-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weight-only-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #c8822a;
+  font-variant-numeric: tabular-nums;
+}
+
+.weight-only-label {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────────── */
+.chessboard-rice-story .story-footer {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+  border-top: 1px solid #e8e4dc;
+}
+
+.sources-section h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #999;
+  margin: 1.5rem 0 0.6rem;
+}
+
+.sources-section ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.sources-section li {
+  font-size: 0.78rem;
+  color: #777;
+  line-height: 1.6;
+  margin-bottom: 0.25rem;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .chessboard-rice-story .scrolly-container {
+    flex-direction: column;
+    gap: 0;
+    padding: 0 1rem;
+  }
+
+  .chessboard-rice-story .scrolly-viz {
+    flex: none;
+    width: 100%;
+    height: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #fafaf8;
+    padding: 0.75rem 0 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .chessboard-panel {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .chessboard-svg {
+    width: 180px;
+    height: 180px;
+  }
+
+  .board-stats,
+  .scale-bar-section {
+    width: auto;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .scale-bar-section {
+    display: none;
+  }
+
+  .chessboard-rice-story .scrolly-steps {
+    padding-top: 3vh;
+    padding-bottom: 30vh;
+  }
+
+  .chessboard-rice-story .scrolly-step.has-content {
+    min-height: 30vh;
+    padding-top: 3vh;
+  }
+
+  .chessboard-rice-story .scrolly-step.empty-step {
+    min-height: 10vh;
+  }
+
+  .step-annotation p {
+    max-width: 100%;
+  }
+
+  .story-header {
+    padding: 1.5rem 1rem 0.5rem;
+  }
+}
