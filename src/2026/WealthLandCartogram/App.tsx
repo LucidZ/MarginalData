@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { geoMollweide } from "d3-geo-projection";
+import type { GeoPath, GeoProjection } from "d3-geo";
 import type { FeatureCollection } from "geojson";
 import land from "./data/land-countries-110m.json";
 import { WEALTH_GROUPS, TOTAL_LAND_KM2 } from "./data";
@@ -10,13 +11,32 @@ import "./App.css";
 const GRID_WIDTH = 960;
 const GRID_HEIGHT = 480;
 const OCEAN_COLOR: [number, number, number] = [11, 18, 32];
+const UNCLAIMED_COLOR: [number, number, number] = [90, 90, 90];
+
+interface GeoSetup {
+  projection: GeoProjection;
+  path: GeoPath<unknown, d3.GeoPermissibleObjects>;
+  ctx: CanvasRenderingContext2D;
+  landMask: Uint8Array;
+}
+
+interface StatRow {
+  name: string;
+  color: string;
+  wealthShare: number;
+  km2: number;
+}
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stats, setStats] = useState<
-    { name: string; color: string; wealthShare: number; km2: number }[] | null
-  >(null);
+  const geoRef = useRef<GeoSetup | null>(null);
+  const [seeds, setSeeds] = useState<[number, number][]>([]);
+  const [stats, setStats] = useState<StatRow[] | null>(null);
 
+  const isComplete = seeds.length >= WEALTH_GROUPS.length;
+  const currentGroup = isComplete ? null : WEALTH_GROUPS[seeds.length];
+
+  // one-time setup: rasterize land onto the grid, in an equal-area projection
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -27,22 +47,25 @@ export default function App() {
 
     const projection = geoMollweide().fitSize([GRID_WIDTH, GRID_HEIGHT], { type: "Sphere" });
     const path = d3.geoPath(projection, ctx);
-
     const landMask = buildLandMask(land as FeatureCollection, path, ctx, GRID_WIDTH, GRID_HEIGHT);
 
-    const toPixel = (lonLat: [number, number]): [number, number] => {
-      const p = projection(lonLat);
-      return p ?? [0, 0];
-    };
+    geoRef.current = { projection, path, ctx, landMask };
+  }, []);
 
-    const result = growRegions(landMask, GRID_WIDTH, GRID_HEIGHT, WEALTH_GROUPS, toPixel);
+  // re-grow and repaint whenever a seed is placed (or reset)
+  useEffect(() => {
+    const geo = geoRef.current;
+    if (!geo) return;
+    const { projection, ctx, landMask } = geo;
 
-    // render final raster
+    const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
+    const result = growRegions(landMask, GRID_WIDTH, GRID_HEIGHT, WEALTH_GROUPS, seeds, toPixel);
+
     const out = ctx.createImageData(GRID_WIDTH, GRID_HEIGHT);
     for (let i = 0; i < GRID_WIDTH * GRID_HEIGHT; i++) {
       let c: [number, number, number];
       if (!landMask[i]) c = OCEAN_COLOR;
-      else if (result.claimedBy[i] === -1) c = [90, 90, 90];
+      else if (result.claimedBy[i] === -1) c = UNCLAIMED_COLOR;
       else c = hexToRgb(WEALTH_GROUPS[result.claimedBy[i]].color);
       out.data[i * 4] = c[0];
       out.data[i * 4 + 1] = c[1];
@@ -51,9 +74,8 @@ export default function App() {
     }
     ctx.putImageData(out, 0, 0);
 
-    // seed markers
-    WEALTH_GROUPS.forEach((g) => {
-      const [x, y] = toPixel(g.seed);
+    seeds.forEach(([lon, lat]) => {
+      const [x, y] = toPixel([lon, lat]);
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, 2 * Math.PI);
       ctx.fillStyle = "#fff";
@@ -64,14 +86,36 @@ export default function App() {
     });
 
     setStats(
-      result.perGroup.map(({ group, claimedPixels }) => ({
-        name: group.name,
-        color: group.color,
-        wealthShare: group.wealthShare,
-        km2: (claimedPixels / result.totalLandPixels) * TOTAL_LAND_KM2,
-      }))
+      seeds.length === 0
+        ? null
+        : result.perGroup.map(({ group, claimedPixels }) => ({
+            name: group.name,
+            color: group.color,
+            wealthShare: group.wealthShare,
+            km2: (claimedPixels / result.totalLandPixels) * TOTAL_LAND_KM2,
+          }))
     );
-  }, []);
+  }, [seeds]);
+
+  function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
+    const geo = geoRef.current;
+    const canvas = canvasRef.current;
+    if (!geo || !canvas || isComplete) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * GRID_WIDTH;
+    const py = ((e.clientY - rect.top) / rect.height) * GRID_HEIGHT;
+    const lonLat = geo.projection.invert?.([px, py]);
+    if (!lonLat) return; // no inverse at all for this point
+
+    // Mollweide's invert() extrapolates rather than returning null for points
+    // outside the drawn ellipse (e.g. the corners of the canvas), so validate
+    // by projecting back and checking it lands near the original click.
+    const roundTrip = geo.projection(lonLat);
+    if (!roundTrip || Math.hypot(roundTrip[0] - px, roundTrip[1] - py) > 1) return;
+
+    setSeeds((prev) => [...prev, lonLat as [number, number]]);
+  }
 
   return (
     <div className="wlc-root">
@@ -79,23 +123,57 @@ export default function App() {
         <h1 className="wlc-title">If Wealth Were Land</h1>
         <p className="wlc-subtitle">
           Global wealth, redrawn as claimed territory. Each region's size matches that
-          group's share of global wealth — not their share of the population. Grown
-          bottom-up: the poorest band claims first, the wealthiest claims last, taking
-          whatever's left.
+          group's share of global wealth — not their share of the population. Placed
+          bottom-up: click to place the poorest band first, the wealthiest last — it
+          claims whatever's left.
         </p>
       </header>
 
       <div className="wlc-chart-area">
-        <canvas ref={canvasRef} className="wlc-canvas" />
+        <canvas
+          ref={canvasRef}
+          className="wlc-canvas"
+          style={{ cursor: isComplete ? "default" : "crosshair" }}
+          onClick={handleCanvasClick}
+        />
+
+        <p className="wlc-prompt">
+          {currentGroup ? (
+            <>
+              Click the map to place <strong>{currentGroup.name}</strong> —{" "}
+              {(currentGroup.wealthShare * 100).toFixed(1)}% of global wealth
+            </>
+          ) : (
+            <>All four groups placed.</>
+          )}{" "}
+          {seeds.length > 0 && (
+            <button className="wlc-reset" onClick={() => setSeeds([])}>
+              Start over
+            </button>
+          )}
+        </p>
 
         <div className="wlc-legend">
-          {WEALTH_GROUPS.map((g) => (
-            <div key={g.id} className="wlc-legend-item">
+          {WEALTH_GROUPS.map((g, i) => (
+            <div
+              key={g.id}
+              className={`wlc-legend-item ${i >= seeds.length ? "wlc-legend-item--pending" : ""}`}
+            >
               <span className="wlc-legend-swatch" style={{ background: g.color }} />
               {g.name} — {(g.wealthShare * 100).toFixed(1)}% of wealth
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="wlc-note">
+        <strong>Why does this map look stretched?</strong> It's drawn in an equal-area
+        (Mollweide) projection, not a familiar one like Mercator. That's deliberate: this
+        piece only works if area on screen means what it claims to mean, so every pixel
+        represents the same real-world km² no matter where it falls on the map. A standard
+        map inflates land near the poles — this one can't, or a region would look bigger
+        than its actual wealth share just because of where it happened to grow. The trade
+        is that shapes and angles get visibly distorted to keep area exactly right.
       </div>
 
       {stats && (
@@ -125,9 +203,7 @@ export default function App() {
       <p className="wlc-footnote">
         Wealth bands: Global Wealth Databook (Shorrocks, Davies, Lluberas), end of 2022 —
         the methodology behind the UBS/Credit Suisse Global Wealth Report. Land = all
-        habitable landmass except Antarctica (~141M km²), rendered in an equal-area
-        (Mollweide) projection so claimed area on the map is proportional to real km².
-        Seed points are fixed for this version; placing them yourself is coming next.
+        habitable landmass except Antarctica (~141M km²).
       </p>
     </div>
   );

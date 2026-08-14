@@ -41,18 +41,23 @@ export interface GrowthResult {
 }
 
 /**
- * Sequentially grows one region per group (in array order — callers should
- * pass groups smallest-wealth-share-first for the bottom-up reveal), BFS-style
- * from each seed, blocked by ocean and already-claimed land. When a region's
- * frontier is fully boxed in before it reaches its quota, it jumps to the
- * nearest remaining unclaimed land pixel (measured from its original seed)
- * and keeps growing — this is how non-contiguous claims happen.
+ * Sequentially grows one region per placed seed (in array order — callers
+ * should pass groups smallest-wealth-share-first for the bottom-up reveal),
+ * BFS-style from each seed, blocked by ocean and already-claimed land. When a
+ * region's frontier is fully boxed in before it reaches its quota, it jumps
+ * to the nearest remaining unclaimed land pixel (measured from its original
+ * seed) and keeps growing — this is how non-contiguous claims happen.
+ *
+ * `seeds` may be shorter than `groups` — only the first `seeds.length` groups
+ * are grown, which is what lets the interactive version reveal one region per
+ * click instead of requiring all seeds up front.
  */
 export function growRegions(
   land: Uint8Array,
   width: number,
   height: number,
   groups: WealthGroup[],
+  seeds: [number, number][],
   toPixel: (lonLat: [number, number]) => [number, number]
 ): GrowthResult {
   const idx = (x: number, y: number) => y * width + x;
@@ -139,9 +144,10 @@ export function growRegions(
     return claimed;
   }
 
-  const perGroup = groups.map((g, i) => {
+  const perGroup = seeds.map((seed, i) => {
+    const g = groups[i];
     const quotaPixels = Math.round(totalLandPixels * g.wealthShare);
-    const claimedPixels = growRegion(i, g.seed, quotaPixels);
+    const claimedPixels = growRegion(i, seed, quotaPixels);
     return { group: g, quotaPixels, claimedPixels };
   });
 

@@ -6,14 +6,13 @@ export interface WealthGroup {
   /** % of global wealth this band holds — this is what sizes the claimed land area */
   wealthShare: number;
   color: string;
-  /** [lon, lat] starting point the region grows from */
-  seed: [number, number];
 }
 
 // Source: Global Wealth Databook (Shorrocks, Davies, Lluberas), end of 2022 —
 // same methodology underlying the UBS/Credit Suisse Global Wealth Report.
 // Ordered bottom-up: smallest wealth share grows first (uncontested), largest
-// grows last, claiming whatever land remains.
+// grows last, claiming whatever land remains. Seed points are no longer part
+// of the static data — the user places them by clicking the map.
 export const WEALTH_GROUPS: WealthGroup[] = [
   {
     id: "under-10k",
@@ -21,7 +20,6 @@ export const WEALTH_GROUPS: WealthGroup[] = [
     populationShare: 0.53,
     wealthShare: 0.01,
     color: "#3b6ea5",
-    seed: [3.4, 6.5], // Lagos
   },
   {
     id: "10k-100k",
@@ -29,7 +27,6 @@ export const WEALTH_GROUPS: WealthGroup[] = [
     populationShare: 0.341,
     wealthShare: 0.136,
     color: "#4f9d8f",
-    seed: [31.2, 30.0], // Cairo
   },
   {
     id: "100k-1m",
@@ -37,7 +34,6 @@ export const WEALTH_GROUPS: WealthGroup[] = [
     populationShare: 0.121,
     wealthShare: 0.394,
     color: "#d9a441",
-    seed: [36.8, -1.3], // Nairobi
   },
   {
     id: "1m-plus",
@@ -45,7 +41,6 @@ export const WEALTH_GROUPS: WealthGroup[] = [
     populationShare: 0.011,
     wealthShare: 0.46,
     color: "#c1443c",
-    seed: [15.3, -4.3], // Kinshasa
   },
 ];
 
