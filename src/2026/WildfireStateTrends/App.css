@@ -294,6 +294,14 @@
   color: var(--muted);
 }
 
+.wst-detail__extnote {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
 /* ---- Tooltip ---- */
 
 .wst-tooltip {

@@ -60,9 +60,9 @@ export default function App() {
       <header className="wst-header">
         <h1>Wildfire Smoke &amp; the US PM2.5 Trend Reversal</h1>
         <p>
-          Every state's annual air-quality trend, 2000–2022 — observed PM2.5 (black) against a
-          counterfactual estimate of what it would have been without wildfire smoke (blue).
-          Reproduced from{" "}
+          Every state's annual air-quality trend, 2000–{data.extendedThroughYear ?? 2022} — observed
+          PM2.5 (black) against a counterfactual estimate of what it would have been without wildfire
+          smoke (blue). 2000–2022 reproduces{" "}
           <a
             href="https://www.nature.com/articles/s41586-023-06522-6"
             target="_blank"
@@ -70,7 +70,15 @@ export default function App() {
           >
             Burke et al. 2023, <em>Nature</em>
           </a>
-          .
+          {data.extendedThroughYear && data.extendedThroughYear > 2022 ? (
+            <>
+              ; the dashed segment beyond it is pulled independently from EPA monitors, with the
+              counterfactual line stopping at {data.smokeDataThroughYear} — that's as far as the
+              underlying smoke-attribution data currently goes.
+            </>
+          ) : (
+            "."
+          )}
         </p>
       </header>
 

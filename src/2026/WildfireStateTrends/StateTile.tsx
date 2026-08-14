@@ -1,7 +1,14 @@
 import { useRef } from "react";
 import type { Metric, StateTrend } from "./types";
 import { SMOKE_GROUP_SEVERITY } from "./types";
-import { TILE_FRAME, buildScales, buildLinePath, seriesForMetric, nearestYearIndex } from "./chartGeometry";
+import {
+  TILE_FRAME,
+  ORIGINAL_DATA_LAST_YEAR,
+  buildScales,
+  buildSplitLinePaths,
+  seriesForMetric,
+  nearestYearIndex,
+} from "./chartGeometry";
 import HoverMarkers from "./HoverMarkers";
 
 interface Props {
@@ -44,8 +51,8 @@ export default function StateTile({
         : "neutral";
   const tint = SEVERITY_VAR[severity];
 
-  const observedPath = buildLinePath(state.years, observed, x, y);
-  const counterfactualPath = buildLinePath(state.years, counterfactual, x, y);
+  const observedSplit = buildSplitLinePaths(state.years, observed, x, y, ORIGINAL_DATA_LAST_YEAR);
+  const counterfactualSplit = buildSplitLinePaths(state.years, counterfactual, x, y, ORIGINAL_DATA_LAST_YEAR);
   const breakX = x(breakYear);
 
   function handleMove(e: React.PointerEvent<SVGSVGElement>) {
@@ -107,8 +114,22 @@ export default function StateTile({
             strokeDasharray="1.5,1.5"
           />
         )}
-        <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={1.3} />
-        <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={1.3} />
+        <path d={counterfactualSplit.mainPath} fill="none" stroke="var(--series-1)" strokeWidth={1.3} />
+        <path d={observedSplit.mainPath} fill="none" stroke="var(--text-primary)" strokeWidth={1.3} />
+        <path
+          d={counterfactualSplit.extPath}
+          fill="none"
+          stroke="var(--series-1)"
+          strokeWidth={1.3}
+          strokeDasharray="2,1.5"
+        />
+        <path
+          d={observedSplit.extPath}
+          fill="none"
+          stroke="var(--text-primary)"
+          strokeWidth={1.3}
+          strokeDasharray="2,1.5"
+        />
         {hoveredYearIndex !== null && (
           <HoverMarkers
             years={state.years}

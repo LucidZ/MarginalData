@@ -1,7 +1,14 @@
 import { useRef } from "react";
 import type { Metric, StateTrend } from "./types";
 import { SMOKE_GROUP_LABEL, SMOKE_GROUP_SEVERITY } from "./types";
-import { DETAIL_FRAME, buildScales, buildLinePath, seriesForMetric, nearestYearIndex } from "./chartGeometry";
+import {
+  DETAIL_FRAME,
+  ORIGINAL_DATA_LAST_YEAR,
+  buildScales,
+  buildSplitLinePaths,
+  seriesForMetric,
+  nearestYearIndex,
+} from "./chartGeometry";
 import HoverMarkers from "./HoverMarkers";
 
 interface Props {
@@ -26,8 +33,15 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
   const { x, y } = buildScales(state, metric, frame);
   const { observed, counterfactual } = seriesForMetric(state, metric);
 
-  const observedPath = buildLinePath(state.years, observed, x, y);
-  const counterfactualPath = buildLinePath(state.years, counterfactual, x, y);
+  const observedSplit = buildSplitLinePaths(state.years, observed, x, y, ORIGINAL_DATA_LAST_YEAR);
+  const counterfactualSplit = buildSplitLinePaths(state.years, counterfactual, x, y, ORIGINAL_DATA_LAST_YEAR);
+  // Only the "mean" metric was extended past 2022 (see chartGeometry's
+  // ORIGINAL_DATA_LAST_YEAR comment) — check this metric's own series, not
+  // just state.years generically, or the note below would talk about a
+  // dashed segment that isn't actually on screen for "extreme days".
+  const hasExtension = state.years.some(
+    (yr, i) => yr > ORIGINAL_DATA_LAST_YEAR && (observed[i] !== null || counterfactual[i] !== null)
+  );
   const breakX = x(breakYear);
 
   const xTicks = x.ticks(Math.min(8, state.years.length));
@@ -131,8 +145,22 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
           />
         )}
 
-        <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={2} />
-        <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
+        <path d={counterfactualSplit.mainPath} fill="none" stroke="var(--series-1)" strokeWidth={2} />
+        <path d={observedSplit.mainPath} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
+        <path
+          d={counterfactualSplit.extPath}
+          fill="none"
+          stroke="var(--series-1)"
+          strokeWidth={2}
+          strokeDasharray="4,3"
+        />
+        <path
+          d={observedSplit.extPath}
+          fill="none"
+          stroke="var(--text-primary)"
+          strokeWidth={2}
+          strokeDasharray="4,3"
+        />
         {hoveredYearIndex !== null && (
           <HoverMarkers
             years={state.years}
@@ -158,6 +186,14 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
         </span>
         <span className="wst-detail__breaklabel">┊ {Math.round(breakYear)} break year</span>
       </div>
+
+      {hasExtension && (
+        <p className="wst-detail__extnote">
+          Dashed segment ({ORIGINAL_DATA_LAST_YEAR + 1}+): extended past the original paper's data using EPA AQS
+          pulled directly, joined with a newer smoke-PM methodology from the same research group — not part of
+          the original replication data, and not run through the same breakpoint/classification analysis.
+        </p>
+      )}
     </div>
   );
 }
