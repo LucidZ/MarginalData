@@ -8,15 +8,16 @@ import { WEALTH_GROUPS, TOTAL_LAND_KM2 } from "./data";
 import { buildLandMask, growRegions } from "./landGrowth";
 import "./App.css";
 
-const GRID_WIDTH = 960;
-const GRID_HEIGHT = 480;
-const OCEAN_COLOR: [number, number, number] = [11, 18, 32];
+const GRID_WIDTH = 1600;
+const GRID_HEIGHT = 800;
+const OCEAN_COLOR = "#0b1220";
 const UNCLAIMED_COLOR: [number, number, number] = [90, 90, 90];
 
 interface GeoSetup {
   projection: GeoProjection;
   path: GeoPath<unknown, d3.GeoPermissibleObjects>;
   ctx: CanvasRenderingContext2D;
+  offCtx: CanvasRenderingContext2D;
   landMask: Uint8Array;
 }
 
@@ -45,42 +46,64 @@ export default function App() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const offscreen = document.createElement("canvas");
+    offscreen.width = GRID_WIDTH;
+    offscreen.height = GRID_HEIGHT;
+    const offCtx = offscreen.getContext("2d");
+    if (!offCtx) return;
+
     const projection = geoMollweide().fitSize([GRID_WIDTH, GRID_HEIGHT], { type: "Sphere" });
     const path = d3.geoPath(projection, ctx);
+    // transient: draws onto the visible canvas just to read back which pixels
+    // are land, before any real content exists there — overwritten below.
     const landMask = buildLandMask(land as FeatureCollection, path, ctx, GRID_WIDTH, GRID_HEIGHT);
 
-    geoRef.current = { projection, path, ctx, landMask };
+    geoRef.current = { projection, path, ctx, offCtx, landMask };
   }, []);
 
   // re-grow and repaint whenever a seed is placed (or reset)
   useEffect(() => {
     const geo = geoRef.current;
     if (!geo) return;
-    const { projection, ctx, landMask } = geo;
+    const { projection, path, ctx, offCtx, landMask } = geo;
 
     const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
     const result = growRegions(landMask, GRID_WIDTH, GRID_HEIGHT, WEALTH_GROUPS, seeds, toPixel);
 
-    const out = ctx.createImageData(GRID_WIDTH, GRID_HEIGHT);
+    // Paint claimed/unclaimed colors onto an offscreen buffer at raster
+    // resolution (only land pixels matter — everything else gets clipped
+    // away next), then composite it onto the visible canvas through a clip
+    // path built from the real vector coastlines. That keeps the true
+    // land/ocean edge crisp even though the boundaries *between* claimed
+    // regions (which aren't real geography) stay raster-resolution.
+    const out = offCtx.createImageData(GRID_WIDTH, GRID_HEIGHT);
     for (let i = 0; i < GRID_WIDTH * GRID_HEIGHT; i++) {
-      let c: [number, number, number];
-      if (!landMask[i]) c = OCEAN_COLOR;
-      else if (result.claimedBy[i] === -1) c = UNCLAIMED_COLOR;
-      else c = hexToRgb(WEALTH_GROUPS[result.claimedBy[i]].color);
+      if (!landMask[i]) continue; // left transparent; clipped away regardless
+      const c = result.claimedBy[i] === -1 ? UNCLAIMED_COLOR : hexToRgb(WEALTH_GROUPS[result.claimedBy[i]].color);
       out.data[i * 4] = c[0];
       out.data[i * 4 + 1] = c[1];
       out.data[i * 4 + 2] = c[2];
       out.data[i * 4 + 3] = 255;
     }
-    ctx.putImageData(out, 0, 0);
+    offCtx.putImageData(out, 0, 0);
+
+    ctx.clearRect(0, 0, GRID_WIDTH, GRID_HEIGHT);
+    ctx.fillStyle = OCEAN_COLOR;
+    ctx.fillRect(0, 0, GRID_WIDTH, GRID_HEIGHT);
+    ctx.save();
+    ctx.beginPath();
+    (land as FeatureCollection).features.forEach((f) => path(f));
+    ctx.clip();
+    ctx.drawImage(offCtx.canvas, 0, 0);
+    ctx.restore();
 
     seeds.forEach(([lon, lat]) => {
       const [x, y] = toPixel([lon, lat]);
       ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
+      ctx.arc(x, y, 6, 0, 2 * Math.PI);
       ctx.fillStyle = "#fff";
       ctx.fill();
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
       ctx.strokeStyle = "#000";
       ctx.stroke();
     });
@@ -120,7 +143,16 @@ export default function App() {
   return (
     <div className="wlc-root">
       <header className="wlc-header">
-        <h1 className="wlc-title">If Wealth Were Land</h1>
+        <div className="wlc-header-row">
+          <h1 className="wlc-title">If Wealth Were Land</h1>
+          <button
+            className="wlc-reset"
+            onClick={() => setSeeds([])}
+            disabled={seeds.length === 0}
+          >
+            Start over
+          </button>
+        </div>
         <p className="wlc-subtitle">
           Global wealth, redrawn as claimed territory. Each region's size matches that
           group's share of global wealth — not their share of the population. Placed
@@ -145,11 +177,6 @@ export default function App() {
             </>
           ) : (
             <>All four groups placed.</>
-          )}{" "}
-          {seeds.length > 0 && (
-            <button className="wlc-reset" onClick={() => setSeeds([])}>
-              Start over
-            </button>
           )}
         </p>
 

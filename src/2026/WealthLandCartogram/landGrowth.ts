@@ -41,12 +41,24 @@ export interface GrowthResult {
 }
 
 /**
- * Sequentially grows one region per placed seed (in array order — callers
- * should pass groups smallest-wealth-share-first for the bottom-up reveal),
- * BFS-style from each seed, blocked by ocean and already-claimed land. When a
- * region's frontier is fully boxed in before it reaches its quota, it jumps
- * to the nearest remaining unclaimed land pixel (measured from its original
- * seed) and keeps growing — this is how non-contiguous claims happen.
+ * Grows one region per placed seed **simultaneously** from a shared
+ * wavefront (a discretized, capacity-constrained Voronoi tessellation):
+ * every active region's frontier expands in lockstep via a single shared BFS
+ * queue, so a cell goes to whichever region's wave reaches it first. That
+ * keeps every region a compact blob around its own seed — placing a new seed
+ * "pushes into" the space between existing regions and reshapes their
+ * boundaries, rather than earlier regions permanently freezing whatever they
+ * grabbed first and the last one being forced to scatter across leftovers.
+ * The whole thing is recomputed from scratch on every call (not resumed from
+ * a previous run), which is what lets earlier regions visibly reshape as
+ * later seeds join.
+ *
+ * A region stops accepting new cells once it hits its quota but the shared
+ * wave keeps going for everyone else. If a region is fully boxed in by
+ * ocean/other regions before reaching quota, it falls back to jumping to the
+ * nearest remaining unclaimed land and resuming its own local BFS from
+ * there — same non-contiguous escape hatch as before, just now a rare
+ * fallback rather than the main mechanism.
  *
  * `seeds` may be shorter than `groups` — only the first `seeds.length` groups
  * are grown, which is what lets the interactive version reveal one region per
@@ -62,9 +74,13 @@ export function growRegions(
 ): GrowthResult {
   const idx = (x: number, y: number) => y * width + x;
   const claimedBy = new Int8Array(width * height).fill(-1);
+  const n = seeds.length;
 
   let totalLandPixels = 0;
   for (let i = 0; i < land.length; i++) if (land[i]) totalLandPixels++;
+
+  const quotas = groups.slice(0, n).map((g) => Math.round(totalLandPixels * g.wealthShare));
+  const claimedCount = new Array<number>(n).fill(0);
 
   function nearestUnclaimedLand(fromX: number, fromY: number): number {
     let best = -1;
@@ -86,41 +102,22 @@ export function growRegions(
     return best;
   }
 
-  function growRegion(groupIdx: number, seedLonLat: [number, number], quotaPixels: number): number {
-    let [sx, sy] = toPixel(seedLonLat);
-    sx = Math.round(sx);
-    sy = Math.round(sy);
-
-    if (!(land[idx(sx, sy)] && claimedBy[idx(sx, sy)] === -1)) {
-      const snap = nearestUnclaimedLand(sx, sy);
-      if (snap === -1) return 0;
-      sx = snap % width;
-      sy = (snap / width) | 0;
+  let queue = new Int32Array(Math.max(totalLandPixels, 64));
+  let head = 0;
+  let tail = 0;
+  function enqueue(cell: number) {
+    if (tail >= queue.length) {
+      const grown = new Int32Array(queue.length * 2);
+      grown.set(queue);
+      queue = grown;
     }
-
-    let claimed = 0;
-    let queue = new Int32Array(Math.max(quotaPixels * 4, 64));
-    let head = 0;
-    let tail = 0;
-    queue[tail++] = idx(sx, sy);
-    claimedBy[idx(sx, sy)] = groupIdx;
-    claimed++;
-
-    while (claimed < quotaPixels) {
-      if (head === tail) {
-        const jump = nearestUnclaimedLand(sx, sy);
-        if (jump === -1) break; // no land left anywhere
-        if (tail >= queue.length) {
-          const grown = new Int32Array(queue.length * 2);
-          grown.set(queue);
-          queue = grown;
-        }
-        claimedBy[jump] = groupIdx;
-        claimed++;
-        queue[tail++] = jump;
-        continue;
-      }
+    queue[tail++] = cell;
+  }
+  function drainQueue() {
+    while (head < tail) {
       const cur = queue[head++];
+      const g = claimedBy[cur];
+      if (g < 0 || claimedCount[g] >= quotas[g]) continue;
       const cx = cur % width;
       const cy = (cur / width) | 0;
       for (const [dx, dy] of NEIGHBORS) {
@@ -128,28 +125,54 @@ export function growRegions(
         const ny = cy + dy;
         if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
         const ni = idx(nx, ny);
-        if (land[ni] && claimedBy[ni] === -1) {
-          claimedBy[ni] = groupIdx;
-          claimed++;
-          if (tail >= queue.length) {
-            const grown = new Int32Array(queue.length * 2);
-            grown.set(queue);
-            queue = grown;
-          }
-          queue[tail++] = ni;
-          if (claimed >= quotaPixels) break;
+        if (land[ni] && claimedBy[ni] === -1 && claimedCount[g] < quotas[g]) {
+          claimedBy[ni] = g;
+          claimedCount[g]++;
+          enqueue(ni);
         }
       }
     }
-    return claimed;
   }
 
-  const perGroup = seeds.map((seed, i) => {
-    const g = groups[i];
-    const quotaPixels = Math.round(totalLandPixels * g.wealthShare);
-    const claimedPixels = growRegion(i, seed, quotaPixels);
-    return { group: g, quotaPixels, claimedPixels };
-  });
+  // Phase 1: snap every seed onto unclaimed land, then grow all regions
+  // together from a shared wavefront.
+  for (let i = 0; i < n; i++) {
+    let [sx, sy] = toPixel(seeds[i]);
+    sx = Math.round(sx);
+    sy = Math.round(sy);
+    let start = idx(sx, sy);
+    if (!(land[start] && claimedBy[start] === -1)) {
+      start = nearestUnclaimedLand(sx, sy);
+    }
+    if (start !== -1 && quotas[i] > 0) {
+      claimedBy[start] = i;
+      claimedCount[i] = 1;
+      enqueue(start);
+    }
+  }
+  drainQueue();
+
+  // Phase 2: catch-up for any region still short of quota (boxed in before
+  // reaching it) — jump to the nearest unclaimed land and keep growing.
+  for (let i = 0; i < n; i++) {
+    let [sx, sy] = toPixel(seeds[i]);
+    sx = Math.round(sx);
+    sy = Math.round(sy);
+    while (claimedCount[i] < quotas[i]) {
+      const jump = nearestUnclaimedLand(sx, sy);
+      if (jump === -1) break; // no land left anywhere
+      claimedBy[jump] = i;
+      claimedCount[i]++;
+      enqueue(jump);
+      drainQueue();
+    }
+  }
+
+  const perGroup = seeds.map((_, i) => ({
+    group: groups[i],
+    quotaPixels: quotas[i],
+    claimedPixels: claimedCount[i],
+  }));
 
   return { claimedBy, totalLandPixels, perGroup };
 }
