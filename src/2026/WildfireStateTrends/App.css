@@ -13,18 +13,6 @@
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
 
-  /* Fixed categorical order for compare mode (up to 8 states at once) —
-     assigned by selection order, never re-cycled. --series-1 doubles as
-     both "counterfactual" blue in the single-state view and slot 1 here. */
-  --cat-1: #2a78d6;
-  --cat-2: #eb6834;
-  --cat-3: #1baf7a;
-  --cat-4: #eda100;
-  --cat-5: #e87ba4;
-  --cat-6: #008300;
-  --cat-7: #4a3aa7;
-  --cat-8: #e34948;
-
   max-width: 1180px;
   margin: 0 auto;
   padding: 2rem 1rem 4rem;
@@ -48,14 +36,6 @@
     --status-warning: #fab219;
     --status-serious: #ec835a;
     --status-critical: #e66767;
-    --cat-1: #3987e5;
-    --cat-2: #d95926;
-    --cat-3: #199e70;
-    --cat-4: #c98500;
-    --cat-5: #d55181;
-    --cat-6: #008300;
-    --cat-7: #9085e9;
-    --cat-8: #e66767;
   }
 }
 
@@ -73,14 +53,6 @@
   --status-warning: #fab219;
   --status-serious: #ec835a;
   --status-critical: #e66767;
-  --cat-1: #3987e5;
-  --cat-2: #d95926;
-  --cat-3: #199e70;
-  --cat-4: #c98500;
-  --cat-5: #d55181;
-  --cat-6: #008300;
-  --cat-7: #9085e9;
-  --cat-8: #e66767;
 }
 
 .wst-loading {
@@ -127,6 +99,25 @@
 
 .wst-controls {
   margin: 1.25rem 0 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wst-axis-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.wst-axis-toggle input {
+  accent-color: var(--series-1);
+  width: 15px;
+  height: 15px;
 }
 
 .wst-toggle {
@@ -217,36 +208,6 @@
   display: block;
 }
 
-.wst-tile__check {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  z-index: 2;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-1);
-  border: 1.5px solid var(--baseline);
-  cursor: pointer;
-}
-
-.wst-tile__check--on {
-  background: var(--check-color);
-  border-color: var(--check-color);
-}
-
-.wst-tile__check--disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.wst-tile:hover .wst-tile__check {
-  border-color: var(--series-1);
-}
-
 /* ---- Detail (expanded single-state) view ---- */
 
 .wst-detail {
@@ -333,69 +294,6 @@
   color: var(--muted);
 }
 
-/* ---- Compare view ---- */
-
-.wst-compare__title {
-  margin: 0 0 1rem;
-  font-size: 1.3rem;
-}
-
-.wst-compare__empty {
-  color: var(--text-secondary);
-}
-
-.wst-compare__endlabel {
-  font-size: 7px;
-  font-weight: 700;
-}
-
-.wst-compare__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--gridline);
-}
-
-.wst-compare__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  background: var(--page);
-  border: 1px solid var(--gridline);
-  border-radius: 999px;
-  padding: 0.25rem 0.4rem 0.25rem 0.6rem;
-}
-
-.wst-compare__chipdot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.wst-compare__chip button {
-  font: inherit;
-  border: none;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0 0.15rem;
-  line-height: 1;
-}
-
-.wst-compare__chip button:hover {
-  color: var(--status-critical);
-}
-
-.wst-compare__tooltip {
-  max-height: 220px;
-  overflow-y: auto;
-}
-
 /* ---- Tooltip ---- */
 
 .wst-tooltip {
@@ -432,51 +330,6 @@
   color: var(--muted);
   max-width: 70ch;
   line-height: 1.5;
-}
-
-/* ---- Compare-selection floating CTA ---- */
-
-.wst-compare-cta {
-  position: sticky;
-  bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: fit-content;
-  margin: 1rem auto 0;
-  padding: 0.6rem 0.6rem 0.6rem 1rem;
-  background: var(--text-primary);
-  color: var(--page);
-  border-radius: 999px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-  font-size: 0.85rem;
-  z-index: 10;
-}
-
-.wst-compare-cta button {
-  font: inherit;
-  border: none;
-  cursor: pointer;
-}
-
-.wst-compare-cta > button:first-of-type {
-  background: var(--series-1);
-  color: white;
-  border-radius: 999px;
-  padding: 0.45rem 0.9rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.wst-compare-cta__clear {
-  background: none;
-  color: var(--page);
-  opacity: 0.7;
-  padding: 0.45rem 0.3rem;
-}
-
-.wst-compare-cta__clear:hover {
-  opacity: 1;
 }
 
 @media (prefers-reduced-motion: no-preference) {

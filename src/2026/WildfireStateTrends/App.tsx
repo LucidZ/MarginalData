@@ -3,8 +3,8 @@ import { flushSync } from "react-dom";
 import { useData } from "./useData";
 import StateTile from "./StateTile";
 import DetailPanel from "./DetailPanel";
-import CompareView from "./CompareView";
 import Tooltip from "./Tooltip";
+import { computeGlobalYDomain } from "./chartGeometry";
 import type { Metric, StateTrend } from "./types";
 import "./App.css";
 
@@ -14,18 +14,6 @@ interface HoverInfo {
   clientX: number;
   clientY: number;
 }
-
-const MAX_COMPARE = 8;
-const CAT_VARS = [
-  "var(--cat-1)",
-  "var(--cat-2)",
-  "var(--cat-3)",
-  "var(--cat-4)",
-  "var(--cat-5)",
-  "var(--cat-6)",
-  "var(--cat-7)",
-  "var(--cat-8)",
-];
 
 function morphTo(fn: () => void) {
   const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
@@ -41,37 +29,26 @@ export default function App() {
   const [metric, setMetric] = useState<Metric>("mean");
   const [selectedAbbr, setSelectedAbbr] = useState<string | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
-  // Ordered, not a Set — selection order assigns the fixed categorical
-  // color slots (1st pick = slot 1, etc.), never re-cycled or resorted.
-  const [compareAbbrs, setCompareAbbrs] = useState<string[]>([]);
-  const [compareOpen, setCompareOpen] = useState(false);
+  const [standardizeY, setStandardizeY] = useState(false);
 
   const selected = useMemo(
     () => data?.states.find((s) => s.abbr === selectedAbbr) ?? null,
     [data, selectedAbbr]
   );
 
-  const compareStates = useMemo(
-    () => compareAbbrs.map((a) => data?.states.find((s) => s.abbr === a)).filter((s): s is StateTrend => !!s),
-    [data, compareAbbrs]
-  );
-  const compareColors = useMemo(
-    () => Object.fromEntries(compareAbbrs.map((abbr, i) => [abbr, CAT_VARS[i % CAT_VARS.length]])),
-    [compareAbbrs]
-  );
-
   const breakYear = data ? (metric === "mean" ? data.meanBreakYear : data.extremeBreakYear) : 0;
+
+  // Free per-tile scales (default) make each state's own shape legible
+  // regardless of its magnitude, matching the paper's own figures.
+  // Standardized scales trade that away so tiles are directly comparable —
+  // most non-Western states will flatten out, which is the point.
+  const sharedYDomain = useMemo(
+    () => (data && standardizeY ? computeGlobalYDomain(data.states, metric) : null),
+    [data, standardizeY, metric]
+  );
 
   function handleHover(state: StateTrend, yearIndex: number | null, clientX: number, clientY: number) {
     setHover(yearIndex === null ? null : { state, yearIndex, clientX, clientY });
-  }
-
-  function toggleCompare(abbr: string) {
-    setCompareAbbrs((prev) => {
-      if (prev.includes(abbr)) return prev.filter((a) => a !== abbr);
-      if (prev.length >= MAX_COMPARE) return prev;
-      return [...prev, abbr];
-    });
   }
 
   if (!data) {
@@ -120,17 +97,20 @@ export default function App() {
             % days &gt; 35 µg/m³
           </button>
         </div>
+
+        {!selected && (
+          <label className="wst-axis-toggle">
+            <input
+              type="checkbox"
+              checked={standardizeY}
+              onChange={(e) => setStandardizeY(e.target.checked)}
+            />
+            Standardize y-axis across states
+          </label>
+        )}
       </div>
 
-      {compareOpen ? (
-        <CompareView
-          states={compareStates}
-          colors={compareColors}
-          metric={metric}
-          onBack={() => morphTo(() => setCompareOpen(false))}
-          onRemove={(abbr) => setCompareAbbrs((prev) => prev.filter((a) => a !== abbr))}
-        />
-      ) : selected ? (
+      {selected ? (
         <DetailPanel
           state={selected}
           metric={metric}
@@ -153,14 +133,12 @@ export default function App() {
                 breakYear={breakYear}
                 isSelected={false}
                 hoveredYearIndex={hover?.state.abbr === s.abbr ? hover.yearIndex : null}
-                compareColor={compareAbbrs.includes(s.abbr) ? compareColors[s.abbr] : null}
-                compareDisabled={compareAbbrs.length >= MAX_COMPARE}
+                sharedYDomain={sharedYDomain}
                 onHover={handleHover}
                 onSelect={(state) => {
                   setHover(null);
                   morphTo(() => setSelectedAbbr(state.abbr));
                 }}
-                onToggleCompare={toggleCompare}
               />
             ))}
           </div>
@@ -168,21 +146,6 @@ export default function App() {
       )}
 
       {hover && <Tooltip state={hover.state} yearIndex={hover.yearIndex} metric={metric} clientX={hover.clientX} clientY={hover.clientY} />}
-
-      {!compareOpen && !selected && compareAbbrs.length > 0 && (
-        <div className="wst-compare-cta">
-          {compareAbbrs.length >= 2 ? (
-            <button type="button" onClick={() => morphTo(() => setCompareOpen(true))}>
-              Compare {compareAbbrs.length} states →
-            </button>
-          ) : (
-            <span>Pick one more state to compare</span>
-          )}
-          <button type="button" className="wst-compare-cta__clear" onClick={() => setCompareAbbrs([])}>
-            Clear
-          </button>
-        </div>
-      )}
 
       <footer className="wst-footer">
         <p>
