@@ -10,8 +10,11 @@ interface Props {
   breakYear: number;
   isSelected: boolean;
   hoveredYearIndex: number | null;
+  compareColor: string | null;
+  compareDisabled: boolean;
   onHover: (state: StateTrend, yearIndex: number | null, clientX: number, clientY: number) => void;
   onSelect: (state: StateTrend) => void;
+  onToggleCompare: (abbr: string) => void;
 }
 
 const SEVERITY_VAR: Record<string, string> = {
@@ -27,8 +30,11 @@ export default function StateTile({
   breakYear,
   isSelected,
   hoveredYearIndex,
+  compareColor,
+  compareDisabled,
   onHover,
   onSelect,
+  onToggleCompare,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const { x, y } = buildScales(state, metric, TILE_FRAME);
@@ -76,6 +82,26 @@ export default function StateTile({
       aria-label={`${state.name}: view details`}
     >
       <span className="wst-tile__label">{state.abbr}</span>
+      <span
+        role="checkbox"
+        aria-checked={compareColor !== null}
+        aria-label={`Add ${state.name} to comparison`}
+        className={`wst-tile__check${compareColor ? " wst-tile__check--on" : ""}${
+          compareColor === null && compareDisabled ? " wst-tile__check--disabled" : ""
+        }`}
+        style={{ ["--check-color" as string]: compareColor ?? "transparent" } as React.CSSProperties}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (compareColor === null && compareDisabled) return;
+          onToggleCompare(state.abbr);
+        }}
+      >
+        {compareColor && (
+          <svg viewBox="0 0 16 16" width="9" height="9">
+            <path d="M3 8.5L6.2 12L13 4" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </span>
       <svg
         ref={svgRef}
         className="wst-tile__svg"

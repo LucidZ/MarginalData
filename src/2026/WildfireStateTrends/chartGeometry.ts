@@ -1,4 +1,4 @@
-import { scaleLinear } from "d3-scale";
+import { scaleLinear, type ScaleLinear } from "d3-scale";
 import { line as d3line, curveLinear } from "d3-shape";
 import type { Metric, StateTrend } from "./types";
 
@@ -29,6 +29,16 @@ export const DETAIL_FRAME: ChartFrame = {
   marginLeft: 48,
 };
 
+export const COMPARE_FRAME: ChartFrame = {
+  width: 640,
+  height: 360,
+  marginTop: 24,
+  // extra right margin holds each line's direct end-of-line state label
+  marginRight: 34,
+  marginBottom: 46,
+  marginLeft: 48,
+};
+
 export function seriesForMetric(state: StateTrend, metric: Metric) {
   return metric === "mean"
     ? { observed: state.totalPM, counterfactual: state.nonsmokePM }
@@ -53,6 +63,50 @@ export function buildScales(state: StateTrend, metric: Metric, frame: ChartFrame
     .range([frame.height - frame.marginBottom, frame.marginTop]);
 
   return { x, y, dataMin, dataMax };
+}
+
+// Shared x/y scales across several states' observed series — the compare
+// view overlays states on one pair of axes, so all lines need one domain
+// rather than each state's own free scale (which is what the tile grid and
+// single-state detail view use instead).
+export function buildMultiScales(states: StateTrend[], metric: Metric, frame: ChartFrame) {
+  const allYears = states.flatMap((s) => s.years);
+  const yearMin = allYears.length ? Math.min(...allYears) : 2000;
+  const yearMax = allYears.length ? Math.max(...allYears) : 2022;
+
+  const allValues = states.flatMap((s) => seriesForMetric(s, metric).observed).filter(
+    (v): v is number => v !== null && Number.isFinite(v)
+  );
+  const dataMin = allValues.length ? Math.min(...allValues) : 0;
+  const dataMax = allValues.length ? Math.max(...allValues) : 1;
+  const pad = (dataMax - dataMin) * 0.1 || dataMax * 0.1 || 1;
+
+  const x = scaleLinear()
+    .domain([yearMin, yearMax])
+    .range([frame.marginLeft, frame.width - frame.marginRight]);
+
+  const y = scaleLinear()
+    .domain([Math.max(0, dataMin - pad), dataMax + pad])
+    .range([frame.height - frame.marginBottom, frame.marginTop]);
+
+  return { x, y, yearMin, yearMax };
+}
+
+// Looks up a value by actual year rather than array index — needed for
+// compare-view hover, where selected states can have different-length
+// years arrays and a shared index would misalign them.
+export function valueAtYear(years: number[], values: (number | null)[], year: number): number | null {
+  const idx = years.indexOf(year);
+  if (idx === -1) return null;
+  return values[idx];
+}
+
+// Nearest whole year to a given x pixel position, clamped to the domain —
+// compare-view hover works in year-space (see valueAtYear) rather than a
+// shared array index.
+export function nearestYear(x: ScaleLinear<number, number>, px: number, yearMin: number, yearMax: number): number {
+  const year = Math.round(x.invert(px));
+  return Math.min(yearMax, Math.max(yearMin, year));
 }
 
 export function buildLinePath(
