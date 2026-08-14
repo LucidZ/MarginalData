@@ -103,17 +103,6 @@ export default function App() {
     ctx.drawImage(offCtx.canvas, 0, 0);
     ctx.restore();
 
-    seeds.forEach(([lon, lat]) => {
-      const [x, y] = toPixel([lon, lat]);
-      ctx.beginPath();
-      ctx.arc(x, y, 6, 0, 2 * Math.PI);
-      ctx.fillStyle = "#fff";
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#000";
-      ctx.stroke();
-    });
-
     setStats(
       seeds.length === 0
         ? null
@@ -170,6 +159,19 @@ export default function App() {
       </header>
 
       <div className="wlc-chart-area">
+        <div className="wlc-legend">
+          {WEALTH_GROUPS.map((g, i) => (
+            <div
+              key={g.id}
+              className={`wlc-legend-item ${i >= seeds.length ? "wlc-legend-item--pending" : ""}`}
+            >
+              <span className="wlc-legend-swatch" style={{ background: g.color }} />
+              <strong>{g.name}</strong> — {(g.populationShare * 100).toFixed(1)}% of people,{" "}
+              {(g.wealthShare * 100).toFixed(1)}% of wealth
+            </div>
+          ))}
+        </div>
+
         <div className="wlc-map-wrap" style={{ aspectRatio: `${GRID_WIDTH} / ${virtualTotalHeight}` }}>
           <canvas
             ref={canvasRef}
@@ -189,7 +191,6 @@ export default function App() {
                   style={{
                     left: `${(xVirtual / GRID_WIDTH) * 100}%`,
                     top: `${(yVirtual / virtualTotalHeight) * 100}%`,
-                    background: WEALTH_GROUPS[dot.groupIndex].color,
                   }}
                 />
               );
@@ -207,18 +208,6 @@ export default function App() {
             <>All four groups placed.</>
           )}
         </p>
-
-        <div className="wlc-legend">
-          {WEALTH_GROUPS.map((g, i) => (
-            <div
-              key={g.id}
-              className={`wlc-legend-item ${i >= seeds.length ? "wlc-legend-item--pending" : ""}`}
-            >
-              <span className="wlc-legend-swatch" style={{ background: g.color }} />
-              {g.name} — {(g.wealthShare * 100).toFixed(1)}% of wealth
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="wlc-note">
