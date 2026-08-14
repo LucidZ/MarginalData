@@ -170,13 +170,50 @@ export interface AssignmentResult {
 }
 
 /**
+ * Pool Adjacent Violators — finds the non-decreasing sequence closest (least
+ * squares) to `d`. Used below to find where each region's slice should
+ * actually start: each wants to be centered on its own click, but can't
+ * overlap its neighbors in path order, so overlapping desires get "pooled"
+ * into a shared compromise position (a weighted average), which is exactly
+ * the "push each other apart just enough" behavior.
+ */
+function poolAdjacentViolators(d: number[]): number[] {
+  const stack: { value: number; weight: number; count: number }[] = [];
+  for (let i = 0; i < d.length; i++) {
+    let value = d[i];
+    let weight = 1;
+    let count = 1;
+    while (stack.length > 0 && stack[stack.length - 1].value > value) {
+      const top = stack.pop()!;
+      value = (value * weight + top.value * top.weight) / (weight + top.weight);
+      weight += top.weight;
+      count += top.count;
+    }
+    stack.push({ value, weight, count });
+  }
+  const result: number[] = [];
+  for (const block of stack) {
+    for (let k = 0; k < block.count; k++) result.push(block.value);
+  }
+  return result;
+}
+
+/**
  * Each placed group gets a contiguous slice of `sortedCells`, sized to its
- * exact wealth-share quota (in pixels — i.e. exact km², same as before).
- * Slices are packed back-to-back from the start of the sequence, ordered by
- * each seed's *rank* in that sequence (nearest land cell to the click) —
- * so placing a group re-sorts and re-packs everyone: a click near the "far
- * end" pushes every other placed group toward the start, and vice versa.
- * Recomputed from scratch on every call, same as the old growth engine.
+ * exact wealth-share quota (in pixels — i.e. exact km², unaffected by any
+ * of this). Where that slice actually sits is the interesting part: each
+ * seed's rank in `sortedCells` (nearest land cell to the click) is treated
+ * as a *desired center*, not just a sort key. Regions in path order that
+ * don't overlap just sit centered on their own click; regions whose desired
+ * ranges collide get pushed apart by the minimum amount needed to fit
+ * (solved exactly via isotonic regression, not an approximation).
+ *
+ * Once every group is placed, quotas always sum to exactly `totalLandPixels`
+ * (100% of land), which leaves zero slack — so the complete layout is fully
+ * determined by placement order alone, same as a plain cumulative pack from
+ * the start. The "click position matters, later clicks push earlier ones
+ * around" feel is specifically an *intermediate*-state effect, while slack
+ * (unclaimed land) still exists.
  */
 export function assignByPath(
   pathData: PathData,
@@ -212,16 +249,41 @@ export function assignByPath(
 
   const order = seeds.map((_, i) => i).sort((a, b) => anchors[a] - anchors[b]);
   const quotas = groups.slice(0, n).map((g) => Math.round(totalLandPixels * g.wealthShare));
+  const lenSorted = order.map((i) => quotas[i]);
+  const totalLen = lenSorted.reduce((a, b) => a + b, 0);
+  const slack = Math.max(0, totalLandPixels - totalLen);
+
+  // transform desired left-edges so "no overlap" becomes plain monotonicity
+  // (see the module doc above) — d[k] is what each slice "wants" once its
+  // predecessors' lengths are accounted for
+  let cumBefore = 0;
+  const d: number[] = [];
+  for (let k = 0; k < n; k++) {
+    const desiredLeft = anchors[order[k]] - lenSorted[k] / 2;
+    d.push(desiredLeft - cumBefore);
+    cumBefore += lenSorted[k];
+  }
+
+  let y = poolAdjacentViolators(d);
+  // clip into the available slack — monotonicity survives clipping since
+  // clamp() is itself non-decreasing. At zero slack (all groups placed)
+  // every y collapses to 0, forcing the unique zero-gap full-length packing.
+  y = y.map((v) => Math.max(0, Math.min(slack, v)));
+
+  cumBefore = 0;
+  const startSorted: number[] = [];
+  for (let k = 0; k < n; k++) {
+    startSorted.push(Math.round(y[k] + cumBefore));
+    cumBefore += lenSorted[k];
+  }
 
   const perGroup: AssignmentResult["perGroup"] = new Array(n);
-  let cursor = 0;
-  for (const gi of order) {
-    const quota = quotas[gi];
-    const start = cursor;
-    const end = Math.min(cursor + quota, sortedCells.length);
+  for (let k = 0; k < n; k++) {
+    const gi = order[k];
+    const start = Math.max(0, startSorted[k]);
+    const end = Math.min(start + quotas[gi], sortedCells.length);
     for (let r = start; r < end; r++) claimedBy[sortedCells[r]] = gi;
-    perGroup[gi] = { group: groups[gi], quotaPixels: quota, claimedPixels: end - start };
-    cursor = end;
+    perGroup[gi] = { group: groups[gi], quotaPixels: quotas[gi], claimedPixels: Math.max(0, end - start) };
   }
 
   return { claimedBy, totalLandPixels, perGroup };
