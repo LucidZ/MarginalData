@@ -75,6 +75,14 @@ export const ROUTES: RouteEntry[] = [
     group: "Soccer Analytics",
   },
   {
+    path: "/2026/WildfireStateTrends",
+    title: "Wildfire Smoke & the US PM2.5 Trend Reversal — Marginal Data",
+    description:
+      "An interactive, state-by-state look at how wildfire smoke has slowed or reversed decades of US air-quality progress since 2016.",
+    component: () => import("./2026/WildfireStateTrends"),
+    group: "Environment",
+  },
+  {
     path: "/2025/DecisionVectorizer",
     title: "Decision Vectorizer — Marginal Data",
     description:

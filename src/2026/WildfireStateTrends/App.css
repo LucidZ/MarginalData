@@ -1,0 +1,321 @@
+.wst-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --series-1: #2a78d6;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text-primary);
+  background: var(--page);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .wst-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --series-1: #3987e5;
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical: #e66767;
+  }
+}
+
+:root[data-theme="dark"] .wst-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --series-1: #3987e5;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #e66767;
+}
+
+.wst-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 4rem;
+}
+
+@media (max-width: 560px) {
+  .wst-root {
+    padding: 1.25rem 0.75rem 3rem;
+  }
+  .wst-header h1 {
+    font-size: 1.2rem;
+  }
+  .wst-toggle {
+    display: flex;
+    width: 100%;
+  }
+  .wst-toggle__btn {
+    flex: 1;
+    font-size: 0.76rem;
+    padding: 0.55rem 0.4rem;
+  }
+  .wst-detail {
+    padding: 1rem;
+  }
+}
+
+.wst-header h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.wst-header p {
+  color: var(--text-secondary);
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+.wst-header a {
+  color: var(--series-1);
+}
+
+.wst-controls {
+  margin: 1.25rem 0 1rem;
+}
+
+.wst-toggle {
+  display: inline-flex;
+  border: 1px solid var(--gridline);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.wst-toggle__btn {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+}
+
+.wst-toggle__btn--active {
+  background: var(--series-1);
+  color: white;
+}
+
+/* ---- Grid of small multiples ---- */
+
+.wst-grid {
+  display: grid;
+  /* minmax floor keeps tiles tappable/legible on narrow screens — below
+     that width the grid overflows its scroll container instead of
+     squishing, since the geographic layout is the point of this chart. */
+  grid-template-columns: repeat(12, minmax(64px, 1fr));
+  grid-auto-rows: 84px;
+  gap: 3px;
+}
+
+.wst-grid-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+@media (max-width: 860px) {
+  .wst-grid-scroll::after {
+    content: "⇠ scroll to see all states ⇢";
+    display: block;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+}
+
+.wst-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gridline);
+  background: var(--surface-1);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  font: inherit;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.wst-tile:hover {
+  border-color: var(--series-1);
+  transform: translateY(-1px);
+}
+
+.wst-tile__label {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  z-index: 1;
+}
+
+.wst-tile__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---- Detail (expanded single-state) view ---- */
+
+.wst-detail {
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.wst-detail__back {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--series-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0 1rem;
+}
+
+.wst-detail__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.wst-detail__head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.wst-detail__region {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.wst-detail__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.wst-detail__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.wst-detail__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+
+.wst-detail__tick {
+  font-size: 4.5px;
+  fill: var(--muted);
+}
+
+.wst-detail__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gridline);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.wst-detail__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.wst-detail__breaklabel {
+  color: var(--muted);
+}
+
+/* ---- Tooltip ---- */
+
+.wst-tooltip {
+  position: fixed;
+  z-index: 20;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  color: var(--text-secondary);
+}
+
+.wst-tooltip__head {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.wst-tooltip__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+}
+
+.wst-footer {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  max-width: 70ch;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.35s;
+  }
+}

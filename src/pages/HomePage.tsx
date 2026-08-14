@@ -4,6 +4,7 @@ import "./HomePage.css";
 
 const GROUP_ORDER = [
   "Government & Politics",
+  "Environment",
   "Personal Finance",
   "Soccer Analytics",
   "Decision-Making",
