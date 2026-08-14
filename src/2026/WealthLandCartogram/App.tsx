@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { geoMollweide } from "d3-geo-projection";
 import type { GeoPath, GeoProjection } from "d3-geo";
@@ -6,6 +6,7 @@ import type { FeatureCollection } from "geojson";
 import land from "./data/land-countries-110m.json";
 import { WEALTH_GROUPS, TOTAL_LAND_KM2 } from "./data";
 import { buildLandMask, growRegions } from "./landGrowth";
+import { buildPersonDots, sampleLandedPositions, STAGING_HEIGHT } from "./personDots";
 import "./App.css";
 
 const GRID_WIDTH = 1600;
@@ -33,9 +34,14 @@ export default function App() {
   const geoRef = useRef<GeoSetup | null>(null);
   const [seeds, setSeeds] = useState<[number, number][]>([]);
   const [stats, setStats] = useState<StatRow[] | null>(null);
+  const [landedPositions, setLandedPositions] = useState<Map<number, { x: number; y: number }>>(
+    new Map()
+  );
 
   const isComplete = seeds.length >= WEALTH_GROUPS.length;
   const currentGroup = isComplete ? null : WEALTH_GROUPS[seeds.length];
+  const personDots = useMemo(() => buildPersonDots(WEALTH_GROUPS, GRID_WIDTH), []);
+  const virtualTotalHeight = STAGING_HEIGHT + GRID_HEIGHT;
 
   // one-time setup: rasterize land onto the grid, in an equal-area projection
   useEffect(() => {
@@ -118,7 +124,9 @@ export default function App() {
             km2: (claimedPixels / result.totalLandPixels) * TOTAL_LAND_KM2,
           }))
     );
-  }, [seeds]);
+
+    setLandedPositions(sampleLandedPositions(personDots, result.claimedBy, GRID_WIDTH, seeds.length));
+  }, [seeds, personDots]);
 
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
     const geo = geoRef.current;
@@ -162,12 +170,32 @@ export default function App() {
       </header>
 
       <div className="wlc-chart-area">
-        <canvas
-          ref={canvasRef}
-          className="wlc-canvas"
-          style={{ cursor: isComplete ? "default" : "crosshair" }}
-          onClick={handleCanvasClick}
-        />
+        <div className="wlc-map-wrap" style={{ aspectRatio: `${GRID_WIDTH} / ${virtualTotalHeight}` }}>
+          <canvas
+            ref={canvasRef}
+            className="wlc-canvas"
+            style={{ cursor: isComplete ? "default" : "crosshair" }}
+            onClick={handleCanvasClick}
+          />
+          <div className="wlc-dots-overlay">
+            {personDots.map((dot) => {
+              const landed = dot.groupIndex < seeds.length ? landedPositions.get(dot.id) : undefined;
+              const xVirtual = landed ? landed.x : dot.stagingX;
+              const yVirtual = landed ? STAGING_HEIGHT + landed.y : dot.stagingY;
+              return (
+                <span
+                  key={dot.id}
+                  className="wlc-dot"
+                  style={{
+                    left: `${(xVirtual / GRID_WIDTH) * 100}%`,
+                    top: `${(yVirtual / virtualTotalHeight) * 100}%`,
+                    background: WEALTH_GROUPS[dot.groupIndex].color,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
 
         <p className="wlc-prompt">
           {currentGroup ? (

@@ -72,11 +72,35 @@
   padding: 1.5rem;
 }
 
+.wlc-map-wrap {
+  position: relative;
+  width: 100%;
+}
+
 .wlc-canvas {
+  position: absolute;
+  left: 0;
+  bottom: 0;
   width: 100%;
   height: auto;
   display: block;
   border-radius: 6px;
+}
+
+.wlc-dots-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.wlc-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .wlc-prompt {
