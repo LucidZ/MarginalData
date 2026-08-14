@@ -5,7 +5,8 @@ import type { GeoPath, GeoProjection } from "d3-geo";
 import type { FeatureCollection } from "geojson";
 import land from "./data/land-countries-110m.json";
 import { WEALTH_GROUPS, TOTAL_LAND_KM2 } from "./data";
-import { buildLandMask, growRegions } from "./landGrowth";
+import { buildLandMask } from "./landGrowth";
+import { buildPathData, assignByPath, type PathData } from "./pathAssign";
 import { buildPersonDots, sampleLandedPositions, STAGING_HEIGHT } from "./personDots";
 import "./App.css";
 
@@ -20,6 +21,7 @@ interface GeoSetup {
   ctx: CanvasRenderingContext2D;
   offCtx: CanvasRenderingContext2D;
   landMask: Uint8Array;
+  pathData: PathData;
 }
 
 interface StatRow {
@@ -37,6 +39,7 @@ export default function App() {
   const [landedPositions, setLandedPositions] = useState<Map<number, { x: number; y: number }>>(
     new Map()
   );
+  const [isReady, setIsReady] = useState(false);
 
   const isComplete = seeds.length >= WEALTH_GROUPS.length;
   const currentGroup = isComplete ? null : WEALTH_GROUPS[seeds.length];
@@ -63,18 +66,35 @@ export default function App() {
     // transient: draws onto the visible canvas just to read back which pixels
     // are land, before any real content exists there — overwritten below.
     const landMask = buildLandMask(land as FeatureCollection, path, ctx, GRID_WIDTH, GRID_HEIGHT);
+    const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
 
-    geoRef.current = { projection, path, ctx, offCtx, landMask };
+    // Unrolling the land mask along the path (~1s+) is the heaviest part of
+    // setup — deferred a tick so React can paint the "preparing map…" state
+    // first, instead of the whole page just freezing with nothing rendered.
+    const timer = setTimeout(() => {
+      const pathData = buildPathData(landMask, GRID_WIDTH, GRID_HEIGHT, toPixel);
+      geoRef.current = { projection, path, ctx, offCtx, landMask, pathData };
+      setIsReady(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  // re-grow and repaint whenever a seed is placed (or reset)
+  // re-assign and repaint whenever a seed is placed (or reset)
   useEffect(() => {
     const geo = geoRef.current;
     if (!geo) return;
-    const { projection, path, ctx, offCtx, landMask } = geo;
+    const { projection, path, ctx, offCtx, landMask, pathData } = geo;
 
     const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
-    const result = growRegions(landMask, GRID_WIDTH, GRID_HEIGHT, WEALTH_GROUPS, seeds, toPixel);
+    const result = assignByPath(
+      pathData,
+      GRID_WIDTH * GRID_HEIGHT,
+      GRID_WIDTH,
+      WEALTH_GROUPS,
+      seeds,
+      toPixel
+    );
 
     // Paint claimed/unclaimed colors onto an offscreen buffer at raster
     // resolution (only land pixels matter — everything else gets clipped
@@ -103,6 +123,16 @@ export default function App() {
     ctx.drawImage(offCtx.canvas, 0, 0);
     ctx.restore();
 
+    // faint guide line showing the route territory is unrolled along —
+    // mostly a legibility aid for why regions land where they do
+    ctx.beginPath();
+    pathData.pathPixels.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
     setStats(
       seeds.length === 0
         ? null
@@ -115,12 +145,12 @@ export default function App() {
     );
 
     setLandedPositions(sampleLandedPositions(personDots, result.claimedBy, GRID_WIDTH, seeds.length));
-  }, [seeds, personDots]);
+  }, [seeds, personDots, isReady]);
 
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
     const geo = geoRef.current;
     const canvas = canvasRef.current;
-    if (!geo || !canvas || isComplete) return;
+    if (!geo || !canvas || !isReady || isComplete) return;
 
     const rect = canvas.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * GRID_WIDTH;
@@ -179,6 +209,7 @@ export default function App() {
             style={{ cursor: isComplete ? "default" : "crosshair" }}
             onClick={handleCanvasClick}
           />
+          {!isReady && <div className="wlc-loading">Preparing map…</div>}
           <div className="wlc-dots-overlay">
             {personDots.map((dot) => {
               const landed = dot.groupIndex < seeds.length ? landedPositions.get(dot.id) : undefined;
