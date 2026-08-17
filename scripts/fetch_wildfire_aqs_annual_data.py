@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
 """
-Fetch EPA AQS annual PM2.5 summaries for the 48 CONUS states, 2023-2025, to
-extend the Wildfire Smoke & PM2.5 Trend Reversal story past the original
-Burke et al. 2023 replication data's 2022 cutoff.
+Fetch EPA AQS annual PM2.5 summaries for the 48 CONUS states, 2006-2025.
+
+Supersedes fetch_wildfire_extension_aqs_data.py's narrower 2023-2025 pull.
+Total PM2.5 (the "observed" line) is now sourced entirely from our own AQS
+pulls rather than partly from the Burke et al. 2023 replication data, so
+that it can be joined consistently against the Stanford lab's V1.1
+smokePM-version1.1 county-day smoke-PM release (which only covers
+2006-2023) without stitching two different upstream methodologies
+together. 2000-2005 is out of scope for the same reason: V1.1 doesn't
+cover it, so the story now starts at 2006.
 
 Uses annualData/byState (all sites in a state for a year, one call), same
 shape as dailyData/byState but ~40x faster / ~90x smaller (1.9s/627KB vs
 74s/57MB per state-year in testing) — daily granularity isn't needed since
 nothing downstream renders daily data; the "mean PM2.5" metric only needs
 each station's annual arithmetic_mean. (The "% days > 35" metric isn't
-extended by this script — annualData doesn't expose that directly, only
-percentile breakpoints, which aren't precise enough to derive it.)
+covered by this script — annualData doesn't expose that directly, only
+percentile breakpoints, which aren't precise enough to derive it. That
+metric stays on the original paper's 2000-2022 data, unchanged.)
 
-Requires AQS_API_EMAIL and AQS_API_KEY in .env.local (gitignored).
+Requires AQS_API_EMAIL and AQS_API_KEY in .env.local (gitignored). Safe to
+re-run — skips any state-year JSON already on disk.
 """
 
 import json
@@ -35,7 +44,7 @@ STATES = [
     "47", "48", "49", "50", "51", "53", "54", "55", "56",
 ]
 
-YEARS = [2023, 2024, 2025]
+YEARS = list(range(2006, 2026))
 
 
 def load_env(path: Path) -> dict:

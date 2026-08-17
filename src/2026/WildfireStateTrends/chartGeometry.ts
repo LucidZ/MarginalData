@@ -29,12 +29,6 @@ export const DETAIL_FRAME: ChartFrame = {
   marginLeft: 48,
 };
 
-// The original Burke et al. 2023 replication data ends 2022. Years past this
-// come from a separately-assembled pipeline (EPA AQS pulled directly + a
-// newer/different smoke-PM methodology from the same lab) — rendered as a
-// visually distinct segment so that difference stays honest on the chart.
-export const ORIGINAL_DATA_LAST_YEAR = 2022;
-
 export function seriesForMetric(state: StateTrend, metric: Metric) {
   return metric === "mean"
     ? { observed: state.totalPM, counterfactual: state.nonsmokePM }
@@ -119,37 +113,6 @@ export function buildLinePath(
     .y((d) => d[1])
     .curve(curveLinear);
   return gen(points) ?? "";
-}
-
-// Splits a line into an "original replication data" segment and an
-// "extended, differently-sourced data" segment at splitYear (inclusive on
-// both sides, so the two segments visually connect with no gap) — lets the
-// caller style them differently (e.g. solid vs. dashed) so it's honest that
-// years past the original paper's 2022 cutoff come from a different pipeline
-// (EPA AQS pulled directly + a newer/different smoke-PM methodology).
-export function buildSplitLinePaths(
-  years: number[],
-  values: (number | null)[],
-  x: (v: number) => number,
-  y: (v: number) => number,
-  splitYear: number
-): { mainPath: string; extPath: string } {
-  const mainIdx: number[] = [];
-  const extIdx: number[] = [];
-  years.forEach((yr, i) => {
-    if (yr <= splitYear) mainIdx.push(i);
-    if (yr >= splitYear) extIdx.push(i);
-  });
-  const slice = (idx: number[]) => ({
-    years: idx.map((i) => years[i]),
-    values: idx.map((i) => values[i]),
-  });
-  const main = slice(mainIdx);
-  const ext = slice(extIdx);
-  return {
-    mainPath: buildLinePath(main.years, main.values, x, y),
-    extPath: buildLinePath(ext.years, ext.values, x, y),
-  };
 }
 
 // Pixel position of a single year's value — used to draw the hover marker.

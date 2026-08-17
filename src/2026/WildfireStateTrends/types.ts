@@ -28,6 +28,7 @@ export interface WildfireDataset {
   meanBreakYear: number;
   extremeBreakYear: number;
   states: StateTrend[];
+  startYear?: number;
   extendedThroughYear?: number;
   smokeDataThroughYear?: number;
 }

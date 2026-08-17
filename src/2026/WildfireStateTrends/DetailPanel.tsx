@@ -3,9 +3,8 @@ import type { Metric, StateTrend } from "./types";
 import { SMOKE_GROUP_LABEL, SMOKE_GROUP_SEVERITY } from "./types";
 import {
   DETAIL_FRAME,
-  ORIGINAL_DATA_LAST_YEAR,
   buildScales,
-  buildSplitLinePaths,
+  buildLinePath,
   seriesForMetric,
   nearestYearIndex,
 } from "./chartGeometry";
@@ -33,15 +32,23 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
   const { x, y } = buildScales(state, metric, frame);
   const { observed, counterfactual } = seriesForMetric(state, metric);
 
-  const observedSplit = buildSplitLinePaths(state.years, observed, x, y, ORIGINAL_DATA_LAST_YEAR);
-  const counterfactualSplit = buildSplitLinePaths(state.years, counterfactual, x, y, ORIGINAL_DATA_LAST_YEAR);
-  // Only the "mean" metric was extended past 2022 (see chartGeometry's
-  // ORIGINAL_DATA_LAST_YEAR comment) — check this metric's own series, not
-  // just state.years generically, or the note below would talk about a
-  // dashed segment that isn't actually on screen for "extreme days".
-  const hasExtension = state.years.some(
-    (yr, i) => yr > ORIGINAL_DATA_LAST_YEAR && (observed[i] !== null || counterfactual[i] !== null)
-  );
+  const observedPath = buildLinePath(state.years, observed, x, y);
+  const counterfactualPath = buildLinePath(state.years, counterfactual, x, y);
+  // The counterfactual line can stop before the observed line does — its
+  // underlying smoke-attribution data has a hard ceiling (currently 2023)
+  // that the directly-monitored observed line isn't bound by. Compare each
+  // series' own last real year rather than assuming any fixed cutoff, so
+  // this stays correct if either data source's coverage changes later.
+  const lastRealYear = (series: (number | null)[]) => {
+    for (let i = state.years.length - 1; i >= 0; i--) {
+      if (series[i] !== null && Number.isFinite(series[i])) return state.years[i];
+    }
+    return null;
+  };
+  const observedLastYear = lastRealYear(observed);
+  const counterfactualLastYear = lastRealYear(counterfactual);
+  const hasGap =
+    observedLastYear !== null && counterfactualLastYear !== null && observedLastYear > counterfactualLastYear;
   const breakX = x(breakYear);
 
   const xTicks = x.ticks(Math.min(8, state.years.length));
@@ -145,22 +152,8 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
           />
         )}
 
-        <path d={counterfactualSplit.mainPath} fill="none" stroke="var(--series-1)" strokeWidth={2} />
-        <path d={observedSplit.mainPath} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
-        <path
-          d={counterfactualSplit.extPath}
-          fill="none"
-          stroke="var(--series-1)"
-          strokeWidth={2}
-          strokeDasharray="4,3"
-        />
-        <path
-          d={observedSplit.extPath}
-          fill="none"
-          stroke="var(--text-primary)"
-          strokeWidth={2}
-          strokeDasharray="4,3"
-        />
+        <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={2} />
+        <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
         {hoveredYearIndex !== null && (
           <HoverMarkers
             years={state.years}
@@ -187,11 +180,11 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
         <span className="wst-detail__breaklabel">┊ {Math.round(breakYear)} break year</span>
       </div>
 
-      {hasExtension && (
+      {hasGap && (
         <p className="wst-detail__extnote">
-          Dashed segment ({ORIGINAL_DATA_LAST_YEAR + 1}+): extended past the original paper's data using EPA AQS
-          pulled directly, joined with a newer smoke-PM methodology from the same research group — not part of
-          the original replication data, and not run through the same breakpoint/classification analysis.
+          Counterfactual line stops at {counterfactualLastYear} — that's as far as the underlying
+          smoke-attribution data currently extends. The observed line continues through{" "}
+          {observedLastYear} using EPA monitoring data directly.
         </p>
       )}
     </div>

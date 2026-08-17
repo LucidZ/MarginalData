@@ -3,9 +3,8 @@ import type { Metric, StateTrend } from "./types";
 import { SMOKE_GROUP_SEVERITY } from "./types";
 import {
   TILE_FRAME,
-  ORIGINAL_DATA_LAST_YEAR,
   buildScales,
-  buildSplitLinePaths,
+  buildLinePath,
   seriesForMetric,
   nearestYearIndex,
 } from "./chartGeometry";
@@ -51,8 +50,8 @@ export default function StateTile({
         : "neutral";
   const tint = SEVERITY_VAR[severity];
 
-  const observedSplit = buildSplitLinePaths(state.years, observed, x, y, ORIGINAL_DATA_LAST_YEAR);
-  const counterfactualSplit = buildSplitLinePaths(state.years, counterfactual, x, y, ORIGINAL_DATA_LAST_YEAR);
+  const observedPath = buildLinePath(state.years, observed, x, y);
+  const counterfactualPath = buildLinePath(state.years, counterfactual, x, y);
   const breakX = x(breakYear);
 
   function handleMove(e: React.PointerEvent<SVGSVGElement>) {
@@ -114,22 +113,8 @@ export default function StateTile({
             strokeDasharray="1.5,1.5"
           />
         )}
-        <path d={counterfactualSplit.mainPath} fill="none" stroke="var(--series-1)" strokeWidth={1.3} />
-        <path d={observedSplit.mainPath} fill="none" stroke="var(--text-primary)" strokeWidth={1.3} />
-        <path
-          d={counterfactualSplit.extPath}
-          fill="none"
-          stroke="var(--series-1)"
-          strokeWidth={1.3}
-          strokeDasharray="2,1.5"
-        />
-        <path
-          d={observedSplit.extPath}
-          fill="none"
-          stroke="var(--text-primary)"
-          strokeWidth={1.3}
-          strokeDasharray="2,1.5"
-        />
+        <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={1.3} />
+        <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={1.3} />
         {hoveredYearIndex !== null && (
           <HoverMarkers
             years={state.years}

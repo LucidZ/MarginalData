@@ -60,9 +60,9 @@ export default function App() {
       <header className="wst-header">
         <h1>Wildfire Smoke &amp; the US PM2.5 Trend Reversal</h1>
         <p>
-          Every state's annual air-quality trend, 2000–{data.extendedThroughYear ?? 2022} — observed
-          PM2.5 (black) against a counterfactual estimate of what it would have been without wildfire
-          smoke (blue). 2000–2022 reproduces{" "}
+          Every state's annual air-quality trend, {data.startYear ?? 2006}–{data.extendedThroughYear ?? 2025} —
+          observed PM2.5 (black) against a counterfactual estimate of what it would have been without
+          wildfire smoke (blue). Methodology follows{" "}
           <a
             href="https://www.nature.com/articles/s41586-023-06522-6"
             target="_blank"
@@ -70,15 +70,18 @@ export default function App() {
           >
             Burke et al. 2023, <em>Nature</em>
           </a>
-          {data.extendedThroughYear && data.extendedThroughYear > 2022 ? (
-            <>
-              ; the dashed segment beyond it is pulled independently from EPA monitors, with the
-              counterfactual line stopping at {data.smokeDataThroughYear} — that's as far as the
-              underlying smoke-attribution data currently goes.
-            </>
-          ) : (
-            "."
-          )}
+          , rebuilt on our own EPA AQS pull joined against the Stanford lab's newer{" "}
+          <a
+            href="https://github.com/echolab-stanford/smokePM-version1.1"
+            target="_blank"
+            rel="noreferrer"
+          >
+            smokePM-version1.1
+          </a>{" "}
+          county-day smoke data — one consistent pipeline across the whole span, rather than
+          splicing the two papers' own precomputed numbers together. The counterfactual line stops
+          at {data.smokeDataThroughYear} where that smoke data currently ends; the observed line
+          continues using EPA monitoring data directly.
         </p>
       </header>
 
@@ -157,11 +160,12 @@ export default function App() {
 
       <footer className="wst-footer">
         <p>
-          Lines reproduce the paper's own published methodology exactly (unweighted station-year
-          averages). The colored severity classification is independently re-derived from the
-          authors' bootstrap replication data and closely — but not pixel-for-pixel — matches the
-          published figure; treat category assignment as approximate for a handful of borderline
-          states.
+          Annual-average lines follow the paper's own convention (unweighted station-year
+          averages) but are computed on our own data, not the paper's precomputed numbers — see
+          the note above. The colored severity classification, however, is still the original
+          2000–2022 bootstrap result carried over unchanged; it hasn't been recomputed against
+          this rebuilt series yet, so treat it as an approximate, not-yet-updated read on states
+          near a category boundary.
         </p>
       </footer>
     </div>
