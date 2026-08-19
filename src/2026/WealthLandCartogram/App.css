@@ -150,13 +150,6 @@
   color: var(--surface-1);
 }
 
-.wlc-reset:disabled {
-  background: transparent;
-  color: var(--muted);
-  border-color: var(--gridline);
-  cursor: default;
-}
-
 .wlc-replay {
   border: 1px solid var(--baseline);
   background: transparent;

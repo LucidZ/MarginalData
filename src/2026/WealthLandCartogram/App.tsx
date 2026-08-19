@@ -38,9 +38,10 @@ const UNCLAIMED_COLOR: [number, number, number] = [90, 90, 90];
 // dot travels to its new spot in one continuous motion (see the "offWeight"
 // comment below for how travel and landing are blended together).
 const GROW_MS = 1100;
-// "Start over" isn't animated by the JS loop above (there's nothing to grow
-// toward), so it leans on dotPhaseMs's CSS transition instead, for a smooth
-// fade back up to the staging row rather than an instant snap.
+// "Place groups myself" isn't animated by the JS loop above (there's
+// nothing to grow toward), so it leans on dotPhaseMs's CSS transition
+// instead, for a smooth fade back up to the staging row rather than an
+// instant snap.
 const RESET_MS = 500;
 
 // Fixed seed points for the auto-play intro (see "Auto-play" below).
@@ -48,8 +49,8 @@ const RESET_MS = 500;
 const AUTO_PLAY_SEEDS: [number, number][] = [
   [-3.7, 40.42], // Madrid, Spain
   [13.4, 52.52], // Berlin, Germany
-  [116.4, 39.9], // Beijing, China
-  [-77.03, 38.9], // Washington, D.C., United States
+  [10.0, 23.0], // Sahara Desert
+  [-5.6, 35.95], // Strait of Gibraltar
 ];
 // Gap between each auto-play step: long enough for that step's GROW_MS
 // animation to fully finish, plus a short pause so it reads as a beat, not
@@ -213,7 +214,11 @@ export default function App() {
 
   useEffect(() => clearAutoPlayTimeouts, []);
 
-  function handleStartOver() {
+  // Hands control back to the user: cancels any in-flight (or not-yet-
+  // started) auto-play and clears the board, so they can click their own
+  // four seeds. Deliberately not gated on seeds.length === 0 — this is also
+  // how someone interrupts the intro to take over early.
+  function handlePlaceMyself() {
     clearAutoPlayTimeouts();
     isAutoPlayingRef.current = false;
     setIsAutoPlaying(false);
@@ -517,8 +522,8 @@ export default function App() {
             <button className="wlc-replay" onClick={handleReplay}>
               ▶ Replay
             </button>
-            <button className="wlc-reset" onClick={handleStartOver} disabled={seeds.length === 0}>
-              Start over
+            <button className="wlc-reset" onClick={handlePlaceMyself}>
+              Place groups myself
             </button>
           </div>
         </div>
