@@ -58,11 +58,13 @@ interface PerPersonRow {
   compareLabel: string;
 }
 
-// Reference areas for the tangible comparisons below the map. Regulation
-// sizes, not exact-to-the-meter claims — same "legible over precise" trade
-// the rest of this piece already makes.
-const FOOTBALL_PITCH_M2 = 7140; // FIFA-recommended pitch, 105m x 68m
-const BASKETBALL_COURT_M2 = 420; // FIBA regulation court, 28m x 15m
+// Reference areas for the tangible comparisons below the map — all drawn
+// from the same soccer pitch, smallest region to largest, so the four
+// comparisons read as one consistent unit rather than a grab-bag of
+// landmarks. FIFA regulation sizes, not exact-to-the-meter claims — same
+// "legible over precise" trade the rest of this piece already makes.
+const PENALTY_BOX_M2 = 665.28; // FIFA penalty area, 40.32m x 16.5m
+const FOOTBALL_PITCH_M2 = 7140; // FIFA-recommended full pitch, 105m x 68m
 
 // Per-person land isn't part of the click-to-place interaction at all — it's
 // a fixed value straight from WEALTH_GROUPS (wealthShare/populationShare
@@ -74,8 +76,8 @@ function buildPerPersonStats(): PerPersonRow[] {
     const m2 = (km2 * 1e6) / adults;
     const pitches = m2 / FOOTBALL_PITCH_M2;
     const compareLabel =
-      m2 < BASKETBALL_COURT_M2 * 1.5
-        ? "about the size of a basketball court"
+      m2 < PENALTY_BOX_M2
+        ? "less than one penalty box"
         : pitches < 3
           ? `about ${pitches.toFixed(1)} football pitches`
           : `about ${Math.round(pitches)} football pitches`;
