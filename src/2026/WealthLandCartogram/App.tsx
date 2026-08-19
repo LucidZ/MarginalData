@@ -4,7 +4,7 @@ import { geoMollweide } from "d3-geo-projection";
 import type { GeoPath, GeoProjection } from "d3-geo";
 import type { FeatureCollection } from "geojson";
 import land from "./data/land-countries-110m.json";
-import { WEALTH_GROUPS, TOTAL_LAND_KM2, GLOBAL_ADULTS } from "./data";
+import { WEALTH_GROUPS, TOTAL_LAND_KM2, GLOBAL_ADULTS, TOTAL_GLOBAL_WEALTH_USD } from "./data";
 import { buildLandMask } from "./landGrowth";
 import {
   buildPathData,
@@ -64,6 +64,8 @@ interface PerPersonRow {
   name: string;
   color: string;
   m2: number;
+  avgWealthUsd: number;
+  openEnded: boolean;
   compareLabel: string;
 }
 
@@ -75,6 +77,7 @@ function buildPerPersonStats(): PerPersonRow[] {
     const adults = g.populationShare * GLOBAL_ADULTS;
     const km2 = g.wealthShare * TOTAL_LAND_KM2;
     const m2 = (km2 * 1e6) / adults;
+    const avgWealthUsd = (g.wealthShare * TOTAL_GLOBAL_WEALTH_USD) / adults;
     const pitches = m2 / FOOTBALL_PITCH_M2;
     const compareLabel =
       m2 < PENALTY_BOX_M2
@@ -82,13 +85,19 @@ function buildPerPersonStats(): PerPersonRow[] {
         : pitches < 3
           ? `about ${pitches.toFixed(1)} football pitches`
           : `about ${Math.round(pitches)} football pitches`;
-    return { name: g.name, color: g.color, m2, compareLabel };
+    return { name: g.name, color: g.color, m2, avgWealthUsd, openEnded: g.openEnded ?? false, compareLabel };
   });
 }
 
 function formatArea(m2: number): string {
   if (m2 >= 1e6) return `${(m2 / 1e6).toFixed(2)} km²`;
   return `${Math.round(m2).toLocaleString()} m²`;
+}
+
+function formatUsd(usd: number): string {
+  if (usd >= 1e6) return `$${(usd / 1e6).toFixed(2)}M`;
+  const rounded = usd >= 1e3 ? Math.round(usd / 10) * 10 : Math.round(usd);
+  return `$${rounded.toLocaleString()}`;
 }
 
 export default function App() {
@@ -554,9 +563,17 @@ export default function App() {
                     <span className="wlc-pitch-row-swatch" style={{ background: s.color }} />
                     <strong>{s.name}</strong>
                     <span className="wlc-pitch-row-detail">
-                      {formatArea(s.m2)} — {s.compareLabel}
+                      On average, {formatArea(s.m2)} — {s.compareLabel}
                     </span>
                   </div>
+                  {s.openEnded && (
+                    <p className="wlc-pitch-row-caveat">
+                      That "{s.compareLabel}" figure comes from an average of{" "}
+                      <strong>{formatUsd(s.avgWealthUsd)}</strong> per person in this band —
+                      "$1M+" has no upper bound, so a small number of billionaires inside it pull
+                      that average well above what most people in this group actually hold.
+                    </p>
+                  )}
                   <div className="wlc-pitch-row-icons">
                     {icons.map((icon, i) => (
                       <PitchIcon

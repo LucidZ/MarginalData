@@ -232,6 +232,18 @@
   color: var(--text-secondary);
 }
 
+.wlc-pitch-row-caveat {
+  margin: 0.4rem 0 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.wlc-pitch-row-caveat strong {
+  color: var(--text-secondary);
+}
+
 .wlc-pitch-row-icons {
   display: flex;
   flex-wrap: wrap;

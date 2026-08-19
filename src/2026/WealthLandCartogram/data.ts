@@ -6,6 +6,10 @@ export interface WealthGroup {
   /** % of global wealth this band holds — this is what sizes the claimed land area */
   wealthShare: number;
   color: string;
+  /** true only for the top band: it has no upper dollar bound, so its average
+   *  wealth/person is pulled up hard by a small number of billionaires inside
+   *  it — worth calling out anywhere that average gets displayed. */
+  openEnded?: boolean;
 }
 
 // Source: Global Wealth Databook (Shorrocks, Davies, Lluberas), end of 2022 —
@@ -41,6 +45,7 @@ export const WEALTH_GROUPS: WealthGroup[] = [
     populationShare: 0.011,
     wealthShare: 0.46,
     color: "#c1443c",
+    openEnded: true,
   },
 ];
 
@@ -55,3 +60,10 @@ export const TOTAL_LAND_KM2 = 141_000_000;
 // land share into a *per-person* figure below the map; area sizing on the map
 // itself is driven entirely by wealthShare and doesn't use this at all.
 export const GLOBAL_ADULTS = 5_400_000_000;
+
+// Total global private wealth, end of 2022 (UBS Global Wealth Report 2023,
+// same vintage as the two constants above): USD 454.4 trillion, USD 84,718
+// mean wealth per adult. Used only to show the average-wealth-per-person
+// dollar figure alongside the per-person land row for the open-ended $1M+
+// band — that figure is what actually drives its land/pitch count.
+export const TOTAL_GLOBAL_WEALTH_USD = 454_400_000_000_000;
