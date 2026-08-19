@@ -43,6 +43,21 @@ const GROW_MS = 1100;
 // fade back up to the staging row rather than an instant snap.
 const RESET_MS = 500;
 
+// Fixed seed points for the auto-play intro (see "Auto-play" below) — one
+// per continent, spread out deliberately (clustering seeds in one landmass
+// makes the biggest-quota group spill across oceans more than it needs to).
+// Order matches WEALTH_GROUPS (bottom-up: smallest wealth share first).
+const AUTO_PLAY_SEEDS: [number, number][] = [
+  [3.39, 6.52], // Lagos, Nigeria
+  [-46.63, -23.55], // São Paulo, Brazil
+  [2.35, 48.86], // Paris, France
+  [139.69, 35.68], // Tokyo, Japan
+];
+// Gap between each auto-play step: long enough for that step's GROW_MS
+// animation to fully finish, plus a short pause so it reads as a beat, not
+// a blur.
+const AUTO_PLAY_GAP_MS = GROW_MS + 400;
+
 interface GeoSetup {
   projection: GeoProjection;
   path: GeoPath<unknown, d3.GeoPermissibleObjects>;
@@ -115,6 +130,18 @@ export default function App() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [dotPhaseMs, setDotPhaseMs] = useState(GROW_MS);
 
+  // Auto-play: the map plays through AUTO_PLAY_SEEDS by itself the first
+  // time it scrolls into view, so nobody has to realize clicking is even
+  // possible to see the payoff — see the two effects below. isAutoPlaying
+  // (state, for the prompt text) and the ref (read synchronously inside
+  // handleCanvasClick, where state would be stale) track the same thing.
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const isAutoPlayingRef = useRef(false);
+  const hasAutoPlayedRef = useRef(false);
+  const [hasIntersected, setHasIntersected] = useState(false);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
+  const autoPlayTimeoutsRef = useRef<number[]>([]);
+
   const isComplete = seeds.length >= WEALTH_GROUPS.length;
   const currentGroup = isComplete ? null : WEALTH_GROUPS[seeds.length];
   const personDots = useMemo(() => buildPersonDots(WEALTH_GROUPS, GRID_WIDTH), []);
@@ -125,6 +152,86 @@ export default function App() {
   // ~153 pitches per person) lands as the same late climax the map itself
   // builds to, instead of spoiling it up front.
   const visiblePerPerson = perPersonStats.slice(0, seeds.length);
+
+  function clearAutoPlayTimeouts() {
+    autoPlayTimeoutsRef.current.forEach((id) => clearTimeout(id));
+    autoPlayTimeoutsRef.current = [];
+  }
+
+  // Plays AUTO_PLAY_SEEDS from a blank map, one group at a time, using the
+  // exact same seeds-effect/animation pipeline a real click does — this
+  // function is just a scripted sequence of setSeeds calls spread out over
+  // time. Used both for the scroll-triggered intro and the "Replay" button.
+  function playSequence() {
+    clearAutoPlayTimeouts();
+    isAutoPlayingRef.current = true;
+    setIsAutoPlaying(true);
+    setSeeds([]);
+    AUTO_PLAY_SEEDS.forEach((seed, i) => {
+      const id = window.setTimeout(
+        () => {
+          setSeeds((prev) => [...prev, seed]);
+          if (i === AUTO_PLAY_SEEDS.length - 1) {
+            // hold the guard up a little past the last placement so its own
+            // animation finishes before manual clicks are allowed again
+            const doneId = window.setTimeout(() => {
+              isAutoPlayingRef.current = false;
+              setIsAutoPlaying(false);
+            }, GROW_MS + 100);
+            autoPlayTimeoutsRef.current.push(doneId);
+          }
+        },
+        300 + i * AUTO_PLAY_GAP_MS
+      );
+      autoPlayTimeoutsRef.current.push(id);
+    });
+  }
+
+  // Watches the chart area for scroll visibility — fires once, then
+  // disconnects; the actual auto-play trigger lives in the effect below,
+  // which also waits on the map data being ready (whichever finishes last).
+  useEffect(() => {
+    const el = chartAreaRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHasIntersected(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.4 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Fires the intro exactly once, as soon as the map is both ready and
+  // on-screen — but only if nothing has been placed yet, so it never
+  // interrupts someone who started clicking on their own before either
+  // condition was met. Deliberately doesn't depend on `seeds`: this should
+  // run once off isReady/hasIntersected, not re-run every time seeds changes.
+  useEffect(() => {
+    if (!isReady || !hasIntersected || hasAutoPlayedRef.current) return;
+    hasAutoPlayedRef.current = true;
+    if (seeds.length === 0) playSequence();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, hasIntersected]);
+
+  useEffect(() => clearAutoPlayTimeouts, []);
+
+  function handleStartOver() {
+    clearAutoPlayTimeouts();
+    isAutoPlayingRef.current = false;
+    setIsAutoPlaying(false);
+    hasAutoPlayedRef.current = true;
+    setSeeds([]);
+  }
+
+  function handleReplay() {
+    hasAutoPlayedRef.current = true;
+    playSequence();
+  }
 
   // one-time setup: rasterize land onto the grid, in an equal-area projection
   useEffect(() => {
@@ -391,7 +498,7 @@ export default function App() {
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
     const geo = geoRef.current;
     const canvas = canvasRef.current;
-    if (!geo || !canvas || !isReady || isComplete || isAnimating) return;
+    if (!geo || !canvas || !isReady || isComplete || isAnimating || isAutoPlayingRef.current) return;
 
     const rect = canvas.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * GRID_WIDTH;
@@ -413,13 +520,14 @@ export default function App() {
       <header className="wlc-header">
         <div className="wlc-header-row">
           <h1 className="wlc-title">If Wealth Were Land</h1>
-          <button
-            className="wlc-reset"
-            onClick={() => setSeeds([])}
-            disabled={seeds.length === 0}
-          >
-            Start over
-          </button>
+          <div className="wlc-header-actions">
+            <button className="wlc-replay" onClick={handleReplay}>
+              ▶ Replay
+            </button>
+            <button className="wlc-reset" onClick={handleStartOver} disabled={seeds.length === 0}>
+              Start over
+            </button>
+          </div>
         </div>
         <p className="wlc-subtitle">
           Wealth across the 56 major markets UBS tracks — together over 92% of global
@@ -430,7 +538,7 @@ export default function App() {
         </p>
       </header>
 
-      <div className="wlc-chart-area">
+      <div className="wlc-chart-area" ref={chartAreaRef}>
         <div className="wlc-legend">
           {WEALTH_GROUPS.map((g, i) => (
             <div
@@ -448,7 +556,9 @@ export default function App() {
           <canvas
             ref={canvasRef}
             className="wlc-canvas"
-            style={{ cursor: isComplete || isAnimating ? "default" : "crosshair" }}
+            style={{
+              cursor: isComplete || isAnimating || isAutoPlaying ? "default" : "crosshair",
+            }}
             onClick={handleCanvasClick}
           />
           {!isReady && <div className="wlc-loading">Preparing map…</div>}
@@ -497,7 +607,12 @@ export default function App() {
         </div>
 
         <p className="wlc-prompt">
-          {currentGroup ? (
+          {isAutoPlaying && currentGroup ? (
+            <>
+              Now placing <strong>{currentGroup.name}</strong> —{" "}
+              {(currentGroup.wealthShare * 100).toFixed(1)}% of wealth
+            </>
+          ) : currentGroup ? (
             <>
               Click the map to place <strong>{currentGroup.name}</strong> —{" "}
               {(currentGroup.wealthShare * 100).toFixed(1)}% of global wealth
