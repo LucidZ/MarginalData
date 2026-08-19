@@ -1,9 +1,11 @@
 export interface WealthGroup {
   id: string;
   name: string;
-  /** % of global adults in this wealth band (informational; not used for area sizing) */
+  /** % of adults in this wealth band, among the 56 markets this data covers
+   *  (informational; not used for area sizing) — see the SAMPLE_* constants
+   *  below for why this isn't literally "% of world population". */
   populationShare: number;
-  /** % of global wealth this band holds — this is what sizes the claimed land area */
+  /** % of this sample's wealth this band holds — this is what sizes the claimed land area */
   wealthShare: number;
   color: string;
   /** true only for the top band: it has no upper dollar bound, so its average
@@ -12,8 +14,17 @@ export interface WealthGroup {
   openEnded?: boolean;
 }
 
-// Source: Global Wealth Databook (Shorrocks, Davies, Lluberas), end of 2022 —
-// same methodology underlying the UBS/Credit Suisse Global Wealth Report.
+// Source: UBS Global Wealth Report 2026 ("The global wealth pyramid 2025",
+// p.23), year-end 2025 data. UBS models 56 major markets it estimates cover
+// over 92% of global wealth — but that sample skips a lot of lower-income
+// countries that hold little wealth but plenty of *people*, so its
+// population figures run well short of true world population (its adults
+// sum to ~3.85bn here, vs. a real global adult population around 5.6–5.8bn).
+// Rather than present sample-only numbers as if they were literally "the
+// world" (which the previous 2022 Global Wealth Databook source did aim
+// for), this app now frames itself around "the 56 major markets UBS
+// tracks" — see SAMPLE_ADULTS / SAMPLE_TOTAL_WEALTH_USD below, and the
+// header/footnote copy in App.tsx.
 // Ordered bottom-up: smallest wealth share grows first (uncontested), largest
 // grows last, claiming whatever land remains. Seed points are no longer part
 // of the static data — the user places them by clicking the map.
@@ -21,29 +32,29 @@ export const WEALTH_GROUPS: WealthGroup[] = [
   {
     id: "under-10k",
     name: "< $10,000",
-    populationShare: 0.53,
-    wealthShare: 0.01,
+    populationShare: 0.421,
+    wealthShare: 0.006,
     color: "#3b6ea5",
   },
   {
     id: "10k-100k",
     name: "$10K – $100K",
-    populationShare: 0.341,
-    wealthShare: 0.136,
+    populationShare: 0.411,
+    wealthShare: 0.122,
     color: "#4f9d8f",
   },
   {
     id: "100k-1m",
     name: "$100K – $1M",
-    populationShare: 0.121,
-    wealthShare: 0.394,
+    populationShare: 0.153,
+    wealthShare: 0.388,
     color: "#d9a441",
   },
   {
     id: "1m-plus",
     name: "$1M+ (millionaires)",
-    populationShare: 0.011,
-    wealthShare: 0.46,
+    populationShare: 0.015,
+    wealthShare: 0.484,
     color: "#c1443c",
     openEnded: true,
   },
@@ -55,15 +66,19 @@ export const WEALTH_GROUPS: WealthGroup[] = [
 // legibility of comparing against real, recognizable geography.
 export const TOTAL_LAND_KM2 = 141_000_000;
 
-// Global adult population, end of 2022 — same source/vintage as WEALTH_GROUPS
-// (UBS/Credit Suisse Global Wealth Databook). Used only to turn each group's
-// land share into a *per-person* figure below the map; area sizing on the map
+// Total adults across the 56 markets this data covers, end of 2025 (UBS
+// Global Wealth Report 2026) — the sum of the four band headcounts on the
+// wealth pyramid (1.62bn + 1.58bn + 588m + 58m). Deliberately *not* named
+// "global": this is the sample UBS models, not true world adult population
+// (see the note above WEALTH_GROUPS). Used only to turn each group's land
+// share into a *per-person* figure below the map; area sizing on the map
 // itself is driven entirely by wealthShare and doesn't use this at all.
-export const GLOBAL_ADULTS = 5_400_000_000;
+export const SAMPLE_ADULTS = 3_846_000_000;
 
-// Total global private wealth, end of 2022 (UBS Global Wealth Report 2023,
-// same vintage as the two constants above): USD 454.4 trillion, USD 84,718
-// mean wealth per adult. Used only to show the average-wealth-per-person
-// dollar figure alongside the per-person land row for the open-ended $1M+
-// band — that figure is what actually drives its land/pitch count.
-export const TOTAL_GLOBAL_WEALTH_USD = 454_400_000_000_000;
+// Total wealth across those same 56 markets, end of 2025 (UBS Global Wealth
+// Report 2026) — the sum of the four band dollar figures on the same
+// pyramid (USD 3.22tn + 63.16tn + 200.72tn + 250.59tn). Used only to show
+// the average-wealth-per-person dollar figure alongside the per-person land
+// row for the open-ended $1M+ band — that figure is what actually drives
+// its land/pitch count.
+export const SAMPLE_TOTAL_WEALTH_USD = 517_690_000_000_000;

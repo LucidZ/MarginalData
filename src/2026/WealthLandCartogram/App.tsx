@@ -4,7 +4,7 @@ import { geoMollweide } from "d3-geo-projection";
 import type { GeoPath, GeoProjection } from "d3-geo";
 import type { FeatureCollection } from "geojson";
 import land from "./data/land-countries-110m.json";
-import { WEALTH_GROUPS, TOTAL_LAND_KM2, GLOBAL_ADULTS, TOTAL_GLOBAL_WEALTH_USD } from "./data";
+import { WEALTH_GROUPS, TOTAL_LAND_KM2, SAMPLE_ADULTS, SAMPLE_TOTAL_WEALTH_USD } from "./data";
 import { buildLandMask } from "./landGrowth";
 import {
   buildPathData,
@@ -67,10 +67,10 @@ interface PerPersonRow {
 // determine it entirely), so this is computed once, independent of seeds.
 function buildPerPersonStats(): PerPersonRow[] {
   return WEALTH_GROUPS.map((g) => {
-    const adults = g.populationShare * GLOBAL_ADULTS;
+    const adults = g.populationShare * SAMPLE_ADULTS;
     const km2 = g.wealthShare * TOTAL_LAND_KM2;
     const m2 = (km2 * 1e6) / adults;
-    const avgWealthUsd = (g.wealthShare * TOTAL_GLOBAL_WEALTH_USD) / adults;
+    const avgWealthUsd = (g.wealthShare * SAMPLE_TOTAL_WEALTH_USD) / adults;
     const pitches = m2 / FOOTBALL_PITCH_M2;
     const compareLabel =
       m2 < PENALTY_BOX_M2
@@ -422,10 +422,11 @@ export default function App() {
           </button>
         </div>
         <p className="wlc-subtitle">
-          Global wealth, redrawn as claimed territory. Each region's size matches that
-          group's share of global wealth — not their share of the population. Placed
-          bottom-up: click to place the poorest band first, the wealthiest last — it
-          claims whatever's left.
+          Wealth across the 56 major markets UBS tracks — together over 92% of global
+          wealth — redrawn as claimed territory. Each region's size matches that group's
+          share of that wealth, not their share of the population. Placed bottom-up:
+          click to place the poorest band first, the wealthiest last — it claims
+          whatever's left.
         </p>
       </header>
 
@@ -568,9 +569,10 @@ export default function App() {
       )}
 
       <p className="wlc-footnote">
-        Wealth bands: Global Wealth Databook (Shorrocks, Davies, Lluberas), end of 2022 —
-        the methodology behind the UBS/Credit Suisse Global Wealth Report. Land = all
-        habitable landmass except Antarctica (~141M km²).
+        Wealth bands: UBS Global Wealth Report 2026, year-end 2025 — modeled across 56
+        major markets UBS estimates represent over 92% of global wealth (population
+        figures reflect adults in those markets, not literally the whole world). Land =
+        all habitable landmass except Antarctica (~141M km²).
       </p>
     </div>
   );
