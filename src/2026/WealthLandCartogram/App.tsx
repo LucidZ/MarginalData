@@ -17,6 +17,14 @@ import {
   type Range,
 } from "./pathAssign";
 import { buildPersonDots, sampleRangeRanks, STAGING_HEIGHT } from "./personDots";
+import {
+  buildPitchIcons,
+  pitchIconSize,
+  FOOTBALL_PITCH_M2,
+  PENALTY_BOX_M2,
+  PitchIcon,
+  PitchSymbolDefs,
+} from "./PitchIcons";
 import "./App.css";
 
 const GRID_WIDTH = 1600;
@@ -57,14 +65,6 @@ interface PerPersonRow {
   m2: number;
   compareLabel: string;
 }
-
-// Reference areas for the tangible comparisons below the map — all drawn
-// from the same soccer pitch, smallest region to largest, so the four
-// comparisons read as one consistent unit rather than a grab-bag of
-// landmarks. FIFA regulation sizes, not exact-to-the-meter claims — same
-// "legible over precise" trade the rest of this piece already makes.
-const PENALTY_BOX_M2 = 665.28; // FIFA penalty area, 40.32m x 16.5m
-const FOOTBALL_PITCH_M2 = 7140; // FIFA-recommended full pitch, 105m x 68m
 
 // Per-person land isn't part of the click-to-place interaction at all — it's
 // a fixed value straight from WEALTH_GROUPS (wealthShare/populationShare
@@ -118,14 +118,11 @@ export default function App() {
   const personDots = useMemo(() => buildPersonDots(WEALTH_GROUPS, GRID_WIDTH), []);
   const virtualTotalHeight = STAGING_HEIGHT + GRID_HEIGHT;
   const perPersonStats = useMemo(() => buildPerPersonStats(), []);
-  // Revealed in step with the map: each group's square appears once that
-  // group has actually been placed, so the biggest square (millionaires,
-  // ~150+ football pitches per person) lands as the same late climax the
-  // map itself builds to, instead of spoiling it up front.
+  // Revealed in step with the map: each group's pitch row appears once that
+  // group has actually been placed, so the biggest row (millionaires,
+  // ~153 pitches per person) lands as the same late climax the map itself
+  // builds to, instead of spoiling it up front.
   const visiblePerPerson = perPersonStats.slice(0, seeds.length);
-  const maxSqrtM2 = Math.sqrt(Math.max(...perPersonStats.map((s) => s.m2)));
-  const MAX_SQUARE_PX = 180;
-  const MIN_SQUARE_PX = 8;
 
   // one-time setup: rasterize land onto the grid, in an equal-area projection
   useEffect(() => {
@@ -539,27 +536,37 @@ export default function App() {
         <div className="wlc-person-section">
           <h2 className="wlc-person-heading">What that land means per person</h2>
           <p className="wlc-person-subtitle">
-            Split each group's territory evenly across everyone in it — this is roughly
-            what one person's share would look like, drawn at true relative scale.
+            Split each group's territory evenly across everyone in it, measured out in
+            football pitches — this is roughly what one person's share would look like.
           </p>
-          <div className="wlc-person-row">
+          <svg width="0" height="0" style={{ position: "absolute" }}>
+            <defs>
+              <PitchSymbolDefs />
+            </defs>
+          </svg>
+          <div className="wlc-pitch-rows">
             {visiblePerPerson.map((s) => {
-              const side = Math.max(
-                MIN_SQUARE_PX,
-                (Math.sqrt(s.m2) / maxSqrtM2) * MAX_SQUARE_PX
-              );
+              const icons = buildPitchIcons(s.m2);
+              const { size, detailed } = pitchIconSize(icons.length);
               return (
-                <div className="wlc-person-col" key={s.name}>
-                  <div className="wlc-person-square-track">
-                    <div
-                      className="wlc-person-square"
-                      style={{ width: side, height: side, background: s.color }}
-                    />
-                  </div>
-                  <div className="wlc-person-label">
+                <div className="wlc-pitch-row" key={s.name}>
+                  <div className="wlc-pitch-row-label">
+                    <span className="wlc-pitch-row-swatch" style={{ background: s.color }} />
                     <strong>{s.name}</strong>
-                    <span className="wlc-person-area">{formatArea(s.m2)}</span>
-                    <span className="wlc-person-compare">{s.compareLabel}</span>
+                    <span className="wlc-pitch-row-detail">
+                      {formatArea(s.m2)} — {s.compareLabel}
+                    </span>
+                  </div>
+                  <div className="wlc-pitch-row-icons">
+                    {icons.map((icon, i) => (
+                      <PitchIcon
+                        key={i}
+                        icon={icon}
+                        color={s.color}
+                        size={size}
+                        detailed={detailed}
+                      />
+                    ))}
                   </div>
                 </div>
               );

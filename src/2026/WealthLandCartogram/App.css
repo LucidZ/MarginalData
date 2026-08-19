@@ -198,56 +198,54 @@
   line-height: 1.5;
 }
 
-.wlc-person-row {
+.wlc-pitch-rows {
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2rem;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+}
+
+.wlc-pitch-row-label {
+  display: flex;
+  align-items: baseline;
   flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
-.wlc-person-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 9rem;
-}
-
-.wlc-person-square-track {
-  height: 190px;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.wlc-person-square {
+.wlc-pitch-row-swatch {
+  width: 11px;
+  height: 11px;
   border-radius: 3px;
-  box-shadow: 0 0 0 1px var(--baseline);
+  display: inline-block;
   flex-shrink: 0;
+  align-self: center;
 }
 
-.wlc-person-label {
-  margin-top: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.wlc-person-label strong {
-  font-size: 0.85rem;
-  color: var(--text-primary);
-}
-
-.wlc-person-area {
+.wlc-pitch-row-label strong {
   font-size: 0.9rem;
-  font-weight: 600;
   color: var(--text-primary);
 }
 
-.wlc-person-compare {
-  font-size: 0.8rem;
-  color: var(--muted);
+.wlc-pitch-row-detail {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.wlc-pitch-row-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wlc-pitch-icon {
+  flex-shrink: 0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.wlc-pitch-icon-bg {
+  fill: var(--gridline);
 }
 
 .wlc-stats {
