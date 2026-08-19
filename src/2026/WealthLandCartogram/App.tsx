@@ -53,13 +53,6 @@ interface GeoSetup {
   pathData: PathData;
 }
 
-interface StatRow {
-  name: string;
-  color: string;
-  wealthShare: number;
-  km2: number;
-}
-
 interface PerPersonRow {
   name: string;
   color: string;
@@ -115,7 +108,6 @@ export default function App() {
   const committedDotPixelsRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const rafRef = useRef<number | null>(null);
   const [seeds, setSeeds] = useState<[number, number][]>([]);
-  const [stats, setStats] = useState<StatRow[] | null>(null);
   const [landedPositions, setLandedPositions] = useState<Map<number, { x: number; y: number }>>(
     new Map()
   );
@@ -215,21 +207,6 @@ export default function App() {
     ctx.setLineDash([]);
   }
 
-  function buildStats(ranges: (Range | null)[], totalLandPixels: number): StatRow[] {
-    const rows: StatRow[] = [];
-    ranges.forEach((r, gi) => {
-      if (!r) return;
-      const group = WEALTH_GROUPS[gi];
-      rows.push({
-        name: group.name,
-        color: group.color,
-        wealthShare: group.wealthShare,
-        km2: ((r.end - r.start) / totalLandPixels) * TOTAL_LAND_KM2,
-      });
-    });
-    return rows;
-  }
-
   function cancelPendingAnimation() {
     if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
@@ -259,7 +236,6 @@ export default function App() {
       committedDotRanksRef.current = new Map();
       committedDotPixelsRef.current = new Map();
       drawFrame(geo, rasterizeRanges(pathData, [], totalCells));
-      setStats(null);
       setDotPhaseMs(RESET_MS);
       setLandedPositions(new Map());
       setIsAnimating(false);
@@ -404,7 +380,6 @@ export default function App() {
         committedDotRanksRef.current.set(id, rank);
         committedDotPixelsRef.current.set(id, rankToPixel(pathData, rank, GRID_WIDTH));
       });
-      setStats(buildStats(targetRanges, pathData.sortedCells.length));
       rafRef.current = null;
       setIsAnimating(false);
     };
@@ -590,30 +565,6 @@ export default function App() {
             })}
           </div>
         </div>
-      )}
-
-      {stats && (
-        <table className="wlc-stats">
-          <thead>
-            <tr>
-              <th>Group</th>
-              <th>Wealth share</th>
-              <th>Land-equivalent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stats.map((s) => (
-              <tr key={s.name}>
-                <td>
-                  <span className="wlc-stats-swatch" style={{ background: s.color }} />
-                  {s.name}
-                </td>
-                <td>{(s.wealthShare * 100).toFixed(1)}%</td>
-                <td>{(s.km2 / 1e6).toFixed(1)}M km²</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       )}
 
       <p className="wlc-footnote">

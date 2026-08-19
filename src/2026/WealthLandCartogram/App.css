@@ -260,39 +260,6 @@
   fill: var(--gridline);
 }
 
-.wlc-stats {
-  margin: 1.5rem auto 0;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.wlc-stats th,
-.wlc-stats td {
-  padding: 0.4rem 0.9rem;
-  text-align: right;
-  border-bottom: 1px solid var(--gridline);
-}
-
-.wlc-stats th:first-child,
-.wlc-stats td:first-child {
-  text-align: left;
-  color: var(--text-primary);
-}
-
-.wlc-stats th {
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.wlc-stats-swatch {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-  display: inline-block;
-  margin-right: 0.5rem;
-}
-
 .wlc-note {
   margin-top: 1.5rem;
   padding: 0.85rem 1rem;
