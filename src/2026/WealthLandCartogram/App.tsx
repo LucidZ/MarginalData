@@ -19,7 +19,8 @@ import {
 import { buildPersonDots, sampleRangeRanks, STAGING_HEIGHT } from "./personDots";
 import {
   buildPitchIcons,
-  pitchIconSize,
+  PITCH_ICON_SIZE,
+  PITCH_ICON_DETAILED,
   FOOTBALL_PITCH_M2,
   PENALTY_BOX_M2,
   PitchIcon,
@@ -547,7 +548,6 @@ export default function App() {
           <div className="wlc-pitch-rows">
             {visiblePerPerson.map((s) => {
               const icons = buildPitchIcons(s.m2);
-              const { size, detailed } = pitchIconSize(icons.length);
               return (
                 <div className="wlc-pitch-row" key={s.name}>
                   <div className="wlc-pitch-row-label">
@@ -563,8 +563,8 @@ export default function App() {
                         key={i}
                         icon={icon}
                         color={s.color}
-                        size={size}
-                        detailed={detailed}
+                        size={PITCH_ICON_SIZE}
+                        detailed={PITCH_ICON_DETAILED}
                       />
                     ))}
                   </div>

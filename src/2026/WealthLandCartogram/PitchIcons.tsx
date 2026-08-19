@@ -62,17 +62,13 @@ export function buildPitchIcons(m2: number): PitchIconSpec[] {
   return icons;
 }
 
-// Icons are tiny once a group needs dozens of them (the $1M+ band needs
-// ~153) — full line markings turn to mush at that size, so those render as
-// plain outlined rectangles instead. Below that, real markings hold up fine
-// and are worth showing (especially the partially-filled box/pitch, which is
-// most of the point).
-export function pitchIconSize(count: number): { size: number; detailed: boolean } {
-  if (count <= 1) return { size: 150, detailed: true };
-  if (count <= 3) return { size: 92, detailed: true };
-  if (count <= 20) return { size: 42, detailed: true };
-  return { size: 12, detailed: false };
-}
+// Every pitch renders at the same size regardless of how many a group needs
+// — the < $10,000 group's single pitch sets the scale, and the $1M+ group's
+// ~153 of them stay full-size too, so the sheer amount of repeated space
+// they take up on the page *is* the comparison, rather than being scaled
+// away to fit tidily.
+export const PITCH_ICON_SIZE = 150;
+export const PITCH_ICON_DETAILED = true;
 
 // Rendered once, referenced everywhere via <use> — same pattern as the
 // person-icon symbol elsewhere in this app.
