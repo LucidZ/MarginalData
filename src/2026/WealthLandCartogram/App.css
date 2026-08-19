@@ -103,17 +103,19 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  --wlc-dot-duration: 700ms;
+  /* single knob to resize every person icon if 16px reads too large */
+  --wlc-dot-size: 10px;
 }
 
 .wlc-dot {
   position: absolute;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #fff;
+  width: var(--wlc-dot-size);
+  height: var(--wlc-dot-size);
+  color: #fff;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
-  transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: left var(--wlc-dot-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    top var(--wlc-dot-duration) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .wlc-prompt {

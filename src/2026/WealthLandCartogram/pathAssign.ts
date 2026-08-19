@@ -8,12 +8,14 @@ import type { WealthGroup } from "./data";
  */
 export const WORLD_PATH: [number, number][] = [
   [-68.3, -54.8], // Tierra del Fuego
-  [-72.0, -50.0], // Patagonia
-  [-71.5, -38.0], // Central Chile
-  [-68.0, -24.0], // NW Argentina / Atacama
-  [-65.0, -17.0], // Bolivia
-  [-77.0, -9.0], // Peru coast
-  [-78.5, 0.0], // Ecuador
+  [-69.0, -50.0], // Patagonia (Argentina side)
+  [-64.0, -39.0], // Río Negro / northern Patagonia
+  [-58.5, -28.0], // Pampas / Mesopotamia (Argentina–Paraguay border)
+  [-54.0, -16.0], // Mato Grosso, central Brazil
+  [-52.0, -6.0], // southern Amazon (Rondônia–Pará)
+  [-65.0, -3.0], // central Amazon basin
+  [-75.0, 1.0], // Colombia, Amazon/Andes foothills
+  [-78.5, 3.0], // Ecuador
   [-75.5, 6.0], // Colombia
   [-79.5, 9.0], // Panama
   [-84.0, 10.0], // Costa Rica
@@ -61,8 +63,14 @@ export const WORLD_PATH: [number, number][] = [
 export interface PathData {
   /** land cell indices, sorted ascending by nearest-point arc-length position along WORLD_PATH */
   sortedCells: Int32Array;
+  /** each sortedCells[r]'s arc-length position — parallel array, same order */
+  sortedArcPos: Float64Array;
   /** pixel-space waypoints, for drawing the guide line */
   pathPixels: [number, number][];
+  /** cumulative arc-length at the start of each pathPixels segment */
+  segCumStart: Float64Array;
+  /** total length of WORLD_PATH in pixel space */
+  totalPathLength: number;
 }
 
 /**
@@ -160,28 +168,51 @@ export function buildPathData(
   }
 
   landCells.sort((a, b) => cellPathPos[a] - cellPathPos[b]);
-  return { sortedCells: Int32Array.from(landCells), pathPixels };
+  return {
+    sortedCells: Int32Array.from(landCells),
+    sortedArcPos: Float64Array.from(landCells, (i) => cellPathPos[i]),
+    pathPixels,
+    segCumStart,
+    totalPathLength: cum,
+  };
 }
 
-export interface AssignmentResult {
-  claimedBy: Int8Array;
+/** A region's claim, as a half-open range of ranks into `sortedCells`. */
+export interface Range {
+  start: number;
+  end: number;
+}
+
+export interface RangeResult {
+  /** indexed by group index; null for groups not yet placed */
+  ranges: (Range | null)[];
+  /** each seed's nearest-rank anchor, in the same order as `seeds` */
+  anchors: number[];
   totalLandPixels: number;
-  perGroup: { group: WealthGroup; quotaPixels: number; claimedPixels: number }[];
 }
 
 /**
  * Pool Adjacent Violators — finds the non-decreasing sequence closest (least
- * squares) to `d`. Used below to find where each region's slice should
- * actually start: each wants to be centered on its own click, but can't
- * overlap its neighbors in path order, so overlapping desires get "pooled"
- * into a shared compromise position (a weighted average), which is exactly
- * the "push each other apart just enough" behavior.
+ * squares, weighted) to `d`. Used below to find where each region's slice
+ * should actually start: each wants to be centered on its own click, but
+ * can't overlap its neighbors in path order, so overlapping desires get
+ * "pooled" into a shared compromise position (a weighted average), which is
+ * exactly the "push each other apart just enough" behavior.
+ *
+ * `weights` controls *who* absorbs that compromise. Equal weights (plain
+ * least squares) split it evenly by distance — which sounds fair but, when
+ * a large brand-new region's desired center conflicts with several small
+ * already-settled ones, can drag those small regions a long way from where
+ * they'd already visually settled just to average things out, since their
+ * combined desired range is narrow compared to the new region's width. A
+ * heavily-weighted region barely moves in its own pooled average; see
+ * `computeRanges` for why already-placed regions get the higher weight.
  */
-function poolAdjacentViolators(d: number[]): number[] {
+function poolAdjacentViolators(d: number[], weights: number[]): number[] {
   const stack: { value: number; weight: number; count: number }[] = [];
   for (let i = 0; i < d.length; i++) {
     let value = d[i];
-    let weight = 1;
+    let weight = weights[i];
     let count = 1;
     while (stack.length > 0 && stack[stack.length - 1].value > value) {
       const top = stack.pop()!;
@@ -202,11 +233,25 @@ function poolAdjacentViolators(d: number[]): number[] {
  * Each placed group gets a contiguous slice of `sortedCells`, sized to its
  * exact wealth-share quota (in pixels — i.e. exact km², unaffected by any
  * of this). Where that slice actually sits is the interesting part: each
- * seed's rank in `sortedCells` (nearest land cell to the click) is treated
- * as a *desired center*, not just a sort key. Regions in path order that
- * don't overlap just sit centered on their own click; regions whose desired
+ * seed has a *pack anchor* — the freshly-computed nearest-rank-to-click for
+ * a group being placed for the first time this round, or its current
+ * range's own centroid for a group placed in an earlier round — treated as
+ * a *desired center*, not just a sort key. Regions in path order that don't
+ * overlap just sit centered on their own pack anchor; regions whose desired
  * ranges collide get pushed apart by the minimum amount needed to fit
  * (solved exactly via isotonic regression, not an approximation).
+ *
+ * Using an already-placed group's *current centroid* rather than its
+ * original click point (which is what its raw `anchors` entry below always
+ * is) matters once a group has already been pushed around by an earlier
+ * round: ordering against a stale original click can flip a group to the
+ * "wrong" side of a new one relative to where it actually visually sits —
+ * e.g. clicking just past the boundary of an existing region, meaning to
+ * insert between it and its neighbor, but the click's rank landing on the
+ * far side of the *neighbor's original anchor* (which may no longer be
+ * anywhere near where the neighbor currently is) reshuffles the whole
+ * neighborhood instead of just inserting cleanly. Ordering against the
+ * neighbor's current centroid instead keeps that comparison meaningful.
  *
  * Once every group is placed, quotas always sum to exactly `totalLandPixels`
  * (100% of land), which leaves zero slack — so the complete layout is fully
@@ -215,17 +260,16 @@ function poolAdjacentViolators(d: number[]): number[] {
  * around" feel is specifically an *intermediate*-state effect, while slack
  * (unclaimed land) still exists.
  */
-export function assignByPath(
+export function computeRanges(
   pathData: PathData,
-  totalCells: number,
   width: number,
   groups: WealthGroup[],
   seeds: [number, number][],
-  toPixel: (lonLat: [number, number]) => [number, number]
-): AssignmentResult {
+  toPixel: (lonLat: [number, number]) => [number, number],
+  prevRanges: (Range | null)[] = []
+): RangeResult {
   const { sortedCells } = pathData;
   const n = seeds.length;
-  const claimedBy = new Int8Array(totalCells).fill(-1);
   const totalLandPixels = sortedCells.length;
 
   const anchors = seeds.map(([lon, lat]) => {
@@ -247,7 +291,14 @@ export function assignByPath(
     return bestRank;
   });
 
-  const order = seeds.map((_, i) => i).sort((a, b) => anchors[a] - anchors[b]);
+  // see the module doc above — a previously-placed group orders and packs
+  // against where it currently sits, not where it was first clicked
+  const packAnchors = seeds.map((_, i) => {
+    const prev = prevRanges[i];
+    return prev ? (prev.start + prev.end) / 2 : anchors[i];
+  });
+
+  const order = seeds.map((_, i) => i).sort((a, b) => packAnchors[a] - packAnchors[b]);
   const quotas = groups.slice(0, n).map((g) => Math.round(totalLandPixels * g.wealthShare));
   const lenSorted = order.map((i) => quotas[i]);
   const totalLen = lenSorted.reduce((a, b) => a + b, 0);
@@ -259,12 +310,22 @@ export function assignByPath(
   let cumBefore = 0;
   const d: number[] = [];
   for (let k = 0; k < n; k++) {
-    const desiredLeft = anchors[order[k]] - lenSorted[k] / 2;
+    const desiredLeft = packAnchors[order[k]] - lenSorted[k] / 2;
     d.push(desiredLeft - cumBefore);
     cumBefore += lenSorted[k];
   }
 
-  let y = poolAdjacentViolators(d);
+  // An already-placed region resists being pooled away from where it
+  // currently sits much more than the group being placed *this* round does
+  // — so when a large new region's desired center conflicts with several
+  // small settled ones, the newcomer absorbs most of the compromise instead
+  // of dragging stable regions a long way from where they'd already
+  // visually settled. Doesn't affect the final complete layout (zero slack
+  // forces the same unique packing regardless of weight), only how each
+  // intermediate click feels.
+  const ESTABLISHED_WEIGHT = 20;
+  const weights = order.map((i) => (prevRanges[i] ? ESTABLISHED_WEIGHT : 1));
+  let y = poolAdjacentViolators(d, weights);
   // clip into the available slack — monotonicity survives clipping since
   // clamp() is itself non-decreasing. At zero slack (all groups placed)
   // every y collapses to 0, forcing the unique zero-gap full-length packing.
@@ -277,14 +338,96 @@ export function assignByPath(
     cumBefore += lenSorted[k];
   }
 
-  const perGroup: AssignmentResult["perGroup"] = new Array(n);
+  const ranges: (Range | null)[] = new Array(n).fill(null);
   for (let k = 0; k < n; k++) {
     const gi = order[k];
     const start = Math.max(0, startSorted[k]);
     const end = Math.min(start + quotas[gi], sortedCells.length);
-    for (let r = start; r < end; r++) claimedBy[sortedCells[r]] = gi;
-    perGroup[gi] = { group: groups[gi], quotaPixels: quotas[gi], claimedPixels: Math.max(0, end - start) };
+    ranges[gi] = { start, end: Math.max(start, end) };
   }
 
-  return { claimedBy, totalLandPixels, perGroup };
+  return { ranges, anchors, totalLandPixels };
+}
+
+/**
+ * Converts a (possibly fractional, mid-animation) rank into `sortedCells`
+ * back to a pixel coordinate. Used for a dot's *final* resting spot — an
+ * actual claimed land cell — never for animating its travel (see
+ * `pointAtArcLength` for that): two adjacent ranks can be nearly tied on
+ * arc-length (e.g. deep inland where the path runs nowhere nearby), and
+ * ties are broken by raster scan order, not spatial proximity, so walking
+ * through consecutive ranks frame-by-frame can hop around within the
+ * landmass rather than glide — the "chaotic jitter" this file's other
+ * helper avoids entirely by never touching the raster during travel.
+ */
+export function rankToPixel(
+  pathData: PathData,
+  rank: number,
+  width: number
+): { x: number; y: number } {
+  const { sortedCells } = pathData;
+  const r = Math.max(0, Math.min(sortedCells.length - 1, Math.round(rank)));
+  const cell = sortedCells[r];
+  return { x: cell % width, y: (cell / width) | 0 };
+}
+
+/** A rank's arc-length position along WORLD_PATH — see `pointAtArcLength`. */
+export function rankToArcLength(pathData: PathData, rank: number): number {
+  const { sortedArcPos } = pathData;
+  const r = Math.max(0, Math.min(sortedArcPos.length - 1, Math.round(rank)));
+  return sortedArcPos[r];
+}
+
+/**
+ * Converts an arc-length position into a pixel by walking WORLD_PATH's own
+ * polyline — pure geometric interpolation along a fixed, hand-drawn curve,
+ * so it's perfectly smooth and continuous by construction. Used to animate
+ * a dot's *travel* between two ranks: interpolate arc-length (not rank)
+ * between the from/to positions and look up the point on the path at each
+ * frame, so the dot visibly rides the guide line along the actual route
+ * instead of jumping between raster cells (see `rankToPixel`'s doc comment
+ * for why that would jitter). The dot only leaves the path line to land on
+ * its real claimed cell in the settle phase that follows.
+ */
+export function pointAtArcLength(pathData: PathData, arcLength: number): { x: number; y: number } {
+  const { pathPixels, segCumStart, totalPathLength } = pathData;
+  const clamped = Math.max(0, Math.min(totalPathLength, arcLength));
+
+  let lo = 0;
+  let hi = segCumStart.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (segCumStart[mid] <= clamped) lo = mid;
+    else hi = mid - 1;
+  }
+  const s = lo;
+  const segStart = segCumStart[s];
+  const segEnd = s + 1 < segCumStart.length ? segCumStart[s + 1] : totalPathLength;
+  const t = segEnd > segStart ? (clamped - segStart) / (segEnd - segStart) : 0;
+
+  const [x0, y0] = pathPixels[s];
+  const [x1, y1] = pathPixels[Math.min(s + 1, pathPixels.length - 1)];
+  return { x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t };
+}
+
+/**
+ * Paints a set of (possibly mid-animation, non-final) ranges onto a
+ * claimedBy grid. Separated from `computeRanges` so the same range shape can
+ * be rasterized once for the committed state and many times per second for
+ * in-between animation frames, without re-solving the pack/push layout.
+ */
+export function rasterizeRanges(
+  pathData: PathData,
+  ranges: (Range | null)[],
+  totalCells: number
+): Int8Array {
+  const { sortedCells } = pathData;
+  const claimedBy = new Int8Array(totalCells).fill(-1);
+  ranges.forEach((range, gi) => {
+    if (!range) return;
+    const start = Math.max(0, Math.round(Math.min(range.start, range.end)));
+    const end = Math.min(sortedCells.length, Math.round(Math.max(range.start, range.end)));
+    for (let r = start; r < end; r++) claimedBy[sortedCells[r]] = gi;
+  });
+  return claimedBy;
 }

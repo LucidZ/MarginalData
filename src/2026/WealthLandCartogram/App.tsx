@@ -6,8 +6,17 @@ import type { FeatureCollection } from "geojson";
 import land from "./data/land-countries-110m.json";
 import { WEALTH_GROUPS, TOTAL_LAND_KM2 } from "./data";
 import { buildLandMask } from "./landGrowth";
-import { buildPathData, assignByPath, type PathData } from "./pathAssign";
-import { buildPersonDots, sampleLandedPositions, STAGING_HEIGHT } from "./personDots";
+import {
+  buildPathData,
+  computeRanges,
+  pointAtArcLength,
+  rankToArcLength,
+  rankToPixel,
+  rasterizeRanges,
+  type PathData,
+  type Range,
+} from "./pathAssign";
+import { buildPersonDots, sampleRangeRanks, STAGING_HEIGHT } from "./personDots";
 import "./App.css";
 
 const GRID_WIDTH = 1600;
@@ -15,11 +24,22 @@ const GRID_HEIGHT = 800;
 const OCEAN_COLOR = "#0b1220";
 const UNCLAIMED_COLOR: [number, number, number] = [90, 90, 90];
 
+// Click animation: land grows/shifts from the click point — pushing and
+// resizing any neighboring regions along with it — while every affected
+// dot travels to its new spot in one continuous motion (see the "offWeight"
+// comment below for how travel and landing are blended together).
+const GROW_MS = 1100;
+// "Start over" isn't animated by the JS loop above (there's nothing to grow
+// toward), so it leans on dotPhaseMs's CSS transition instead, for a smooth
+// fade back up to the staging row rather than an instant snap.
+const RESET_MS = 500;
+
 interface GeoSetup {
   projection: GeoProjection;
   path: GeoPath<unknown, d3.GeoPermissibleObjects>;
   ctx: CanvasRenderingContext2D;
   offCtx: CanvasRenderingContext2D;
+  imageData: ImageData;
   landMask: Uint8Array;
   pathData: PathData;
 }
@@ -34,12 +54,25 @@ interface StatRow {
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoRef = useRef<GeoSetup | null>(null);
+  // Last fully-settled (post-animation) range per group index — the
+  // baseline the next click's animation grows/shifts away from.
+  const committedRangesRef = useRef<(Range | null)[]>([]);
+  // Last fully-settled path-rank per dot — the baseline the next click's
+  // animation slides that dot away from (see rankToPixel in pathAssign.ts).
+  const committedDotRanksRef = useRef<Map<number, number>>(new Map());
+  // Last fully-settled *pixel* per dot — the source of truth for where an
+  // already-landed, unaffected dot currently sits, used as the travel
+  // start point ("fromPoint") the next time its group gets pushed.
+  const committedDotPixelsRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const rafRef = useRef<number | null>(null);
   const [seeds, setSeeds] = useState<[number, number][]>([]);
   const [stats, setStats] = useState<StatRow[] | null>(null);
   const [landedPositions, setLandedPositions] = useState<Map<number, { x: number; y: number }>>(
     new Map()
   );
   const [isReady, setIsReady] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [dotPhaseMs, setDotPhaseMs] = useState(GROW_MS);
 
   const isComplete = seeds.length >= WEALTH_GROUPS.length;
   const currentGroup = isComplete ? null : WEALTH_GROUPS[seeds.length];
@@ -73,28 +106,21 @@ export default function App() {
     // first, instead of the whole page just freezing with nothing rendered.
     const timer = setTimeout(() => {
       const pathData = buildPathData(landMask, GRID_WIDTH, GRID_HEIGHT, toPixel);
-      geoRef.current = { projection, path, ctx, offCtx, landMask, pathData };
+      // Reused every redraw (including every animation frame) instead of
+      // allocating a fresh ~5MB buffer each time.
+      const imageData = offCtx.createImageData(GRID_WIDTH, GRID_HEIGHT);
+      geoRef.current = { projection, path, ctx, offCtx, imageData, landMask, pathData };
       setIsReady(true);
     }, 0);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // re-assign and repaint whenever a seed is placed (or reset)
-  useEffect(() => {
-    const geo = geoRef.current;
-    if (!geo) return;
-    const { projection, path, ctx, offCtx, landMask, pathData } = geo;
-
-    const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
-    const result = assignByPath(
-      pathData,
-      GRID_WIDTH * GRID_HEIGHT,
-      GRID_WIDTH,
-      WEALTH_GROUPS,
-      seeds,
-      toPixel
-    );
+  // Paints a (possibly mid-animation) set of ranges onto the visible canvas.
+  // Pulled out of the effect below so it can run once per settled state and
+  // also many times per second while an animation is in flight.
+  function drawFrame(geo: GeoSetup, claimedBy: Int8Array) {
+    const { path, ctx, offCtx, imageData, landMask, pathData } = geo;
 
     // Paint claimed/unclaimed colors onto an offscreen buffer at raster
     // resolution (only land pixels matter — everything else gets clipped
@@ -102,16 +128,16 @@ export default function App() {
     // path built from the real vector coastlines. That keeps the true
     // land/ocean edge crisp even though the boundaries *between* claimed
     // regions (which aren't real geography) stay raster-resolution.
-    const out = offCtx.createImageData(GRID_WIDTH, GRID_HEIGHT);
+    const out = imageData.data;
     for (let i = 0; i < GRID_WIDTH * GRID_HEIGHT; i++) {
       if (!landMask[i]) continue; // left transparent; clipped away regardless
-      const c = result.claimedBy[i] === -1 ? UNCLAIMED_COLOR : hexToRgb(WEALTH_GROUPS[result.claimedBy[i]].color);
-      out.data[i * 4] = c[0];
-      out.data[i * 4 + 1] = c[1];
-      out.data[i * 4 + 2] = c[2];
-      out.data[i * 4 + 3] = 255;
+      const c = claimedBy[i] === -1 ? UNCLAIMED_COLOR : hexToRgb(WEALTH_GROUPS[claimedBy[i]].color);
+      out[i * 4] = c[0];
+      out[i * 4 + 1] = c[1];
+      out[i * 4 + 2] = c[2];
+      out[i * 4 + 3] = 255;
     }
-    offCtx.putImageData(out, 0, 0);
+    offCtx.putImageData(imageData, 0, 0);
 
     ctx.clearRect(0, 0, GRID_WIDTH, GRID_HEIGHT);
     ctx.fillStyle = OCEAN_COLOR;
@@ -132,25 +158,210 @@ export default function App() {
     ctx.setLineDash([4, 4]);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
 
-    setStats(
-      seeds.length === 0
-        ? null
-        : result.perGroup.map(({ group, claimedPixels }) => ({
-            name: group.name,
-            color: group.color,
-            wealthShare: group.wealthShare,
-            km2: (claimedPixels / result.totalLandPixels) * TOTAL_LAND_KM2,
-          }))
+  function buildStats(ranges: (Range | null)[], totalLandPixels: number): StatRow[] {
+    const rows: StatRow[] = [];
+    ranges.forEach((r, gi) => {
+      if (!r) return;
+      const group = WEALTH_GROUPS[gi];
+      rows.push({
+        name: group.name,
+        color: group.color,
+        wealthShare: group.wealthShare,
+        km2: ((r.end - r.start) / totalLandPixels) * TOTAL_LAND_KM2,
+      });
+    });
+    return rows;
+  }
+
+  function cancelPendingAnimation() {
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  }
+
+  // Re-assign and animate whenever a seed is placed (or reset). Land grows
+  // outward from the click point — and any pushed regions shift to their new
+  // extent — while every affected dot travels to its own new resting cell in
+  // one continuous motion along that *same* path the land is animating
+  // through, so a dot (and the region it's part of) that gets pushed from
+  // one side of the map to the other visibly travels the route instead of
+  // cutting straight across open ocean. Dots within a region aren't nudged
+  // apart from each other — overlap in small, crowded regions is left as-is
+  // rather than spread out, which read as an extra "pop" once the motion
+  // above had already finished.
+  useEffect(() => {
+    const geo = geoRef.current;
+    if (!geo || !isReady) return;
+    cancelPendingAnimation();
+
+    const { projection, pathData } = geo;
+    const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
+    const totalCells = GRID_WIDTH * GRID_HEIGHT;
+
+    if (seeds.length === 0) {
+      committedRangesRef.current = [];
+      committedDotRanksRef.current = new Map();
+      committedDotPixelsRef.current = new Map();
+      drawFrame(geo, rasterizeRanges(pathData, [], totalCells));
+      setStats(null);
+      setDotPhaseMs(RESET_MS);
+      setLandedPositions(new Map());
+      setIsAnimating(false);
+      return;
+    }
+
+    const prevRanges = committedRangesRef.current;
+    const { ranges: targetRanges, anchors } = computeRanges(
+      pathData,
+      GRID_WIDTH,
+      WEALTH_GROUPS,
+      seeds,
+      toPixel,
+      prevRanges
     );
 
-    setLandedPositions(sampleLandedPositions(personDots, result.claimedBy, GRID_WIDTH, seeds.length));
+    const newGroupIndex = seeds.length - 1;
+    const clickPixel = toPixel(seeds[newGroupIndex]);
+    const anchorRank = anchors[newGroupIndex];
+
+    // Per-group start point for this animation: the brand-new group grows
+    // from a zero-width point at its own anchor; anyone else only animates
+    // if a later push actually moved their extent, starting from wherever
+    // they were last settled.
+    const startRanges: (Range | null)[] = targetRanges.map((target, gi) => {
+      if (!target) return null;
+      if (gi === newGroupIndex) return { start: anchorRank, end: anchorRank };
+      return prevRanges[gi] ?? { start: anchorRank, end: anchorRank };
+    });
+
+    const changedGroups = targetRanges
+      .map((target, gi) => ({ gi, target, from: startRanges[gi] }))
+      .filter((c): c is { gi: number; target: Range; from: Range } => {
+        if (!c.target) return false;
+        if (c.gi === newGroupIndex) return true;
+        const prev = prevRanges[c.gi];
+        return !prev || prev.start !== c.target.start || prev.end !== c.target.end;
+      });
+
+    // Precompute each affected dot's travel: from/to rank (needed for the
+    // settle phase's exact final cell and to remember it for next time),
+    // from/to arc-length (its position along the path), and from/to *offset*
+    // — the perpendicular vector from the path line out to the dot's actual
+    // land cell, since real land isn't generally sitting exactly on the
+    // hand-drawn route. From is wherever it last actually settled (or the
+    // click point itself, for the newly placed group's own dots, which
+    // start bundled at a single spot); to is its deterministic resting cell
+    // within the group's final target range.
+    const dotToRank = new Map<number, number>();
+    const dotFromArc = new Map<number, number>();
+    const dotToArc = new Map<number, number>();
+    const dotFromOffset = new Map<number, { x: number; y: number }>();
+    const dotToOffset = new Map<number, { x: number; y: number }>();
+    for (const { gi, target } of changedGroups) {
+      const targetRanks = sampleRangeRanks(personDots, gi, target, pathData.sortedCells.length);
+      for (const [id, toRank] of targetRanks) {
+        const fromRank =
+          gi === newGroupIndex ? anchorRank : committedDotRanksRef.current.get(id) ?? anchorRank;
+        const fromArc = rankToArcLength(pathData, fromRank);
+        const toArc = rankToArcLength(pathData, toRank);
+        const fromPoint =
+          gi === newGroupIndex
+            ? { x: clickPixel[0], y: clickPixel[1] }
+            : committedDotPixelsRef.current.get(id) ?? rankToPixel(pathData, fromRank, GRID_WIDTH);
+        const fromPath = pointAtArcLength(pathData, fromArc);
+        const toPoint = rankToPixel(pathData, toRank, GRID_WIDTH);
+        const toPath = pointAtArcLength(pathData, toArc);
+
+        dotToRank.set(id, toRank);
+        dotFromArc.set(id, fromArc);
+        dotToArc.set(id, toArc);
+        dotFromOffset.set(id, { x: fromPoint.x - fromPath.x, y: fromPoint.y - fromPath.y });
+        dotToOffset.set(id, { x: toPoint.x - toPath.x, y: toPoint.y - toPath.y });
+      }
+    }
+
+    setIsAnimating(true);
+    setDotPhaseMs(0);
+
+    const start = performance.now();
+    const animate = (now: number) => {
+      const t = Math.min(1, (now - start) / GROW_MS);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+      const frameRanges: (Range | null)[] = targetRanges.map((target, gi) => {
+        if (!target) return null;
+        const changed = changedGroups.find((c) => c.gi === gi);
+        if (!changed) return prevRanges[gi] ?? target;
+        return {
+          start: changed.from.start + (target.start - changed.from.start) * eased,
+          end: changed.from.end + (target.end - changed.from.end) * eased,
+        };
+      });
+      drawFrame(geo, rasterizeRanges(pathData, frameRanges, totalCells));
+
+      if (dotFromArc.size > 0) {
+        // Along-path motion and the perpendicular "step off the path onto
+        // real land" offset are blended by the *same* eased value every
+        // frame — so both happen together throughout the trip, not as two
+        // visually separate beats (glide, then peel off). This does carry a
+        // real risk a purely-along-path design doesn't: the offset is a
+        // straight-line blend, so a dot with a large offset could, for a
+        // frame or two, sit off the path in a direction that isn't real
+        // land (e.g. crossing a strait between islands, or the open-ocean
+        // gaps WORLD_PATH itself deliberately skips over, like Canada to
+        // Greenland) before the path and offset finish resolving onto the
+        // real target cell together at t=1. Measured to be a minor, brief
+        // wobble in the worst case tested (a large regional push), not the
+        // large discontinuities this whole animation was built to avoid —
+        // accepted as the trade for genuinely simultaneous motion.
+        setLandedPositions((prev) => {
+          const next = new Map(prev);
+          dotFromArc.forEach((fromArc, id) => {
+            const toArc = dotToArc.get(id)!;
+            const path = pointAtArcLength(pathData, fromArc + (toArc - fromArc) * eased);
+            const from = dotFromOffset.get(id)!;
+            const to = dotToOffset.get(id)!;
+            next.set(id, {
+              x: path.x + from.x + (to.x - from.x) * eased,
+              y: path.y + from.y + (to.y - from.y) * eased,
+            });
+          });
+          return next;
+        });
+      }
+
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      // Land has finished growing/shifting, and every affected dot has
+      // arrived at its individually-sampled ideal cell — the same one the
+      // last frame above already painted it at (eased reaches 1 exactly
+      // where the offset fully resolves onto real land), so there's nothing
+      // left to settle. Overlap between tightly-packed dots in a small
+      // region is left as-is rather than nudged apart — spreading them out
+      // read as a distracting extra "pop" after the motion had already
+      // finished, worst on the smallest, most crowded regions.
+      committedRangesRef.current = targetRanges;
+      dotToRank.forEach((rank, id) => {
+        committedDotRanksRef.current.set(id, rank);
+        committedDotPixelsRef.current.set(id, rankToPixel(pathData, rank, GRID_WIDTH));
+      });
+      setStats(buildStats(targetRanges, pathData.sortedCells.length));
+      rafRef.current = null;
+      setIsAnimating(false);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => cancelPendingAnimation();
   }, [seeds, personDots, isReady]);
 
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
     const geo = geoRef.current;
     const canvas = canvasRef.current;
-    if (!geo || !canvas || !isReady || isComplete) return;
+    if (!geo || !canvas || !isReady || isComplete || isAnimating) return;
 
     const rect = canvas.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * GRID_WIDTH;
@@ -206,24 +417,49 @@ export default function App() {
           <canvas
             ref={canvasRef}
             className="wlc-canvas"
-            style={{ cursor: isComplete ? "default" : "crosshair" }}
+            style={{ cursor: isComplete || isAnimating ? "default" : "crosshair" }}
             onClick={handleCanvasClick}
           />
           {!isReady && <div className="wlc-loading">Preparing map…</div>}
-          <div className="wlc-dots-overlay">
+          {/* Shared symbol so every dot below is a lightweight <use>, not its
+              own copy of the path data. Outline is a real SVG stroke (scales
+              with the icon via the viewBox) rather than a CSS drop-shadow,
+              which stays a fixed physical size and would swallow the fill
+              at small icon sizes. */}
+          <svg width="0" height="0" style={{ position: "absolute" }}>
+            <defs>
+              <symbol id="wlc-person-icon" viewBox="0 0 24 24">
+                <path
+                  d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                  fill="currentColor"
+                  stroke="rgba(255,255,255,.95)"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                  paintOrder="stroke fill"
+                />
+              </symbol>
+            </defs>
+          </svg>
+          <div
+            className="wlc-dots-overlay"
+            style={{ "--wlc-dot-duration": `${dotPhaseMs}ms` } as React.CSSProperties}
+          >
             {personDots.map((dot) => {
               const landed = dot.groupIndex < seeds.length ? landedPositions.get(dot.id) : undefined;
               const xVirtual = landed ? landed.x : dot.stagingX;
               const yVirtual = landed ? STAGING_HEIGHT + landed.y : dot.stagingY;
               return (
-                <span
+                <svg
                   key={dot.id}
                   className="wlc-dot"
                   style={{
                     left: `${(xVirtual / GRID_WIDTH) * 100}%`,
                     top: `${(yVirtual / virtualTotalHeight) * 100}%`,
+                    color: WEALTH_GROUPS[dot.groupIndex].color,
                   }}
-                />
+                >
+                  <use href="#wlc-person-icon" />
+                </svg>
               );
             })}
           </div>
