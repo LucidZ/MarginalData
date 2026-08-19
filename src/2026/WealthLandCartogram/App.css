@@ -179,6 +179,77 @@
   flex-shrink: 0;
 }
 
+.wlc-person-section {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.wlc-person-heading {
+  font-size: 1.15rem;
+  margin: 0 0 0.4rem;
+  color: var(--text-primary);
+}
+
+.wlc-person-subtitle {
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.wlc-person-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.wlc-person-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 9rem;
+}
+
+.wlc-person-square-track {
+  height: 190px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.wlc-person-square {
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--baseline);
+  flex-shrink: 0;
+}
+
+.wlc-person-label {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.wlc-person-label strong {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.wlc-person-area {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wlc-person-compare {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .wlc-stats {
   margin: 1.5rem auto 0;
   border-collapse: collapse;

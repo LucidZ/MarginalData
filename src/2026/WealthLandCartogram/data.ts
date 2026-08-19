@@ -49,3 +49,9 @@ export const WEALTH_GROUPS: WealthGroup[] = [
 // desert) — a deliberate simplification: this piece trades precision for the
 // legibility of comparing against real, recognizable geography.
 export const TOTAL_LAND_KM2 = 141_000_000;
+
+// Global adult population, end of 2022 — same source/vintage as WEALTH_GROUPS
+// (UBS/Credit Suisse Global Wealth Databook). Used only to turn each group's
+// land share into a *per-person* figure below the map; area sizing on the map
+// itself is driven entirely by wealthShare and doesn't use this at all.
+export const GLOBAL_ADULTS = 5_400_000_000;

@@ -4,7 +4,7 @@ import { geoMollweide } from "d3-geo-projection";
 import type { GeoPath, GeoProjection } from "d3-geo";
 import type { FeatureCollection } from "geojson";
 import land from "./data/land-countries-110m.json";
-import { WEALTH_GROUPS, TOTAL_LAND_KM2 } from "./data";
+import { WEALTH_GROUPS, TOTAL_LAND_KM2, GLOBAL_ADULTS } from "./data";
 import { buildLandMask } from "./landGrowth";
 import {
   buildPathData,
@@ -51,6 +51,43 @@ interface StatRow {
   km2: number;
 }
 
+interface PerPersonRow {
+  name: string;
+  color: string;
+  m2: number;
+  compareLabel: string;
+}
+
+// Reference areas for the tangible comparisons below the map. Regulation
+// sizes, not exact-to-the-meter claims — same "legible over precise" trade
+// the rest of this piece already makes.
+const FOOTBALL_PITCH_M2 = 7140; // FIFA-recommended pitch, 105m x 68m
+const BASKETBALL_COURT_M2 = 420; // FIBA regulation court, 28m x 15m
+
+// Per-person land isn't part of the click-to-place interaction at all — it's
+// a fixed value straight from WEALTH_GROUPS (wealthShare/populationShare
+// determine it entirely), so this is computed once, independent of seeds.
+function buildPerPersonStats(): PerPersonRow[] {
+  return WEALTH_GROUPS.map((g) => {
+    const adults = g.populationShare * GLOBAL_ADULTS;
+    const km2 = g.wealthShare * TOTAL_LAND_KM2;
+    const m2 = (km2 * 1e6) / adults;
+    const pitches = m2 / FOOTBALL_PITCH_M2;
+    const compareLabel =
+      m2 < BASKETBALL_COURT_M2 * 1.5
+        ? "about the size of a basketball court"
+        : pitches < 3
+          ? `about ${pitches.toFixed(1)} football pitches`
+          : `about ${Math.round(pitches)} football pitches`;
+    return { name: g.name, color: g.color, m2, compareLabel };
+  });
+}
+
+function formatArea(m2: number): string {
+  if (m2 >= 1e6) return `${(m2 / 1e6).toFixed(2)} km²`;
+  return `${Math.round(m2).toLocaleString()} m²`;
+}
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoRef = useRef<GeoSetup | null>(null);
@@ -78,6 +115,15 @@ export default function App() {
   const currentGroup = isComplete ? null : WEALTH_GROUPS[seeds.length];
   const personDots = useMemo(() => buildPersonDots(WEALTH_GROUPS, GRID_WIDTH), []);
   const virtualTotalHeight = STAGING_HEIGHT + GRID_HEIGHT;
+  const perPersonStats = useMemo(() => buildPerPersonStats(), []);
+  // Revealed in step with the map: each group's square appears once that
+  // group has actually been placed, so the biggest square (millionaires,
+  // ~150+ football pitches per person) lands as the same late climax the
+  // map itself builds to, instead of spoiling it up front.
+  const visiblePerPerson = perPersonStats.slice(0, seeds.length);
+  const maxSqrtM2 = Math.sqrt(Math.max(...perPersonStats.map((s) => s.m2)));
+  const MAX_SQUARE_PX = 180;
+  const MIN_SQUARE_PX = 8;
 
   // one-time setup: rasterize land onto the grid, in an equal-area projection
   useEffect(() => {
@@ -486,6 +532,39 @@ export default function App() {
         than its actual wealth share just because of where it happened to grow. The trade
         is that shapes and angles get visibly distorted to keep area exactly right.
       </div>
+
+      {visiblePerPerson.length > 0 && (
+        <div className="wlc-person-section">
+          <h2 className="wlc-person-heading">What that land means per person</h2>
+          <p className="wlc-person-subtitle">
+            Split each group's territory evenly across everyone in it — this is roughly
+            what one person's share would look like, drawn at true relative scale.
+          </p>
+          <div className="wlc-person-row">
+            {visiblePerPerson.map((s) => {
+              const side = Math.max(
+                MIN_SQUARE_PX,
+                (Math.sqrt(s.m2) / maxSqrtM2) * MAX_SQUARE_PX
+              );
+              return (
+                <div className="wlc-person-col" key={s.name}>
+                  <div className="wlc-person-square-track">
+                    <div
+                      className="wlc-person-square"
+                      style={{ width: side, height: side, background: s.color }}
+                    />
+                  </div>
+                  <div className="wlc-person-label">
+                    <strong>{s.name}</strong>
+                    <span className="wlc-person-area">{formatArea(s.m2)}</span>
+                    <span className="wlc-person-compare">{s.compareLabel}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {stats && (
         <table className="wlc-stats">
