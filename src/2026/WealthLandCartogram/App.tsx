@@ -43,15 +43,13 @@ const GROW_MS = 1100;
 // fade back up to the staging row rather than an instant snap.
 const RESET_MS = 500;
 
-// Fixed seed points for the auto-play intro (see "Auto-play" below) — one
-// per continent, spread out deliberately (clustering seeds in one landmass
-// makes the biggest-quota group spill across oceans more than it needs to).
+// Fixed seed points for the auto-play intro (see "Auto-play" below).
 // Order matches WEALTH_GROUPS (bottom-up: smallest wealth share first).
 const AUTO_PLAY_SEEDS: [number, number][] = [
-  [3.39, 6.52], // Lagos, Nigeria
-  [-46.63, -23.55], // São Paulo, Brazil
-  [2.35, 48.86], // Paris, France
-  [139.69, 35.68], // Tokyo, Japan
+  [-3.7, 40.42], // Madrid, Spain
+  [13.4, 52.52], // Berlin, Germany
+  [116.4, 39.9], // Beijing, China
+  [-77.03, 38.9], // Washington, D.C., United States
 ];
 // Gap between each auto-play step: long enough for that step's GROW_MS
 // animation to fully finish, plus a short pause so it reads as a beat, not
@@ -147,11 +145,6 @@ export default function App() {
   const personDots = useMemo(() => buildPersonDots(WEALTH_GROUPS, GRID_WIDTH), []);
   const virtualTotalHeight = STAGING_HEIGHT + GRID_HEIGHT;
   const perPersonStats = useMemo(() => buildPerPersonStats(), []);
-  // Revealed in step with the map: each group's pitch row appears once that
-  // group has actually been placed, so the biggest row (millionaires,
-  // ~153 pitches per person) lands as the same late climax the map itself
-  // builds to, instead of spoiling it up front.
-  const visiblePerPerson = perPersonStats.slice(0, seeds.length);
 
   function clearAutoPlayTimeouts() {
     autoPlayTimeoutsRef.current.forEach((id) => clearTimeout(id));
@@ -633,55 +626,53 @@ export default function App() {
         is that shapes and angles get visibly distorted to keep area exactly right.
       </div>
 
-      {visiblePerPerson.length > 0 && (
-        <div className="wlc-person-section">
-          <h2 className="wlc-person-heading">What that land means per person</h2>
-          <p className="wlc-person-subtitle">
-            Split each group's territory evenly across everyone in it, measured out in
-            football pitches — this is roughly what one person's share would look like.
-          </p>
-          <svg width="0" height="0" style={{ position: "absolute" }}>
-            <defs>
-              <PitchSymbolDefs />
-            </defs>
-          </svg>
-          <div className="wlc-pitch-rows">
-            {visiblePerPerson.map((s) => {
-              const icons = buildPitchIcons(s.m2);
-              return (
-                <div className="wlc-pitch-row" key={s.name}>
-                  <div className="wlc-pitch-row-label">
-                    <span className="wlc-pitch-row-swatch" style={{ background: s.color }} />
-                    <strong>{s.name}</strong>
-                    <span className="wlc-pitch-row-detail">
-                      On average, {formatArea(s.m2)} — {s.compareLabel}
-                    </span>
-                  </div>
-                  {s.openEnded && (
-                    <p className="wlc-pitch-row-caveat">
-                      That "{s.compareLabel}" figure comes from an average of{" "}
-                      <strong>{formatUsd(s.avgWealthUsd)}</strong> per person in this band —
-                      "$1M+" has no upper bound, so a small number of billionaires inside it pull
-                      that average well above what most people in this group actually hold.
-                    </p>
-                  )}
-                  <div className="wlc-pitch-row-icons">
-                    {icons.map((icon, i) => (
-                      <PitchIcon
-                        key={i}
-                        icon={icon}
-                        color={s.color}
-                        size={PITCH_ICON_SIZE}
-                        detailed={PITCH_ICON_DETAILED}
-                      />
-                    ))}
-                  </div>
+      <div className="wlc-person-section">
+        <h2 className="wlc-person-heading">What that land means per person</h2>
+        <p className="wlc-person-subtitle">
+          Split each group's territory evenly across everyone in it, measured out in
+          football pitches — this is roughly what one person's share would look like.
+        </p>
+        <svg width="0" height="0" style={{ position: "absolute" }}>
+          <defs>
+            <PitchSymbolDefs />
+          </defs>
+        </svg>
+        <div className="wlc-pitch-rows">
+          {perPersonStats.map((s) => {
+            const icons = buildPitchIcons(s.m2);
+            return (
+              <div className="wlc-pitch-row" key={s.name}>
+                <div className="wlc-pitch-row-label">
+                  <span className="wlc-pitch-row-swatch" style={{ background: s.color }} />
+                  <strong>{s.name}</strong>
+                  <span className="wlc-pitch-row-detail">
+                    On average, {formatArea(s.m2)} — {s.compareLabel}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                {s.openEnded && (
+                  <p className="wlc-pitch-row-caveat">
+                    That "{s.compareLabel}" figure comes from an average of{" "}
+                    <strong>{formatUsd(s.avgWealthUsd)}</strong> per person in this band —
+                    "$1M+" has no upper bound, so a small number of billionaires inside it pull
+                    that average well above what most people in this group actually hold.
+                  </p>
+                )}
+                <div className="wlc-pitch-row-icons">
+                  {icons.map((icon, i) => (
+                    <PitchIcon
+                      key={i}
+                      icon={icon}
+                      color={s.color}
+                      size={PITCH_ICON_SIZE}
+                      detailed={PITCH_ICON_DETAILED}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       <p className="wlc-footnote">
         Wealth bands: UBS Global Wealth Report 2026, year-end 2025 — modeled across 56
