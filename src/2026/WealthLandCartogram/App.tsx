@@ -516,17 +516,7 @@ export default function App() {
   return (
     <div className="wlc-root">
       <header className="wlc-header">
-        <div className="wlc-header-row">
-          <h1 className="wlc-title">If Wealth Were Land</h1>
-          <div className="wlc-header-actions">
-            <button className="wlc-replay" onClick={handleReplay}>
-              ▶ Replay
-            </button>
-            <button className="wlc-reset" onClick={handlePlaceMyself}>
-              Place groups myself
-            </button>
-          </div>
-        </div>
+        <h1 className="wlc-title">If Wealth Were Land</h1>
         <p className="wlc-subtitle">
           Wealth across the 56 major markets UBS tracks — together over 92% of global
           wealth — redrawn as claimed territory. Each region's size matches that group's
@@ -619,6 +609,15 @@ export default function App() {
             <>All four groups placed.</>
           )}
         </p>
+
+        <div className="wlc-header-actions">
+          <button className="wlc-replay" onClick={handleReplay}>
+            ▶ Replay
+          </button>
+          <button className="wlc-reset" onClick={handlePlaceMyself}>
+            Place groups myself
+          </button>
+        </div>
       </div>
 
       <div className="wlc-note">
