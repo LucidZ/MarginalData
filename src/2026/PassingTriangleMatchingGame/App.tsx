@@ -104,7 +104,7 @@ function DemoTriangle() {
 }
 
 export default function App() {
-  const data = useData();
+  const { data, error } = useData();
   // Static (depends only on ROSTER, not on `data`), so it's safe to compute
   // ahead of the loading-gate return below — handleSlotPointerDown needs it.
   const playerByName = new Map(ROSTER.map((p) => [p.fullName, p]));
@@ -546,6 +546,7 @@ export default function App() {
     }
   };
 
+  if (error) return <div className="ptmg-loading">Couldn&apos;t load match data: {error.message}</div>;
   if (!data) return <div className="ptmg-loading">Loading match data…</div>;
 
   const activeAssignedName = activeSlotId ? assignments[activeSlotId] : null;
