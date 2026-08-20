@@ -1,1 +1,0 @@
-import{r as a}from"./index-uEaSJSLE.js";const r="/data/statsbomb/wc2022-final-passing.json",n=()=>{const[s,o]=a.useState(null);return a.useEffect(()=>{fetch(r).then(t=>t.json()).then(t=>{o(t)}).catch(t=>{console.error("Error loading passing compass data:",t)})},[]),s};export{n as u};
