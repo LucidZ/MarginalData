@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import VoterChart, { type County } from "./VoterChart";
+import { useJsonData } from "../../hooks/useJsonData";
 import "./App.css";
 
 const YEARS = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
@@ -160,19 +161,13 @@ const STORY_STEPS: StepConfig[] = [
 ];
 
 export default function App() {
-  const [data, setData] = useState<County[] | null>(null);
+  const { data, error } = useJsonData<County[]>("/data/co_voter_affiliation.json");
   const [currentStep, setCurrentStep] = useState(0);
 
   // Explorer section state
   const [explorerChartType, setExplorerChartType] = useState<"ternary" | "cartesian">("cartesian");
   const [explorerYear, setExplorerYear] = useState(2026);
   const [explorerView, setExplorerView] = useState<"state" | "counties">("counties");
-
-  useEffect(() => {
-    fetch("/data/co_voter_affiliation.json")
-      .then((r) => r.json())
-      .then(setData);
-  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -193,6 +188,7 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [data]);
 
+  if (error) return <div className="va-loading">Couldn&apos;t load data: {error.message}</div>;
   if (!data) return <div className="va-loading">Loading data…</div>;
 
   const storyStep = STORY_STEPS[currentStep] ?? STORY_STEPS[0];

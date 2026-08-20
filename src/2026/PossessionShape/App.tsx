@@ -30,7 +30,7 @@ const TEAM_TEXT: Record<string, string> = {
 const DOT_OUTLINE = "var(--page)";
 
 export default function App() {
-  const data = useData();
+  const { data, error } = useData();
   const [possessionTeam, setPossessionTeam] = useState<string>("Argentina");
 
   // Every team's own recorded x is normalized to "their attacking direction
@@ -74,6 +74,7 @@ export default function App() {
     return slotsOut;
   }, [data, possessionTeam, referenceTeam]);
 
+  if (error) return <div className="pc-loading">Couldn&apos;t load match data: {error.message}</div>;
   if (!data || !referenceTeam) return <div className="pc-loading">Loading match data…</div>;
 
   const otherTeam = data.teams.find((t) => t !== referenceTeam)!;
