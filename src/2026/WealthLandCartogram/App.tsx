@@ -107,6 +107,19 @@ function formatUsd(usd: number): string {
   return `$${rounded.toLocaleString()}`;
 }
 
+// Superscript link to an entry in the "Notes & sources" list at the bottom
+// of the page (matching id="wlc-note-N"). Numbers are assigned by hand at
+// each call site below — if the notes list gets reordered, update both.
+function FootnoteRef({ n }: { n: number }) {
+  return (
+    <sup>
+      <a href={`#wlc-note-${n}`} className="wlc-footnote-ref">
+        {n}
+      </a>
+    </sup>
+  );
+}
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoRef = useRef<GeoSetup | null>(null);
@@ -517,14 +530,21 @@ export default function App() {
     <div className="wlc-root">
       <header className="wlc-header">
         <h1 className="wlc-title">If Wealth Were Land</h1>
-        <p className="wlc-subtitle">
-          Wealth across the 56 major markets UBS tracks — together over 92% of global
-          wealth — redrawn as claimed territory. Each region's size matches that group's
-          share of that wealth, not their share of the population. Placed bottom-up:
-          click to place the poorest band first, the wealthiest last — it claims
-          whatever's left.
+        <p className="wlc-intro">
+          I've always found wealth distributions difficult to intuit, and there's
+          plenty of evidence I'm not alone<FootnoteRef n={1} />. One possible reason:
+          the concept of wealth is very abstract. I was curious how differently I'd
+          feel about wealth distributions if I equated global wealth to global land.
+          Below are two visual takes on that idea.
         </p>
       </header>
+
+      <p className="wlc-lead-in">
+        First, what if instead of a regular pie chart, we divided the world's
+        land<FootnoteRef n={4} /> among different wealth tiers? Placed bottom-up:
+        click to place the poorest band first, the wealthiest last — it claims
+        whatever's left.
+      </p>
 
       <div className="wlc-chart-area" ref={chartAreaRef}>
         <div className="wlc-legend">
@@ -534,7 +554,7 @@ export default function App() {
               className={`wlc-legend-item ${i >= seeds.length ? "wlc-legend-item--pending" : ""}`}
             >
               <span className="wlc-legend-swatch" style={{ background: g.color }} />
-              <strong>{g.name}</strong> — {(g.populationShare * 100).toFixed(1)}% of people,{" "}
+              <strong>{g.name}</strong> — {(g.populationShare * 100).toFixed(1)}% of adults,{" "}
               {(g.wealthShare * 100).toFixed(1)}% of wealth
             </div>
           ))}
@@ -620,21 +640,42 @@ export default function App() {
         </div>
       </div>
 
-      <div className="wlc-note">
-        <strong>Why does this map look stretched?</strong> It's drawn in an equal-area
-        (Mollweide) projection, not a familiar one like Mercator. That's deliberate: this
-        piece only works if area on screen means what it claims to mean, so every pixel
-        represents the same real-world km² no matter where it falls on the map. A standard
-        map inflates land near the poles — this one can't, or a region would look bigger
-        than its actual wealth share just because of where it happened to grow. The trade
-        is that shapes and angles get visibly distorted to keep area exactly right.
+      <div className="wlc-takeaways">
+        <h3 className="wlc-takeaways-heading">Some interesting takeaways</h3>
+        <ol className="wlc-takeaways-list">
+          <li>
+            This data comes from UBS's 2026 Global Wealth Report<FootnoteRef n={2} />,
+            which only models 56 major markets. UBS estimates this covers over 92% of
+            global wealth — but that's only about 3.85 billion of the world's roughly
+            6.1 billion adults<FootnoteRef n={3} />. This probably understates the
+            poorest wealth tier and skews the whole picture wealthier than reality.
+          </li>
+          <li>
+            If this map looks a little weird, it's because it's drawn in an equal-area
+            (Mollweide) projection, not a familiar one like Mercator. That's
+            deliberate: this piece only works if area on screen means what it
+            claims to mean, so every pixel represents the same real-world km² no matter
+            where it falls on the map. A standard map inflates land near the poles —
+            this one can't, or a region would look bigger than its actual wealth share
+            just because of where it happened to grow. The trade is that shapes and
+            angles get visibly distorted to keep area exactly right.
+          </li>
+          <li>
+            I think it's interesting how, as an American, I place more visual
+            importance on North America and Europe despite Asia being significantly
+            larger. Part of this is probably a "Western" bias from where I live, and
+            part of it may be an internalized bias created by more common projections
+            (e.g. Mercator) that make Europe look disproportionately big.
+          </li>
+        </ol>
       </div>
 
       <div className="wlc-person-section">
         <h2 className="wlc-person-heading">What that land means per person</h2>
         <p className="wlc-person-subtitle">
-          Split each group's territory evenly across everyone in it, measured out in
-          football pitches — this is roughly what one person's share would look like.
+          If we split each group's territory evenly across everyone in it, measured
+          out in football pitches — this is roughly what one person's share would
+          look like.
         </p>
         <svg width="0" height="0" style={{ position: "absolute" }}>
           <defs>
@@ -676,14 +717,53 @@ export default function App() {
             );
           })}
         </div>
+
+        <div className="wlc-takeaways">
+          <h3 className="wlc-takeaways-heading">Some interesting takeaways</h3>
+          <ol className="wlc-takeaways-list">
+            <li>
+              It's again difficult to intuit the size of the smallest and largest
+              lands — a unit of measurement (like football pitches) that works for
+              the smallest doesn't seem to work for the largest.
+            </li>
+            <li>Higher wealth tiers (e.g. billionaires) would be even harder to comprehend.</li>
+          </ol>
+        </div>
       </div>
 
-      <p className="wlc-footnote">
-        Wealth bands: UBS Global Wealth Report 2026, year-end 2025 — modeled across 56
-        major markets UBS estimates represent over 92% of global wealth (population
-        figures reflect adults in those markets, not literally the whole world). Land =
-        all habitable landmass except Antarctica (~141M km²).
-      </p>
+      <div className="wlc-notes-section">
+        <h3 className="wlc-notes-heading">Notes &amp; sources</h3>
+        <ol className="wlc-notes-list">
+          <li id="wlc-note-1">
+            Norton, M. I., &amp; Ariely, D. (2011). "Building a Better America—One
+            Wealth Quintile at a Time." <em>Perspectives on Psychological Science</em>,
+            6(1), 9–12. —{" "}
+            <a href="https://pubmed.ncbi.nlm.nih.gov/26162108/" target="_blank" rel="noreferrer">
+              PubMed
+            </a>
+          </li>
+          <li id="wlc-note-2">
+            UBS Global Wealth Report 2026, year-end 2025 data. —{" "}
+            <a
+              href="https://www.ubs.com/global/en/wealthmanagement/insights/global-wealth-report.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              ubs.com
+            </a>
+          </li>
+          <li id="wlc-note-3">
+            UBS models 56 major markets it estimates represent over 92% of global
+            wealth; summing that sample's own adult headcounts gives ~3.85 billion.
+            True global adult population is harder to pin to an exact figure, but
+            based on UN population data (~8.2 billion people total, of whom roughly a
+            quarter are under 15) it's closer to 6.1–6.2 billion — so the sample
+            leaves out somewhere around 2.3 billion adults, almost entirely in
+            lower-income countries that hold little aggregate wealth.
+          </li>
+          <li id="wlc-note-4">"Land" here means all land minus Antarctica (~141M km²).</li>
+        </ol>
+      </div>
     </div>
   );
 }

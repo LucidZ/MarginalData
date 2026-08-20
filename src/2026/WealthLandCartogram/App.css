@@ -49,10 +49,27 @@
   margin: 0 0 0.5rem;
 }
 
-.wlc-subtitle {
+.wlc-intro {
   color: var(--text-secondary);
   max-width: 680px;
+  line-height: 1.6;
+}
+
+.wlc-lead-in {
+  max-width: 680px;
+  margin: 0 0 1rem;
   line-height: 1.5;
+  color: var(--text-primary);
+}
+
+a.wlc-footnote-ref {
+  font-size: 0.75em;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+a.wlc-footnote-ref:hover {
+  text-decoration: underline;
 }
 
 .wlc-chart-area {
@@ -263,27 +280,60 @@
   fill: var(--gridline);
 }
 
-.wlc-note {
+.wlc-takeaways {
   margin-top: 1.5rem;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 1.1rem;
   border-left: 3px solid var(--baseline);
   background: var(--surface-1);
   border-radius: 0 8px 8px 0;
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.5;
+  text-align: left;
 }
 
-.wlc-note strong {
+.wlc-takeaways-heading {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
-.wlc-footnote {
-  margin-top: 1.5rem;
-  font-size: 0.85rem;
-  color: var(--muted);
-  line-height: 1.5;
+.wlc-takeaways-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.wlc-takeaways-list li + li {
+  margin-top: 0.6rem;
+}
+
+.wlc-notes-section {
+  margin-top: 2rem;
   max-width: 680px;
-  margin-left: auto;
-  margin-right: auto;
+}
+
+.wlc-notes-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wlc-notes-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.wlc-notes-list li + li {
+  margin-top: 0.5rem;
+}
+
+.wlc-notes-list a {
+  color: var(--text-secondary);
 }
