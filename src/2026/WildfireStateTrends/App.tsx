@@ -1,18 +1,16 @@
 import { useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useData } from "./useData";
-import StateTile from "./StateTile";
+import MetricGrid from "./MetricGrid";
+import type { HoverInfo } from "./MetricGrid";
 import DetailPanel from "./DetailPanel";
 import Tooltip from "./Tooltip";
-import { computeGlobalYDomain } from "./chartGeometry";
 import type { Metric, StateTrend } from "./types";
 import "./App.css";
 
-interface HoverInfo {
-  state: StateTrend;
-  yearIndex: number;
-  clientX: number;
-  clientY: number;
+interface Selection {
+  abbr: string;
+  metric: Metric;
 }
 
 function morphTo(fn: () => void) {
@@ -25,30 +23,30 @@ function morphTo(fn: () => void) {
 }
 
 export default function App() {
-  const data = useData();
-  const [metric, setMetric] = useState<Metric>("mean");
-  const [selectedAbbr, setSelectedAbbr] = useState<string | null>(null);
+  const { data, error } = useData();
+  const [selected, setSelected] = useState<Selection | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
-  const [standardizeY, setStandardizeY] = useState(false);
 
-  const selected = useMemo(
-    () => data?.states.find((s) => s.abbr === selectedAbbr) ?? null,
-    [data, selectedAbbr]
+  // Both metrics are their own grid, shown at once, rather than one grid
+  // behind a metric toggle — the two aren't really alternate views of the
+  // same thing, they're different questions ("how polluted" vs. "how often
+  // extreme"), so showing both by default beats hiding one behind a click.
+  const selectedState = useMemo(
+    () => (selected ? (data?.states.find((s) => s.abbr === selected.abbr) ?? null) : null),
+    [data, selected]
   );
 
-  const breakYear = data ? (metric === "mean" ? data.meanBreakYear : data.extremeBreakYear) : 0;
+  function handleHover(state: StateTrend, metric: Metric, yearIndex: number | null, clientX: number, clientY: number) {
+    setHover(yearIndex === null ? null : { state, metric, yearIndex, clientX, clientY });
+  }
 
-  // Free per-tile scales (default) make each state's own shape legible
-  // regardless of its magnitude, matching the paper's own figures.
-  // Standardized scales trade that away so tiles are directly comparable —
-  // most non-Western states will flatten out, which is the point.
-  const sharedYDomain = useMemo(
-    () => (data && standardizeY ? computeGlobalYDomain(data.states, metric) : null),
-    [data, standardizeY, metric]
-  );
+  function handleSelect(state: StateTrend, metric: Metric) {
+    setHover(null);
+    morphTo(() => setSelected({ abbr: state.abbr, metric }));
+  }
 
-  function handleHover(state: StateTrend, yearIndex: number | null, clientX: number, clientY: number) {
-    setHover(yearIndex === null ? null : { state, yearIndex, clientX, clientY });
+  if (error) {
+    return <div className="wst-root wst-loading">Couldn&apos;t load state trends: {error.message}</div>;
   }
 
   if (!data) {
@@ -60,9 +58,10 @@ export default function App() {
       <header className="wst-header">
         <h1>Wildfire Smoke &amp; the US PM2.5 Trend Reversal</h1>
         <p>
-          Every state's annual air-quality trend, {data.startYear ?? 2006}–{data.extendedThroughYear ?? 2025} —
-          observed PM2.5 (black) against a counterfactual estimate of what it would have been without
-          wildfire smoke (blue). Methodology follows{" "}
+          Living in Colorado, I've noticed smoky air more and more often in the summer, and went
+          looking for whether that's a real trend or just my imagination. That search turned up a
+          geofaceted small-multiples map — a little line chart for every state, arranged in the
+          rough shape of the country — from{" "}
           <a
             href="https://www.nature.com/articles/s41586-023-06522-6"
             target="_blank"
@@ -70,7 +69,12 @@ export default function App() {
           >
             Burke et al. 2023, <em>Nature</em>
           </a>
-          , rebuilt on our own EPA AQS pull joined against the Stanford lab's newer{" "}
+          . Their paper compares observed PM2.5 (black) — fine particulate pollution small enough
+          to get deep into your lungs and bloodstream — against a counterfactual (blue) estimating
+          what it would have been without wildfire smoke. A paper has to publish as a static
+          image, so it couldn't take advantage of what a website can do; I recreated it here,
+          interactive, rebuilt end-to-end on my own EPA AQS pull joined against the Stanford lab's
+          newer{" "}
           <a
             href="https://github.com/echolab-stanford/smokePM-version1.1"
             target="_blank"
@@ -79,93 +83,84 @@ export default function App() {
             smokePM-version1.1
           </a>{" "}
           county-day smoke data — one consistent pipeline across the whole span, rather than
-          splicing the two papers' own precomputed numbers together. The counterfactual line stops
-          at {data.smokeDataThroughYear} where that smoke data currently ends; the observed line
-          continues using EPA monitoring data directly.
+          splicing the two papers' own precomputed numbers together — with my own simplified
+          color-coding on top (the why's in the notes below).
+        </p>
+        <p>
+          Every state's annual trend, {data.startYear ?? 2006}–{data.extendedThroughYear ?? 2025}.
+          The counterfactual line stops at {data.smokeDataThroughYear} where the underlying smoke
+          data currently ends; the observed line continues past that using EPA monitoring data
+          directly.
         </p>
       </header>
 
-      <div className="wst-controls">
-        <div className="wst-toggle" role="group" aria-label="Metric">
-          <button
-            type="button"
-            className={metric === "mean" ? "wst-toggle__btn wst-toggle__btn--active" : "wst-toggle__btn"}
-            onClick={() => {
-              setMetric("mean");
-              setHover(null);
-            }}
-          >
-            Annual average PM2.5
-          </button>
-          <button
-            type="button"
-            className={metric === "extreme" ? "wst-toggle__btn wst-toggle__btn--active" : "wst-toggle__btn"}
-            onClick={() => {
-              setMetric("extreme");
-              setHover(null);
-            }}
-          >
-            % days &gt; 35 µg/m³
-          </button>
-        </div>
-
-        {!selected && (
-          <label className="wst-axis-toggle">
-            <input
-              type="checkbox"
-              checked={standardizeY}
-              onChange={(e) => setStandardizeY(e.target.checked)}
-            />
-            Standardize y-axis across states
-          </label>
-        )}
-      </div>
-
-      {selected ? (
+      {selectedState && selected ? (
         <DetailPanel
-          state={selected}
-          metric={metric}
-          breakYear={breakYear}
-          hoveredYearIndex={hover?.state.abbr === selected.abbr ? hover.yearIndex : null}
-          onHover={handleHover}
+          state={selectedState}
+          metric={selected.metric}
+          hoveredYearIndex={
+            hover?.state.abbr === selectedState.abbr && hover.metric === selected.metric ? hover.yearIndex : null
+          }
+          onHover={(state, yearIndex, clientX, clientY) => handleHover(state, selected.metric, yearIndex, clientX, clientY)}
           onBack={() => {
             setHover(null);
-            morphTo(() => setSelectedAbbr(null));
+            morphTo(() => setSelected(null));
           }}
         />
       ) : (
-        <div className="wst-grid-scroll">
-          <div className="wst-grid">
-            {data.states.map((s) => (
-              <StateTile
-                key={s.abbr}
-                state={s}
-                metric={metric}
-                breakYear={breakYear}
-                isSelected={false}
-                hoveredYearIndex={hover?.state.abbr === s.abbr ? hover.yearIndex : null}
-                sharedYDomain={sharedYDomain}
-                onHover={handleHover}
-                onSelect={(state) => {
-                  setHover(null);
-                  morphTo(() => setSelectedAbbr(state.abbr));
-                }}
-              />
-            ))}
-          </div>
-        </div>
+        <>
+          <MetricGrid
+            data={data}
+            metric="mean"
+            title="Annual average PM2.5"
+            hover={hover}
+            onHover={handleHover}
+            onSelect={handleSelect}
+          />
+          <MetricGrid
+            data={data}
+            metric="extreme"
+            title="Days per year > 35 µg/m³"
+            hover={hover}
+            onHover={handleHover}
+            onSelect={handleSelect}
+          />
+        </>
       )}
 
-      {hover && <Tooltip state={hover.state} yearIndex={hover.yearIndex} metric={metric} clientX={hover.clientX} clientY={hover.clientY} />}
+      {hover && (
+        <Tooltip
+          state={hover.state}
+          yearIndex={hover.yearIndex}
+          metric={hover.metric}
+          clientX={hover.clientX}
+          clientY={hover.clientY}
+        />
+      )}
 
       <footer className="wst-footer">
         <p>
           Annual-average lines follow the paper's own convention (unweighted station-year
           averages) but are computed on our own data, not the paper's precomputed numbers — see
-          the note above. The colored severity classification, however, is still the original
-          2000–2022 bootstrap result carried over unchanged; it hasn't been recomputed against
-          this rebuilt series yet, so treat it as an approximate, not-yet-updated read on states
-          near a category boundary.
+          the note above. The colored tile tint above is our own simplified read, not the paper's
+          statistical reversal/stagnation classification: states are ranked by what share of
+          their 2016–2023 average PM2.5 is attributable to wildfire smoke (observed minus
+          counterfactual, as a percent of observed), tiered at a plain 10%/15% split rather than
+          the paper's statistical bands. Recent years only, not the full 2006–2023 record — a
+          longer average buries states with a calm early history and a severe recent one (WA is
+          the clearest case) under a quieter long-run number.
+        </p>
+        <p>
+          The "days per year &gt; 35 µg/m³" chart is still capped at the original study's
+          2000–2022 data for both lines, unlike the chart above — EPA does publish a usable
+          exceedance-day count we could extend the observed line with on its own, but checked
+          against the original study's own numbers for the years both cover, it disagrees by a
+          lot (roughly 30–50% lower), so appending it past 2022 would likely read as a real drop
+          when it's actually just a different counting method taking over. Its tile tint uses the
+          same idea and the same 2016–2022 window as the chart above, but ranked by raw
+          smoke-attributable days/year rather than a % share — most states have close to zero
+          exceedance days most years, so a % share here is dominated by tiny denominators rather
+          than a real signal.
         </p>
       </footer>
     </div>

@@ -81,7 +81,7 @@ const getResponsiveMargins = (width: number) => {
 };
 
 export default function App() {
-  const data = useData();
+  const { data, error } = useData();
   const [step, setStep] = useState(0);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -228,6 +228,26 @@ export default function App() {
       });
     }
   };
+
+  if (error) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          textAlign: "center",
+          padding: "0 20px",
+        }}
+      >
+        <div style={{ fontSize: "20px", color: "#666" }}>Couldn&apos;t load solar data.</div>
+        <div style={{ fontSize: "14px", color: "#999" }}>{error.message}</div>
+      </div>
+    );
+  }
 
   if (!data) {
     return (

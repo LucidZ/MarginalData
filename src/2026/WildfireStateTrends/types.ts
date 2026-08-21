@@ -17,8 +17,8 @@ export interface StateTrend {
   years: number[];
   totalPM: (number | null)[];
   nonsmokePM: (number | null)[];
-  totalExtremePct: (number | null)[];
-  nonsmokeExtremePct: (number | null)[];
+  totalExtremeDays: (number | null)[];
+  nonsmokeExtremeDays: (number | null)[];
   meanClass?: MeanClassification;
   extremeClass?: ExtremeClassification;
 }
@@ -35,23 +35,27 @@ export interface WildfireDataset {
 
 export type Metric = "mean" | "extreme";
 
-// Severity tiers for the "mean" metric, ordered worst-to-best — each maps to
-// a fixed status color (never re-themed) rather than the paper's arbitrary
-// purple/red/orange/yellow, since this classification IS a severity scale.
-export const SMOKE_GROUP_SEVERITY: Record<string, "critical" | "serious" | "warning" | "neutral"> = {
-  "smoke-caused reversal": "critical",
-  "smoke-influenced reversal": "serious",
-  "smoke-influenced stagnation": "warning",
-  "smoke-influenced,\nno sig. trend change": "warning",
-  "smoke-influenced,\nno early decline": "neutral",
-  "no smoke influence detected": "neutral",
+// Our own 3-tier severity read for the "mean" metric's tile tint — see
+// chartGeometry's smokeShare for the ranking + boundary reasoning. Two maps
+// because a tile's background wash and a badge's dot need different
+// treatment for the "clear" tier: transparent so an unaffected tile shows
+// no wash at all, vs. a visible muted dot so the badge doesn't disappear.
+export type SmokeShareTier = "clear" | "orange" | "red";
+
+export const SMOKE_SHARE_TINT: Record<SmokeShareTier, string> = {
+  red: "var(--status-critical)",
+  orange: "var(--status-warning)",
+  clear: "transparent",
 };
 
-export const SMOKE_GROUP_LABEL: Record<string, string> = {
-  "smoke-caused reversal": "Smoke-caused reversal",
-  "smoke-influenced reversal": "Smoke-influenced reversal",
-  "smoke-influenced stagnation": "Smoke-influenced stagnation",
-  "smoke-influenced,\nno sig. trend change": "Smoke-influenced, no clear trend",
-  "smoke-influenced,\nno early decline": "Smoke-influenced, no early decline",
-  "no smoke influence detected": "No smoke influence detected",
+export const SMOKE_SHARE_SWATCH: Record<SmokeShareTier, string> = {
+  red: "var(--status-critical)",
+  orange: "var(--status-warning)",
+  clear: "var(--muted)",
+};
+
+export const SMOKE_SHARE_WORD: Record<SmokeShareTier, string> = {
+  red: "high",
+  orange: "moderate",
+  clear: "low",
 };

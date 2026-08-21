@@ -10,11 +10,12 @@ interface Props {
 
 export default function Tooltip({ state, yearIndex, metric, clientX, clientY }: Props) {
   const year = state.years[yearIndex];
-  const observed = metric === "mean" ? state.totalPM[yearIndex] : state.totalExtremePct[yearIndex];
+  const observed = metric === "mean" ? state.totalPM[yearIndex] : state.totalExtremeDays[yearIndex];
   const counterfactual =
-    metric === "mean" ? state.nonsmokePM[yearIndex] : state.nonsmokeExtremePct[yearIndex];
-  const isPct = metric === "extreme";
-  const fmt = (v: number | null) => (v === null ? "—" : isPct ? `${(v * 100).toFixed(1)}%` : `${v.toFixed(1)} µg/m³`);
+    metric === "mean" ? state.nonsmokePM[yearIndex] : state.nonsmokeExtremeDays[yearIndex];
+  const isExtreme = metric === "extreme";
+  const fmt = (v: number | null) =>
+    v === null ? "—" : isExtreme ? `${v.toFixed(1)} days` : `${v.toFixed(1)} µg/m³`;
 
   const TOOLTIP_W = 210;
   const TOOLTIP_H = 96;

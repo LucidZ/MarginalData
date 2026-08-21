@@ -14,7 +14,7 @@ const OUTCOME_LEGEND: { outcome: PassOutcome; label: string; varName: string }[]
 ];
 
 export default function App() {
-  const data = useData();
+  const { data, error } = useData();
   const [mode, setMode] = useState<"compass" | "chain" | "relative" | "pitch">("compass");
   const [team, setTeam] = useState<string>("Argentina");
   const [player, setPlayer] = useState<string>("__all__");
@@ -43,6 +43,7 @@ export default function App() {
     );
   }, [data, team, player]);
 
+  if (error) return <div className="pc-loading">Couldn&apos;t load match data: {error.message}</div>;
   if (!data) return <div className="pc-loading">Loading match data…</div>;
 
   return (

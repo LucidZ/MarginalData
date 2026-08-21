@@ -1,6 +1,6 @@
 import { scaleLinear } from "d3-scale";
 import { line as d3line, curveLinear } from "d3-shape";
-import type { Metric, StateTrend } from "./types";
+import type { Metric, SmokeShareTier, StateTrend } from "./types";
 
 export interface ChartFrame {
   width: number;
@@ -32,15 +32,107 @@ export const DETAIL_FRAME: ChartFrame = {
 export function seriesForMetric(state: StateTrend, metric: Metric) {
   return metric === "mean"
     ? { observed: state.totalPM, counterfactual: state.nonsmokePM }
-    : { observed: state.totalExtremePct, counterfactual: state.nonsmokeExtremePct };
+    : { observed: state.totalExtremeDays, counterfactual: state.nonsmokeExtremeDays };
 }
 
-// Same padding logic (10%, floored at 0) used for both a single state's free
-// y-scale and the standardized shared scale below — kept in one place so the
-// two modes stay visually consistent when toggled.
-function paddedDomain(dataMin: number, dataMax: number): [number, number] {
-  const pad = (dataMax - dataMin) * 0.1 || dataMax * 0.1 || 1;
-  return [Math.max(0, dataMin - pad), dataMax + pad];
+// Window for smokeShare's ranking: recent years only, not the full
+// 2006-2023 record. A state like WA has calm early-2010s years diluting a
+// severe recent run (2018/2020/2021/2023) — averaging the whole span buries
+// that in a longer, quieter history and puts WA just below the top cluster.
+// Recent-only produces a *stronger* natural gap at the top than the
+// full-span version did (3.1 points vs. 1.8), not a weaker one, so this
+// isn't a tradeoff made to force WA in — the recent window is just the more
+// truthful read of current smoke exposure either way.
+const SMOKE_SHARE_START_YEAR = 2016;
+
+// Boundaries for smokeShare's tier. Plain round numbers rather than gap-fit
+// values — an earlier version picked boundaries from gaps in the 48-state
+// ranking (6% / 17%), but that made the cutoffs themselves look arbitrary
+// even though they were data-derived, and shifted year to year as new data
+// comes in. 10% / 15% land in roughly the same place (clear stays a small
+// low group, red stays the Northern Plains/Mountain West smoke corridor —
+// WA, MN, SD, ID, OR, WY, ND, MT — plus MN, which the gap-based 17% cutoff
+// had excluded) while being easy to state and stable across data updates.
+const SMOKE_SHARE_CLEAR_MAX = 10;
+const SMOKE_SHARE_RED_MIN = 15;
+
+export interface SmokeShare {
+  tier: SmokeShareTier;
+  pct: number | null; // average % of total PM2.5 attributable to smoke, SMOKE_SHARE_START_YEAR+; null if no year has both series
+}
+
+// Our own read of "how much has wildfire smoke affected this state's air,"
+// replacing the paper's bootstrap reversal/stagnation classification (see
+// SMOKE_GROUP_* history in git log) — that classification was fit once
+// against the paper's own 2000-2022 station data and never recomputed
+// against this rebuilt 2006-2025 series, so it stopped visually matching
+// the line it was tinting. This ranks by smoke's SHARE of total PM2.5 —
+// (observed − smoke) / observed, averaged over recent years only (see
+// SMOKE_SHARE_START_YEAR) — rather than the raw µg/m³ gap, since share
+// reads the same regardless of a state's baseline air quality (a naturally
+// hazier state isn't necessarily a smokier one).
+export function smokeShare(state: StateTrend): SmokeShare {
+  const ratios: number[] = [];
+  state.totalPM.forEach((total, i) => {
+    const nonsmoke = state.nonsmokePM[i];
+    if (total !== null && nonsmoke !== null && total > 0 && state.years[i] >= SMOKE_SHARE_START_YEAR) {
+      ratios.push((total - nonsmoke) / total);
+    }
+  });
+  if (ratios.length === 0) return { tier: "clear", pct: null };
+  const pct = (ratios.reduce((a, b) => a + b, 0) / ratios.length) * 100;
+  const tier: SmokeShareTier = pct >= SMOKE_SHARE_RED_MIN ? "red" : pct >= SMOKE_SHARE_CLEAR_MAX ? "orange" : "clear";
+  return { tier, pct };
+}
+
+// Boundaries for smokeExtremeDays' tier, in raw days/year rather than a %
+// share — unlike the mean-PM metric, most states have close to zero total
+// extreme days most years, so a %-of-days ratio is dominated by tiny
+// denominators (e.g. a state with 1 total exceedance day and 0 non-smoke
+// reads as "100% smoke," from a single data point) rather than a real
+// signal. Raw day counts don't have that problem, and this chart's axis is
+// already in day units, not %. Same SMOKE_SHARE_START_YEAR recent window as
+// the mean-PM tiers, for consistency between the two charts. 1 and 2 pulls
+// ND into red alongside CA/WA/MT/OR/ID (ND averages exactly 2.0 extra
+// smoke-driven exceedance days/year since 2016) — one step tighter than the
+// 1/3 split, which had left ND in orange with NV/UT/WY/CO.
+const SMOKE_EXTREME_CLEAR_MAX = 1;
+const SMOKE_EXTREME_RED_MIN = 2;
+
+export interface SmokeExtremeDays {
+  tier: SmokeShareTier;
+  days: number | null; // average extra exceedance-days/year attributable to smoke, SMOKE_SHARE_START_YEAR+; null if no year has both series
+}
+
+// Extreme-days counterpart to smokeShare — same idea (our own read, not the
+// paper's classification), same "clear/orange/red" tiers, just ranked by
+// raw smoke-attributable days/year instead of a % share (see
+// SMOKE_EXTREME_CLEAR_MAX for why).
+export function smokeExtremeDays(state: StateTrend): SmokeExtremeDays {
+  const diffs: number[] = [];
+  state.totalExtremeDays.forEach((total, i) => {
+    const nonsmoke = state.nonsmokeExtremeDays[i];
+    if (total !== null && nonsmoke !== null && state.years[i] >= SMOKE_SHARE_START_YEAR) {
+      diffs.push(total - nonsmoke);
+    }
+  });
+  if (diffs.length === 0) return { tier: "clear", days: null };
+  const days = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+  const tier: SmokeShareTier =
+    days >= SMOKE_EXTREME_RED_MIN ? "red" : days >= SMOKE_EXTREME_CLEAR_MAX ? "orange" : "clear";
+  return { tier, days };
+}
+
+// Same padding logic (10% headroom above the max) used for both a single
+// state's free y-scale and the standardized shared scale below — kept in one
+// place so the two modes stay visually consistent when toggled. Always
+// anchored at 0 rather than floored near dataMin: PM2.5 and %-days are both
+// physically bounded below by zero, and a fixed zero baseline is what makes
+// a line's height honestly readable as its true magnitude (not just its
+// wiggle) — this matters most once axis labels are visible on the grid.
+function paddedDomain(dataMax: number): [number, number] {
+  const pad = dataMax * 0.1 || 1;
+  return [0, dataMax + pad];
 }
 
 // sharedYDomain, when passed, overrides each tile's own free y-scale with one
@@ -58,7 +150,6 @@ export function buildScales(
   const values = [...observed, ...counterfactual].filter(
     (v): v is number => v !== null && Number.isFinite(v)
   );
-  const dataMin = values.length ? Math.min(...values) : 0;
   const dataMax = values.length ? Math.max(...values) : 1;
 
   // state.years can run further than this metric actually has data — the
@@ -76,10 +167,10 @@ export function buildScales(
     .range([frame.marginLeft, frame.width - frame.marginRight]);
 
   const y = scaleLinear()
-    .domain(sharedYDomain ?? paddedDomain(dataMin, dataMax))
+    .domain(sharedYDomain ?? paddedDomain(dataMax))
     .range([frame.height - frame.marginBottom, frame.marginTop]);
 
-  return { x, y, dataMin, dataMax };
+  return { x, y, dataMax };
 }
 
 // The shared domain used across every tile when "standardize axes" is on —
@@ -92,9 +183,18 @@ export function computeGlobalYDomain(states: StateTrend[], metric: Metric): [num
       return [...observed, ...counterfactual];
     })
     .filter((v): v is number => v !== null && Number.isFinite(v));
-  const dataMin = allValues.length ? Math.min(...allValues) : 0;
   const dataMax = allValues.length ? Math.max(...allValues) : 1;
-  return paddedDomain(dataMin, dataMax);
+  return paddedDomain(dataMax);
+}
+
+// Terse axis-label formatting shared by the grid's y-axis gutter and the US
+// tile's own inside labels — an orienting number, not a precise reading
+// (that job belongs to the hover tooltip and the detail view), so whole
+// numbers with no unit. Both metrics are plain magnitudes now (µg/m³,
+// days) so no per-metric branching is needed, but the metric param stays
+// for callers that pass one and for any future metric-specific formatting.
+export function formatYTick(v: number, _metric: Metric): string {
+  return Math.round(v).toString();
 }
 
 export function buildLinePath(

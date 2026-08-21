@@ -35,11 +35,32 @@ splicing in the original paper's data just for those years would
 reintroduce the same seam problem one span earlier — see round-6 project
 notes for the tradeoff.
 
-Everything else in the output JSON (grid layout, region, classification
-labels, the "% days > 35" extreme metric) is carried over unchanged from
-the existing file — classification bands are known-stale relative to this
-new totalPM/nonsmokePM series and are flagged for a future recompute, not
-addressed here (out of scope per user decision).
+Also switches the "days > 35 µg/m³" extreme metric from a %-of-days
+fraction to a raw day count — that's what people actually read off the
+chart, so store it in those units rather than reconverting client-side.
+Still capped at the original study's 2000-2022 data for BOTH series
+(observed and counterfactual), unchanged otherwise: an attempt to extend
+just the observed side through 2025 using EPA AQS's own exceedance-count
+field (`primary_exceedance_count`, free — already on disk from the mean-PM
+pull above, no new API calls) was tried and reverted. That field is real
+and usable, but running it back over the *existing* 2006-2022 years to
+check consistency showed it disagrees with the original study's own
+day-counts by a lot — ~31% lower in aggregate, ~48% lower at the median,
+across the 799 overlapping state-years checked (different underlying
+station set/definition, presumably). Appending 2023-2025 from that pipeline
+onto 2006-2022 from the original study's pipeline would very likely show
+an artificial cliff right at the seam for many states — indistinguishable
+from a real trend without digging into it — so this metric's 2023-2025 is
+left blank rather than shipping a chart that reads as data when it's
+partly a methodology artifact. (Chart 1's mean-PM metric doesn't have this
+problem because Round 6 fully rebuilt it on one pipeline end to end,
+rather than splicing new years onto old data — that option isn't cheaply
+available here since the counterfactual side would need a full daily-level
+EPA pull, see project notes.)
+
+Classification bands (severity colors) are still carried over unchanged
+from the original 2000-2022 bootstrap result — recomputing those is a
+separate future task, not addressed here (out of scope per user decision).
 """
 
 import csv
@@ -167,19 +188,22 @@ def main():
                 for y in years
             ]
 
-        # Extreme-days metric: carried over unchanged, re-sliced to the new
-        # year range (original data covers 2000-2022; years past that are
-        # null, matching the pre-existing cap).
+        # Extreme-days metric: carried over unchanged from the original
+        # Burke et al. replication data (still capped at 2000-2022 for both
+        # series — see module docstring for why extending just the observed
+        # side was tried and reverted), converted from %-of-days to a raw
+        # day count.
         old_years = state["years"]
         old_index = {y: i for i, y in enumerate(old_years)}
-        total_extreme = [
-            state["totalExtremePct"][old_index[y]] if y in old_index else None
-            for y in years
-        ]
-        nonsmoke_extreme = [
-            state["nonsmokeExtremePct"][old_index[y]] if y in old_index else None
-            for y in years
-        ]
+
+        def carried_over_days(field, y):
+            if y not in old_index:
+                return None
+            pct = state[field][old_index[y]]
+            return None if pct is None else round(pct * days_in_year(y), 1)
+
+        total_extreme_days = [carried_over_days("totalExtremePct", y) for y in years]
+        nonsmoke_extreme_days = [carried_over_days("nonsmokeExtremePct", y) for y in years]
 
         new_states.append({
             "abbr": abbr,
@@ -190,14 +214,14 @@ def main():
             "years": years,
             "totalPM": total_pm,
             "nonsmokePM": nonsmoke_pm,
-            "totalExtremePct": total_extreme,
-            "nonsmokeExtremePct": nonsmoke_extreme,
+            "totalExtremeDays": total_extreme_days,
+            "nonsmokeExtremeDays": nonsmoke_extreme_days,
             "meanClass": state["meanClass"],
             "extremeClass": state["extremeClass"],
         })
 
     out = {
-        "generatedFrom": "EPA AQS annualData (own pull, 2006-2025) + Stanford smokePM-version1.1 county-day release (2006-2023); extreme-days metric and classification bands carried over from Burke et al. 2023 replication data (2000-2022), not yet recomputed on this pipeline",
+        "generatedFrom": "EPA AQS annualData (own pull, 2006-2025) + Stanford smokePM-version1.1 county-day release (2006-2023); extreme-days metric (now in raw day-count units, not %-of-days) and classification bands carried over from Burke et al. 2023 replication data (2000-2022), not yet recomputed on this pipeline",
         "meanBreakYear": current["meanBreakYear"],
         "extremeBreakYear": current["extremeBreakYear"],
         "startYear": START_YEAR,

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/generate-static-pages.mjs",
+    "build": "vite build && node scripts/generate-static-pages.mjs && node scripts/check-data-files.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",

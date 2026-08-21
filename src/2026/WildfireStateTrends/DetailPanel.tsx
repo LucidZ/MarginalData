@@ -1,11 +1,13 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { Metric, StateTrend } from "./types";
-import { SMOKE_GROUP_LABEL, SMOKE_GROUP_SEVERITY } from "./types";
+import { SMOKE_SHARE_SWATCH, SMOKE_SHARE_WORD } from "./types";
 import {
   DETAIL_FRAME,
   buildScales,
   buildLinePath,
   seriesForMetric,
+  smokeShare,
+  smokeExtremeDays,
   nearestYearIndex,
 } from "./chartGeometry";
 import HoverMarkers from "./HoverMarkers";
@@ -13,20 +15,13 @@ import HoverMarkers from "./HoverMarkers";
 interface Props {
   state: StateTrend;
   metric: Metric;
-  breakYear: number;
   hoveredYearIndex: number | null;
   onHover: (state: StateTrend, yearIndex: number | null, clientX: number, clientY: number) => void;
   onBack: () => void;
 }
 
-const SEVERITY_VAR: Record<string, string> = {
-  critical: "var(--status-critical)",
-  serious: "var(--status-serious)",
-  warning: "var(--status-warning)",
-  neutral: "var(--muted)",
-};
-
-export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex, onHover, onBack }: Props) {
+export default function DetailPanel({ state, metric, hoveredYearIndex, onHover, onBack }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const frame = DETAIL_FRAME;
   const { x, y } = buildScales(state, metric, frame);
@@ -49,24 +44,21 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
   const counterfactualLastYear = lastRealYear(counterfactual);
   const hasGap =
     observedLastYear !== null && counterfactualLastYear !== null && observedLastYear > counterfactualLastYear;
-  const breakX = x(breakYear);
 
   const xTicks = x.ticks(Math.min(8, state.years.length));
   const yTicks = y.ticks(5);
-  const isPct = metric === "extreme";
 
-  const severity =
-    metric === "mean"
-      ? SMOKE_GROUP_SEVERITY[state.meanClass?.smokeGroup ?? "no smoke influence detected"]
-      : state.extremeClass?.smokeInfluenced
-        ? "warning"
-        : "neutral";
+  const share = metric === "mean" ? smokeShare(state) : null;
+  const extreme = metric === "extreme" ? smokeExtremeDays(state) : null;
+  const badgeColor = SMOKE_SHARE_SWATCH[metric === "mean" ? share!.tier : extreme!.tier];
   const label =
     metric === "mean"
-      ? SMOKE_GROUP_LABEL[state.meanClass?.smokeGroup ?? "no smoke influence detected"]
-      : state.extremeClass?.smokeInfluenced
-        ? "Smoke-influenced"
-        : "No smoke influence detected";
+      ? share!.pct !== null
+        ? `${Math.round(share!.pct)}% of 2016–2023 avg. PM2.5 from wildfire smoke (${SMOKE_SHARE_WORD[share!.tier]})`
+        : "No overlapping smoke data for this state"
+      : extreme!.days !== null
+        ? `${extreme!.days.toFixed(1)} extra 2016–2022 avg. days/year > 35 µg/m³ from wildfire smoke (${SMOKE_SHARE_WORD[extreme!.tier]})`
+        : "No overlapping smoke data for this state";
 
   function handleMove(e: React.PointerEvent<SVGSVGElement>) {
     const svg = svgRef.current;
@@ -88,8 +80,23 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
     onHover(state, null, 0, 0);
   }
 
+  // Selecting a state deep in the (tall, scrollable) grid leaves the page's
+  // scroll position wherever it was — the grid that used to occupy this
+  // spot is gone, replaced by this much shorter panel, so that same
+  // scrollTop can land past the panel entirely (into the footer, or empty
+  // space) with the "All states" button nowhere on screen. Snap the panel
+  // to the top of the viewport as it mounts, before paint, so the button
+  // and chart are always where the tap that opened them expects to find
+  // them — most necessary on mobile, where the grid runs several screens
+  // tall. Instant rather than smooth: this is a corrective jump to a
+  // sensible starting position, not something the user should watch happen
+  // — the view-transition morph already supplies the animated part.
+  useLayoutEffect(() => {
+    rootRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [state.abbr, metric]);
+
   return (
-    <div className="wst-detail">
+    <div className="wst-detail" ref={rootRef}>
       <button type="button" className="wst-detail__back" onClick={onBack}>
         ← All states
       </button>
@@ -100,22 +107,23 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
       </div>
 
       <div className="wst-detail__badge">
-        <span className="wst-detail__swatch" style={{ background: SEVERITY_VAR[severity] }} aria-hidden />
+        <span className="wst-detail__swatch" style={{ background: badgeColor }} aria-hidden />
         {label}
       </div>
 
-      <svg
-        ref={svgRef}
-        className="wst-detail__svg"
-        viewBox={`0 0 ${frame.width} ${frame.height}`}
-        style={{ viewTransitionName: `wst-chart-${state.abbr}` } as React.CSSProperties}
-        onPointerDown={handleMove}
-        onPointerMove={handleMove}
-        onPointerLeave={handleLeave}
-      >
-        {yTicks.map((t) => (
-          <g key={`y-${t}`}>
+      <div className="wst-detail__chart-wrap">
+        <svg
+          ref={svgRef}
+          className="wst-detail__svg"
+          viewBox={`0 0 ${frame.width} ${frame.height}`}
+          style={{ viewTransitionName: `wst-chart-${state.abbr}` } as React.CSSProperties}
+          onPointerDown={handleMove}
+          onPointerMove={handleMove}
+          onPointerLeave={handleLeave}
+        >
+          {yTicks.map((t) => (
             <line
+              key={`y-${t}`}
               x1={frame.marginLeft}
               x2={frame.width - frame.marginRight}
               y1={y(t)}
@@ -123,50 +131,56 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
               stroke="var(--gridline)"
               strokeWidth={1}
             />
-            <text x={frame.marginLeft - 6} y={y(t)} textAnchor="end" dominantBaseline="middle" className="wst-detail__tick">
-              {isPct ? `${(t * 100).toFixed(0)}%` : t.toFixed(0)}
-            </text>
-          </g>
+          ))}
+
+          <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={2} />
+          <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
+          {hoveredYearIndex !== null && (
+            <HoverMarkers
+              years={state.years}
+              observed={observed}
+              counterfactual={counterfactual}
+              x={x}
+              y={y}
+              yearIndex={hoveredYearIndex}
+              frame={frame}
+              radius={4}
+            />
+          )}
+        </svg>
+
+        {/* Tick labels live outside the SVG's viewBox scaling, as plain CSS
+            px positioned by percent — inside it, their font-size would scale
+            with the chart's rendered width same as the geometry does, which
+            shrinks them past legible on a narrow phone and oversizes them on
+            a wide desktop window. Percent-positioned HTML keeps them one
+            fixed, readable size at any width (same trick the grid's US tile
+            already uses for its own corner labels — see StateTile). */}
+        {yTicks.map((t) => (
+          <span
+            key={`y-${t}`}
+            className="wst-detail__tick wst-detail__tick--y"
+            style={{
+              top: `${(y(t) / frame.height) * 100}%`,
+              width: `${((frame.marginLeft - 6) / frame.width) * 100}%`,
+            }}
+          >
+            {t.toFixed(0)}
+          </span>
         ))}
         {xTicks.map((t) => (
-          <text
+          <span
             key={`x-${t}`}
-            x={x(t)}
-            y={frame.height - frame.marginBottom + 16}
-            textAnchor="middle"
-            className="wst-detail__tick"
+            className="wst-detail__tick wst-detail__tick--x"
+            style={{
+              left: `${(x(t) / frame.width) * 100}%`,
+              top: `${((frame.height - frame.marginBottom + 16) / frame.height) * 100}%`,
+            }}
           >
             {t}
-          </text>
+          </span>
         ))}
-
-        {breakX > frame.marginLeft && (
-          <line
-            x1={breakX}
-            x2={breakX}
-            y1={frame.marginTop}
-            y2={frame.height - frame.marginBottom}
-            stroke="var(--baseline)"
-            strokeWidth={1}
-            strokeDasharray="4,3"
-          />
-        )}
-
-        <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={2} />
-        <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
-        {hoveredYearIndex !== null && (
-          <HoverMarkers
-            years={state.years}
-            observed={observed}
-            counterfactual={counterfactual}
-            x={x}
-            y={y}
-            yearIndex={hoveredYearIndex}
-            frame={frame}
-            radius={4}
-          />
-        )}
-      </svg>
+      </div>
 
       <div className="wst-detail__legend">
         <span>
@@ -177,14 +191,23 @@ export default function DetailPanel({ state, metric, breakYear, hoveredYearIndex
           <span className="wst-detail__swatch" style={{ background: "var(--series-1)" }} aria-hidden />
           Counterfactual without smoke
         </span>
-        <span className="wst-detail__breaklabel">┊ {Math.round(breakYear)} break year</span>
       </div>
 
       {hasGap && (
         <p className="wst-detail__extnote">
-          Counterfactual line stops at {counterfactualLastYear} — that's as far as the underlying
-          smoke-attribution data currently extends. The observed line continues through{" "}
-          {observedLastYear} using EPA monitoring data directly.
+          {metric === "mean" ? (
+            <>
+              Counterfactual line stops at {counterfactualLastYear} — that's as far as the
+              underlying smoke-attribution data currently extends. The observed line continues
+              through {observedLastYear} using EPA monitoring data directly.
+            </>
+          ) : (
+            <>
+              Counterfactual line stops at {counterfactualLastYear} — the non-smoke side of this
+              metric hasn't been recomputed past the original study's data yet. The observed line
+              continues through {observedLastYear} using our own EPA pull.
+            </>
+          )}
         </p>
       )}
     </div>

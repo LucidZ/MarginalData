@@ -1,19 +1,21 @@
 import { useRef } from "react";
 import type { Metric, StateTrend } from "./types";
-import { SMOKE_GROUP_SEVERITY } from "./types";
+import { SMOKE_SHARE_TINT } from "./types";
 import {
   TILE_FRAME,
   buildScales,
   buildLinePath,
   seriesForMetric,
+  smokeShare,
+  smokeExtremeDays,
   nearestYearIndex,
+  formatYTick,
 } from "./chartGeometry";
 import HoverMarkers from "./HoverMarkers";
 
 interface Props {
   state: StateTrend;
   metric: Metric;
-  breakYear: number;
   isSelected: boolean;
   hoveredYearIndex: number | null;
   sharedYDomain: [number, number] | null;
@@ -21,17 +23,9 @@ interface Props {
   onSelect: (state: StateTrend) => void;
 }
 
-const SEVERITY_VAR: Record<string, string> = {
-  critical: "var(--status-critical)",
-  serious: "var(--status-serious)",
-  warning: "var(--status-warning)",
-  neutral: "transparent",
-};
-
 export default function StateTile({
   state,
   metric,
-  breakYear,
   isSelected,
   hoveredYearIndex,
   sharedYDomain,
@@ -42,17 +36,22 @@ export default function StateTile({
   const { x, y } = buildScales(state, metric, TILE_FRAME, sharedYDomain ?? undefined);
   const { observed, counterfactual } = seriesForMetric(state, metric);
 
-  const severity =
+  const tint =
     metric === "mean"
-      ? SMOKE_GROUP_SEVERITY[state.meanClass?.smokeGroup ?? "no smoke influence detected"]
-      : state.extremeClass?.smokeInfluenced
-        ? "warning"
-        : "neutral";
-  const tint = SEVERITY_VAR[severity];
+      ? SMOKE_SHARE_TINT[smokeShare(state).tier]
+      : SMOKE_SHARE_TINT[smokeExtremeDays(state).tier];
 
   const observedPath = buildLinePath(state.years, observed, x, y);
   const counterfactualPath = buildLinePath(state.years, counterfactual, x, y);
-  const breakX = x(breakYear);
+
+  // The contiguous-US tile isn't a state — give it the footprint of a 2x2
+  // block of state tiles so it reads as the headline reference line, same
+  // relative sizing as the paper's own figure, instead of getting squeezed
+  // into a single small-multiple cell.
+  const isUS = state.abbr === "US";
+  const spanRows = isUS ? 2 : 1;
+  const spanCols = isUS ? 2 : 1;
+  const [xDomainStart, xDomainEnd] = x.domain();
 
   function handleMove(e: React.PointerEvent<SVGSVGElement>) {
     const svg = svgRef.current;
@@ -72,18 +71,18 @@ export default function StateTile({
   return (
     <button
       type="button"
-      className={`wst-tile${isSelected ? " wst-tile--selected" : ""}`}
+      className={`wst-tile${isSelected ? " wst-tile--selected" : ""}${isUS ? " wst-tile--us" : ""}`}
       style={
         {
-          gridRow: state.row,
-          gridColumn: state.col,
+          gridRow: `${state.row} / span ${spanRows}`,
+          gridColumn: `${state.col} / span ${spanCols}`,
           ["--tile-tint" as string]: tint,
         } as React.CSSProperties
       }
       onClick={() => onSelect(state)}
       aria-label={`${state.name}: view details`}
     >
-      <span className="wst-tile__label">{state.abbr}</span>
+      <span className="wst-tile__label">{isUS ? state.name : state.abbr}</span>
       <svg
         ref={svgRef}
         className="wst-tile__svg"
@@ -102,17 +101,6 @@ export default function StateTile({
           fill="var(--tile-tint)"
           opacity={0.16}
         />
-        {breakX > TILE_FRAME.marginLeft && (
-          <line
-            x1={breakX}
-            x2={breakX}
-            y1={TILE_FRAME.marginTop}
-            y2={TILE_FRAME.height - TILE_FRAME.marginBottom}
-            stroke="var(--baseline)"
-            strokeWidth={0.6}
-            strokeDasharray="1.5,1.5"
-          />
-        )}
         <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={1.3} />
         <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={1.3} />
         {hoveredYearIndex !== null && (
@@ -128,6 +116,22 @@ export default function StateTile({
           />
         )}
       </svg>
+      {/* The US tile is the one place in the grid that prints the shared
+          scale as actual numbers — every other state tile stays bare (see
+          MetricGrid) so 49 repeated labels don't turn into visual noise;
+          this one tile, sized up for its bigger frame, is the reference. */}
+      {isUS && sharedYDomain && (
+        <>
+          {/* "0" isn't shown — every metric here is non-negative, so a
+              floor of zero is self-evident and printing it just repeated
+              the ceiling's job without adding information. Four corners,
+              four distinct facts: abbreviation, y-ceiling, start year,
+              end year. */}
+          <span className="wst-tile__tick wst-tile__tick--ymax">{formatYTick(sharedYDomain[1], metric)}</span>
+          <span className="wst-tile__tick wst-tile__tick--xstart">{Math.round(xDomainStart)}</span>
+          <span className="wst-tile__tick wst-tile__tick--xend">{Math.round(xDomainEnd)}</span>
+        </>
+      )}
     </button>
   );
 }
