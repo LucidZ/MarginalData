@@ -45,20 +45,27 @@
 }
 
 .wlc-title {
-  font-size: 2rem;
+  /* Same fluid scale as WildfireStateTrends' .wst-header h1 — keeps the two
+     stories' page titles reading as one consistent system instead of a
+     fixed 2rem here vs. a fixed-then-breakpoint-jump there. */
+  font-size: clamp(1.3rem, 1.05rem + 1.2vw, 1.6rem);
+  letter-spacing: -0.01em;
   margin: 0 0 0.5rem;
 }
 
 .wlc-intro {
   color: var(--text-secondary);
-  max-width: 680px;
-  line-height: 1.6;
+  /* ch, not px — scales with font size/zoom, and matches the measure used
+     for prose elsewhere on the page (and in WildfireStateTrends) instead of
+     running a visibly wider text column than the rest. */
+  max-width: 64ch;
+  line-height: 1.55;
 }
 
 .wlc-lead-in {
-  max-width: 680px;
+  max-width: 64ch;
   margin: 0 0 1rem;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--text-primary);
 }
 
@@ -238,8 +245,12 @@ button.wlc-footnote-ref[aria-expanded="true"] {
 }
 
 .wlc-person-section {
+  /* Was text-align: center — the one section on the page that broke from
+     the left-aligned title/intro/lead-in/takeaways above and below it.
+     Left-aligned prose throughout, with only the map/legend/icon rows
+     staying centered as visual (not text) elements, is the consistent
+     read across the whole page. */
   margin-top: 2rem;
-  text-align: center;
 }
 
 .wlc-person-heading {
@@ -250,10 +261,10 @@ button.wlc-footnote-ref[aria-expanded="true"] {
 
 .wlc-person-subtitle {
   color: var(--text-secondary);
-  max-width: 560px;
-  margin: 0 auto 1.5rem;
+  max-width: 52ch;
+  margin: 0 0 1.5rem;
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .wlc-pitch-rows {
@@ -348,7 +359,7 @@ button.wlc-footnote-ref[aria-expanded="true"] {
 
 .wlc-notes-section {
   margin-top: 2rem;
-  max-width: 680px;
+  max-width: 64ch;
 }
 
 .wlc-notes-heading {
