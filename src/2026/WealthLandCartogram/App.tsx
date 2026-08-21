@@ -107,16 +107,135 @@ function formatUsd(usd: number): string {
   return `$${rounded.toLocaleString()}`;
 }
 
-// Superscript link to an entry in the "Notes & sources" list at the bottom
-// of the page (matching id="wlc-note-N"). Numbers are assigned by hand at
-// each call site below — if the notes list gets reordered, update both.
+interface Note {
+  id: number;
+  content: React.ReactNode;
+}
+
+// Single source of truth for footnote text — both the inline popovers
+// (FootnoteRef, below) and the "Notes & sources" list at the bottom render
+// from this same array, so the two can't drift out of sync.
+const NOTES: Note[] = [
+  {
+    id: 1,
+    content: (
+      <>
+        Norton, M. I., &amp; Ariely, D. (2011). "Building a Better America—One Wealth
+        Quintile at a Time." <em>Perspectives on Psychological Science</em>, 6(1),
+        9–12. —{" "}
+        <a href="https://pubmed.ncbi.nlm.nih.gov/26162108/" target="_blank" rel="noreferrer">
+          PubMed
+        </a>
+      </>
+    ),
+  },
+  {
+    id: 2,
+    content: (
+      <>
+        UBS Global Wealth Report 2026, year-end 2025 data. —{" "}
+        <a
+          href="https://www.ubs.com/global/en/wealthmanagement/insights/global-wealth-report.html"
+          target="_blank"
+          rel="noreferrer"
+        >
+          ubs.com
+        </a>
+      </>
+    ),
+  },
+  {
+    id: 3,
+    content: (
+      <>
+        UBS models 56 major markets it estimates represent over 92% of global wealth;
+        summing that sample's own adult headcounts gives ~3.85 billion. True global
+        adult population is harder to pin to an exact figure, but based on UN
+        population data (~8.2 billion people total, of whom roughly a quarter are
+        under 15) it's closer to 6.1–6.2 billion — so the sample leaves out somewhere
+        around 2.3 billion adults, almost entirely in lower-income countries that hold
+        little aggregate wealth.
+      </>
+    ),
+  },
+  {
+    id: 4,
+    content: <>"Land" here means all land minus Antarctica (~141M km²).</>,
+  },
+];
+
+// Click-to-toggle popover, not a jump-to-bottom anchor link — clicking a
+// footnote used to yank the whole page down to the Notes section and left
+// the reader to scroll all the way back, which read as jarring on a page
+// this long. Click (not hover) so it behaves identically on touch and
+// mouse, and stays open while reading instead of vanishing when the cursor
+// drifts off it.
 function FootnoteRef({ n }: { n: number }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const popoverRef = useRef<HTMLSpanElement>(null);
+  // Popovers default to left-aligned under the marker (see .wlc-footnote-popover),
+  // which is enough for most markers, but one near the right edge of the
+  // text column would spill off the viewport — this nudges it back on
+  // screen after measuring, rather than guessing a fixed position upfront.
+  const [offsetX, setOffsetX] = useState(0);
+  const note = NOTES[n - 1];
+
+  useEffect(() => {
+    if (!open) return;
+    setOffsetX(0);
+    const raf = requestAnimationFrame(() => {
+      const el = popoverRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const margin = 8;
+      let shift = 0;
+      if (rect.right > window.innerWidth - margin) shift -= rect.right - (window.innerWidth - margin);
+      if (rect.left + shift < margin) shift += margin - (rect.left + shift);
+      if (shift !== 0) setOffsetX(shift);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
   return (
-    <sup>
-      <a href={`#wlc-note-${n}`} className="wlc-footnote-ref">
-        {n}
-      </a>
-    </sup>
+    <span className="wlc-footnote-wrap" ref={wrapRef}>
+      <sup>
+        <button
+          type="button"
+          className="wlc-footnote-ref"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {n}
+        </button>
+      </sup>
+      {open && (
+        <span
+          ref={popoverRef}
+          className="wlc-footnote-popover"
+          role="tooltip"
+          style={{ transform: `translateX(${offsetX}px)` }}
+        >
+          {note.content}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -734,34 +853,11 @@ export default function App() {
       <div className="wlc-notes-section">
         <h3 className="wlc-notes-heading">Notes &amp; sources</h3>
         <ol className="wlc-notes-list">
-          <li id="wlc-note-1">
-            Norton, M. I., &amp; Ariely, D. (2011). "Building a Better America—One
-            Wealth Quintile at a Time." <em>Perspectives on Psychological Science</em>,
-            6(1), 9–12. —{" "}
-            <a href="https://pubmed.ncbi.nlm.nih.gov/26162108/" target="_blank" rel="noreferrer">
-              PubMed
-            </a>
-          </li>
-          <li id="wlc-note-2">
-            UBS Global Wealth Report 2026, year-end 2025 data. —{" "}
-            <a
-              href="https://www.ubs.com/global/en/wealthmanagement/insights/global-wealth-report.html"
-              target="_blank"
-              rel="noreferrer"
-            >
-              ubs.com
-            </a>
-          </li>
-          <li id="wlc-note-3">
-            UBS models 56 major markets it estimates represent over 92% of global
-            wealth; summing that sample's own adult headcounts gives ~3.85 billion.
-            True global adult population is harder to pin to an exact figure, but
-            based on UN population data (~8.2 billion people total, of whom roughly a
-            quarter are under 15) it's closer to 6.1–6.2 billion — so the sample
-            leaves out somewhere around 2.3 billion adults, almost entirely in
-            lower-income countries that hold little aggregate wealth.
-          </li>
-          <li id="wlc-note-4">"Land" here means all land minus Antarctica (~141M km²).</li>
+          {NOTES.map((note) => (
+            <li key={note.id} id={`wlc-note-${note.id}`}>
+              {note.content}
+            </li>
+          ))}
         </ol>
       </div>
     </div>

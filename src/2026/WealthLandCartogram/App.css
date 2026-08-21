@@ -62,14 +62,52 @@
   color: var(--text-primary);
 }
 
-a.wlc-footnote-ref {
-  font-size: 0.75em;
-  color: var(--text-secondary);
-  text-decoration: none;
+.wlc-footnote-wrap {
+  position: relative;
+  display: inline-block;
 }
 
-a.wlc-footnote-ref:hover {
+button.wlc-footnote-ref {
+  font: inherit;
+  font-size: 0.75em;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+}
+
+button.wlc-footnote-ref:hover,
+button.wlc-footnote-ref[aria-expanded="true"] {
   text-decoration: underline;
+  color: var(--text-primary);
+}
+
+.wlc-footnote-popover {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  margin-top: 0.4rem;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 2.5rem));
+  padding: 0.65rem 0.8rem;
+  background: var(--surface-1);
+  border: 1px solid var(--baseline);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: left;
+  white-space: normal;
+}
+
+.wlc-footnote-popover a {
+  color: var(--text-primary);
 }
 
 .wlc-chart-area {
