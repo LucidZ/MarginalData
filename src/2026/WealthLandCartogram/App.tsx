@@ -26,6 +26,7 @@ import {
   PitchIcon,
   PitchSymbolDefs,
 } from "./PitchIcons";
+import { FootnoteRef, FootnotesProvider, NotesList, type FootnoteEntry } from "../../components/Footnotes";
 import "./App.css";
 
 const GRID_WIDTH = 1600;
@@ -107,15 +108,11 @@ function formatUsd(usd: number): string {
   return `$${rounded.toLocaleString()}`;
 }
 
-interface Note {
-  id: number;
-  content: React.ReactNode;
-}
-
-// Single source of truth for footnote text — both the inline popovers
-// (FootnoteRef, below) and the "Notes & sources" list at the bottom render
-// from this same array, so the two can't drift out of sync.
-const NOTES: Note[] = [
+// Single source of truth for this story's footnote text — both the inline
+// FootnoteRef popovers and the NotesList at the bottom read this same array
+// via FootnotesProvider (see ../../components/Footnotes), so they can't
+// drift out of sync.
+const NOTES: FootnoteEntry[] = [
   {
     id: 1,
     content: (
@@ -163,81 +160,6 @@ const NOTES: Note[] = [
     content: <>"Land" here means all land minus Antarctica (~141M km²).</>,
   },
 ];
-
-// Click-to-toggle popover, not a jump-to-bottom anchor link — clicking a
-// footnote used to yank the whole page down to the Notes section and left
-// the reader to scroll all the way back, which read as jarring on a page
-// this long. Click (not hover) so it behaves identically on touch and
-// mouse, and stays open while reading instead of vanishing when the cursor
-// drifts off it.
-function FootnoteRef({ n }: { n: number }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLSpanElement>(null);
-  const popoverRef = useRef<HTMLSpanElement>(null);
-  // Popovers default to left-aligned under the marker (see .wlc-footnote-popover),
-  // which is enough for most markers, but one near the right edge of the
-  // text column would spill off the viewport — this nudges it back on
-  // screen after measuring, rather than guessing a fixed position upfront.
-  const [offsetX, setOffsetX] = useState(0);
-  const note = NOTES[n - 1];
-
-  useEffect(() => {
-    if (!open) return;
-    setOffsetX(0);
-    const raf = requestAnimationFrame(() => {
-      const el = popoverRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const margin = 8;
-      let shift = 0;
-      if (rect.right > window.innerWidth - margin) shift -= rect.right - (window.innerWidth - margin);
-      if (rect.left + shift < margin) shift += margin - (rect.left + shift);
-      if (shift !== 0) setOffsetX(shift);
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleOutside(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", handleOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
-
-  return (
-    <span className="wlc-footnote-wrap" ref={wrapRef}>
-      <sup>
-        <button
-          type="button"
-          className="wlc-footnote-ref"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {n}
-        </button>
-      </sup>
-      {open && (
-        <span
-          ref={popoverRef}
-          className="wlc-footnote-popover"
-          role="tooltip"
-          style={{ transform: `translateX(${offsetX}px)` }}
-        >
-          {note.content}
-        </span>
-      )}
-    </span>
-  );
-}
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -646,6 +568,7 @@ export default function App() {
   }
 
   return (
+    <FootnotesProvider notes={NOTES}>
     <div className="wlc-root">
       <header className="wlc-header">
         <h1 className="wlc-title">If Wealth Were Land</h1>
@@ -850,17 +773,9 @@ export default function App() {
         </div>
       </div>
 
-      <div className="wlc-notes-section">
-        <h3 className="wlc-notes-heading">Notes &amp; sources</h3>
-        <ol className="wlc-notes-list">
-          {NOTES.map((note) => (
-            <li key={note.id} id={`wlc-note-${note.id}`}>
-              {note.content}
-            </li>
-          ))}
-        </ol>
-      </div>
+      <NotesList />
     </div>
+    </FootnotesProvider>
   );
 }
 
