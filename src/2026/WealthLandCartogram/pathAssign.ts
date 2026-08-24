@@ -45,7 +45,10 @@ export const WORLD_PATH: [number, number][] = [
   [35.0, -1.0], // Kenya (heading back up east coast)
   [43.0, 10.0], // Horn of Africa
   [46.0, 25.0], // Saudi Arabia
-  [47.0, 34.0], // Iraq / Iran
+  [45.5, 30.0], // Kuwait / southern Iraq
+  [48.5, 34.5], // Baghdad, Iraq
+  [51.4, 35.7], // Tehran, Iran
+  [58.0, 37.5], // Turkmenistan
   [55.0, 45.0], // Kazakhstan
   [70.0, 55.0], // Central Russia
   [90.0, 60.0], // Siberia
@@ -74,12 +77,139 @@ export interface PathData {
 }
 
 /**
- * For every land cell, finds its nearest point along the path (in projected
- * pixel space) and records that point's arc-length position. Sorting cells
- * by this value "unrolls" the whole 2D land mask into one 1D sequence where
+ * How much coarser the geodesic-distance grid is than the land mask itself.
+ * The Dijkstra below is the expensive part; running it at full resolution
+ * (1600x800 = 1.28M nodes) is unnecessary since the source path only has ~50
+ * hand-drawn waypoints to begin with — a 2x-downsampled grid (400k nodes) is
+ * still far finer than that and keeps the precompute under a second or two.
+ */
+const GEO_DOWNSAMPLE = 2;
+
+/**
+ * Water steps cost this many times more than land steps in the geodesic
+ * search below. High enough that the search strongly prefers detouring
+ * along a land bridge (e.g. Sinai) over cutting straight across open water
+ * between two path segments, but not infinite — islands with no land
+ * connection to the path (Japan, Madagascar, the UK, ...) still need to
+ * reach *some* source, just at a distance penalty.
+ */
+const WATER_COST_MULTIPLIER = 4;
+
+/** Minimal binary min-heap over (cost, idx, label) triples, stored as
+ * parallel arrays instead of objects — this runs a few hundred thousand
+ * times during the Dijkstra search below and per-node allocation showed up
+ * as the dominant cost in an earlier object-based version. */
+class MinHeap {
+  private cost: number[] = [];
+  private idx: number[] = [];
+  private label: number[] = [];
+
+  get size() {
+    return this.cost.length;
+  }
+
+  push(cost: number, idx: number, label: number) {
+    const { cost: c, idx: ix, label: lb } = this;
+    c.push(cost);
+    ix.push(idx);
+    lb.push(label);
+    let i = c.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (c[parent] <= c[i]) break;
+      this.swap(parent, i);
+      i = parent;
+    }
+  }
+
+  pop(): { cost: number; idx: number; label: number } | undefined {
+    const { cost: c, idx: ix, label: lb } = this;
+    const n = c.length;
+    if (n === 0) return undefined;
+    const top = { cost: c[0], idx: ix[0], label: lb[0] };
+    const last = n - 1;
+    c[0] = c[last];
+    ix[0] = ix[last];
+    lb[0] = lb[last];
+    c.pop();
+    ix.pop();
+    lb.pop();
+    const size = c.length;
+    let i = 0;
+    for (;;) {
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+      let smallest = i;
+      if (l < size && c[l] < c[smallest]) smallest = l;
+      if (r < size && c[r] < c[smallest]) smallest = r;
+      if (smallest === i) break;
+      this.swap(i, smallest);
+      i = smallest;
+    }
+    return top;
+  }
+
+  private swap(a: number, b: number) {
+    const { cost: c, idx: ix, label: lb } = this;
+    [c[a], c[b]] = [c[b], c[a]];
+    [ix[a], ix[b]] = [ix[b], ix[a]];
+    [lb[a], lb[b]] = [lb[b], lb[a]];
+  }
+}
+
+/** Downsamples a binary land mask by block-averaging; a block counts as
+ * land if at least half its pixels are land. */
+function downsampleLand(land: Uint8Array, width: number, height: number, ds: number) {
+  const dsWidth = Math.ceil(width / ds);
+  const dsHeight = Math.ceil(height / ds);
+  const dsLand = new Uint8Array(dsWidth * dsHeight);
+  for (let by = 0; by < dsHeight; by++) {
+    for (let bx = 0; bx < dsWidth; bx++) {
+      let sum = 0;
+      let count = 0;
+      const yEnd = Math.min(height, (by + 1) * ds);
+      const xEnd = Math.min(width, (bx + 1) * ds);
+      for (let y = by * ds; y < yEnd; y++) {
+        for (let x = bx * ds; x < xEnd; x++) {
+          sum += land[y * width + x];
+          count++;
+        }
+      }
+      dsLand[by * dsWidth + bx] = count > 0 && sum / count >= 0.5 ? 1 : 0;
+    }
+  }
+  return { dsLand, dsWidth, dsHeight };
+}
+
+/**
+ * For every land cell, finds its arc-length position along WORLD_PATH by
+ * shortest-path (geodesic) distance over the land mask, rather than by
+ * straight-line distance in projected pixel space. Sorting cells by this
+ * value "unrolls" the whole 2D land mask into one 1D sequence where
  * distance traveled naturally corresponds to less area where land is thin
  * near the path and more area where land is thick — no manual width tuning
  * needed. Computed once (doesn't depend on seeds), reused on every click.
+ *
+ * Straight-line nearest-point distance (the original approach) has a
+ * structural flaw: within one path segment, the projected arc-length is a
+ * *linear* function of position along that segment, so any region boundary
+ * landing mid-segment shows up as a dead-straight line perpendicular to the
+ * segment — cutting across whatever landmass happens to be there (e.g. a
+ * ruler-straight seam through Sinai/the Arabian peninsula, unrelated to any
+ * real geography). Measuring distance as a walk over land instead makes
+ * that boundary bend around actual coastlines and land bridges (Sinai
+ * connects Africa to Asia without crossing water, so a Red-Sea-adjacent
+ * cell's true "nearest path" distance routes through Suez, not straight
+ * across the sea) — the seam becomes geography-shaped instead of ruler-cut.
+ *
+ * Implemented as a multi-source Dijkstra search from many points resampled
+ * along WORLD_PATH, over a downsampled version of the grid (see
+ * GEO_DOWNSAMPLE) where land steps are cheap and water steps are expensive
+ * but not forbidden (see WATER_COST_MULTIPLIER) — islands with no land
+ * connection to the path still resolve to a nearest source, just via a
+ * penalized water crossing instead of a free one. Each land cell inherits
+ * the arc-length label of whichever source's search wavefront reaches it
+ * first — a standard weighted-Voronoi-via-Dijkstra construction.
  */
 export function buildPathData(
   land: Uint8Array,
@@ -89,24 +219,13 @@ export function buildPathData(
 ): PathData {
   const pathPixels = WORLD_PATH.map(toPixel);
 
-  // Precompute each segment's geometry once — the naive version recomputed
-  // this per LAND CELL (hundreds of thousands of times) instead of per
-  // segment (a few dozen), which was the actual bottleneck (~5s of
-  // redundant Math.hypot calls). Also compares squared distance in the
-  // per-cell search below so no sqrt is needed there at all.
   const segCount = pathPixels.length - 1;
   const segX0 = new Float64Array(segCount);
   const segY0 = new Float64Array(segCount);
   const segDx = new Float64Array(segCount);
   const segDy = new Float64Array(segCount);
-  const segLenSq = new Float64Array(segCount);
   const segLen = new Float64Array(segCount);
   const segCumStart = new Float64Array(segCount);
-  // padded bounding box per segment, for a cheap early-out below
-  const segMinX = new Float64Array(segCount);
-  const segMaxX = new Float64Array(segCount);
-  const segMinY = new Float64Array(segCount);
-  const segMaxY = new Float64Array(segCount);
 
   let cum = 0;
   for (let s = 0; s < segCount; s++) {
@@ -118,53 +237,85 @@ export function buildPathData(
     segY0[s] = y0;
     segDx[s] = dx;
     segDy[s] = dy;
-    segLenSq[s] = dx * dx + dy * dy;
-    segLen[s] = Math.sqrt(segLenSq[s]);
+    segLen[s] = Math.sqrt(dx * dx + dy * dy);
     segCumStart[s] = cum;
     cum += segLen[s];
-    segMinX[s] = Math.min(x0, x1);
-    segMaxX[s] = Math.max(x0, x1);
-    segMinY[s] = Math.min(y0, y1);
-    segMaxY[s] = Math.max(y0, y1);
+  }
+  const totalPathLength = cum;
+
+  const ds = GEO_DOWNSAMPLE;
+  const { dsLand, dsWidth, dsHeight } = downsampleLand(land, width, height, ds);
+
+  // Resample WORLD_PATH at a fixed arc-length step (in full-res pixels) so
+  // the Dijkstra search below has a dense, even spread of sources to seed
+  // from — a source roughly every downsampled cell's width.
+  const step = ds;
+  const numSamples = Math.max(1, Math.ceil(totalPathLength / step));
+  let seg = 0;
+  const dsSources: { dsIdx: number; label: number }[] = [];
+  for (let i = 0; i <= numSamples; i++) {
+    const arcLen = Math.min(totalPathLength, i * step);
+    while (seg < segCount - 1 && arcLen >= segCumStart[seg] + segLen[seg]) seg++;
+    const t = segLen[seg] > 0 ? (arcLen - segCumStart[seg]) / segLen[seg] : 0;
+    const x = segX0[seg] + t * segDx[seg];
+    const y = segY0[seg] + t * segDy[seg];
+    const bx = Math.max(0, Math.min(dsWidth - 1, Math.floor(x / ds)));
+    const by = Math.max(0, Math.min(dsHeight - 1, Math.floor(y / ds)));
+    dsSources.push({ dsIdx: by * dsWidth + bx, label: arcLen });
+  }
+
+  // Multi-source weighted Dijkstra over the downsampled grid: every source
+  // starts at cost 0, and each cell inherits the arc-length label of
+  // whichever source's wavefront reaches it first.
+  const dsDist = new Float64Array(dsWidth * dsHeight).fill(Infinity);
+  const dsLabel = new Float64Array(dsWidth * dsHeight);
+  const finalized = new Uint8Array(dsWidth * dsHeight);
+  const heap = new MinHeap();
+  for (const { dsIdx, label } of dsSources) {
+    if (0 < dsDist[dsIdx]) {
+      dsDist[dsIdx] = 0;
+      heap.push(0, dsIdx, label);
+    }
+  }
+
+  const NEIGHBOR_DX = [-1, 0, 1, -1, 1, -1, 0, 1];
+  const NEIGHBOR_DY = [-1, -1, -1, 0, 0, 1, 1, 1];
+  const STEP_COST = [Math.SQRT2, 1, Math.SQRT2, 1, 1, Math.SQRT2, 1, Math.SQRT2];
+
+  while (heap.size > 0) {
+    const top = heap.pop()!;
+    const { idx } = top;
+    if (finalized[idx]) continue;
+    finalized[idx] = 1;
+    dsLabel[idx] = top.label;
+
+    const x = idx % dsWidth;
+    const y = (idx / dsWidth) | 0;
+    for (let n = 0; n < 8; n++) {
+      const nx = x + NEIGHBOR_DX[n];
+      const ny = y + NEIGHBOR_DY[n];
+      if (nx < 0 || nx >= dsWidth || ny < 0 || ny >= dsHeight) continue;
+      const nIdx = ny * dsWidth + nx;
+      if (finalized[nIdx]) continue;
+      const weight = dsLand[nIdx] ? 1 : WATER_COST_MULTIPLIER;
+      const newDist = top.cost + STEP_COST[n] * weight;
+      if (newDist < dsDist[nIdx]) {
+        dsDist[nIdx] = newDist;
+        heap.push(newDist, nIdx, top.label);
+      }
+    }
   }
 
   const landCells: number[] = [];
   const cellPathPos = new Float64Array(width * height);
-
   for (let i = 0; i < width * height; i++) {
     if (!land[i]) continue;
     landCells.push(i);
     const x = i % width;
     const y = (i / width) | 0;
-
-    let bestSq = Infinity;
-    let bestPos = 0;
-    for (let s = 0; s < segCount; s++) {
-      // cheapest possible distance to this segment's bounding box — if even
-      // that can't beat the best found so far, skip the real math entirely
-      const bx = x < segMinX[s] ? segMinX[s] - x : x > segMaxX[s] ? x - segMaxX[s] : 0;
-      const by = y < segMinY[s] ? segMinY[s] - y : y > segMaxY[s] ? y - segMaxY[s] : 0;
-      if (bx * bx + by * by >= bestSq) continue;
-
-      const x0 = segX0[s];
-      const y0 = segY0[s];
-      const dx = segDx[s];
-      const dy = segDy[s];
-      const lenSq = segLenSq[s];
-      let t = lenSq > 0 ? ((x - x0) * dx + (y - y0) * dy) / lenSq : 0;
-      if (t < 0) t = 0;
-      else if (t > 1) t = 1;
-      const px = x0 + t * dx;
-      const py = y0 + t * dy;
-      const ddx = x - px;
-      const ddy = y - py;
-      const dSq = ddx * ddx + ddy * ddy;
-      if (dSq < bestSq) {
-        bestSq = dSq;
-        bestPos = segCumStart[s] + t * segLen[s];
-      }
-    }
-    cellPathPos[i] = bestPos;
+    const bx = Math.min(dsWidth - 1, Math.floor(x / ds));
+    const by = Math.min(dsHeight - 1, Math.floor(y / ds));
+    cellPathPos[i] = dsLabel[by * dsWidth + bx];
   }
 
   landCells.sort((a, b) => cellPathPos[a] - cellPathPos[b]);
@@ -173,7 +324,7 @@ export function buildPathData(
     sortedArcPos: Float64Array.from(landCells, (i) => cellPathPos[i]),
     pathPixels,
     segCumStart,
-    totalPathLength: cum,
+    totalPathLength,
   };
 }
 
