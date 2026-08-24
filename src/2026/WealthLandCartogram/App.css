@@ -53,20 +53,13 @@
   margin: 0 0 0.5rem;
 }
 
-.wlc-intro {
+.wlc-header p {
   color: var(--text-secondary);
   /* ch, not px — scales with font size/zoom, and matches the measure used
      for prose elsewhere on the page (and in WildfireStateTrends) instead of
      running a visibly wider text column than the rest. */
   max-width: 64ch;
   line-height: 1.55;
-}
-
-.wlc-lead-in {
-  max-width: 64ch;
-  margin: 0 0 1rem;
-  line-height: 1.55;
-  color: var(--text-primary);
 }
 
 .wlc-chart-area {
@@ -92,6 +85,15 @@
   height: auto;
   display: block;
   border-radius: 6px;
+  /* The canvas is drawn at a fixed 1600x800 and then scaled down by the
+     browser to fit its container — almost always, since 1600px-wide is
+     wider than most viewports. Default bilinear scaling blends colors
+     across sharp claimed-region boundaries, which turns a shallow-sloped
+     edge (just a few pixels tall over a wide x-range, e.g. right at a
+     WORLD_PATH waypoint) into a visible thin off-color line rather than a
+     clean diagonal step. Nearest-neighbor scaling keeps every boundary a
+     hard edge instead. */
+  image-rendering: pixelated;
 }
 
 .wlc-loading {
