@@ -44,9 +44,10 @@ export const WORLD_PATH: [number, number][] = [
   [24.0, -33.0], // South Africa
   [35.0, -1.0], // Kenya (heading back up east coast)
   [43.0, 10.0], // Horn of Africa
-  [46.0, 25.0], // Saudi Arabia
-  [45.5, 30.0], // Kuwait / southern Iraq
-  [48.5, 34.5], // Baghdad, Iraq
+  [32.5, 15.6], // Khartoum, Sudan — up the Nile toward Egypt
+  [31.2, 30.0], // Cairo, Egypt
+  [34.8, 31.8], // Jerusalem — the actual Sinai/Levant land bridge into Asia
+  [44.4, 33.3], // Baghdad, Iraq
   [51.4, 35.7], // Tehran, Iran
   [58.0, 37.5], // Turkmenistan
   [55.0, 45.0], // Kazakhstan
@@ -219,13 +220,62 @@ function downsampleLand(land: Uint8Array, width: number, height: number, ds: num
  * the arc-length label of whichever source's search wavefront reaches it
  * first — a standard weighted-Voronoi-via-Dijkstra construction.
  */
+/**
+ * How many points to sample per original WORLD_PATH segment when smoothing
+ * it into a spline (see `catmullRomResample`). Higher = smoother curve;
+ * cheap either way since this only affects a few thousand points total, not
+ * the per-cell search.
+ */
+const SPLINE_SAMPLES_PER_SEGMENT = 8;
+
+/**
+ * Resamples a hand-drawn control-point polyline into a much finer sequence
+ * of points along a smooth Catmull-Rom spline through those same points, so
+ * downstream code (the nearest-point search below, and dot-travel
+ * animation via `pointAtArcLength`) sees a continuously curving route
+ * instead of sharp corners at each waypoint. A corner in the raw
+ * WORLD_PATH is exactly where a region boundary is most likely to land as
+ * a visibly straight/blocky edge — regardless of straight-line vs.
+ * geodesic distance, the isochrone right at a corner is locally just as
+ * sharp. Smoothing the route itself fixes that everywhere at once, rather
+ * than requiring a hand-placed waypoint fix for each corner as it's found.
+ */
+function catmullRomResample(points: [number, number][], samplesPerSegment: number): [number, number][] {
+  const n = points.length;
+  if (n < 3) return points;
+  const at = (i: number): [number, number] => points[Math.max(0, Math.min(n - 1, i))];
+  const out: [number, number][] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0] = at(i - 1);
+    const [x1, y1] = at(i);
+    const [x2, y2] = at(i + 1);
+    const [x3, y3] = at(i + 2);
+    // last segment also emits its final endpoint; every other segment
+    // leaves it for the next segment's t=0 to avoid a duplicate point
+    const steps = i === n - 2 ? samplesPerSegment + 1 : samplesPerSegment;
+    for (let s = 0; s < steps; s++) {
+      const t = s / samplesPerSegment;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const x =
+        0.5 *
+        (2 * x1 + (-x0 + x2) * t + (2 * x0 - 5 * x1 + 4 * x2 - x3) * t2 + (-x0 + 3 * x1 - 3 * x2 + x3) * t3);
+      const y =
+        0.5 *
+        (2 * y1 + (-y0 + y2) * t + (2 * y0 - 5 * y1 + 4 * y2 - y3) * t2 + (-y0 + 3 * y1 - 3 * y2 + y3) * t3);
+      out.push([x, y]);
+    }
+  }
+  return out;
+}
+
 export function buildPathData(
   land: Uint8Array,
   width: number,
   height: number,
   toPixel: (lonLat: [number, number]) => [number, number]
 ): PathData {
-  const pathPixels = WORLD_PATH.map(toPixel);
+  const pathPixels = catmullRomResample(WORLD_PATH, SPLINE_SAMPLES_PER_SEGMENT).map(toPixel);
 
   const segCount = pathPixels.length - 1;
   const segX0 = new Float64Array(segCount);
