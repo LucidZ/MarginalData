@@ -157,25 +157,33 @@ class MinHeap {
   }
 }
 
-/** Downsamples a binary land mask by block-averaging; a block counts as
- * land if at least half its pixels are land. */
+/** Downsamples a binary land mask by block-OR: a block counts as land if
+ * *any* of its pixels are land, not just a majority. A majority-vote
+ * threshold would silently drop coastal features thinner than one
+ * downsampled block (e.g. a narrow coastal strip) out of the geodesic
+ * search's land graph entirely — the real pixels are still land (the final
+ * render, which always reads the full-resolution mask, would show them
+ * correctly), but the search would route to them as if crossing water,
+ * giving them an arc-length label inconsistent with their true land
+ * neighbors and showing up as a stray off-color sliver right on the coast. */
 function downsampleLand(land: Uint8Array, width: number, height: number, ds: number) {
   const dsWidth = Math.ceil(width / ds);
   const dsHeight = Math.ceil(height / ds);
   const dsLand = new Uint8Array(dsWidth * dsHeight);
   for (let by = 0; by < dsHeight; by++) {
     for (let bx = 0; bx < dsWidth; bx++) {
-      let sum = 0;
-      let count = 0;
+      let any = 0;
       const yEnd = Math.min(height, (by + 1) * ds);
       const xEnd = Math.min(width, (bx + 1) * ds);
-      for (let y = by * ds; y < yEnd; y++) {
+      for (let y = by * ds; y < yEnd && !any; y++) {
         for (let x = bx * ds; x < xEnd; x++) {
-          sum += land[y * width + x];
-          count++;
+          if (land[y * width + x]) {
+            any = 1;
+            break;
+          }
         }
       }
-      dsLand[by * dsWidth + bx] = count > 0 && sum / count >= 0.5 ? 1 : 0;
+      dsLand[by * dsWidth + bx] = any;
     }
   }
   return { dsLand, dsWidth, dsHeight };
