@@ -119,18 +119,23 @@ const NOTES: FootnoteEntry[] = [
       <>
         Norton, M. I., &amp; Ariely, D. (2011). "Building a Better America—One Wealth
         Quintile at a Time." <em>Perspectives on Psychological Science</em>, 6(1),
-        9–12. —{" "}
+        9–12. (
         <a href="https://pubmed.ncbi.nlm.nih.gov/26162108/" target="_blank" rel="noreferrer">
           PubMed
         </a>
+        )
       </>
     ),
   },
   {
     id: 2,
+    content: <>"Land" here means all land minus Antarctica (~141M km²).</>,
+  },
+  {
+    id: 3,
     content: (
       <>
-        UBS Global Wealth Report 2026, year-end 2025 data. —{" "}
+        UBS Global Wealth Report 2026, year-end 2025 data. (
         <a
           href="https://www.ubs.com/global/en/wealthmanagement/insights/global-wealth-report.html"
           target="_blank"
@@ -138,26 +143,9 @@ const NOTES: FootnoteEntry[] = [
         >
           ubs.com
         </a>
+        )
       </>
     ),
-  },
-  {
-    id: 3,
-    content: (
-      <>
-        UBS models 56 major markets it estimates represent over 92% of global wealth;
-        summing that sample's own adult headcounts gives ~3.85 billion. True global
-        adult population is harder to pin to an exact figure, but based on UN
-        population data (~8.2 billion people total, of whom roughly a quarter are
-        under 15) it's closer to 6.1–6.2 billion — so the sample leaves out somewhere
-        around 2.3 billion adults, almost entirely in lower-income countries that hold
-        little aggregate wealth.
-      </>
-    ),
-  },
-  {
-    id: 4,
-    content: <>"Land" here means all land minus Antarctica (~141M km²).</>,
   },
 ];
 
@@ -326,7 +314,7 @@ export default function App() {
   // Pulled out of the effect below so it can run once per settled state and
   // also many times per second while an animation is in flight.
   function drawFrame(geo: GeoSetup, claimedBy: Int8Array) {
-    const { path, ctx, offCtx, imageData, landMask, pathData } = geo;
+    const { path, ctx, offCtx, imageData, landMask } = geo;
 
     // Paint claimed/unclaimed colors onto an offscreen buffer at raster
     // resolution (only land pixels matter — everything else gets clipped
@@ -354,16 +342,6 @@ export default function App() {
     ctx.clip();
     ctx.drawImage(offCtx.canvas, 0, 0);
     ctx.restore();
-
-    // faint guide line showing the route territory is unrolled along —
-    // mostly a legibility aid for why regions land where they do
-    ctx.beginPath();
-    pathData.pathPixels.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
   }
 
   function cancelPendingAnimation() {
@@ -572,21 +550,18 @@ export default function App() {
     <div className="wlc-root">
       <header className="wlc-header">
         <h1 className="wlc-title">If Wealth Were Land</h1>
-        <p className="wlc-intro">
+        <p>
           I've always found wealth distributions difficult to intuit, and there's
-          plenty of evidence I'm not alone<FootnoteRef n={1} />. One possible reason:
-          the concept of wealth is very abstract. I was curious how differently I'd
-          feel about wealth distributions if I equated global wealth to global land.
+          plenty of evidence I'm not alone<FootnoteRef n={1} />. One possible reason is that
+          the concept of wealth is actually somewhat abstract. I was curious how differently I'd
+          think about wealth distributions if I equated global wealth to global land.
           Below are two visual takes on that idea.
         </p>
+        <p>
+          First, what if instead of a regular pie chart, we divided the world's
+          land<FootnoteRef n={2} /> among different wealth tiers?
+        </p>
       </header>
-
-      <p className="wlc-lead-in">
-        First, what if instead of a regular pie chart, we divided the world's
-        land<FootnoteRef n={4} /> among different wealth tiers? Placed bottom-up:
-        click to place the poorest band first, the wealthiest last — it claims
-        whatever's left.
-      </p>
 
       <div className="wlc-chart-area" ref={chartAreaRef}>
         <div className="wlc-legend">
@@ -596,7 +571,7 @@ export default function App() {
               className={`wlc-legend-item ${i >= seeds.length ? "wlc-legend-item--pending" : ""}`}
             >
               <span className="wlc-legend-swatch" style={{ background: g.color }} />
-              <strong>{g.name}</strong> — {(g.populationShare * 100).toFixed(1)}% of adults,{" "}
+              <strong>{g.name}</strong>: {(g.populationShare * 100).toFixed(1)}% of adults,{" "}
               {(g.wealthShare * 100).toFixed(1)}% of wealth
             </div>
           ))}
@@ -659,12 +634,12 @@ export default function App() {
         <p className="wlc-prompt">
           {isAutoPlaying && currentGroup ? (
             <>
-              Now placing <strong>{currentGroup.name}</strong> —{" "}
+              Now placing <strong>{currentGroup.name}</strong>:{" "}
               {(currentGroup.wealthShare * 100).toFixed(1)}% of wealth
             </>
           ) : currentGroup ? (
             <>
-              Click the map to place <strong>{currentGroup.name}</strong> —{" "}
+              Click the map to place <strong>{currentGroup.name}</strong>:{" "}
               {(currentGroup.wealthShare * 100).toFixed(1)}% of global wealth
             </>
           ) : (
@@ -683,31 +658,33 @@ export default function App() {
       </div>
 
       <div className="wlc-takeaways">
-        <h3 className="wlc-takeaways-heading">Some interesting takeaways</h3>
+        <h3 className="wlc-takeaways-heading">Some interesting insights</h3>
         <ol className="wlc-takeaways-list">
           <li>
-            This data comes from UBS's 2026 Global Wealth Report<FootnoteRef n={2} />,
+            This data comes from UBS's 2026 Global Wealth Report<FootnoteRef n={3} />,
             which only models 56 major markets. UBS estimates this covers over 92% of
-            global wealth — but that's only about 3.85 billion of the world's roughly
-            6.1 billion adults<FootnoteRef n={3} />. This probably understates the
-            poorest wealth tier and skews the whole picture wealthier than reality.
+            global wealth, but that's only about 3.85 billion of the world's roughly
+            6.1 billion adults. This probably understates the
+            number of people in the poorer wealth tiers.
           </li>
           <li>
             If this map looks a little weird, it's because it's drawn in an equal-area
-            (Mollweide) projection, not a familiar one like Mercator. That's
-            deliberate: this piece only works if area on screen means what it
-            claims to mean, so every pixel represents the same real-world km² no matter
-            where it falls on the map. A standard map inflates land near the poles —
-            this one can't, or a region would look bigger than its actual wealth share
-            just because of where it happened to grow. The trade is that shapes and
-            angles get visibly distorted to keep area exactly right.
+            (Mollweide) projection, not a familiar one like Mercator. The benefit is
+            specific to this piece: a region can't end up looking bigger than its
+            actual wealth share just because of where it happened to land. The cost
+            is that it diverges from the projections most maps use, like Mercator, so
+            shapes and angles get visibly distorted to keep area exactly right.
           </li>
           <li>
-            I think it's interesting how, as an American, I place more visual
-            importance on North America and Europe despite Asia being significantly
-            larger. Part of this is probably a "Western" bias from where I live, and
-            part of it may be an internalized bias created by more common projections
-            (e.g. Mercator) that make Europe look disproportionately big.
+            As I played with where each region landed, I saw some personal biases
+            emerge. In particular, I place more visual importance on a region that
+            contains North America and Europe despite Asia being significantly
+            larger. Part of this is probably a "Western" bias from where I live. Some
+            may be an internalized bias created by more common projections (e.g.
+            Mercator) that make Europe look larger than reality. Some of it may be as
+            simple as two continents feeling like more territory than one. Regardless
+            of why the bias is there, it's interesting that the emotional impact of
+            the visual depends on where each region ends up.
           </li>
         </ol>
       </div>
@@ -715,8 +692,8 @@ export default function App() {
       <div className="wlc-person-section">
         <h2 className="wlc-person-heading">What that land means per person</h2>
         <p className="wlc-person-subtitle">
-          If we split each group's territory evenly across everyone in it, measured
-          out in football pitches — this is roughly what one person's share would
+          If we split each group's territory evenly across everyone in it and measured
+          it out in football pitches, this is roughly what one person's share would
           look like.
         </p>
         <svg width="0" height="0" style={{ position: "absolute" }}>
@@ -733,13 +710,13 @@ export default function App() {
                   <span className="wlc-pitch-row-swatch" style={{ background: s.color }} />
                   <strong>{s.name}</strong>
                   <span className="wlc-pitch-row-detail">
-                    On average, {formatArea(s.m2)} — {s.compareLabel}
+                    On average, {formatArea(s.m2)}: {s.compareLabel}
                   </span>
                 </div>
                 {s.openEnded && (
                   <p className="wlc-pitch-row-caveat">
                     That "{s.compareLabel}" figure comes from an average of{" "}
-                    <strong>{formatUsd(s.avgWealthUsd)}</strong> per person in this band —
+                    <strong>{formatUsd(s.avgWealthUsd)}</strong> per person in this band.
                     "$1M+" has no upper bound, so a small number of billionaires inside it pull
                     that average well above what most people in this group actually hold.
                   </p>
@@ -761,14 +738,14 @@ export default function App() {
         </div>
 
         <div className="wlc-takeaways">
-          <h3 className="wlc-takeaways-heading">Some interesting takeaways</h3>
+          <h3 className="wlc-takeaways-heading">Some interesting insights</h3>
           <ol className="wlc-takeaways-list">
             <li>
               It's again difficult to intuit the size of the smallest and largest
-              lands — a unit of measurement (like football pitches) that works for
+              lands; a unit of measurement (like football pitches) that works for
               the smallest doesn't seem to work for the largest.
             </li>
-            <li>Higher wealth tiers (e.g. billionaires) would be even harder to comprehend.</li>
+            <li>Higher wealth tiers (e.g. billionaires) would be even harder to wrap my head around.</li>
           </ol>
         </div>
       </div>

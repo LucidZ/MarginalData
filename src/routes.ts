@@ -105,6 +105,7 @@ export const ROUTES: RouteEntry[] = [
       "Global wealth inequality redrawn as claimed territory on a world map, sized by each group's share of wealth.",
     component: () => import("./2026/WealthLandCartogram"),
     group: "Everyday Comparisons",
+    image: "/og/wealth-land-cartogram.png",
   },
   {
     path: "/2025/FuelEconomyTool",
