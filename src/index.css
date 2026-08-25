@@ -1,0 +1,86 @@
+/* Sitewide base styles. Was an empty file until the pre-launch pass —
+   every rule below is new, not a refactor of something that existed. */
+
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1c1c1c;
+  --color-muted: #5a6472;
+  --color-heading: #1e3a5f;
+  --color-link: #1e3a5f;
+  --color-link-hover: #555555;
+  --color-border: #e6e6e6;
+  --color-surface: #f7f8fa;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--color-heading);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-link) 35%, transparent);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--color-link-hover);
+}
+
+ul,
+ol {
+  padding-left: 1.25rem;
+}
+
+img,
+svg {
+  max-width: 100%;
+  display: block;
+}
+
+/* No layout rules on .site-main itself — story pages each manage their own
+   width (several use 100vw/full-bleed canvases, e.g. USAIDSize), so a
+   shared max-width/padding here would clip or re-center them. Content
+   pages that want the reading-width treatment opt in via .page-content. */
+
+.page-content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-heading);
+  outline-offset: 2px;
+}
