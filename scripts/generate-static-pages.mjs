@@ -98,14 +98,51 @@ async function main() {
     );
   }
 
-  const sitemapUrls = [SITE_URL, ...allPages.map((r) => `${SITE_URL}${r.path}`)];
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapUrls
-    .map((url) => `  <url><loc>${url}</loc></url>`)
+  // route.date is only set on ROUTES (STATIC_PAGES has no publish date),
+  // so <lastmod> is included only where we actually have one to report.
+  const sitemapEntries = [
+    { url: SITE_URL },
+    ...allPages.map((r) => ({ url: `${SITE_URL}${r.path}`, date: r.date })),
+  ];
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapEntries
+    .map(
+      (e) =>
+        `  <url><loc>${e.url}</loc>${e.date ? `<lastmod>${e.date}</lastmod>` : ""}</url>`
+    )
     .join("\n")}\n</urlset>\n`;
   await writeFile(path.join(distDir, "sitemap.xml"), sitemap);
 
+  // RSS feed, newest first — ROUTES only (STATIC_PAGES aren't dated content).
+  const feedItems = [...ROUTES]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((r) => {
+      const url = `${SITE_URL}${r.path}`;
+      const pubDate = new Date(`${r.date}T00:00:00Z`).toUTCString();
+      return `    <item>
+      <title>${escapeHtml(r.title)}</title>
+      <link>${url}</link>
+      <guid>${url}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <description>${escapeHtml(r.description)}</description>
+    </item>`;
+    })
+    .join("\n");
+  const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Marginal Data</title>
+    <link>${SITE_URL}/</link>
+    <description>Small interactive experiments in data and visualization.</description>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+${feedItems}
+  </channel>
+</rss>
+`;
+  await writeFile(path.join(distDir, "rss.xml"), rss);
+
   console.log(
-    `Generated ${allPages.length} static route pages + sitemap.xml in dist/`
+    `Generated ${allPages.length} static route pages + sitemap.xml + rss.xml in dist/`
   );
 }
 

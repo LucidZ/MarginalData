@@ -15,6 +15,7 @@ export default function Footer() {
         >
           GitHub
         </a>
+        <a href="/rss.xml">RSS</a>
       </nav>
       <p className="site-footer-note">Marginal Data — a personal project.</p>
     </footer>
