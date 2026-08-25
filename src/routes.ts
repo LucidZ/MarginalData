@@ -99,6 +99,15 @@ export const ROUTES: RouteEntry[] = [
     group: "Everyday Comparisons",
   },
   {
+    path: "/2026/WealthLandCartogram",
+    title: "If Wealth Were Land — Marginal Data",
+    description:
+      "Global wealth inequality redrawn as claimed territory on a world map, sized by each group's share of wealth.",
+    component: () => import("./2026/WealthLandCartogram"),
+    group: "Everyday Comparisons",
+    image: "/og/wealth-land-cartogram.png",
+  },
+  {
     path: "/2025/FuelEconomyTool",
     title: "Compare Vehicle Fuel Efficiency — Marginal Data",
     description:

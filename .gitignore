@@ -2,11 +2,11 @@
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Data files
-data/
+# Data files (raw fetches from scripts/ — not the src/**/data or public/data
+# app assets, which are legitimately committed; see e.g. HowMany13ers/data/)
+/data/
 *.csv
 *.parquet
-*.json
 *.pkl
 *.pickle
 

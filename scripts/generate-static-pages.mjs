@@ -69,8 +69,17 @@ function renderPage(template, route) {
     route.description
   );
   if (route.image) {
-    html = replaceMetaContent(html, "property", "og:image", route.image);
-    html = replaceMetaContent(html, "name", "twitter:image", route.image);
+    // og:image (and twitter:image) must be absolute per spec — most
+    // crawlers won't resolve a relative path against the page URL.
+    const imageUrl = `${SITE_URL}${route.image}`;
+    html = replaceMetaContent(html, "property", "og:image", imageUrl);
+    html = replaceMetaContent(html, "property", "og:image:width", "1200");
+    html = replaceMetaContent(html, "property", "og:image:height", "630");
+    html = replaceMetaContent(html, "name", "twitter:image", imageUrl);
+    // Template defaults to "summary" (small thumbnail); routes with a real
+    // preview image get the large-card treatment instead. Routes without
+    // route.image are untouched, so they keep the template's default.
+    html = replaceMetaContent(html, "name", "twitter:card", "summary_large_image");
   }
   return html;
 }
