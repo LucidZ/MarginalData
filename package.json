@@ -8,6 +8,7 @@
     "build": "vite build && node scripts/generate-static-pages.mjs && node scripts/check-data-files.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
+    "og": "node scripts/capture-og.mjs",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
