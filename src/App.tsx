@@ -1,10 +1,14 @@
 import { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import AiUsePage from "./pages/AiUsePage";
 import LoadingSpinner from "./components/LoadingSpinner";
 import NotFound from "./pages/NotFound";
 import UmamiPageTracker from "./components/UmamiPageTracker";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import { ROUTES } from "./routes";
 
 // Hoisted to module scope so lazy() is only called once per route, not on every render.
@@ -22,6 +26,9 @@ function App() {
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/ai" element={<AiUsePage />} />
             {lazyRoutes.map(({ path, Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
@@ -29,6 +36,7 @@ function App() {
           </Routes>
         </Suspense>
       </main>
+      <Footer />
     </Router>
   );
 }

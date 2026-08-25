@@ -11,7 +11,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ROUTES } from "../src/routes.ts";
+import { ROUTES, STATIC_PAGES } from "../src/routes.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -87,7 +87,9 @@ function renderPage(template, route) {
 async function main() {
   const template = await readFile(path.join(distDir, "index.html"), "utf-8");
 
-  for (const route of ROUTES) {
+  const allPages = [...ROUTES, ...STATIC_PAGES];
+
+  for (const route of allPages) {
     const outDir = path.join(distDir, route.path.replace(/^\//, ""));
     await mkdir(outDir, { recursive: true });
     await writeFile(
@@ -96,14 +98,14 @@ async function main() {
     );
   }
 
-  const sitemapUrls = [SITE_URL, ...ROUTES.map((r) => `${SITE_URL}${r.path}`)];
+  const sitemapUrls = [SITE_URL, ...allPages.map((r) => `${SITE_URL}${r.path}`)];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapUrls
     .map((url) => `  <url><loc>${url}</loc></url>`)
     .join("\n")}\n</urlset>\n`;
   await writeFile(path.join(distDir, "sitemap.xml"), sitemap);
 
   console.log(
-    `Generated ${ROUTES.length} static route pages + sitemap.xml in dist/`
+    `Generated ${allPages.length} static route pages + sitemap.xml in dist/`
   );
 }
 

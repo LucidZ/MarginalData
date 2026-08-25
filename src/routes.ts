@@ -11,6 +11,36 @@ export interface RouteEntry {
   note: string; // first-person: what I was trying to figure out. Not the SEO description.
 }
 
+// Informational pages (About/Privacy/AI Use) — not a project story, so
+// they're kept out of ROUTES/the homepage feed, but still get a real
+// title/description stamped by generate-static-pages.mjs the same way.
+export interface StaticPage {
+  path: string;
+  title: string;
+  description: string;
+}
+
+export const STATIC_PAGES: StaticPage[] = [
+  {
+    path: "/about",
+    title: "About — Marginal Data",
+    description:
+      "What Marginal Data is, why it's called that, and how to get in touch.",
+  },
+  {
+    path: "/privacy",
+    title: "Privacy — Marginal Data",
+    description:
+      "No cookie banner, no tracking cookies — what this site actually collects.",
+  },
+  {
+    path: "/ai",
+    title: "AI Use — Marginal Data",
+    description:
+      "How AI is and isn't used to build Marginal Data's stories.",
+  },
+];
+
 export const ROUTES: RouteEntry[] = [
   {
     path: "/2025/USAIDSize",
