@@ -6,8 +6,6 @@ export default function Footer() {
     <footer className="site-footer">
       <nav className="site-footer-links" aria-label="Site">
         <Link to="/about">About</Link>
-        <Link to="/privacy">Privacy</Link>
-        <Link to="/ai">AI Use</Link>
         <a
           href="https://github.com/LucidZ/MarginalData"
           target="_blank"

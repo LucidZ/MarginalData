@@ -2,8 +2,6 @@ import { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/AboutPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import AiUsePage from "./pages/AiUsePage";
 import LoadingSpinner from "./components/LoadingSpinner";
 import NotFound from "./pages/NotFound";
 import UmamiPageTracker from "./components/UmamiPageTracker";
@@ -27,8 +25,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/ai" element={<AiUsePage />} />
             {lazyRoutes.map(({ path, Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
