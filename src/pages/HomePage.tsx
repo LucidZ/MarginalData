@@ -40,15 +40,6 @@ export default function Home() {
   return (
     <div className="blog-layout">
       <h1>Marginal Data</h1>
-      <section className="blog-content">
-        <p>
-          Marginal Data is a collection of small interactive experiments in
-          data and visualization — some serious (how marginal tax rates
-          actually work), some just for fun (how much bigger is a large
-          pizza, really?). Newest first, so it doubles as a running log of
-          what I've been learning. Pick something below and poke around.
-        </p>
-      </section>
 
       <nav className="home-filters" aria-label="Filter by topic">
         <button

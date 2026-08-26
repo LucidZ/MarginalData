@@ -9,12 +9,6 @@
   margin: 0 0 0.9rem;
 }
 
-.blog-content p {
-  color: var(--color-muted);
-  font-size: 1.02rem;
-  max-width: 62ch;
-}
-
 .home-filters {
   display: flex;
   flex-wrap: wrap;
