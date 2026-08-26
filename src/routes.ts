@@ -41,7 +41,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Government & Politics",
     image: "/og/usaid-size.jpg",
     date: "2025-05-07",
-    note: "Where this whole site started. I believe data visualization can inform, but it's too often glossed over — the idea was to make readers guess first, then confront what they actually believed against the real numbers.",
+    note: "Where this whole site started. I think good data viz can inform people, but I often feel valuable insights get glossed over. I wanted readers to engage with their prior beliefs by forcing them to guess first, then reveal the real numbers.",
   },
   {
     path: "/2025/ForeignAid",
@@ -85,7 +85,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Personal Finance",
     image: "/og/marginal-tax.jpg",
     date: "2026-07-07",
-    note: "Marginal tax rates are one of the most misunderstood ideas in personal finance — I wanted to see if a scrollyteller could actually fix that.",
+    note: "Marginal tax rates is a commonly misunderstood idea in personal finance. I wanted to see if a scrollyteller that looks at each \"marginal\" dollar earned can show how they work instead of telling how they work.",
   },
   {
     path: "/2026/PassingCompass",
@@ -140,7 +140,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Decision-Making",
     image: "/og/decision-component-analyzer.jpg",
     date: "2025-12-15",
-    note: "The companion piece to the Decision Vectorizer, built the day before — same job-choice problem, breaking it down a different way.",
+    note: "Another version of yesterday's Decision Vectorizer, just breaking it down a different way.",
   },
   {
     path: "/2025/PizzaAreaComparison",
@@ -151,7 +151,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Everyday Comparisons",
     image: "/og/pizza-area-comparison.jpg",
     date: "2025-11-11",
-    note: "A silly little tool for how much more pizza — and crust — you actually get as size goes up.",
+    note: "A silly little tool for how much more pizza (and crust) you actually get as size goes up.",
   },
   {
     path: "/2026/WealthLandCartogram",
@@ -162,7 +162,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Everyday Comparisons",
     image: "/og/wealth-land-cartogram.png",
     date: "2026-08-24",
-    note: "Wealth distributions have always felt hard to intuit — I wanted to see if grounding the data in something tangible, like land area, would make the inequality easier to feel.",
+    note: "Wealth distributions have always felt hard to intuit. I wanted to see if grounding the data in something tangible, like land area, would make the inequality easier to feel.",
   },
   {
     path: "/2025/FuelEconomyTool",
@@ -173,7 +173,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Everyday Comparisons",
     image: "/og/fuel-economy-tool.jpg",
     date: "2025-11-03",
-    note: "My first time pulling data from a live API — fuel economy lookups seemed like a good place to start.",
+    note: "My first time pulling data from a live API. Fueleconomy.gov's public API seemed like a good place to start.",
   },
   {
     path: "/2025/FuelEconomyCurve",
@@ -206,7 +206,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Explorers & Simulators",
     image: "/og/image-scrambler.jpg",
     date: "2025-12-12",
-    note: "A small toy exploring an unscrambling mechanic — still haven't found a real use for it, but maybe as a reward that reveals itself as you complete tasks.",
+    note: "A small toy exploring an unscrambling mechanic. I still haven't found a real use for it, but I think the effect is neat.",
   },
   {
     path: "/2025/HowMany13ers",
@@ -217,7 +217,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Explorers & Simulators",
     image: "/og/how-many13ers.jpg",
     date: "2025-12-18",
-    note: "Colorado is obsessed with 14ers, but I've always thought 13ers have just-as-good views with way fewer people — this one's a mapping and filtering exercise to make that case.",
+    note: "Colorado is obsessed with 14ers, but I've always thought 13ers have just-as-good views with way fewer people. Sliding the filter along creates an oddly pleasing visual.",
   },
   {
     path: "/2025/SpaceTraveler",
@@ -228,6 +228,6 @@ export const ROUTES: RouteEntry[] = [
     group: "Explorers & Simulators",
     image: "/og/space-traveler.jpg",
     date: "2026-02-16",
-    note: "Reading The Expanse got me hooked on the idea of using constant acceleration to simulate gravity on a ship — I wanted to see what that travel actually looks like as planets orbit. Turns out it's a lot faster than I expected.",
+    note: "In the book The Expanse, ships simulate gravity by accelerating at the same rate gravity pulls on Earth. I wanted to see what that travel actually looks like as planets orbit. Turns out it's a lot faster than expected.",
   },
 ];

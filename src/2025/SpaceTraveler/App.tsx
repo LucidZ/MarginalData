@@ -246,6 +246,14 @@ export default function App() {
             <strong>Planetary positions:</strong> Calculated using the
             astronomy-engine library with real ephemeris data.
           </p>
+          <p style={{ margin: "10px 0" }}>
+            <strong>Why the orbits barely matter:</strong> I pictured ships
+            setting off toward empty space and intercepting planets as they
+            orbited, but it turns out the speeds reached here make orbital
+            position mostly inconsequential. Real spacecraft would presumably
+            lean on slingshot maneuvers instead, which would make this a more
+            interesting problem. Maybe another day.
+          </p>
         </div>
       </div>
     </div>
