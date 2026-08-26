@@ -6,10 +6,13 @@ export default function AboutPage() {
       <h1>About</h1>
       <p>
         I'm Lucas Zalduendo. This page serves a scratch pad for me to noodle on some
-        different data sets and ways to visualize them. The name of the page,
-        Marginal Data, roughly reflects the spirit of the site: every
-        post, however small, is a new data set or visualization hopefully eliciting a
-         new insight or understanding of the world we live in.
+        different data sets and ways to visualize them. 
+      </p>
+      <p>  
+        The name of the page, Marginal Data, is a portmanteau of two blogs that I've
+        enjoyed reading over the years: marginalrevolution.com and flowingdata.com.
+        Each post, however small, aims to explore data visually in ways that can better improve my
+        understanding of the world we live in.
       </p>
 
       <h2>AI use</h2>
