@@ -149,6 +149,10 @@ async function main() {
     if (recipe) {
       const page = await browser.newPage({
         viewport: recipe.viewport ?? { width: 1400, height: 900 },
+        // Some charts render at a small fixed pixel size (e.g. USAIDSize's
+        // 300x300 pie) — a higher deviceScaleFactor captures more source
+        // pixels so the card's object-fit:cover upscale doesn't look soft.
+        deviceScaleFactor: recipe.deviceScaleFactor ?? 1,
       });
       try {
         await page.goto(`${BASE_URL}${route.path}`, { waitUntil: "load" });
