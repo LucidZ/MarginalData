@@ -1,0 +1,33 @@
+.site-footer {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+}
+
+.site-footer-links a {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.site-footer-links a:hover {
+  color: var(--color-heading);
+}
+
+.site-footer-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
