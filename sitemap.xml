@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://marginaldata.com</loc></url>
-  <url><loc>https://marginaldata.com/2025/USAIDSize</loc></url>
-  <url><loc>https://marginaldata.com/2025/ForeignAid</loc></url>
-  <url><loc>https://marginaldata.com/2025/FederalEmployment</loc></url>
-  <url><loc>https://marginaldata.com/2026/VoterAffiliation</loc></url>
-  <url><loc>https://marginaldata.com/2026/MarginalTax</loc></url>
-  <url><loc>https://marginaldata.com/2026/PassingCompass</loc></url>
-  <url><loc>https://marginaldata.com/2026/PassingTriangleMatchingGame</loc></url>
-  <url><loc>https://marginaldata.com/2026/PossessionShape</loc></url>
-  <url><loc>https://marginaldata.com/2025/DecisionVectorizer</loc></url>
-  <url><loc>https://marginaldata.com/2025/DecisionComponentAnalyzer</loc></url>
-  <url><loc>https://marginaldata.com/2025/PizzaAreaComparison</loc></url>
-  <url><loc>https://marginaldata.com/2026/WealthLandCartogram</loc></url>
-  <url><loc>https://marginaldata.com/2025/FuelEconomyTool</loc></url>
-  <url><loc>https://marginaldata.com/2025/FuelEconomyCurve</loc></url>
-  <url><loc>https://marginaldata.com/2025/SolarAnimation</loc></url>
-  <url><loc>https://marginaldata.com/2025/ImageScrambler</loc></url>
-  <url><loc>https://marginaldata.com/2025/HowMany13ers</loc></url>
-  <url><loc>https://marginaldata.com/2025/SpaceTraveler</loc></url>
+  <url><loc>https://marginaldata.com/2025/USAIDSize</loc><lastmod>2025-05-07</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/ForeignAid</loc><lastmod>2025-05-08</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/FederalEmployment</loc><lastmod>2025-05-08</lastmod></url>
+  <url><loc>https://marginaldata.com/2026/VoterAffiliation</loc><lastmod>2026-07-06</lastmod></url>
+  <url><loc>https://marginaldata.com/2026/MarginalTax</loc><lastmod>2026-07-07</lastmod></url>
+  <url><loc>https://marginaldata.com/2026/PassingCompass</loc><lastmod>2026-07-22</lastmod></url>
+  <url><loc>https://marginaldata.com/2026/PassingTriangleMatchingGame</loc><lastmod>2026-07-24</lastmod></url>
+  <url><loc>https://marginaldata.com/2026/PossessionShape</loc><lastmod>2026-07-30</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/DecisionVectorizer</loc><lastmod>2025-12-16</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/DecisionComponentAnalyzer</loc><lastmod>2025-12-15</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/PizzaAreaComparison</loc><lastmod>2025-11-11</lastmod></url>
+  <url><loc>https://marginaldata.com/2026/WealthLandCartogram</loc><lastmod>2026-08-24</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/FuelEconomyTool</loc><lastmod>2025-11-03</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/FuelEconomyCurve</loc><lastmod>2025-11-05</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/SolarAnimation</loc><lastmod>2025-12-04</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/ImageScrambler</loc><lastmod>2025-12-12</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/HowMany13ers</loc><lastmod>2025-12-18</lastmod></url>
+  <url><loc>https://marginaldata.com/2025/SpaceTraveler</loc><lastmod>2026-02-16</lastmod></url>
+  <url><loc>https://marginaldata.com/about</loc></url>
 </urlset>

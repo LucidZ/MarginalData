@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Marginal Data</title>
+    <link>https://marginaldata.com/</link>
+    <description>Small interactive experiments in data and visualization.</description>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 26 Aug 2026 21:16:08 GMT</lastBuildDate>
+    <item>
+      <title>If Wealth Were Land — Marginal Data</title>
+      <link>https://marginaldata.com/2026/WealthLandCartogram</link>
+      <guid>https://marginaldata.com/2026/WealthLandCartogram</guid>
+      <pubDate>Mon, 24 Aug 2026 00:00:00 GMT</pubDate>
+      <description>Global wealth inequality redrawn as claimed territory on a world map, sized by each group's share of wealth.</description>
+    </item>
+    <item>
+      <title>Possession Shape: Argentina vs. France — Marginal Data</title>
+      <link>https://marginaldata.com/2026/PossessionShape</link>
+      <guid>https://marginaldata.com/2026/PossessionShape</guid>
+      <pubDate>Thu, 30 Jul 2026 00:00:00 GMT</pubDate>
+      <description>Comparing each team's average player positioning in and out of possession during the 2022 World Cup Final.</description>
+    </item>
+    <item>
+      <title>Passing Triangle Matching Game — Marginal Data</title>
+      <link>https://marginaldata.com/2026/PassingTriangleMatchingGame</link>
+      <guid>https://marginaldata.com/2026/PassingTriangleMatchingGame</guid>
+      <pubDate>Fri, 24 Jul 2026 00:00:00 GMT</pubDate>
+      <description>Match player jerseys to their passing triangles from the 2022 World Cup Final in this quick guessing game.</description>
+    </item>
+    <item>
+      <title>Passing Compass — Marginal Data</title>
+      <link>https://marginaldata.com/2026/PassingCompass</link>
+      <guid>https://marginaldata.com/2026/PassingCompass</guid>
+      <pubDate>Wed, 22 Jul 2026 00:00:00 GMT</pubDate>
+      <description>Visualizing every pass from the 2022 World Cup Final as a vector, encoding direction and distance on a compass.</description>
+    </item>
+    <item>
+      <title>How Marginal Tax Rates Actually Work — Marginal Data</title>
+      <link>https://marginaldata.com/2026/MarginalTax</link>
+      <guid>https://marginaldata.com/2026/MarginalTax</guid>
+      <pubDate>Tue, 07 Jul 2026 00:00:00 GMT</pubDate>
+      <description>A scrollytelling walkthrough of how tax brackets apply only to the dollars within them, not your whole income.</description>
+    </item>
+    <item>
+      <title>Colorado Voter Affiliation, 2016–2026 — Marginal Data</title>
+      <link>https://marginaldata.com/2026/VoterAffiliation</link>
+      <guid>https://marginaldata.com/2026/VoterAffiliation</guid>
+      <pubDate>Mon, 06 Jul 2026 00:00:00 GMT</pubDate>
+      <description>A decade of county-level voter registration trends across Colorado, explored with ternary and cartesian charts.</description>
+    </item>
+    <item>
+      <title>Expanse-Style Space Travel Simulator — Marginal Data</title>
+      <link>https://marginaldata.com/2025/SpaceTraveler</link>
+      <guid>https://marginaldata.com/2025/SpaceTraveler</guid>
+      <pubDate>Mon, 16 Feb 2026 00:00:00 GMT</pubDate>
+      <description>A brachistochrone trajectory simulator calculating realistic flip-and-burn travel times between planets.</description>
+    </item>
+    <item>
+      <title>How Many 13ers? Colorado Summits Explorer — Marginal Data</title>
+      <link>https://marginaldata.com/2025/HowMany13ers</link>
+      <guid>https://marginaldata.com/2025/HowMany13ers</guid>
+      <pubDate>Thu, 18 Dec 2025 00:00:00 GMT</pubDate>
+      <description>An interactive map and filterable table of all 3,200+ named summits in Colorado, from 14ers to foothills.</description>
+    </item>
+    <item>
+      <title>Decision Vectorizer — Marginal Data</title>
+      <link>https://marginaldata.com/2025/DecisionVectorizer</link>
+      <guid>https://marginaldata.com/2025/DecisionVectorizer</guid>
+      <pubDate>Tue, 16 Dec 2025 00:00:00 GMT</pubDate>
+      <description>Visualizing decisions as vectors, combining weighted factors to compare options against each other.</description>
+    </item>
+    <item>
+      <title>Decision Component Analyzer — Marginal Data</title>
+      <link>https://marginaldata.com/2025/DecisionComponentAnalyzer</link>
+      <guid>https://marginaldata.com/2025/DecisionComponentAnalyzer</guid>
+      <pubDate>Mon, 15 Dec 2025 00:00:00 GMT</pubDate>
+      <description>Breaking a decision down into its weighted components to see what's actually driving the choice.</description>
+    </item>
+    <item>
+      <title>Image Scrambler — Marginal Data</title>
+      <link>https://marginaldata.com/2025/ImageScrambler</link>
+      <guid>https://marginaldata.com/2025/ImageScrambler</guid>
+      <pubDate>Fri, 12 Dec 2025 00:00:00 GMT</pubDate>
+      <description>Scramble and reassemble images to explore how puzzle difficulty scales with the number of pieces.</description>
+    </item>
+    <item>
+      <title>Solar Generation Explorer — Marginal Data</title>
+      <link>https://marginaldata.com/2025/SolarAnimation</link>
+      <guid>https://marginaldata.com/2025/SolarAnimation</guid>
+      <pubDate>Thu, 04 Dec 2025 00:00:00 GMT</pubDate>
+      <description>An animated look at how solar power generation rises and falls across the day and across seasons.</description>
+    </item>
+    <item>
+      <title>How Much More Pizza Is a Large? — Marginal Data</title>
+      <link>https://marginaldata.com/2025/PizzaAreaComparison</link>
+      <guid>https://marginaldata.com/2025/PizzaAreaComparison</guid>
+      <pubDate>Tue, 11 Nov 2025 00:00:00 GMT</pubDate>
+      <description>An interactive pizza-size slider showing how area, not diameter, actually determines how much pizza you get.</description>
+    </item>
+    <item>
+      <title>Fuel Economy Curve Visualization — Marginal Data</title>
+      <link>https://marginaldata.com/2025/FuelEconomyCurve</link>
+      <guid>https://marginaldata.com/2025/FuelEconomyCurve</guid>
+      <pubDate>Wed, 05 Nov 2025 00:00:00 GMT</pubDate>
+      <description>Plotting how a vehicle's fuel efficiency changes with speed across its full operating range.</description>
+    </item>
+    <item>
+      <title>Compare Vehicle Fuel Efficiency — Marginal Data</title>
+      <link>https://marginaldata.com/2025/FuelEconomyTool</link>
+      <guid>https://marginaldata.com/2025/FuelEconomyTool</guid>
+      <pubDate>Mon, 03 Nov 2025 00:00:00 GMT</pubDate>
+      <description>Look up and compare real fuel economy ratings across vehicles side by side.</description>
+    </item>
+    <item>
+      <title>How Does US Foreign Aid Rank Globally? — Marginal Data</title>
+      <link>https://marginaldata.com/2025/ForeignAid</link>
+      <guid>https://marginaldata.com/2025/ForeignAid</guid>
+      <pubDate>Thu, 08 May 2025 00:00:00 GMT</pubDate>
+      <description>Comparing US foreign aid spending against other countries, in absolute dollars and as a share of GDP.</description>
+    </item>
+    <item>
+      <title>How Big Is US Federal Employment? — Marginal Data</title>
+      <link>https://marginaldata.com/2025/FederalEmployment</link>
+      <guid>https://marginaldata.com/2025/FederalEmployment</guid>
+      <pubDate>Thu, 08 May 2025 00:00:00 GMT</pubDate>
+      <description>Putting the size of the federal workforce in context against state, local, and private-sector employment.</description>
+    </item>
+    <item>
+      <title>How Big Was USAID? — Marginal Data</title>
+      <link>https://marginaldata.com/2025/USAIDSize</link>
+      <guid>https://marginaldata.com/2025/USAIDSize</guid>
+      <pubDate>Wed, 07 May 2025 00:00:00 GMT</pubDate>
+      <description>Guess how large USAID's budget actually was compared to the rest of the federal budget, then see the real numbers.</description>
+    </item>
+  </channel>
+</rss>
