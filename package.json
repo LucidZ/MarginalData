@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "og": "node scripts/capture-og.mjs",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist --dotfiles"
+    "deploy": "gh-pages -d dist"
   },
   "homepage": "https://LucidZ.github.io/MarginalData/",
   "dependencies": {
