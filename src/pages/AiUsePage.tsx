@@ -3,20 +3,16 @@ export default function AiUsePage() {
     <div className="page-content">
       <h1>AI Use</h1>
       <p>
-        AI (specifically Claude, from Anthropic) assists with writing code
-        and building visualizations on this site.
+        I use AI (specifically Claude, from Anthropic) to write almost all 
+        of the code on this site.
       </p>
       <p>
-        It does not generate the data. Every number here comes from a named
-        primary source — Treasury, FRED, StatsBomb, the EPA,
-        fueleconomy.gov, and others credited in each story's own sources
-        section — and is checked against that source before it ships.
+        I do not use AI to generate the data. Every number here comes from a named
+        primary source. However, if you'd like to recreate a chart or visual, I would recommend
+        pulling directly from the cited primary sources to avoid possible errors I may
+        have imbued in the data.
       </p>
-      <p>
-        The analysis, the framing, and the editorial calls — what a chart
-        emphasizes, what story it tells — are mine. AI is a tool for
-        building faster, not a stand-in for judgment.
-      </p>
+
     </div>
   );
 }
