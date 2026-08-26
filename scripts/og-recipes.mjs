@@ -82,4 +82,40 @@ export const RECIPES = {
     // Scroll into the story steps, past the bare-axes opening state.
     pose: (page) => scrollFraction(page, 0.35),
   },
+
+  "/2025/SpaceTraveler": {
+    // Only one <canvas> on the page — the starfield/trajectory view.
+    clip: "canvas",
+    pose: async (page) => {
+      // Default trajectory (Earth -> Mars, 1g, computed on mount) starts
+      // the ship flush against Earth with a zero-length trail — not much
+      // of a picture. Click into the timeline slider's track instead of
+      // .fill() (Playwright refuses to fill range inputs) so the ship is
+      // mid-flight, green (accelerating), with a visible trail against the
+      // dashed trajectory line.
+      const slider = page.locator("#timeline");
+      const box = await slider.boundingBox();
+      await slider.click({ position: { x: box.width * 0.38, y: box.height / 2 } });
+      await page.waitForTimeout(300);
+    },
+  },
+
+  "/2025/HowMany13ers": {
+    // Tried spanning the histogram + map together (like the matching
+    // game's board+strip crop), but that box is ~2.3:1 vs. the card's
+    // 1.9:1 — the template's object-fit:cover center-crop chewed the
+    // narrow histogram down to an unreadable sliver. The map alone (react-
+    // leaflet's own ".leaflet-container", lazy-loaded) already tells the
+    // story: colored summit dots by elevation across Colorado terrain.
+    clip: ".leaflet-container",
+    // Default filter range (13000-14000ft) is already exactly this page's
+    // premise, so nothing to set there — just wait out the lazy chunk
+    // load + Leaflet init + Esri tile fetch. .leaflet-container exists
+    // as soon as the map mounts (before markers/tiles paint), so wait for
+    // an actual marker rather than the container itself.
+    pose: async (page) => {
+      await page.waitForSelector(".leaflet-interactive", { state: "visible" });
+      await page.waitForTimeout(800);
+    },
+  },
 };
