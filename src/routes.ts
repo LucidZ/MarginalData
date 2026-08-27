@@ -96,7 +96,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Soccer Analytics",
     image: "/og/passing-compass.jpg",
     date: "2026-07-22",
-    note: "Inspired by the World Cup, I was curious what kind of soccer tracking data exists to play with, starting at the player level. Despite how noisy the data is, you can still tell players apart by their passing compass.",
+    note: "Watching the World Cup got me curious what soccer tracking data exists to play with. StatsBomb's free open data only covers the 2022 final though, so that's what this uses (Argentina vs. France, not this year's tournament). Despite how noisy it is, you can still tell players apart by their passing compass.",
   },
   {
     path: "/2026/PassingTriangleMatchingGame",
@@ -107,7 +107,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Soccer Analytics",
     image: "/og/passing-triangle-matching-game.jpg",
     date: "2026-07-24",
-    note: "Kept going with the World Cup data, adding pitch context to passing sequences and turning it into an interactive matching game.",
+    note: "Kept going with that same 2022 final data, adding pitch context to passing sequences and turning it into an interactive matching game.",
   },
   {
     path: "/2026/PossessionShape",
@@ -118,7 +118,7 @@ export const ROUTES: RouteEntry[] = [
     group: "Soccer Analytics",
     image: "/og/possession-shape.jpg",
     date: "2026-07-30",
-    note: "A follow-up to the other soccer visuals: team shape, and how positioning shifts from defense to offense.",
+    note: "A follow-up to the other two, still the same 2022 final: team shape, and how positioning shifts from defense to offense.",
   },
   {
     path: "/2025/DecisionVectorizer",
