@@ -217,6 +217,9 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [dotPhaseMs, setDotPhaseMs] = useState(GROW_MS);
+  // True while the pointer is over ground that can't take a seed — see
+  // seedPointAt for why claimed land is off limits.
+  const [isHoverBlocked, setIsHoverBlocked] = useState(false);
 
   // Auto-play: the map plays through AUTO_PLAY_SEEDS by itself the first
   // time it scrolls into view, so nobody has to realize clicking is even
@@ -534,7 +537,15 @@ export default function App() {
     }
 
     const solveStart = performance.now();
-    const fitTrace: number[] = [];
+    // Diagnostics are collected only in dev; passing undefined in production
+    // means the solver skips recording entirely rather than filling arrays
+    // nobody will read. Both are surfaced on the window handle below — the
+    // fit trace shows whether the weight solve converged or oscillated, the
+    // dither log shows each pass's transfers, and it was the dither log that
+    // exposed two groups trading the same debt back and forth while a patch
+    // of land sat unclaimed against a third.
+    const fitTrace: number[] | undefined = import.meta.env.DEV ? [] : undefined;
+    const ditherLog: unknown[] | undefined = import.meta.env.DEV ? [] : undefined;
     const { label: targetLabel, weights } = solvePartition(
       landMask,
       landCells,
@@ -545,7 +556,8 @@ export default function App() {
       GRID_WIDTH,
       GRID_HEIGHT,
       weightsRef.current,
-      fitTrace
+      fitTrace,
+      ditherLog
     );
     weightsRef.current = weights;
 
@@ -560,6 +572,9 @@ export default function App() {
     if (import.meta.env.DEV) {
       (window as unknown as Record<string, unknown>).__wlc = {
         label: targetLabel,
+        // Water carries the same -1 label as unclaimed land, so anything
+        // reasoning about "open ground" needs the mask to tell them apart.
+        land: landMask,
         width: GRID_WIDTH,
         height: GRID_HEIGHT,
         quotas,
@@ -567,6 +582,7 @@ export default function App() {
         weights: Array.from(weights),
         seedCells: [...seedCells],
         trace: fitTrace,
+        ditherLog,
         solveMs: performance.now() - solveStart,
       };
     }
@@ -661,25 +677,68 @@ export default function App() {
     return () => cancelPendingAnimation();
   }, [seeds, personDots, isReady]);
 
-  function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
+  /**
+   * Where a pointer event lands, or null if it isn't a legal place to seed a
+   * group.
+   *
+   * Groups may only be seeded on *unclaimed* land. Two seeds landing on the
+   * same cell give the solver identical distance fields, at which point no
+   * choice of weights can tell the groups apart and one of them takes
+   * everything — and seeds merely close together are a softer version of the
+   * same problem (see geoAssign.ts). Requiring open ground rules that out,
+   * and does it with a rule that scales itself: a group's territory is
+   * exactly as large as its share of the wealth, so the space it reserves
+   * around its own seed grows with it, which is the shape the degeneracy
+   * has too. It also needs no explaining in the UI, because the legal area
+   * is already on screen as the grey land.
+   *
+   * The trade is that a group can't be aimed at ground somebody already
+   * holds. Displacement still happens — the last group is seeded in whatever
+   * is left and shoves the others aside to reach its share — you just can't
+   * point at the spot it should shove from.
+   */
+  function seedPointAt(e: React.MouseEvent<HTMLCanvasElement>): [number, number] | null {
     const geo = geoRef.current;
     const canvas = canvasRef.current;
-    if (!geo || !canvas || !isReady || isComplete || isAnimating || isAutoPlayingRef.current) return;
+    if (!geo || !canvas || !isReady || isComplete || isAnimating || isAutoPlayingRef.current) {
+      return null;
+    }
 
     const rect = canvas.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * GRID_WIDTH;
     const py = ((e.clientY - rect.top) / rect.height) * GRID_HEIGHT;
     const lonLat = geo.projection.invert?.([px, py]);
-    if (!lonLat) return; // no inverse at all for this point
+    if (!lonLat) return null; // no inverse at all for this point
 
     // Albers, like Mollweide, extrapolates rather than returning null for
     // points outside the drawn landmass (e.g. the corners of the canvas),
     // so validate by projecting back and checking it lands near the
     // original click.
     const roundTrip = geo.projection(lonLat);
-    if (!roundTrip || Math.hypot(roundTrip[0] - px, roundTrip[1] - py) > 1) return;
+    if (!roundTrip || Math.hypot(roundTrip[0] - px, roundTrip[1] - py) > 1) return null;
 
-    setSeeds((prev) => [...prev, lonLat as [number, number]]);
+    // Test the land cell the seed would actually snap to, not the raw pixel:
+    // a click a little offshore is legal and lands on the nearest coast, but
+    // it must not snap onto ground that is already spoken for.
+    const cell = nearestLandCell(geo.landCells, GRID_WIDTH, roundTrip[0], roundTrip[1]);
+    const claimed = committedLabelRef.current;
+    if (claimed && claimed[cell] >= 0) return null;
+
+    return lonLat as [number, number];
+  }
+
+  function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
+    const point = seedPointAt(e);
+    if (!point) return;
+    setSeeds((prev) => [...prev, point]);
+  }
+
+  // Hover feedback, so nobody has to discover the rule by clicking and having
+  // nothing happen. Only writes state on an actual change — this fires on
+  // every mouse move over a full-width canvas.
+  function handleCanvasMove(e: React.MouseEvent<HTMLCanvasElement>) {
+    const blocked = seedPointAt(e) === null;
+    setIsHoverBlocked((prev) => (prev === blocked ? prev : blocked));
   }
 
   return (
@@ -719,9 +778,15 @@ export default function App() {
             ref={canvasRef}
             className="wlc-canvas"
             style={{
-              cursor: isComplete || isAnimating || isAutoPlaying ? "default" : "crosshair",
+              cursor: isComplete || isAnimating || isAutoPlaying
+                ? "default"
+                : isHoverBlocked
+                  ? "not-allowed"
+                  : "crosshair",
             }}
             onClick={handleCanvasClick}
+            onMouseMove={handleCanvasMove}
+            onMouseLeave={() => setIsHoverBlocked(false)}
           />
           {!isReady && <div className="wlc-loading">Preparing map…</div>}
           {/* Shared symbol so every dot below is a lightweight <use>, not its
@@ -776,7 +841,8 @@ export default function App() {
             </>
           ) : currentGroup ? (
             <>
-              Click the map to place <strong>{currentGroup.name}</strong>:{" "}
+              Click {seeds.length > 0 ? "any unclaimed (grey) land" : "the map"} to
+              place <strong>{currentGroup.name}</strong>:{" "}
               {(currentGroup.wealthShare * 100).toFixed(1)}% of U.S. net worth
             </>
           ) : (

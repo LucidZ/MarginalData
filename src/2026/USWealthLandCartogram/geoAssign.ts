@@ -535,7 +535,8 @@ export function ditherToExact(
   quotas: number[],
   seedCells: number[],
   width: number,
-  height: number
+  height: number,
+  log?: unknown[]
 ): number[] {
   // A group's own seed is never tradeable. It needs saying explicitly,
   // because when a group is being squeezed its seed is the *first* cell
@@ -678,11 +679,15 @@ export function ditherToExact(
     return moved;
   };
 
-  // A relay pass deliberately makes the books look worse for a moment (the
-  // relaying group goes short so the debt can move), so progress is tracked
-  // against the best state seen rather than the previous pass, and the loop
-  // gives up once a few passes in a row fail to beat it. Without that, two
-  // groups can hand the same debt back and forth until the pass cap runs out.
+  // A relay pass moves debt from one group to another without changing how
+  // much is outstanding, so it looks like no progress even when it is the
+  // only thing making any. The debt may have to walk several groups to reach
+  // whoever actually owes it — one relay plus one absorb per hop — so the
+  // stall allowance has to cover a full walk across all of them. Set it too
+  // tight (it was 3) and the loop quits mid-walk, stranding a visible patch
+  // of unclaimed land. This only exists to catch genuine ping-ponging, since
+  // a pass that moves nothing at all already breaks out on its own.
+  const STALL_ALLOWANCE = 8;
   let bestOutstanding = Infinity;
   let stalled = 0;
 
@@ -693,7 +698,7 @@ export function ditherToExact(
     if (outstanding < bestOutstanding) {
       bestOutstanding = outstanding;
       stalled = 0;
-    } else if (++stalled >= 3) break;
+    } else if (++stalled >= STALL_ALLOWANCE) break;
 
     // Two half-steps, and the order matters. Early on, the placed groups are
     // separate blobs with unclaimed land between them and share no border at
@@ -703,6 +708,7 @@ export function ditherToExact(
     // group somewhere to shed into. Net movement of unclaimed land is zero,
     // and since the quotas sum to the whole landmass, driving every group to
     // its target puts unclaimed on target automatically.
+    const passStart = areas.slice();
     const absorbed = runTransfer(
       (g) => g === k || areas[g] > target[g],
       (g) => g < k && areas[g] < target[g]
@@ -711,7 +717,29 @@ export function ditherToExact(
       (g) => g < k && areas[g] > target[g],
       (g) => g === k && areas[k] < target[k]
     );
+    if (log) log.push({ pass, phase: 'absorb/shed', absorbed, shed, before: passStart, after: areas.slice(), target: target.slice() });
     if (absorbed + shed > 0) continue;
+
+    // Leftover land that no *short* group happens to touch. Absorb can't take
+    // it (it only feeds groups that are under quota) and the relay can't
+    // reach it either — the relay walks debt between groups along whichever
+    // border is cheapest, so with the leftover sitting against some third
+    // group, two others will hand the same debt back and forth indefinitely
+    // while the patch is never even considered. This was leaving a visible
+    // grey patch on the Olympic Peninsula.
+    //
+    // So: let whoever actually touches it take it, regardless of whether they
+    // need it. That puts them over quota, and being over quota is a state the
+    // machinery above already knows how to resolve — the next pass hands the
+    // excess along to whoever is short.
+    if (areas[k] > target[k]) {
+      const reclaimed = runTransfer(
+        (g) => g === k && areas[k] > target[k],
+        (g) => g < k
+      );
+      if (log) log.push({ pass, phase: 'reclaim', reclaimed, after: areas.slice() });
+      if (reclaimed > 0) continue;
+    }
 
     // Both half-steps stalled with the books still open, which means the
     // short group and the long group don't touch and there's no unclaimed
@@ -744,6 +772,7 @@ export function ditherToExact(
       (g) => g < k && !shortAtStart[g] && areas[g] > target[g] - surplus,
       (g) => g < k && shortAtStart[g] === 1 && areas[g] < target[g]
     );
+    if (log) log.push({ pass, phase: 'relay', relayed, surplus, shortAtStart: [...shortAtStart], after: areas.slice() });
     if (relayed === 0) break;
   }
 
@@ -772,7 +801,8 @@ export function solvePartition(
   width: number,
   height: number,
   previousWeights?: Float64Array | null,
-  trace?: number[]
+  trace?: number[],
+  ditherLog?: unknown[]
 ): Partition {
   const weights = fitWeights(landCells, fields, seedCells, quotas, previousWeights, trace);
   const label = new Int8Array(totalCells).fill(-1);
@@ -786,7 +816,8 @@ export function solvePartition(
     quotas,
     seedCells,
     width,
-    height
+    height,
+    ditherLog
   );
   return { label, areas, quotas, weights };
 }
