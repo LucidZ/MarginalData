@@ -165,6 +165,16 @@ export const ROUTES: RouteEntry[] = [
     note: "Wealth distributions have always felt hard to intuit. I wanted to see if grounding the data in something tangible, like land area, would make the inequality easier to feel.",
   },
   {
+    path: "/2026/USWealthLandCartogram",
+    title: "If American Wealth Were Land — Marginal Data",
+    description:
+      "U.S. wealth inequality redrawn as claimed territory across the 48 contiguous states, sized by each group's real share of net worth.",
+    component: () => import("./2026/USWealthLandCartogram"),
+    group: "Everyday Comparisons",
+    date: "2026-08-28",
+    note: "A U.S.-focused follow-up to the global wealth-land cartogram, using real Federal Reserve data instead of a global model.",
+  },
+  {
     path: "/2025/FuelEconomyTool",
     title: "Compare Vehicle Fuel Efficiency — Marginal Data",
     description:
