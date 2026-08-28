@@ -157,6 +157,11 @@ export function geodesicDistance(
  */
 const SLOPE_PROBE = W_ORTHO * 4;
 
+/** Price, in the same Chamfer units as distance, of each neighbouring land
+ *  cell a group does not already hold when it takes new ground. See moveCost
+ *  for why this exists and how it is scaled. */
+const COMPACTNESS_WEIGHT = 20;
+
 /** Fitting stops as soon as every group is exactly on quota, but that can
  *  stall a cell or two out on a step edge, so it also gives up after this
  *  many passes and hands the remainder to ditherToExact. */
@@ -561,20 +566,62 @@ export function ditherToExact(
   const scoreOf = (c: number, group: number): number =>
     group === k ? 0 : fields[group][c] - w[group];
 
+  /** Land neighbours of `c` that `group` does not already hold. Water is
+   *  excluded rather than counted against the cell, so growing along a coast
+   *  is not treated as though it were growing into thin air. */
+  const foreignNeighbours = (c: number, group: number): number => {
+    const x = c % width;
+    const y = (c / width) | 0;
+    let count = 0;
+    for (let d = 0; d < 8; d++) {
+      const nx = x + NEI_DX[d];
+      const ny = y + NEI_DY[d];
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+      const nIdx = ny * width + nx;
+      if (!land[nIdx]) continue;
+      if (ownerOf(nIdx) !== group) count++;
+    }
+    return count;
+  };
+
   /**
-   * Cost of moving cell `c` from one group to another, with a tie-break.
+   * Cost of moving cell `c` from one group to another.
    *
-   * The tie-break is not cosmetic. Distances are integers, so `score_to -
-   * score_from` is constant across whole bands of the map wherever the two
-   * distance fields run parallel — and when a transfer needs some but not
-   * all of a tied band, insertion order decides which cells it takes, which
-   * scatters them and produces the stipple. Ordering ties by distance from
-   * the receiving group's own seed makes it consume a tied band as a
-   * coherent front instead. The coefficient is small enough that it can only
-   * ever separate exact ties, never reorder genuinely different costs.
+   * Three terms, and the middle one is what stops tendrils.
+   *
+   * The raw score difference alone produces them. `d_to - d_from` is bounded
+   * below by `-g(seed_to, seed_from)` via the triangle inequality, and that
+   * bound is attained along an entire ray — the one running from the other
+   * group's seed, through this group's seed, and out the far side. So when a
+   * group needs cells, the globally cheapest ones are a straight line, and
+   * it grows a one-pixel filament across the map instead of a blob. The
+   * valley around that ray is extremely flat (a cell 5px off it costs well
+   * under one pixel more), so nothing in the score itself prefers width.
+   *
+   * The compactness term supplies that preference directly: a cell is
+   * cheaper the more of its neighbours the receiving group already holds, so
+   * filling a concavity beats extending a finger into open ground. This is
+   * the "prefer round over long and skinny" rule, priced in units the score
+   * is already measured in — one orthogonal step is W_ORTHO, so a weight of
+   * a few units per foreign neighbour is worth a few pixels of detour, which
+   * is enough to dominate a valley that shallow without overriding genuine
+   * score differences.
+   *
+   * The last term breaks exact ties by distance from the receiving group's
+   * seed. Distances are integers, so `d_to - d_from` is constant across
+   * whole bands wherever the two fields run parallel; when a transfer needs
+   * some but not all of a tied band, insertion order would otherwise decide
+   * which cells it takes, scattering them into a stipple. The coefficient is
+   * small enough to separate exact ties only, never to reorder real costs.
    */
-  const moveCost = (c: number, from: number, to: number): number =>
-    scoreOf(c, to) - scoreOf(c, from) + (to === k ? 0 : 1e-6 * fields[to][c]);
+  const moveCost = (c: number, from: number, to: number): number => {
+    let cost = scoreOf(c, to) - scoreOf(c, from);
+    if (to !== k) {
+      cost += COMPACTNESS_WEIGHT * foreignNeighbours(c, to);
+      cost += 1e-6 * fields[to][c];
+    }
+    return cost;
+  };
 
   /**
    * Moves boundary cells cheapest-first from any group the caller counts as a

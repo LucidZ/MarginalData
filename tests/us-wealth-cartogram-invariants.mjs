@@ -21,9 +21,23 @@ const APP_URL = process.env.APP_URL ?? 'http://localhost:5200/2026/USWealthLandC
 const MAX_BOUNDARY = 10000;
 const MIN_LARGEST_SHARE = 0.9;
 const MAX_AREA_ERROR = 500; // cells, out of ~836,657
+// Tendril guard. The squeezed case below sat at 260 before the dither priced
+// compactness and at 24 after, so this catches a real regression without
+// tripping on the handful of genuinely narrow spots any partition has.
+//
+// EDGE-HUG gets its own allowance. Every seed there is jammed against a
+// claimed border, which is the arrangement that makes a small group's region
+// degenerate, and the remaining strip comes out of the *base* assignment
+// rather than the exactness pass — the compactness price only applies to
+// cells that pass moves, so it cannot reach it. Raising the price does not
+// help (checked at 60 and 200; the count barely moves and 200 breaks
+// exactness outright). Removing it would need a morphological opening, which
+// risks eating genuinely narrow geography for a case no real placement hits.
+const MAX_FILAMENT = 120;
+const FILAMENT_ALLOWANCE = { 'EDGE-HUG': 250 };
 
 const analyse = () => {
-  const { label, quotas, seedCells, width, height, solveMs } = window.__wlc;
+  const { label, land, quotas, seedCells, width, height, solveMs } = window.__wlc;
   const n = width * height;
   let boundary = 0;
   for (let i = 0; i < n; i++) {
@@ -59,20 +73,56 @@ const analyse = () => {
     minShare = Math.min(minShare, Math.max(...sizes) / total);
     maxComps = Math.max(maxComps, sizes.length);
   }
+  // Thinness. A cell is "filament" when 6 or more of its LAND neighbours
+  // belong to someone else, and "interior" when every land neighbour is its
+  // own. A one-pixel tendril is entirely filament and has no interior at all,
+  // while a compact blob is nearly all interior.
+  //
+  // Counting land neighbours only is essential. An earlier version counted
+  // all eight regardless, so every cell on a thin coastal spit or a small
+  // island scored as filament — that put a floor of ~75 under the metric and
+  // hid the thing it was supposed to measure.
+  let filament = 0;
+  const interior = new Array(quotas.length).fill(0);
+  const total = new Array(quotas.length).fill(0);
+  for (let i = 0; i < n; i++) {
+    const g = label[i];
+    if (g < 0) continue;
+    const x = i % width, y = (i / width) | 0;
+    if (x < 1 || y < 1 || x + 1 >= width || y + 1 >= height) continue;
+    let same = 0, landNeighbours = 0;
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) {
+      const ni = (y + dy) * width + (x + dx);
+      if (!land[ni]) continue;
+      landNeighbours++;
+      if (label[ni] === g) same++;
+    }
+    total[g]++;
+    if (landNeighbours > 0 && same === landNeighbours) interior[g]++;
+    if (landNeighbours - same >= 6) filament++;
+  }
+  const interiorFrac = interior.map((v, i) => (total[i] ? +(v / total[i]).toFixed(3) : 1));
+
   return {
     seeds: seedCells.length,
     err: quotas.map((q, i) => q - areas[i]), boundary,
     minShare: +minShare.toFixed(3), maxComps, solveMs: Math.round(solveMs),
     seedsHeld: seedCells.every((c, i) => label[c] === i),
+    filament, interiorFrac, minInterior: Math.min(...interiorFrac),
   };
 };
 
 /** Unclaimed land as close to a claimed border as a real cursor could hit —
- *  the most hostile placement the "open ground only" rule still permits. */
-const hugEdge = () => {
+ *  the most hostile placement the "open ground only" rule still permits.
+ *
+ *  Returns several widely separated candidates rather than one. A single
+ *  raster-order result is always the same top-left-most cell, and near the
+ *  map's northwest edge the app's own projection round-trip guard rejects
+ *  the click, so the scenario could never place its last seed. */
+const hugEdge = (PAD = 3) => {
   const { label, land, width, height } = window.__wlc;
-  const PAD = 3; // clear of the border, so sub-pixel mouse rounding can't
-                 // tip the click onto claimed ground and get it refused
+  const found = [];
+  const MIN_APART = 120;
   for (let i = 0; i < width * height; i++) {
     if (!land[i] || label[i] !== -1) continue;
     const x = i % width, y = (i / width) | 0;
@@ -83,13 +133,18 @@ const hugEdge = () => {
       if (!land[nb] || label[nb] >= 0) { open = false; break; }
     }
     if (!open) continue;
-    for (let dy = -PAD; dy <= PAD; dy++) {
+    let nearClaimed = false;
+    for (let dy = -PAD; dy <= PAD && !nearClaimed; dy++) {
       for (let dx = -PAD; dx <= PAD; dx++) {
-        if (label[(y + dy) * width + (x + dx)] >= 0) return { x, y };
+        if (label[(y + dy) * width + (x + dx)] >= 0) { nearClaimed = true; break; }
       }
     }
+    if (!nearClaimed) continue;
+    if (found.some((p) => Math.hypot(p.x - x, p.y - y) < MIN_APART)) continue;
+    found.push({ x, y });
+    if (found.length >= 8) break;
   }
-  return null;
+  return found;
 };
 
 /** Open land furthest from anything claimed — the "natural" next placement. */
@@ -120,17 +175,23 @@ const deepestOpen = () => {
 };
 
 const failures = [];
-const check = (tag, r) => {
+const check = (tag, r, expectSeeds = 4) => {
   const bad = [];
+  const filamentCap = FILAMENT_ALLOWANCE[tag] ?? MAX_FILAMENT;
+  // Without this a scenario whose click got refused quietly tests fewer
+  // groups than intended and still reports ok.
+  if (r.seeds !== expectSeeds) bad.push(`placed ${r.seeds} seeds, expected ${expectSeeds}`);
   if (r.boundary > MAX_BOUNDARY) bad.push(`boundary ${r.boundary} > ${MAX_BOUNDARY} (stippled/ragged)`);
   if (r.minShare < MIN_LARGEST_SHARE) bad.push(`minShare ${r.minShare} < ${MIN_LARGEST_SHARE} (fragmented)`);
   if (!r.seedsHeld) bad.push('a group lost its own seed');
+  if (r.filament > filamentCap) bad.push(`filament ${r.filament} > ${filamentCap} (tendrils)`);
   const worst = Math.max(...r.err.map(Math.abs));
   if (worst > MAX_AREA_ERROR) bad.push(`area error ${worst} > ${MAX_AREA_ERROR} cells`);
   if (bad.length) failures.push(`${tag}: ${bad.join('; ')}`);
   console.log(
-    `${bad.length ? 'FAIL' : 'ok  '} ${tag.padEnd(14)} seeds=${r.seeds} err=${JSON.stringify(r.err).padEnd(22)}` +
-    ` boundary=${String(r.boundary).padStart(5)} minShare=${r.minShare} maxComps=${String(r.maxComps).padStart(3)} ${r.solveMs}ms`
+    `${bad.length ? 'FAIL' : 'ok  '} ${tag.padEnd(10)} seeds=${r.seeds} err=${JSON.stringify(r.err).padEnd(20)}` +
+    ` bnd=${String(r.boundary).padStart(5)} minShare=${r.minShare} filament=${String(r.filament).padStart(5)}` +
+    ` interior=${JSON.stringify(r.interiorFrac)} ${r.solveMs}ms`
   );
 };
 
@@ -160,7 +221,11 @@ const reset = async () => {
   const box = await page.locator('canvas.wlc-canvas').boundingBox();
   return async (x, y) => {
     await page.mouse.click(box.x + (x / 1600) * box.width, box.y + (y / 950) * box.height);
-    await page.waitForTimeout(1700);
+    // Long enough to cover the slowest solve plus the full grow animation.
+    // Clicks arriving mid-animation are ignored by design, so a wait that is
+    // merely usually-enough shows up as a scenario quietly placing too few
+    // seeds rather than as a timeout.
+    await page.waitForTimeout(2700);
   };
 };
 
@@ -183,12 +248,22 @@ console.log(`${before === after ? 'ok  ' : 'FAIL'} REFUSAL       claimed-land cl
 
 // --- every remaining seed jammed against a claimed border -----------------
 for (let i = 2; i <= 4; i++) {
-  const spot = await page.evaluate(hugEdge);
-  if (!spot) { failures.push(`EDGE-HUG: no legal open land found for seed ${i}`); break; }
-  await click(spot.x, spot.y);
+  let placed = false;
+  for (const spot of await page.evaluate(hugEdge, 3)) {
+    const before = await page.evaluate(() => window.__wlc.seedCells.length);
+    await click(spot.x, spot.y);
+    if ((await page.evaluate(() => window.__wlc.seedCells.length)) > before) { placed = true; break; }
+  }
+  if (!placed) { failures.push(`EDGE-HUG: could not place seed ${i} on open land`); break; }
 }
 check('EDGE-HUG', await page.evaluate(analyse));
 await page.locator('.wlc-map-wrap').screenshot({ path: `${OUT}/edge-hug.png` });
+
+// --- squeezed small group: the arrangement that grew tendrils -------------
+click = await reset();
+for (const [x, y] of [[430, 770], [1150, 620], [250, 760], [900, 200]]) await click(x, y);
+check('SQUEEZED', await page.evaluate(analyse));
+await page.locator('.wlc-map-wrap').screenshot({ path: `${OUT}/squeezed.png` });
 
 if (errors.length) failures.push(`page errors: ${JSON.stringify(errors)}`);
 await browser.close();
