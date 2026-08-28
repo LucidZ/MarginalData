@@ -7,16 +7,15 @@ import statesGeo from "./data/states-geo.json";
 import { WEALTH_GROUPS, TOTAL_LAND_KM2, TOTAL_US_ADULTS, TOTAL_US_WEALTH_USD } from "./data";
 import { buildLandMask } from "./landGrowth";
 import {
-  buildPathData,
-  computeRanges,
-  pointAtArcLength,
-  rankToArcLength,
-  rankToPixel,
-  rasterizeRanges,
-  type PathData,
-  type Range,
-} from "./pathAssign";
-import { buildPersonDots, sampleRangeRanks, STAGING_HEIGHT } from "./personDots";
+  collectLandCells,
+  dotDepthFractions,
+  geodesicDistance,
+  nearestLandCell,
+  pickDotCells,
+  solvePartition,
+  DIST_INF,
+} from "./geoAssign";
+import { buildPersonDots, STAGING_HEIGHT } from "./personDots";
 import {
   buildPitchIcons,
   PITCH_ICON_SIZE,
@@ -37,12 +36,34 @@ const GRID_WIDTH = 1600;
 const GRID_HEIGHT = 950;
 const OCEAN_COLOR = "#0b1220";
 const UNCLAIMED_COLOR: [number, number, number] = [90, 90, 90];
+// Group colors pre-parsed once. drawFrame touches every one of the ~1.5M
+// canvas pixels per frame, so re-parsing a hex string inside that loop (as
+// this used to) is pure waste at 60fps.
+const GROUP_RGB: [number, number, number][] = WEALTH_GROUPS.map((g) => hexToRgb(g.color));
 
 // Click animation: land grows/shifts from the click point — pushing and
 // resizing any neighboring regions along with it — while every affected
 // dot travels to its new spot in one continuous motion (see the "offWeight"
 // comment below for how travel and landing are blended together).
 const GROW_MS = 1100;
+// How long a single cell spends cross-fading from its old owner to its new
+// one as the wave passes over it. Land goes straight from one color to the
+// next and never flashes through a neutral shade: it never actually becomes
+// unowned, and strobing a third of the map through white at once looks
+// terrible. The sense of being *pushed* comes from the wave's timing and its
+// bright leading edge instead.
+const CELL_FADE_MS = 300;
+// Width and brightness of the highlight riding the front of the wave, so the
+// recolor reads as one ripple sweeping outward from the click rather than a
+// diffuse dissolve.
+const WAVE_EDGE_MS = 90;
+const WAVE_EDGE_STRENGTH = 0.32;
+// The wave gets a gentler curve than the dots do. On the ease-out cubic the
+// dots use, the front covers 61% of its distance in the first 27% of the
+// time — it's past most of the map before the eye picks it up, which loses
+// the whole point of animating the displacement as a travelling front.
+// Dots still ease out, because an object arriving somewhere should settle.
+const WAVE_EASE_POWER = 1.5;
 // "Place groups myself" isn't animated by the JS loop above (there's
 // nothing to grow toward), so it leans on dotPhaseMs's CSS transition
 // instead, for a smooth fade back up to the staging row rather than an
@@ -69,13 +90,14 @@ interface GeoSetup {
   offCtx: CanvasRenderingContext2D;
   imageData: ImageData;
   landMask: Uint8Array;
-  pathData: PathData;
+  /** Index of every land cell, ascending — the iteration set for the solver. */
+  landCells: Int32Array;
   /** Real state borders, pre-rendered once (the projection never changes)
    *  onto their own transparent canvas — pure decoration composited on top
    *  of the colored land raster every frame. Doesn't touch the fill/
-   *  assignment logic: land is parceled out along a continuous path across
-   *  the whole landmass (see pathAssign.ts), not by whole states, so a
-   *  group's claimed region can span parts of several states. */
+   *  assignment logic: regions are grown outward from their own seeds (see
+   *  geoAssign.ts), not built out of whole states, so a group's claimed
+   *  region can span parts of several states. */
   bordersCanvas: HTMLCanvasElement;
 }
 
@@ -170,12 +192,19 @@ const NOTES: FootnoteEntry[] = [
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoRef = useRef<GeoSetup | null>(null);
-  // Last fully-settled (post-animation) range per group index — the
-  // baseline the next click's animation grows/shifts away from.
-  const committedRangesRef = useRef<(Range | null)[]>([]);
-  // Last fully-settled path-rank per dot — the baseline the next click's
-  // animation slides that dot away from (see rankToPixel in pathAssign.ts).
-  const committedDotRanksRef = useRef<Map<number, number>>(new Map());
+  // Last fully-settled (post-animation) label grid — the "before" picture
+  // the next click's wave animates away from.
+  const committedLabelRef = useRef<Int8Array | null>(null);
+  // Geodesic distance field per placed seed, and the land cell each seed
+  // actually landed on. Both are cached across clicks: the landmass never
+  // changes, so an already-placed seed's field stays valid forever and only
+  // the newly placed seed needs a traversal.
+  const distFieldsRef = useRef<Int32Array[]>([]);
+  const seedCellsRef = useRef<number[]>([]);
+  // Previous solve's radius budgets, used to warm-start the next fit — only
+  // the brand-new group's weight is genuinely unknown, so this cuts the fit
+  // to a handful of passes.
+  const weightsRef = useRef<Float64Array | null>(null);
   // Last fully-settled *pixel* per dot — the source of truth for where an
   // already-landed, unaffected dot currently sits, used as the travel
   // start point ("fromPoint") the next time its group gets pushed.
@@ -316,7 +345,6 @@ export default function App() {
     // transient: draws onto the visible canvas just to read back which pixels
     // are land, before any real content exists there — overwritten below.
     const landMask = buildLandMask(outline as Feature<Geometry>, path, ctx, GRID_WIDTH, GRID_HEIGHT);
-    const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
 
     // Real state borders, pre-rendered once onto their own canvas (the
     // projection never changes) — decorative only, composited on top of the
@@ -336,25 +364,41 @@ export default function App() {
       });
     }
 
-    // Unrolling the land mask along the path (~1s+) is the heaviest part of
-    // setup — deferred a tick so React can paint the "preparing map…" state
-    // first, instead of the whole page just freezing with nothing rendered.
+    // Still deferred a tick so React can paint the "preparing map…" state
+    // before any of this runs. Setup itself is now cheap — the real per-click
+    // cost moved into the solver (see the seeds effect below), which is where
+    // it belongs, since the answer depends on where you click.
     const timer = setTimeout(() => {
-      const pathData = buildPathData(landMask, GRID_WIDTH, GRID_HEIGHT, toPixel);
+      const landCells = collectLandCells(landMask);
       // Reused every redraw (including every animation frame) instead of
       // allocating a fresh ~5MB buffer each time.
       const imageData = offCtx.createImageData(GRID_WIDTH, GRID_HEIGHT);
-      geoRef.current = { projection, path, ctx, offCtx, imageData, landMask, pathData, bordersCanvas };
+      geoRef.current = { projection, path, ctx, offCtx, imageData, landMask, landCells, bordersCanvas };
       setIsReady(true);
     }, 0);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Paints a (possibly mid-animation) set of ranges onto the visible canvas.
-  // Pulled out of the effect below so it can run once per settled state and
-  // also many times per second while an animation is in flight.
-  function drawFrame(geo: GeoSetup, claimedBy: Int8Array) {
+  // Paints one (possibly mid-animation) frame onto the visible canvas.
+  //
+  // Mid-animation, `wave` is the geodesic distance field from the seed that
+  // was just placed and `waveR` is how far that wave has travelled so far —
+  // so a cell shows its new owner once the wave has swept past it, its old
+  // owner until then, and cross-fades between the two across the fade band
+  // in between. Everything the wave passes also picks up a brief highlight,
+  // which is what makes a displacement on the far side of the country read
+  // as one ripple travelling outward from the click. Pass `wave` as null for
+  // a settled state.
+  function drawFrame(
+    geo: GeoSetup,
+    fromLabel: Int8Array,
+    toLabel: Int8Array,
+    wave: Int32Array | null,
+    waveR: number,
+    fadeWidth: number,
+    edgeWidth: number
+  ) {
     const { path, ctx, offCtx, imageData, landMask, bordersCanvas } = geo;
 
     // Paint claimed/unclaimed colors onto an offscreen buffer at raster
@@ -366,10 +410,39 @@ export default function App() {
     const out = imageData.data;
     for (let i = 0; i < GRID_WIDTH * GRID_HEIGHT; i++) {
       if (!landMask[i]) continue; // left transparent; clipped away regardless
-      const c = claimedBy[i] === -1 ? UNCLAIMED_COLOR : hexToRgb(WEALTH_GROUPS[claimedBy[i]].color);
-      out[i * 4] = c[0];
-      out[i * 4 + 1] = c[1];
-      out[i * 4 + 2] = c[2];
+      const from = fromLabel[i];
+      const to = toLabel[i];
+
+      let mix = 1;
+      let edge = 0;
+      if (wave) {
+        const d = wave[i];
+        if (d !== DIST_INF) {
+          if (from !== to) {
+            if (d >= waveR) mix = 0;
+            else if (d > waveR - fadeWidth) mix = (waveR - d) / fadeWidth;
+          }
+          if (d <= waveR && d > waveR - edgeWidth) edge = 1 - (waveR - d) / edgeWidth;
+        } else if (from !== to) {
+          mix = 0;
+        }
+      }
+
+      const a = from === -1 ? UNCLAIMED_COLOR : GROUP_RGB[from];
+      const b = to === -1 ? UNCLAIMED_COLOR : GROUP_RGB[to];
+      let cr = a[0] + (b[0] - a[0]) * mix;
+      let cg = a[1] + (b[1] - a[1]) * mix;
+      let cb = a[2] + (b[2] - a[2]) * mix;
+      if (edge > 0) {
+        const lift = edge * WAVE_EDGE_STRENGTH;
+        cr += (255 - cr) * lift;
+        cg += (255 - cg) * lift;
+        cb += (255 - cb) * lift;
+      }
+
+      out[i * 4] = cr;
+      out[i * 4 + 1] = cg;
+      out[i * 4 + 2] = cb;
       out[i * 4 + 3] = 255;
     }
     offCtx.putImageData(imageData, 0, 0);
@@ -393,105 +466,158 @@ export default function App() {
     rafRef.current = null;
   }
 
-  // Re-assign and animate whenever a seed is placed (or reset). Land grows
-  // outward from the click point — and any pushed regions shift to their new
-  // extent — while every affected dot travels to its own new resting cell in
-  // one continuous motion along that *same* path the land is animating
-  // through, so a dot (and the region it's part of) that gets pushed from
-  // one side of the map to the other visibly travels the route instead of
-  // cutting straight across open water. Dots within a region aren't nudged
-  // apart from each other — overlap in small, crowded regions is left as-is
-  // rather than spread out, which read as an extra "pop" once the motion
-  // above had already finished.
+  // Re-solve and animate whenever a seed is placed (or reset).
+  //
+  // Every click re-solves the whole partition from scratch rather than
+  // patching the previous one. That's what makes displacement work: drop the
+  // last seed in Miami and whoever held Florida is pushed out of it
+  // automatically, because their own radius budget has to grow to keep their
+  // quota and so they expand somewhere else instead. It also means the final
+  // map depends only on where the four seeds are, not the order they were
+  // placed in — worth knowing, since it makes "the top 1% takes a third of
+  // the country wherever you put them" structurally true rather than just
+  // asserted.
+  //
+  // The visible motion is one wave sweeping outward from the click: the new
+  // group's own land grows behind it, and any land changing hands recolors
+  // as the wave reaches it, so a knock-on shift two thousand miles away
+  // still reads as a consequence of that click.
   useEffect(() => {
     const geo = geoRef.current;
     if (!geo || !isReady) return;
     cancelPendingAnimation();
 
-    const { projection, pathData } = geo;
+    const { projection, landMask, landCells } = geo;
     const toPixel = (lonLat: [number, number]): [number, number] => projection(lonLat) ?? [0, 0];
     const totalCells = GRID_WIDTH * GRID_HEIGHT;
+    const emptyLabel = new Int8Array(totalCells).fill(-1);
 
     if (seeds.length === 0) {
-      committedRangesRef.current = [];
-      committedDotRanksRef.current = new Map();
+      distFieldsRef.current = [];
+      seedCellsRef.current = [];
+      weightsRef.current = null;
+      committedLabelRef.current = null;
       committedDotPixelsRef.current = new Map();
-      drawFrame(geo, rasterizeRanges(pathData, [], totalCells));
+      drawFrame(geo, emptyLabel, emptyLabel, null, 0, 1, 1);
       setDotPhaseMs(RESET_MS);
       setLandedPositions(new Map());
       setIsAnimating(false);
       return;
     }
 
-    const prevRanges = committedRangesRef.current;
-    const { ranges: targetRanges, anchors } = computeRanges(
-      pathData,
-      GRID_WIDTH,
-      WEALTH_GROUPS,
-      seeds,
-      toPixel,
-      prevRanges
-    );
-
     const newGroupIndex = seeds.length - 1;
     const clickPixel = toPixel(seeds[newGroupIndex]);
-    const anchorRank = anchors[newGroupIndex];
 
-    // Per-group start point for this animation: the brand-new group grows
-    // from a zero-width point at its own anchor; anyone else only animates
-    // if a later push actually moved their extent, starting from wherever
-    // they were last settled.
-    const startRanges: (Range | null)[] = targetRanges.map((target, gi) => {
-      if (!target) return null;
-      if (gi === newGroupIndex) return { start: anchorRank, end: anchorRank };
-      return prevRanges[gi] ?? { start: anchorRank, end: anchorRank };
-    });
-
-    const changedGroups = targetRanges
-      .map((target, gi) => ({ gi, target, from: startRanges[gi] }))
-      .filter((c): c is { gi: number; target: Range; from: Range } => {
-        if (!c.target) return false;
-        if (c.gi === newGroupIndex) return true;
-        const prev = prevRanges[c.gi];
-        return !prev || prev.start !== c.target.start || prev.end !== c.target.end;
-      });
-
-    // Precompute each affected dot's travel: from/to rank (needed for the
-    // settle phase's exact final cell and to remember it for next time),
-    // from/to arc-length (its position along the path), and from/to *offset*
-    // — the perpendicular vector from the path line out to the dot's actual
-    // land cell, since real land isn't generally sitting exactly on the
-    // hand-drawn route. From is wherever it last actually settled (or the
-    // click point itself, for the newly placed group's own dots, which
-    // start bundled at a single spot); to is its deterministic resting cell
-    // within the group's final target range.
-    const dotToRank = new Map<number, number>();
-    const dotFromArc = new Map<number, number>();
-    const dotToArc = new Map<number, number>();
-    const dotFromOffset = new Map<number, { x: number; y: number }>();
-    const dotToOffset = new Map<number, { x: number; y: number }>();
-    for (const { gi, target } of changedGroups) {
-      const targetRanks = sampleRangeRanks(personDots, gi, target, pathData.sortedCells.length);
-      for (const [id, toRank] of targetRanks) {
-        const fromRank =
-          gi === newGroupIndex ? anchorRank : committedDotRanksRef.current.get(id) ?? anchorRank;
-        const fromArc = rankToArcLength(pathData, fromRank);
-        const toArc = rankToArcLength(pathData, toRank);
-        const fromPoint =
-          gi === newGroupIndex
-            ? { x: clickPixel[0], y: clickPixel[1] }
-            : committedDotPixelsRef.current.get(id) ?? rankToPixel(pathData, fromRank, GRID_WIDTH);
-        const fromPath = pointAtArcLength(pathData, fromArc);
-        const toPoint = rankToPixel(pathData, toRank, GRID_WIDTH);
-        const toPath = pointAtArcLength(pathData, toArc);
-
-        dotToRank.set(id, toRank);
-        dotFromArc.set(id, fromArc);
-        dotToArc.set(id, toArc);
-        dotFromOffset.set(id, { x: fromPoint.x - fromPath.x, y: fromPoint.y - fromPath.y });
-        dotToOffset.set(id, { x: toPoint.x - toPath.x, y: toPoint.y - toPath.y });
-      }
+    // One traversal per click, never more: the landmass never changes, so
+    // every already-placed seed's distance field stays valid and is reused.
+    if (!distFieldsRef.current[newGroupIndex]) {
+      const seedCell = nearestLandCell(landCells, GRID_WIDTH, clickPixel[0], clickPixel[1]);
+      seedCellsRef.current[newGroupIndex] = seedCell;
+      distFieldsRef.current[newGroupIndex] = geodesicDistance(
+        landMask,
+        GRID_WIDTH,
+        GRID_HEIGHT,
+        seedCell
+      );
     }
+    const fields = distFieldsRef.current.slice(0, seeds.length);
+    const seedCells = seedCellsRef.current.slice(0, seeds.length);
+
+    // Quotas are exact cell counts. Once all four groups are down, the last
+    // one absorbs the rounding remainder so they sum to the landmass exactly
+    // instead of leaving a stray sliver permanently unclaimed.
+    const quotas = WEALTH_GROUPS.slice(0, seeds.length).map((g) =>
+      Math.round(landCells.length * g.wealthShare)
+    );
+    if (seeds.length === WEALTH_GROUPS.length) {
+      quotas[quotas.length - 1] += landCells.length - quotas.reduce((a, b) => a + b, 0);
+    }
+
+    const solveStart = performance.now();
+    const fitTrace: number[] = [];
+    const { label: targetLabel, weights } = solvePartition(
+      landMask,
+      landCells,
+      fields,
+      seedCells,
+      quotas,
+      totalCells,
+      GRID_WIDTH,
+      GRID_HEIGHT,
+      weightsRef.current,
+      fitTrace
+    );
+    weightsRef.current = weights;
+
+    // Dev-only diagnostic handle (stripped from production by Vite's dead-code
+    // elimination). Kept deliberately rather than re-added ad hoc each time:
+    // this partition's invariants are not things you can eyeball. A stippled
+    // region and a clean one look identical to an 8-connected component count,
+    // because a checkerboard is diagonally connected — it takes 4-connected
+    // components and total boundary length to tell them apart, and both of the
+    // bugs this file has had were invisible until those were measured. See
+    // tests/us-wealth-cartogram-invariants.mjs for the checks that read this.
+    if (import.meta.env.DEV) {
+      (window as unknown as Record<string, unknown>).__wlc = {
+        label: targetLabel,
+        width: GRID_WIDTH,
+        height: GRID_HEIGHT,
+        quotas,
+        landCount: landCells.length,
+        weights: Array.from(weights),
+        seedCells: [...seedCells],
+        trace: fitTrace,
+        solveMs: performance.now() - solveStart,
+      };
+    }
+
+    const prevLabel = committedLabelRef.current ?? emptyLabel;
+    const wave = fields[newGroupIndex];
+
+    // The wave stops at the furthest cell that actually changes hands.
+    // Without this, the first click — a 2.4% region — would spend its whole
+    // animation sweeping an empty front across the rest of the country with
+    // nothing happening behind it.
+    let maxChangeDist = 0;
+    for (let r = 0; r < landCells.length; r++) {
+      const c = landCells[r];
+      if (prevLabel[c] === targetLabel[c]) continue;
+      const d = wave[c];
+      if (d !== DIST_INF && d > maxChangeDist) maxChangeDist = d;
+    }
+    // Fade and edge widths are distances, but they're specified in
+    // milliseconds and converted here, so a cell always takes the same
+    // ~300ms to change color whether the wave crossed one state or twenty.
+    const fadeWidth = Math.max(1, maxChangeDist * (CELL_FADE_MS / GROW_MS));
+    const edgeWidth = Math.max(1, maxChangeDist * (WAVE_EDGE_MS / GROW_MS));
+    const waveEnd = maxChangeDist + fadeWidth;
+
+    // Every placed group's dots get re-placed against the new partition.
+    // Groups whose territory didn't move get byte-identical cells back (the
+    // placement is deterministic in the region's own depth ordering), so
+    // they simply don't animate — no need to detect that case separately.
+    const dotTargets = new Map<number, { x: number; y: number }>();
+    for (let gi = 0; gi < seeds.length; gi++) {
+      const cells = pickDotCells(
+        targetLabel,
+        landCells,
+        fields[gi],
+        gi,
+        dotDepthFractions(personDots, gi)
+      );
+      cells.forEach((cell, id) => {
+        dotTargets.set(id, { x: cell % GRID_WIDTH, y: (cell / GRID_WIDTH) | 0 });
+      });
+    }
+    // A dot travels from wherever it last settled; the newly placed group's
+    // dots have no history, so they fly in from the click point itself.
+    const dotFrom = new Map<number, { x: number; y: number }>();
+    dotTargets.forEach((_, id) => {
+      dotFrom.set(
+        id,
+        committedDotPixelsRef.current.get(id) ?? { x: clickPixel[0], y: clickPixel[1] }
+      );
+    });
 
     setIsAnimating(true);
     setDotPhaseMs(0);
@@ -499,37 +625,18 @@ export default function App() {
     const start = performance.now();
     const animate = (now: number) => {
       const t = Math.min(1, (now - start) / GROW_MS);
-      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic, for the dots
+      const waveEased = 1 - Math.pow(1 - t, WAVE_EASE_POWER);
+      drawFrame(geo, prevLabel, targetLabel, wave, waveEased * waveEnd, fadeWidth, edgeWidth);
 
-      const frameRanges: (Range | null)[] = targetRanges.map((target, gi) => {
-        if (!target) return null;
-        const changed = changedGroups.find((c) => c.gi === gi);
-        if (!changed) return prevRanges[gi] ?? target;
-        return {
-          start: changed.from.start + (target.start - changed.from.start) * eased,
-          end: changed.from.end + (target.end - changed.from.end) * eased,
-        };
-      });
-      drawFrame(geo, rasterizeRanges(pathData, frameRanges, totalCells));
-
-      if (dotFromArc.size > 0) {
-        // Along-path motion and the perpendicular "step off the path onto
-        // real land" offset are blended by the *same* eased value every
-        // frame — so both happen together throughout the trip, not as two
-        // visually separate beats (glide, then peel off). See the global
-        // version's own copy of this comment for the accepted worst-case
-        // wobble trade-off — same mechanism, same trade, no US-specific
-        // change here.
+      if (dotTargets.size > 0) {
         setLandedPositions((prev) => {
           const next = new Map(prev);
-          dotFromArc.forEach((fromArc, id) => {
-            const toArc = dotToArc.get(id)!;
-            const path = pointAtArcLength(pathData, fromArc + (toArc - fromArc) * eased);
-            const from = dotFromOffset.get(id)!;
-            const to = dotToOffset.get(id)!;
+          dotTargets.forEach((to, id) => {
+            const from = dotFrom.get(id)!;
             next.set(id, {
-              x: path.x + from.x + (to.x - from.x) * eased,
-              y: path.y + from.y + (to.y - from.y) * eased,
+              x: from.x + (to.x - from.x) * eased,
+              y: from.y + (to.y - from.y) * eased,
             });
           });
           return next;
@@ -541,19 +648,11 @@ export default function App() {
         return;
       }
 
-      // Land has finished growing/shifting, and every affected dot has
-      // arrived at its individually-sampled ideal cell — the same one the
-      // last frame above already painted it at (eased reaches 1 exactly
-      // where the offset fully resolves onto real land), so there's nothing
-      // left to settle. Overlap between tightly-packed dots in a small
-      // region is left as-is rather than nudged apart — spreading them out
-      // read as a distracting extra "pop" after the motion had already
-      // finished, worst on the smallest, most crowded regions.
-      committedRangesRef.current = targetRanges;
-      dotToRank.forEach((rank, id) => {
-        committedDotRanksRef.current.set(id, rank);
-        committedDotPixelsRef.current.set(id, rankToPixel(pathData, rank, GRID_WIDTH));
-      });
+      // Settled: redraw with no wave at all, so the trailing edge highlight
+      // clears rather than being left frozen wherever the last frame landed.
+      drawFrame(geo, targetLabel, targetLabel, null, 0, 1, 1);
+      committedLabelRef.current = targetLabel;
+      dotTargets.forEach((point, id) => committedDotPixelsRef.current.set(id, point));
       rafRef.current = null;
       setIsAnimating(false);
     };
@@ -714,11 +813,19 @@ export default function App() {
             here look subtly different from a typical U.S. map.
           </li>
           <li>
-            The state borders drawn on top are purely decorative. Wealth here is
-            parceled out along a continuous hand-drawn path across the whole
-            landmass — the same technique the global version uses across
-            continents — so a group's claimed region can span parts of several
-            states rather than being made up of whole states.
+            The state borders drawn on top are purely decorative. Each group's
+            territory grows outward from the point you click, travelling through
+            land only and bending around the coastline, until it covers exactly
+            its share of the country — so a region can span parts of several
+            states rather than being made of whole ones, and a group placed
+            later physically shoves the earlier ones out of the way to make room.
+          </li>
+          <li>
+            Where you click changes the shape of every region but never their
+            sizes. The map is also re-solved from scratch on each click rather
+            than patched, so the finished result doesn't depend on the order you
+            placed the groups in either — the top 1% ends up with a third of the
+            country wherever you decide to put it.
           </li>
         </ol>
       </div>

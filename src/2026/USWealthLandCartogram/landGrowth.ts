@@ -1,23 +1,22 @@
 import type { GeoPath } from "d3-geo";
 import type { Feature, Geometry } from "geojson";
 
-// The one piece of the original raster-fill approach that survived the
-// switch to path-based assignment (see pathAssign.ts) — same role as the
-// global version's landGrowth.ts (which this is a direct port of, adapted
-// for a single merged outline Feature instead of a FeatureCollection of
-// countries). Everything else this file used to contain (BFS ring-growth
-// with hard quota stops, then power-weighted Voronoi, then boundary-
-// rebalancing between the two, then real-offshore-island filtering) was
-// replaced wholesale after a long debugging arc kept running into the real
-// US coastline's concave complexity (boxed-in shortfalls, "conduit"
-// problems where two regions no longer directly touch) — Voronoi-style
-// approaches are fundamentally seed-position-driven and treat exact area as
-// something to reverse-engineer after the fact, which fights a non-convex
-// real coastline every step of the way. Path-based assignment (sort land by
-// position along a fixed route, cut exact quota boundaries) sidesteps all
-// of that: exact by construction, always contiguous, no iterative
-// correction needed. See the project memory for the full blow-by-blow if
-// any of this needs revisiting.
+// The one piece of the original raster-fill approach that survived every
+// rewrite since — same role as the global version's landGrowth.ts (which
+// this is a direct port of, adapted for a single merged outline Feature
+// instead of a FeatureCollection of countries).
+//
+// Two assignment schemes have come and gone above this file. The first grew
+// regions by BFS with hard quota stops and then rebalanced with a
+// power-weighted Voronoi, which kept fragmenting against the real
+// coastline's concavity — a Euclidean power diagram has convex cells, and
+// intersecting a convex cell with a concave coast splits a region across a
+// bay. The second sorted land by position along a fixed west-east route and
+// cut exact quota boundaries, which was exact and contiguous by
+// construction but read as featureless vertical bands. The current scheme
+// (geoAssign.ts) grows every region outward from its own seed as a
+// wavefront travelling through land, which is both exact and provably
+// unsplittable; see that file's header for why.
 
 /**
  * Rasterizes the CONUS+DC land mask onto a WxH grid in the given (equal-

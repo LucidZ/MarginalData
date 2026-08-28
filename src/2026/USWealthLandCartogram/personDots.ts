@@ -1,5 +1,4 @@
 import type { WealthGroup } from "./data";
-import type { Range } from "./pathAssign";
 
 export interface PersonDot {
   id: number;
@@ -61,55 +60,4 @@ export function buildPersonDots(groups: WealthGroup[], gridWidth: number): Perso
     x += groupGap;
   });
   return dots;
-}
-
-/** Cheap deterministic 0..1 hash, used to jitter a dot's spot within its group's slice. */
-function hash01(n: number): number {
-  const s = Math.sin(n * 12.9898) * 43758.5453;
-  return s - Math.floor(s);
-}
-
-/**
- * Picks a deterministic *rank* (an index into the path-ordered `sortedCells`
- * array, same space as land `Range`s — not yet a pixel) for each of a
- * group's dots within that group's own [start, end) range — stratified by
- * the dot's fixed `regionSlot` plus a stable per-dot jitter (kept within
- * that slot's own share of the range, so it can't wander into a neighboring
- * slot), rather than randomly sampled from the whole region. Two calls with
- * the same range always return the same ranks, so a dot only moves when its
- * own group's range actually changes (e.g. a later seed pushes it), never as
- * a side effect of an unrelated region being added elsewhere.
- *
- * Returning a rank rather than a pixel lets the caller animate a dot by
- * interpolating rank (i.e. sliding it along the path, same as the land
- * itself grows) instead of tweening raw x/y — which would cut straight
- * across the ocean whenever a push moves a dot's cell far along the route.
- */
-export function sampleRangeRanks(
-  dots: PersonDot[],
-  groupIndex: number,
-  range: Range,
-  totalLandCells: number
-): Map<number, number> {
-  const groupDots = dots.filter((d) => d.groupIndex === groupIndex);
-  const start = Math.max(0, Math.round(Math.min(range.start, range.end)));
-  const end = Math.min(totalLandCells, Math.round(Math.max(range.start, range.end)));
-  const span = end - start;
-
-  const ranks = new Map<number, number>();
-  if (span <= 0) return ranks;
-
-  // Each dot wobbles *around* its slot's own center, rather than roaming
-  // the slot's full width — with a lone dot (count 1, the millionaire
-  // band), "full width" is the *entire region*, so the naive version could
-  // land it anywhere from one edge to the other, defeating the centering
-  // centerOutSlots was supposed to guarantee. 0.8 keeps the wobble inside
-  // the slot with a small margin, never touching a neighboring slot.
-  const JITTER_AMPLITUDE = 0.8;
-  for (const dot of groupDots) {
-    const jitter = (hash01(dot.id) - 0.5) * JITTER_AMPLITUDE;
-    const frac = (dot.regionSlot + 0.5 + jitter) / groupDots.length;
-    ranks.set(dot.id, start + Math.min(span - 1, Math.floor(frac * span)));
-  }
-  return ranks;
 }
