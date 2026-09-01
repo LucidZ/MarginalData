@@ -17,14 +17,15 @@ import {
 } from "./geoAssign";
 import { buildPersonDots, STAGING_HEIGHT } from "./personDots";
 import {
-  buildPitchIcons,
-  PITCH_ICON_SIZE,
-  PITCH_ICON_DETAILED,
-  FOOTBALL_PITCH_M2,
-  PENALTY_BOX_M2,
-  PitchIcon,
-  PitchSymbolDefs,
-} from "./PitchIcons";
+  buildFieldIcons,
+  FIELD_ICON_SIZE,
+  FIELD_ICON_DETAILED,
+  FOOTBALL_FIELD_M2,
+  FIELD_LENGTH_YD,
+  END_ZONE_DEPTH_YD,
+  FieldIcon,
+  FieldSymbolDefs,
+} from "./FieldIcons";
 import { FootnoteRef, FootnotesProvider, NotesList, type FootnoteEntry } from "../../components/Footnotes";
 import "./App.css";
 
@@ -40,6 +41,18 @@ const UNCLAIMED_COLOR: [number, number, number] = [90, 90, 90];
 // canvas pixels per frame, so re-parsing a hex string inside that loop (as
 // this used to) is pure waste at 60fps.
 const GROUP_RGB: [number, number, number][] = WEALTH_GROUPS.map((g) => hexToRgb(g.color));
+// Person icons are drawn on top of a region filled with that same group
+// color, so using the raw color as the icon fill gives the icon no contrast
+// at all against its own background — it was only visible via its outline.
+// A heavily whitened tint keeps the group readable (pale red on the Top 1%
+// region, pale blue on the Bottom 50%) while restoring the value contrast
+// that actually makes the icon a distinct shape.
+const DOT_FILL: string[] = WEALTH_GROUPS.map((g) => {
+  const [r, gr, b] = hexToRgb(g.color);
+  const t = 0.62;
+  const mix = (c: number) => Math.round(c + (255 - c) * t);
+  return `rgb(${mix(r)},${mix(gr)},${mix(b)})`;
+});
 
 // Click animation: land grows/shifts from the click point — pushing and
 // resizing any neighboring regions along with it — while every affected
@@ -119,13 +132,24 @@ function buildPerPersonStats(): PerPersonRow[] {
     const km2 = g.wealthShare * TOTAL_LAND_KM2;
     const m2 = (km2 * 1e6) / adults;
     const avgWealthUsd = (g.wealthShare * TOTAL_US_WEALTH_USD) / adults;
-    const pitches = m2 / FOOTBALL_PITCH_M2;
+    const fields = m2 / FOOTBALL_FIELD_M2;
+    // Yards from x=0, the very back of the near end zone — matches exactly
+    // where the field icon's fill starts, so the words and the picture
+    // agree. Past midfield the yard-line count runs back down toward the
+    // far goal line, same as how a real broadcast reads the numbers painted
+    // on the field.
+    const depthYd = fields * FIELD_LENGTH_YD;
+    const yardLine = Math.round(
+      depthYd <= FIELD_LENGTH_YD / 2 ? depthYd - END_ZONE_DEPTH_YD : FIELD_LENGTH_YD - END_ZONE_DEPTH_YD - depthYd,
+    );
     const compareLabel =
-      m2 < PENALTY_BOX_M2
-        ? "less than one penalty box"
-        : pitches < 3
-          ? `about ${pitches.toFixed(1)} football pitches`
-          : `about ${Math.round(pitches)} football pitches`;
+      depthYd < END_ZONE_DEPTH_YD
+        ? "doesn't even reach the far side of the end zone"
+        : fields < 1
+          ? `from the back of the end zone to about the ${yardLine}-yard line`
+          : fields < 3
+            ? `about ${fields.toFixed(1)} football fields`
+            : `about ${Math.round(fields)} football fields`;
     return { name: g.name, color: g.color, m2, avgWealthUsd, openEnded: g.openEnded ?? false, compareLabel };
   });
 }
@@ -358,7 +382,10 @@ export default function App() {
     const bordersCtx = bordersCanvas.getContext("2d");
     if (bordersCtx) {
       const bordersPath = d3.geoPath(projection, bordersCtx);
-      bordersCtx.strokeStyle = "rgba(255,255,255,.55)";
+      // Kept deliberately faint: at .55 these read at the same value as the
+      // person icons sitting on top of them, and the icons got lost in the
+      // border mesh. The state shapes still register at .3.
+      bordersCtx.strokeStyle = "rgba(255,255,255,.3)";
       bordersCtx.lineWidth = 1;
       (statesGeo as FeatureCollection).features.forEach((f) => {
         bordersCtx.beginPath();
@@ -793,15 +820,17 @@ export default function App() {
               own copy of the path data. Outline is a real SVG stroke (scales
               with the icon via the viewBox) rather than a CSS drop-shadow,
               which stays a fixed physical size and would swallow the fill
-              at small icon sizes. */}
+              at small icon sizes. It is dark, not white: the state borders
+              underneath are white, so a white outline camouflaged the icon
+              against the very lines it needed to separate from. */}
           <svg width="0" height="0" style={{ position: "absolute" }}>
             <defs>
               <symbol id="wlc-person-icon" viewBox="0 0 24 24">
                 <path
                   d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
                   fill="currentColor"
-                  stroke="rgba(255,255,255,.95)"
-                  strokeWidth="1.8"
+                  stroke="rgba(9,14,26,.92)"
+                  strokeWidth="2.4"
                   strokeLinejoin="round"
                   paintOrder="stroke fill"
                 />
@@ -823,7 +852,7 @@ export default function App() {
                   style={{
                     left: `${(xVirtual / GRID_WIDTH) * 100}%`,
                     top: `${(yVirtual / virtualTotalHeight) * 100}%`,
-                    color: WEALTH_GROUPS[dot.groupIndex].color,
+                    color: DOT_FILL[dot.groupIndex],
                   }}
                 >
                   <use href="#wlc-person-icon" />
@@ -900,28 +929,28 @@ export default function App() {
         <h2 className="wlc-person-heading">What that land means per person</h2>
         <p className="wlc-person-subtitle">
           If we split each group's territory evenly across everyone in it and measured
-          it out in football pitches, this is roughly what one person's share would
+          it out in football fields, this is roughly what one person's share would
           look like.
         </p>
         <svg width="0" height="0" style={{ position: "absolute" }}>
           <defs>
-            <PitchSymbolDefs />
+            <FieldSymbolDefs />
           </defs>
         </svg>
-        <div className="wlc-pitch-rows">
+        <div className="wlc-field-rows">
           {perPersonStats.map((s) => {
-            const icons = buildPitchIcons(s.m2);
+            const icons = buildFieldIcons(s.m2);
             return (
-              <div className="wlc-pitch-row" key={s.name}>
-                <div className="wlc-pitch-row-label">
-                  <span className="wlc-pitch-row-swatch" style={{ background: s.color }} />
+              <div className="wlc-field-row" key={s.name}>
+                <div className="wlc-field-row-label">
+                  <span className="wlc-field-row-swatch" style={{ background: s.color }} />
                   <strong>{s.name}</strong>
-                  <span className="wlc-pitch-row-detail">
+                  <span className="wlc-field-row-detail">
                     On average, {formatArea(s.m2)}: {s.compareLabel}
                   </span>
                 </div>
                 {s.openEnded && (
-                  <p className="wlc-pitch-row-caveat">
+                  <p className="wlc-field-row-caveat">
                     That "{s.compareLabel}" figure comes from an average of{" "}
                     <strong>{formatUsd(s.avgWealthUsd)}</strong> per person in this band.
                     "Top 1%" has no upper bound, so a small number of extremely wealthy
@@ -929,14 +958,14 @@ export default function App() {
                     this group actually hold.
                   </p>
                 )}
-                <div className="wlc-pitch-row-icons">
+                <div className="wlc-field-row-icons">
                   {icons.map((icon, i) => (
-                    <PitchIcon
+                    <FieldIcon
                       key={i}
                       icon={icon}
                       color={s.color}
-                      size={PITCH_ICON_SIZE}
-                      detailed={PITCH_ICON_DETAILED}
+                      size={FIELD_ICON_SIZE}
+                      detailed={FIELD_ICON_DETAILED}
                     />
                   ))}
                 </div>
@@ -950,8 +979,10 @@ export default function App() {
           <ol className="wlc-takeaways-list">
             <li>
               It's again difficult to intuit the size of the smallest and largest
-              lands; a unit of measurement (like football pitches) that works for
-              the smallest doesn't seem to work for the largest.
+              lands; a unit of measurement (like football fields) that works for
+              the smallest doesn't seem to work for the largest — the bottom
+              50%'s share doesn't even reach midfield, while the top 1%'s is well
+              over a hundred entire fields.
             </li>
             <li>Higher tiers within the top 1% (e.g. billionaires) would be even harder to wrap my head around.</li>
           </ol>

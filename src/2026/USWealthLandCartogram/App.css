@@ -113,8 +113,8 @@
   inset: 0;
   pointer-events: none;
   --wlc-dot-duration: 700ms;
-  /* single knob to resize every person icon if 16px reads too large */
-  --wlc-dot-size: 10px;
+  /* single knob to resize every person icon */
+  --wlc-dot-size: 13px;
 }
 
 .wlc-dot {
@@ -221,14 +221,14 @@
   line-height: 1.55;
 }
 
-.wlc-pitch-rows {
+.wlc-field-rows {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   text-align: left;
 }
 
-.wlc-pitch-row-label {
+.wlc-field-row-label {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
@@ -236,7 +236,7 @@
   margin-bottom: 0.6rem;
 }
 
-.wlc-pitch-row-swatch {
+.wlc-field-row-swatch {
   width: 11px;
   height: 11px;
   border-radius: 3px;
@@ -245,17 +245,17 @@
   align-self: center;
 }
 
-.wlc-pitch-row-label strong {
+.wlc-field-row-label strong {
   font-size: 0.9rem;
   color: var(--text-primary);
 }
 
-.wlc-pitch-row-detail {
+.wlc-field-row-detail {
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
 
-.wlc-pitch-row-caveat {
+.wlc-field-row-caveat {
   margin: 0.4rem 0 0.75rem;
   font-size: 0.8rem;
   line-height: 1.5;
@@ -263,23 +263,23 @@
   max-width: 640px;
 }
 
-.wlc-pitch-row-caveat strong {
+.wlc-field-row-caveat strong {
   color: var(--text-secondary);
 }
 
-.wlc-pitch-row-icons {
+.wlc-field-row-icons {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.wlc-pitch-icon {
+.wlc-field-icon {
   flex-shrink: 0;
   border-radius: 2px;
   overflow: hidden;
 }
 
-.wlc-pitch-icon-bg {
+.wlc-field-icon-bg {
   fill: var(--gridline);
 }
 

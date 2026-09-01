@@ -89,5 +89,5 @@ export const TOTAL_US_ADULTS = 268_300_000;
 // check that both numbers are real. Used only to show the average-wealth-
 // per-person dollar figure alongside the per-person land row for the
 // open-ended Top 1% band — that figure is what actually drives its land/
-// pitch count.
+// field count.
 export const TOTAL_US_WEALTH_USD = 174_009_619_000_000;
