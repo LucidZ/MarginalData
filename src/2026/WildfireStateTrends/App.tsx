@@ -56,25 +56,21 @@ export default function App() {
   return (
     <div className="wst-root">
       <header className="wst-header">
-        <h1>Wildfire Smoke &amp; the US PM2.5 Trend Reversal</h1>
+        <h1>The Smoke Is Getting Worse. The Data Agrees.</h1>
         <p>
-          Living in Colorado, I've noticed smoky air more and more often in the summer, and went
-          looking for whether that's a real trend or just my imagination. That search turned up a
-          geofaceted small-multiples map — a little line chart for every state, arranged in the
-          rough shape of the country — from{" "}
+          I live in Colorado, and it feels like every summer brings more hazy, smoke-tinted days
+          than the last. Curious whether that was real or just memory, I found a 2023 paper in{" "}
           <a
             href="https://www.nature.com/articles/s41586-023-06522-6"
             target="_blank"
             rel="noreferrer"
           >
-            Burke et al. 2023, <em>Nature</em>
-          </a>
-          . Their paper compares observed PM2.5 (black) — fine particulate pollution small enough
-          to get deep into your lungs and bloodstream — against a counterfactual (blue) estimating
-          what it would have been without wildfire smoke. A paper has to publish as a static
-          image, so it couldn't take advantage of what a website can do; I recreated it here,
-          interactive, rebuilt end-to-end on my own EPA AQS pull joined against the Stanford lab's
-          newer{" "}
+            Nature
+          </a>{" "}
+          that had already mapped it: what people actually breathed, state by state, against an
+          estimate of what they'd have breathed in a world without wildfire smoke. I rebuilt it as
+          something you can click through yourself, on my own EPA AQS pull joined against
+          Stanford's newer{" "}
           <a
             href="https://github.com/echolab-stanford/smokePM-version1.1"
             target="_blank"
@@ -82,15 +78,14 @@ export default function App() {
           >
             smokePM-version1.1
           </a>{" "}
-          county-day smoke data — one consistent pipeline across the whole span, rather than
-          splicing the two papers' own precomputed numbers together — with my own simplified
-          color-coding on top (the why's in the notes below).
+          county-day smoke data, and extended it a few years past where the original data
+          stopped.
         </p>
         <p>
-          Every state's annual trend, {data.startYear ?? 2006}–{data.extendedThroughYear ?? 2025}.
-          The counterfactual line stops at {data.smokeDataThroughYear} where the underlying smoke
-          data currently ends; the observed line continues past that using EPA monitoring data
-          directly.
+          Every tile is one state, {data.startYear ?? 2006}–{data.extendedThroughYear ?? 2025}. The
+          counterfactual line stops at {data.smokeDataThroughYear} where the smoke data currently
+          ends; the observed line continues past that on EPA monitoring alone. Click a tile to
+          open it full size.
         </p>
       </header>
 
@@ -140,27 +135,21 @@ export default function App() {
 
       <footer className="wst-footer">
         <p>
-          Annual-average lines follow the paper's own convention (unweighted station-year
-          averages) but are computed on our own data, not the paper's precomputed numbers — see
-          the note above. The colored tile tint above is our own simplified read, not the paper's
-          statistical reversal/stagnation classification: states are ranked by what share of
-          their 2016–2023 average PM2.5 is attributable to wildfire smoke (observed minus
-          counterfactual, as a percent of observed), tiered at a plain 10%/15% split rather than
-          the paper's statistical bands. Recent years only, not the full 2006–2023 record — a
-          longer average buries states with a calm early history and a severe recent one (WA is
-          the clearest case) under a quieter long-run number.
+          Tile color is my own read, not the original paper's: each state's share of 2016–2023
+          average PM2.5 attributable to smoke (observed minus counterfactual, as a percent of
+          observed), split at a plain 10%/15% rather than the paper's statistical bands. Recent
+          years only, not the full 2006–2023 record — a longer average buries states with a calm
+          early history and a severe recent one (WA is the clearest case) under a quieter long-run
+          number.
         </p>
         <p>
-          The "days per year &gt; 35 µg/m³" chart is still capped at the original study's
-          2000–2022 data for both lines, unlike the chart above — EPA does publish a usable
-          exceedance-day count we could extend the observed line with on its own, but checked
-          against the original study's own numbers for the years both cover, it disagrees by a
-          lot (roughly 30–50% lower), so appending it past 2022 would likely read as a real drop
-          when it's actually just a different counting method taking over. Its tile tint uses the
-          same idea and the same 2016–2022 window as the chart above, but ranked by raw
-          smoke-attributable days/year rather than a % share — most states have close to zero
-          exceedance days most years, so a % share here is dominated by tiny denominators rather
-          than a real signal.
+          The "days per year &gt; 35 µg/m³" chart stops at 2022 on purpose. EPA's own count of
+          exceedance days disagrees with the original study's by roughly 30–50% for the years both
+          cover, so stitching newer years on would look like a real drop when it's really just a
+          different way of counting. Its tile tint uses the same idea as the chart above but ranks
+          by raw smoke-attributable days/year, not a % share — most states have close to zero
+          exceedance days most years, so a % share here would be dominated by tiny denominators
+          rather than a real signal.
         </p>
       </footer>
     </div>
