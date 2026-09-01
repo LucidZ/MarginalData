@@ -13,7 +13,17 @@
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
 
-  max-width: 1180px;
+  /* Same column width as WealthLandCartogram's .wlc-root — both are
+     margin:0-auto centered, but a wider max-width eats more of a wide
+     window's real estate regardless, leaving a smaller gutter on each
+     side; at 1180px that made this story's left-aligned prose read as
+     hugging the edge next to Wealth's more centered-looking 900px column,
+     even though neither one center-aligns its actual text. 900px still
+     leaves ~70px per grid column after padding/gaps — comfortably above
+     the 64px tap-target floor the grid's own minmax() enforces (see
+     .wst-grid), so the state grid doesn't start horizontal-scrolling any
+     sooner than it already does on narrower screens. */
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem 4rem;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;

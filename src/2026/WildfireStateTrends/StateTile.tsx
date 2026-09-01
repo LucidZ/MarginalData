@@ -10,6 +10,8 @@ import {
   smokeExtremeDays,
   nearestYearIndex,
   formatYTick,
+  referenceYearX,
+  SMOKE_SHARE_START_YEAR,
 } from "./chartGeometry";
 import HoverMarkers from "./HoverMarkers";
 
@@ -52,6 +54,7 @@ export default function StateTile({
   const spanRows = isUS ? 2 : 1;
   const spanCols = isUS ? 2 : 1;
   const [xDomainStart, xDomainEnd] = x.domain();
+  const refX = referenceYearX(x, [xDomainStart, xDomainEnd], SMOKE_SHARE_START_YEAR);
 
   function handleMove(e: React.PointerEvent<SVGSVGElement>) {
     const svg = svgRef.current;
@@ -101,6 +104,18 @@ export default function StateTile({
           fill="var(--tile-tint)"
           opacity={0.16}
         />
+        {refX !== null && (
+          <line
+            x1={refX}
+            x2={refX}
+            y1={TILE_FRAME.marginTop}
+            y2={TILE_FRAME.height - TILE_FRAME.marginBottom}
+            stroke="var(--muted)"
+            strokeWidth={1}
+            strokeDasharray="1.5 1.5"
+            opacity={0.5}
+          />
+        )}
         <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={1.3} />
         <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={1.3} />
         {hoveredYearIndex !== null && (

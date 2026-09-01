@@ -43,7 +43,7 @@ export function seriesForMetric(state: StateTrend, metric: Metric) {
 // full-span version did (3.1 points vs. 1.8), not a weaker one, so this
 // isn't a tradeoff made to force WA in — the recent window is just the more
 // truthful read of current smoke exposure either way.
-const SMOKE_SHARE_START_YEAR = 2016;
+export const SMOKE_SHARE_START_YEAR = 2016;
 
 // Boundaries for smokeShare's tier. Plain round numbers rather than gap-fit
 // values — an earlier version picked boundaries from gaps in the 48-state
@@ -213,6 +213,18 @@ export function buildLinePath(
     .y((d) => d[1])
     .curve(curveLinear);
   return gen(points) ?? "";
+}
+
+// Pixel x-position of the smoke-share window's start year (see
+// SMOKE_SHARE_START_YEAR) — the same 2016 cutoff the tile tint and detail
+// badge are computed from, drawn as a light dotted line so the charts show
+// where that number comes from instead of just asserting it in prose. Null
+// when the year falls outside this metric's own x domain (shouldn't happen
+// given the data's actual span, but a metric-specific trim could shrink it).
+export function referenceYearX(x: (v: number) => number, domain: [number, number], year: number): number | null {
+  const [start, end] = domain;
+  if (year < start || year > end) return null;
+  return x(year);
 }
 
 // Pixel position of a single year's value — used to draw the hover marker.

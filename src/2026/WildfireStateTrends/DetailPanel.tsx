@@ -9,6 +9,8 @@ import {
   smokeShare,
   smokeExtremeDays,
   nearestYearIndex,
+  referenceYearX,
+  SMOKE_SHARE_START_YEAR,
 } from "./chartGeometry";
 import HoverMarkers from "./HoverMarkers";
 
@@ -47,6 +49,7 @@ export default function DetailPanel({ state, metric, hoveredYearIndex, onHover, 
 
   const xTicks = x.ticks(Math.min(8, state.years.length));
   const yTicks = y.ticks(5);
+  const refX = referenceYearX(x, x.domain() as [number, number], SMOKE_SHARE_START_YEAR);
 
   const share = metric === "mean" ? smokeShare(state) : null;
   const extreme = metric === "extreme" ? smokeExtremeDays(state) : null;
@@ -133,6 +136,18 @@ export default function DetailPanel({ state, metric, hoveredYearIndex, onHover, 
             />
           ))}
 
+          {refX !== null && (
+            <line
+              x1={refX}
+              x2={refX}
+              y1={frame.marginTop}
+              y2={frame.height - frame.marginBottom}
+              stroke="var(--muted)"
+              strokeWidth={1}
+              strokeDasharray="4 4"
+              opacity={0.5}
+            />
+          )}
           <path d={counterfactualPath} fill="none" stroke="var(--series-1)" strokeWidth={2} />
           <path d={observedPath} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
           {hoveredYearIndex !== null && (
