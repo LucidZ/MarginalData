@@ -120,26 +120,6 @@ export default function App() {
             onHover={handleHover}
             onSelect={handleSelect}
           />
-
-          <div className="wst-callout">
-            <h3 className="wst-callout-heading">Some things worth knowing about this layout</h3>
-            <ol className="wst-callout-list">
-              <li>
-                Every state gets the same size tile no matter its population or land area, so
-                Wyoming (~580,000 people) gets exactly as much visual space as California (~39
-                million). That's the whole point of a grid like this: no state's line gets
-                crushed into invisibility just for being small.
-              </li>
-              <li>
-                The tradeoff is true geography. Squeezing 48 states into a clean rectangle means
-                real neighbors don't always end up next to each other. New York and Pennsylvania
-                share one of the longest state borders in the country, but here they sit diagonal
-                to each other, not edge to edge. A few states (Maine, Vermont, New Hampshire,
-                Florida) needed their grid position hand-adjusted just to make the layout work at
-                all.
-              </li>
-            </ol>
-          </div>
         </>
       )}
 
@@ -173,7 +153,16 @@ export default function App() {
         </p>
 
         <details className="wst-details">
-          <summary>How this was built</summary>
+          <summary>Data &amp; methodology</summary>
+          <p>
+            Every state gets the same size tile here no matter its population or land area, so
+            Wyoming (~580,000 people) gets exactly as much visual space as California (~39
+            million). The tradeoff is true geography: squeezing 48 states into a clean rectangle
+            means real neighbors don't always end up next to each other. New York and Pennsylvania
+            share one of the longest state borders in the country, but here they sit diagonal to
+            each other, not edge to edge. A few states (Maine, Vermont, New Hampshire, Florida)
+            needed their grid position hand-adjusted just to make the layout work at all.
+          </p>
           <p>
             Observed PM2.5 comes from EPA's own monitoring network, pulled directly via their AQS
             API for every year 2006–2025, not the original paper's precomputed station averages.

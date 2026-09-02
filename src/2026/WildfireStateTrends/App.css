@@ -425,42 +425,9 @@
   line-height: 1.5;
 }
 
-/* ---- "worth knowing" callout, same left-border treatment as
-   WealthLandCartogram's .wlc-takeaways, for a different story's version
-   of the same idea: supplementary, always-visible, not worth hiding
-   behind a click ---- */
-
-.wst-callout {
-  margin-top: 1.5rem;
-  padding: 0.85rem 1.1rem;
-  border-left: 3px solid var(--baseline);
-  background: var(--surface-1);
-  border-radius: 0 8px 8px 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  max-width: 70ch;
-}
-
-.wst-callout-heading {
-  margin: 0 0 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.wst-callout-list {
-  margin: 0;
-  padding-left: 1.1rem;
-}
-
-.wst-callout-list li + li {
-  margin-top: 0.6rem;
-}
-
-/* ---- "how this was built" disclosure — same footer-level detail as the
-   two always-visible notes above it, just long enough to earn a click
-   instead of weighing down every reader ---- */
+/* ---- data/methodology disclosure — same footer-level detail as the two
+   always-visible notes above it, just long enough to earn a click instead
+   of weighing down every reader ---- */
 
 .wst-details {
   margin-top: 1rem;
