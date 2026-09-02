@@ -120,6 +120,26 @@ export default function App() {
             onHover={handleHover}
             onSelect={handleSelect}
           />
+
+          <div className="wst-callout">
+            <h3 className="wst-callout-heading">Some things worth knowing about this layout</h3>
+            <ol className="wst-callout-list">
+              <li>
+                Every state gets the same size tile no matter its population or land area, so
+                Wyoming (~580,000 people) gets exactly as much visual space as California (~39
+                million). That's the whole point of a grid like this: no state's line gets
+                crushed into invisibility just for being small.
+              </li>
+              <li>
+                The tradeoff is true geography. Squeezing 48 states into a clean rectangle means
+                real neighbors don't always end up next to each other. New York and Pennsylvania
+                share one of the longest state borders in the country, but here they sit diagonal
+                to each other, not edge to edge. A few states (Maine, Vermont, New Hampshire,
+                Florida) needed their grid position hand-adjusted just to make the layout work at
+                all.
+              </li>
+            </ol>
+          </div>
         </>
       )}
 
@@ -151,6 +171,46 @@ export default function App() {
           exceedance days most years, so a % share here would be dominated by tiny denominators
           rather than a real signal.
         </p>
+
+        <details className="wst-details">
+          <summary>How this was built</summary>
+          <p>
+            Observed PM2.5 comes from EPA's own monitoring network, pulled directly via their AQS
+            API for every year 2006–2025, not the original paper's precomputed station averages.
+            Averaging follows the paper's own convention: a plain unweighted mean across
+            qualifying stations (at least 15 years of data, 50+ observations a year), not weighted
+            by population or land area.
+          </p>
+          <p>
+            The counterfactual comes from Stanford's{" "}
+            <a
+              href="https://github.com/echolab-stanford/smokePM-version1.1"
+              target="_blank"
+              rel="noreferrer"
+            >
+              smokePM-version1.1
+            </a>{" "}
+            model, which estimates county-level daily wildfire smoke by combining satellite plume
+            tracking with ground and reanalysis data. It's joined to each EPA station using the
+            county FIPS code embedded in the station's own ID, then averaged the same way as the
+            observed side, and currently runs through 2023. Where the smoke model has no row for a
+            given county-day, that means zero smoke by the dataset's own convention, not a missing
+            value.
+          </p>
+          <p>
+            Because the observed side is rebuilt from scratch rather than reusing the paper's own
+            fixed set of roughly 914 qualifying stations, small differences from its originally
+            published numbers are expected. A spot check against the paper's own figures found
+            agreement within about 0.2–1 µg/m³ for the years both cover, same shape, same spikes.
+          </p>
+          <p>
+            Alaska and Hawaii aren't shown here. That's not a layout problem, the grid template
+            actually has room for both. It's a data one: the underlying wildfire-smoke research,
+            both the original paper and the newer model it's extended with, is scoped to the
+            contiguous US, so there's no smoke-free counterfactual to compare either state
+            against.
+          </p>
+        </details>
       </footer>
     </div>
   );
