@@ -59,7 +59,7 @@ export default function App() {
         <h1>The Smoke Is Getting Worse. The Data Agrees.</h1>
         <p>
           I live in Colorado, and it feels like every summer brings more hazy, smoke-tinted days
-          than the last. Curious whether that was real or just memory, I found a 2023 paper in{" "}
+          than the last. Curious whether that was real or just my imagination, I found a 2023 paper in{" "}
           <a
             href="https://www.nature.com/articles/s41586-023-06522-6"
             target="_blank"
@@ -138,7 +138,7 @@ export default function App() {
           Tile color is my own read, not the original paper's: each state's share of 2016–2023
           average PM2.5 attributable to smoke (observed minus counterfactual, as a percent of
           observed), split at a plain 10%/15% rather than the paper's statistical bands. Recent
-          years only, not the full 2006–2023 record — a longer average buries states with a calm
+          years only, not the full 2006–2023 record: a longer average buries states with a calm
           early history and a severe recent one (WA is the clearest case) under a quieter long-run
           number.
         </p>
@@ -147,7 +147,7 @@ export default function App() {
           exceedance days disagrees with the original study's by roughly 30–50% for the years both
           cover, so stitching newer years on would look like a real drop when it's really just a
           different way of counting. Its tile tint uses the same idea as the chart above but ranks
-          by raw smoke-attributable days/year, not a % share — most states have close to zero
+          by raw smoke-attributable days/year, not a % share. Most states have close to zero
           exceedance days most years, so a % share here would be dominated by tiny denominators
           rather than a real signal.
         </p>
