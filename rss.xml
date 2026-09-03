@@ -5,13 +5,20 @@
     <link>https://marginaldata.com/</link>
     <description>Small interactive experiments in data and visualization.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 27 Aug 2026 21:12:44 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 03 Sep 2026 18:18:12 GMT</lastBuildDate>
     <item>
       <title>If Wealth Were Land — Marginal Data</title>
       <link>https://marginaldata.com/2026/WealthLandCartogram</link>
       <guid>https://marginaldata.com/2026/WealthLandCartogram</guid>
       <pubDate>Mon, 24 Aug 2026 00:00:00 GMT</pubDate>
       <description>Global wealth inequality redrawn as claimed territory on a world map, sized by each group's share of wealth.</description>
+    </item>
+    <item>
+      <title>Wildfire Smoke &amp; the US PM2.5 Trend Reversal — Marginal Data</title>
+      <link>https://marginaldata.com/2026/WildfireStateTrends</link>
+      <guid>https://marginaldata.com/2026/WildfireStateTrends</guid>
+      <pubDate>Fri, 14 Aug 2026 00:00:00 GMT</pubDate>
+      <description>An interactive, state-by-state look at how wildfire smoke has slowed or reversed decades of US air-quality progress since 2016.</description>
     </item>
     <item>
       <title>Possession Shape: Argentina vs. France — Marginal Data</title>
