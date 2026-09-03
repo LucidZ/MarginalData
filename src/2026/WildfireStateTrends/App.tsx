@@ -59,7 +59,8 @@ export default function App() {
         <h1>The Smoke Is Getting Worse. The Data Agrees.</h1>
         <p>
           I live in Colorado, and it feels like every summer brings more hazy, smoke-tinted days
-          than the last. Curious whether that was real or just my imagination, I found a 2023 paper in{" "}
+          than the last. Curious whether that was real or just my imagination, I found a 2023
+          paper in{" "}
           <a
             href="https://www.nature.com/articles/s41586-023-06522-6"
             target="_blank"
@@ -67,10 +68,10 @@ export default function App() {
           >
             Nature
           </a>{" "}
-          that had already mapped it: what people actually breathed, state by state, against an
-          estimate of what they'd have breathed in a world without wildfire smoke. I rebuilt it as
-          something you can click through yourself, on my own EPA AQS pull joined against
-          Stanford's newer{" "}
+          that had already showed it: state-by-state PM2.5 against an estimate of what it would've
+          been without wildfire smoke, identified from satellite imagery of the plumes themselves.
+          I rebuilt it as something you can click through yourself, on my own EPA AQS pull joined
+          against Stanford's newer{" "}
           <a
             href="https://github.com/echolab-stanford/smokePM-version1.1"
             target="_blank"
