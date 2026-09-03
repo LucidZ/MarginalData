@@ -1,0 +1,475 @@
+.wst-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --series-1: #2a78d6;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  /* Same column width as WealthLandCartogram's .wlc-root — both are
+     margin:0-auto centered, but a wider max-width eats more of a wide
+     window's real estate regardless, leaving a smaller gutter on each
+     side; at 1180px that made this story's left-aligned prose read as
+     hugging the edge next to Wealth's more centered-looking 900px column,
+     even though neither one center-aligns its actual text. 900px still
+     leaves ~70px per grid column after padding/gaps — comfortably above
+     the 64px tap-target floor the grid's own minmax() enforces (see
+     .wst-grid), so the state grid doesn't start horizontal-scrolling any
+     sooner than it already does on narrower screens. */
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text-primary);
+  background: var(--page);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .wst-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --series-1: #3987e5;
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical: #e66767;
+  }
+}
+
+:root[data-theme="dark"] .wst-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --series-1: #3987e5;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #e66767;
+}
+
+.wst-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 4rem;
+}
+
+@media (max-width: 560px) {
+  .wst-root {
+    padding: 1.25rem 0.75rem 3rem;
+  }
+  .wst-detail {
+    padding: 1rem;
+  }
+}
+
+.wst-header h1 {
+  /* Fluid instead of a fixed size + breakpoint jump, so it scales smoothly
+     across the whole viewport range rather than snapping at 560px — same
+     scale shared with WealthLandCartogram's .wlc-title so the two stories'
+     page titles read as one consistent system. */
+  font-size: clamp(1.3rem, 1.05rem + 1.2vw, 1.6rem);
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5rem;
+}
+
+.wst-header p {
+  color: var(--text-secondary);
+  max-width: 64ch;
+  line-height: 1.55;
+}
+
+.wst-header a {
+  color: var(--series-1);
+}
+
+/* ---- Metric section (one grid per metric, no toggle between them) ---- */
+
+.wst-metric-section {
+  margin-top: 2rem;
+}
+
+.wst-metric-section:first-of-type {
+  margin-top: 1.5rem;
+}
+
+.wst-metric-title {
+  font-size: 1rem;
+  margin: 0 0 0.2rem;
+  color: var(--text-primary);
+}
+
+.wst-metric-subtitle {
+  font-size: 0.78rem;
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+}
+
+.wst-metric-legend {
+  font-size: 0.76rem;
+  margin: -0.5rem 0 0.75rem;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.wst-metric-legend__swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.wst-metric-legend__swatch--clear {
+  border: 1px solid var(--muted);
+}
+
+/* ---- Grid of small multiples ---- */
+
+.wst-grid {
+  display: grid;
+  /* minmax floor keeps tiles tappable/legible on narrow screens — below
+     that width the grid overflows its scroll container instead of
+     squishing, since the geographic layout is the point of this chart. */
+  grid-template-columns: repeat(12, minmax(64px, 1fr));
+  grid-auto-rows: 84px;
+  gap: 3px;
+}
+
+.wst-grid-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+@media (max-width: 860px) {
+  .wst-grid-scroll::after {
+    content: "⇠ scroll to see all states ⇢";
+    display: block;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+}
+
+.wst-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gridline);
+  background: var(--surface-1);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  font: inherit;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.wst-tile:hover {
+  border-color: var(--series-1);
+  transform: translateY(-1px);
+}
+
+.wst-tile__label {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  z-index: 1;
+}
+
+.wst-tile--us .wst-tile__label {
+  font-size: 0.8rem;
+}
+
+.wst-tile__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* US tile's own inside labels (see StateTile) — the one tile that prints
+   the shared scale as actual numbers; every other state tile stays bare.
+   Four corners, four distinct facts: abbreviation (top-left), y-ceiling
+   (top-right), start/end year (bottom row) — no "0", since a floor of
+   zero is self-evident for these non-negative metrics. A soft text-shadow
+   halo keeps them legible over a line that happens to pass underneath. */
+.wst-tile__tick {
+  position: absolute;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1;
+  z-index: 1;
+  pointer-events: none;
+  text-shadow:
+    0 0 3px var(--surface-1),
+    0 0 3px var(--surface-1),
+    0 0 3px var(--surface-1);
+}
+
+.wst-tile__tick--ymax {
+  top: 3px;
+  right: 5px;
+}
+
+.wst-tile__tick--xstart {
+  bottom: 3px;
+  left: 5px;
+}
+
+.wst-tile__tick--xend {
+  bottom: 3px;
+  right: 5px;
+}
+
+/* ---- Detail (expanded single-state) view ---- */
+
+.wst-detail {
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.wst-detail__back {
+  /* Sticky + a real button shape (border, background, min touch size)
+     rather than a bare text link — a link-sized target and a "scroll up
+     to find it" assumption are fine on desktop, where the whole panel is
+     usually visible at a glance and a mouse is precise, but not on a
+     phone: the grid you tapped into can be several screens tall, so this
+     button needs to (a) survive wherever the page happened to scroll to
+     and (b) be big enough for a thumb. Sticky keeps it reachable without
+     scrolling back to the top; the panel mount also scroll-snaps to this
+     button on open (see DetailPanel) so it starts in view either way. */
+  position: sticky;
+  top: 0.6rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--series-1);
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  min-height: 44px;
+  margin: 0 0 1rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.wst-detail__back:hover {
+  border-color: var(--series-1);
+}
+
+.wst-detail__back:active {
+  background: var(--gridline);
+}
+
+.wst-detail__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.wst-detail__head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.wst-detail__region {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.wst-detail__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.wst-detail__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.wst-detail__chart-wrap {
+  position: relative;
+}
+
+.wst-detail__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+
+.wst-detail__tick {
+  position: absolute;
+  font-size: 0.65rem;
+  color: var(--muted);
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.wst-detail__tick--y {
+  left: 0;
+  text-align: right;
+  transform: translateY(-50%);
+}
+
+.wst-detail__tick--x {
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.wst-detail__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gridline);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.wst-detail__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.wst-detail__extnote {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+/* ---- Tooltip ---- */
+
+.wst-tooltip {
+  position: fixed;
+  z-index: 20;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  color: var(--text-secondary);
+}
+
+.wst-tooltip__head {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.wst-tooltip__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+}
+
+.wst-footer {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  max-width: 70ch;
+  line-height: 1.5;
+}
+
+/* ---- data/methodology disclosure — same footer-level detail as the two
+   always-visible notes above it, just long enough to earn a click instead
+   of weighing down every reader ---- */
+
+.wst-details {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--gridline);
+}
+
+.wst-details summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--series-1);
+  list-style: none;
+}
+
+.wst-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.wst-details summary::before {
+  content: "+ ";
+}
+
+.wst-details[open] summary::before {
+  content: "\2212 ";
+}
+
+.wst-details p {
+  margin: 0.7rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 70ch;
+}
+
+.wst-details a {
+  color: var(--series-1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.35s;
+  }
+}

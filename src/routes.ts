@@ -121,6 +121,16 @@ export const ROUTES: RouteEntry[] = [
     note: "A follow-up to the other two, still the same 2022 final: team shape, and how positioning shifts from defense to offense.",
   },
   {
+    path: "/2026/WildfireStateTrends",
+    title: "Wildfire Smoke & the US PM2.5 Trend Reversal — Marginal Data",
+    description:
+      "An interactive, state-by-state look at how wildfire smoke has slowed or reversed decades of US air-quality progress since 2016.",
+    component: () => import("./2026/WildfireStateTrends"),
+    group: "Environment",
+    date: "2026-08-14",
+    note: "I live in Colorado and kept noticing smokier summers, so I went looking for whether that's a real trend or just my imagination. It is, especially the shift in the Pacific Northwest around 2016.",
+  },
+  {
     path: "/2025/DecisionVectorizer",
     title: "Decision Vectorizer — Marginal Data",
     description:
