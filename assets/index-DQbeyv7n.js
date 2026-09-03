@@ -1,4 +1,4 @@
-import{r as I,j as l}from"./index-rQoJOFS1.js";/**
+import{r as I,j as l}from"./index-C7qKN2Iw.js";/**
     @preserve
 
     Astronomy library for JavaScript (browser and Node.js).
