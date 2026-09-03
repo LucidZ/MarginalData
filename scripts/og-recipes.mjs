@@ -285,6 +285,14 @@ export const RECIPES = {
     },
   },
 
+  "/2026/WildfireStateTrends": {
+    // Two MetricGrid sections exist (mean, extreme) — a string clip
+    // auto-.first()s in capture-og.mjs, so this grabs the mean-PM2.5 grid,
+    // the story's lead chart. Default state already shows real, colored
+    // tiles as soon as the data fetch resolves, no pose needed.
+    clip: ".wst-grid",
+  },
+
   "/2025/ImageScrambler": {
     // Cold load has no image and two empty canvases — needs the full
     // load-then-sort flow. Default imageUrl (picsum.photos, a random

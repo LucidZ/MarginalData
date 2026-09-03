@@ -127,6 +127,7 @@ export const ROUTES: RouteEntry[] = [
       "An interactive, state-by-state look at how wildfire smoke has slowed or reversed decades of US air-quality progress since 2016.",
     component: () => import("./2026/WildfireStateTrends"),
     group: "Environment",
+    image: "/og/wildfire-state-trends.jpg",
     date: "2026-08-14",
     note: "I live in Colorado and kept noticing smokier summers, so I went looking for whether that's a real trend or just my imagination. It is, especially the shift in the Pacific Northwest around 2016.",
   },
