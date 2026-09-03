@@ -69,24 +69,12 @@ export default function App() {
             Nature
           </a>{" "}
           that had already showed it: state-by-state PM2.5 against an estimate of what it would've
-          been without wildfire smoke, identified from satellite imagery of the plumes themselves.
-          I rebuilt it as something you can click through yourself, on my own EPA AQS pull joined
-          against Stanford's newer{" "}
-          <a
-            href="https://github.com/echolab-stanford/smokePM-version1.1"
-            target="_blank"
-            rel="noreferrer"
-          >
-            smokePM-version1.1
-          </a>{" "}
-          county-day smoke data, and extended it a few years past where the original data
-          stopped.
+          been without wildfire smoke (in blue), identified from satellite imagery of the plumes
+          themselves. I rebuilt it here and extended it to some more recent data.
         </p>
         <p>
-          Every tile is one state, {data.startYear ?? 2006}–{data.extendedThroughYear ?? 2025}. The
-          counterfactual line stops at {data.smokeDataThroughYear} where the smoke data currently
-          ends; the observed line continues past that on EPA monitoring alone. Click a tile to
-          open it full size.
+          I think it's interesting to see the shift in the Pacific Northwest around 2016. So,
+          definitely not just my imagination!
         </p>
       </header>
 
@@ -135,15 +123,6 @@ export default function App() {
       )}
 
       <footer className="wst-footer">
-        <p>
-          Tile color: each state's share of 2016–2023 average PM2.5 attributable to smoke, split
-          at a plain 10%/15%.
-        </p>
-        <p>
-          The "days per year &gt; 35 µg/m³" chart stops at 2022 on purpose, not a data gap. Its
-          tile tint ranks by raw smoke-attributable days/year instead of a % share.
-        </p>
-
         <details className="wst-details">
           <summary>Data &amp; methodology</summary>
           <p>
@@ -162,10 +141,11 @@ export default function App() {
             just a different way of counting.
           </p>
           <p>
-            Every state gets the same size tile here no matter its population or land area, so
-            Wyoming (~580,000 people) gets exactly as much visual space as California (~39
-            million). The tradeoff is true geography: squeezing 48 states into a clean rectangle
-            means real neighbors don't always end up next to each other. New York and Pennsylvania
+            Every tile is one state; click one to open it full size. Every state also gets the
+            same size tile no matter its population or land area, so Wyoming (~580,000 people)
+            gets exactly as much visual space as California (~39 million). The tradeoff is true
+            geography: squeezing 48 states into a clean rectangle means real neighbors don't
+            always end up next to each other. New York and Pennsylvania
             share one of the longest state borders in the country, but here they sit diagonal to
             each other, not edge to edge. A few states (Maine, Vermont, New Hampshire, Florida)
             needed their grid position hand-adjusted just to make the layout work at all.
