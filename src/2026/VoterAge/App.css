@@ -1,0 +1,326 @@
+.voa-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --diverge-bad: #e34948;
+  --border: rgba(11, 11, 11, 0.1);
+
+  /* Sequential blue ramp, light->dark, 7 buckets (see colorScales.ts) */
+  --voa-seq-0: #cde2fb;
+  --voa-seq-1: #b0cff8;
+  --voa-seq-2: #8fbaf1;
+  --voa-seq-3: #6da7ec;
+  --voa-seq-4: #4a90e0;
+  --voa-seq-5: #2a78d6;
+  --voa-seq-6: #184f95;
+
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text-primary);
+  background: var(--page);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .voa-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --diverge-bad: #e66767;
+    --border: rgba(255, 255, 255, 0.1);
+
+    --voa-seq-0: #cde2fb;
+    --voa-seq-1: #a8c8f5;
+    --voa-seq-2: #83aeee;
+    --voa-seq-3: #6da7ec;
+    --voa-seq-4: #5896e6;
+    --voa-seq-5: #3987e5;
+    --voa-seq-6: #256abf;
+  }
+}
+
+:root[data-theme="dark"] .voa-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --diverge-bad: #e66767;
+  --border: rgba(255, 255, 255, 0.1);
+
+  --voa-seq-0: #cde2fb;
+  --voa-seq-1: #a8c8f5;
+  --voa-seq-2: #83aeee;
+  --voa-seq-3: #6da7ec;
+  --voa-seq-4: #5896e6;
+  --voa-seq-5: #3987e5;
+  --voa-seq-6: #256abf;
+}
+
+/* ---------- Header ---------- */
+.voa-header {
+  padding-bottom: 0.5rem;
+}
+.voa-header h1 {
+  font-size: clamp(1.4rem, 3.2vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+}
+.voa-header .voa-intro {
+  font-size: clamp(0.92rem, 1.8vw, 1.05rem);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin: 0.4rem 0;
+}
+.voa-header .voa-intro a {
+  color: var(--muted);
+}
+
+/* ---------- Scrolly layout (shared by all four beats) ---------- */
+.voa-beat {
+  margin-top: 2rem;
+}
+.voa-beat-title {
+  font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+  font-weight: 700;
+  margin: 0 0 1rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--gridline);
+}
+.voa-scrolly {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+.voa-scrolly-viz {
+  position: sticky;
+  top: 1.5rem;
+  flex: 0 0 56%;
+  min-width: 0;
+}
+.voa-scrolly-steps {
+  flex: 1;
+  min-width: 0;
+}
+.voa-step {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  padding: 1.5rem 0;
+}
+.voa-step:last-child {
+  min-height: 40vh;
+}
+.voa-step-inner h3 {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  margin: 0 0 0.6rem;
+}
+.voa-step-inner p {
+  font-size: clamp(0.9rem, 1.6vw, 1rem);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0 0 0.8rem;
+}
+.voa-step-inner strong {
+  color: var(--text-primary);
+}
+.voa-callout {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin-top: 0.6rem;
+}
+.voa-callout strong {
+  color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+  .voa-scrolly {
+    flex-direction: column;
+  }
+  .voa-scrolly-viz {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: min(48vh, 380px);
+    z-index: 1;
+    background: var(--page);
+    padding-bottom: 0.5rem;
+  }
+  .voa-step {
+    min-height: auto;
+    padding: 1.2rem 0;
+  }
+}
+
+/* ---------- AgeScatter ---------- */
+.voa-chart-surface {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem;
+}
+.voa-axis path,
+.voa-axis line {
+  stroke: var(--gridline);
+}
+.voa-axis text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.voa-axis-label {
+  fill: var(--text-secondary);
+  font-size: 12px;
+}
+.voa-diagonal {
+  stroke: var(--baseline);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  fill: none;
+}
+.voa-dot {
+  stroke: var(--surface-1);
+  stroke-width: 1;
+}
+.voa-dot-label {
+  fill: var(--text-secondary);
+  font-size: 10px;
+  pointer-events: none;
+}
+.voa-annotation {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+.voa-annotation-line {
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+/* Sequential fill buckets, driven by colorScales.ts. Used on both SVG
+   circles (AgeScatter, needs `fill`) and plain <div> tiles (StateGrid,
+   needs `background-color`) - each property is a no-op on the element
+   type that doesn't use it, so one rule safely serves both. */
+.voa-seq-0 { fill: var(--voa-seq-0); background-color: var(--voa-seq-0); }
+.voa-seq-1 { fill: var(--voa-seq-1); background-color: var(--voa-seq-1); }
+.voa-seq-2 { fill: var(--voa-seq-2); background-color: var(--voa-seq-2); }
+.voa-seq-3 { fill: var(--voa-seq-3); background-color: var(--voa-seq-3); }
+.voa-seq-4 { fill: var(--voa-seq-4); background-color: var(--voa-seq-4); }
+.voa-seq-5 { fill: var(--voa-seq-5); background-color: var(--voa-seq-5); }
+.voa-seq-6 { fill: var(--voa-seq-6); background-color: var(--voa-seq-6); }
+
+/* categorical (identity) fills, for beat 2's presidential-vs-midterm coloring */
+.voa-cat-pres { fill: var(--series-1); }
+.voa-cat-mid { fill: var(--series-2); }
+
+/* ---------- StateGrid ---------- */
+.voa-grid-wrap {
+  overflow-x: auto;
+}
+.voa-grid {
+  display: grid;
+  gap: 3px;
+}
+.voa-tile {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 22px;
+  position: relative;
+}
+.voa-tile--mail {
+  box-shadow: 0 0 0 2px var(--series-1) inset;
+}
+.voa-tile-label {
+  color: var(--text-primary);
+}
+/* Darker sequential buckets need light text for contrast - explicit
+   light/dark choice rather than mix-blend-mode, which reads illegibly
+   against the pale end of the ramp (buckets 0-3). */
+.voa-tile.voa-seq-4 .voa-tile-label,
+.voa-tile.voa-seq-5 .voa-tile-label,
+.voa-tile.voa-seq-6 .voa-tile-label {
+  color: #ffffff;
+}
+.voa-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+.voa-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.voa-legend-ring {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  display: inline-block;
+  box-shadow: 0 0 0 2px var(--series-1) inset;
+  background: var(--surface-1);
+}
+
+/* ---------- MailTrend (slope chart) ---------- */
+.voa-trend-line {
+  fill: none;
+  stroke-width: 2.5;
+}
+.voa-trend-dot {
+  stroke: var(--surface-1);
+  stroke-width: 1.5;
+}
+.voa-trend-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---------- Sources / footer ---------- */
+.voa-sources {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gridline);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}

@@ -132,6 +132,16 @@ export const ROUTES: RouteEntry[] = [
     note: "I live in Colorado and kept noticing smokier summers, so I went looking for whether that's a real trend or just my imagination. It is, especially the shift in the Pacific Northwest around 2016.",
   },
   {
+    path: "/2026/VoterAge",
+    title: "The Electorate Is Older Than the Country — Marginal Data",
+    description:
+      "Under-35s are a bigger share of eligible voters than over-65s, but cast fewer votes — how large that gap is, where it shows up by state, and whether mail-in voting closes it.",
+    component: () => import("./2026/VoterAge"),
+    group: "Government & Politics",
+    date: "2026-09-03",
+    note: "I wanted to see age-vs-turnout as a single scatterplot against a proportionality line. The state-level mail-in-voting angle I expected to confirm didn't hold up under a placebo test, so the story became as much about that null result as the original chart.",
+  },
+  {
     path: "/2025/DecisionVectorizer",
     title: "Decision Vectorizer — Marginal Data",
     description:

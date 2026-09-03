@@ -1,0 +1,14 @@
+import { chromium } from "playwright";
+const BASE = process.env.BASE_URL || "http://localhost:4321";
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1000, height: 900 }, colorScheme: "dark" });
+await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await page.waitForSelector(".voa-root h1");
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.55));
+await page.waitForTimeout(500);
+await page.screenshot({ path: "tests/screenshots/voter-age-dark-grid.png" });
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.15));
+await page.waitForTimeout(500);
+await page.screenshot({ path: "tests/screenshots/voter-age-dark-scatter.png" });
+await browser.close();
+console.log("done");

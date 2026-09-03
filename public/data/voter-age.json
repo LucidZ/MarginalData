@@ -1,0 +1,5997 @@
+{
+  "derived": {
+    "mailCrossSection2024": {
+      "mailMean": -4.299,
+      "neverMean": -5.49,
+      "nMail": 9,
+      "nNever": 40,
+      "welchT": 1.693,
+      "welchDf": 10.5,
+      "significant": false
+    },
+    "meanReversionNeverMail": {
+      "intercept": -2.788,
+      "slope": -0.5319,
+      "r": -0.521,
+      "predictedImprovementAtAdopterStartingLevel": 1.163
+    },
+    "placeboAlwaysMailPre2016": {
+      "statesChecked": [
+        "COLORADO",
+        "OREGON",
+        "WASHINGTON"
+      ],
+      "meanChange2016to2024": 1.12,
+      "neverMailMeanChange2016to2024": 0.283
+    },
+    "naturalExperiment": {
+      "neverMailMeanByYear": {
+        "2016": -5.772,
+        "2020": -4.771,
+        "2024": -5.49
+      },
+      "newJersey": {
+        "gapByYear": {
+          "2016": -6.305,
+          "2020": -2.054,
+          "2024": -5.239
+        },
+        "didOnSwitch2020": 3.25,
+        "didOffSwitch2024": -2.466
+      },
+      "montana": {
+        "gapByYear": {
+          "2016": -8.549,
+          "2020": -4.325,
+          "2024": -5.348
+        },
+        "didOnSwitch2020": 3.223,
+        "didOffSwitch2024": -0.304
+      }
+    }
+  },
+  "meta": {
+    "source": "US Census Bureau, CPS November Voting and Registration Supplement",
+    "sourceUrls": [
+      "https://www2.census.gov/programs-surveys/cps/tables/p20/580/",
+      "https://www2.census.gov/programs-surveys/cps/tables/p20/583/",
+      "https://www2.census.gov/programs-surveys/cps/tables/p20/585/",
+      "https://www2.census.gov/programs-surveys/cps/tables/p20/586/",
+      "https://www2.census.gov/programs-surveys/cps/tables/p20/587/"
+    ],
+    "retrieved": "2026-09-03",
+    "units": "thousands (cvap, voted); percentage points (gap fields); percent (turnout, share fields)",
+    "notes": [
+      "2018 Table 1 (single-year-of-age) is mislabeled at the source (serves Table 1a, margins of error) and is excluded; Table 4c for 2018 is unaffected and included normally.",
+      "Eligible population = citizen voting-age population (CVAP), not total voting-age population, to avoid confounding the age gap with non-citizen population share.",
+      "under35Gap = shareOfVotesCast(18-34) - shareOfEligible(18-34), in percentage points. Negative = underrepresented."
+    ]
+  },
+  "nationalByYearOfAge": [
+    {
+      "age": 18,
+      "ageLabel": "18",
+      "cvap": 4258.0,
+      "voted": 1586.0,
+      "shareElig": 1.803,
+      "shareVote": 1.028,
+      "turnout": 37.2
+    },
+    {
+      "age": 19,
+      "ageLabel": "19",
+      "cvap": 3796.0,
+      "voted": 1744.0,
+      "shareElig": 1.608,
+      "shareVote": 1.13,
+      "turnout": 45.9
+    },
+    {
+      "age": 20,
+      "ageLabel": "20",
+      "cvap": 3733.0,
+      "voted": 1664.0,
+      "shareElig": 1.581,
+      "shareVote": 1.078,
+      "turnout": 44.6
+    },
+    {
+      "age": 21,
+      "ageLabel": "21",
+      "cvap": 4014.0,
+      "voted": 1887.0,
+      "shareElig": 1.7,
+      "shareVote": 1.223,
+      "turnout": 47.0
+    },
+    {
+      "age": 22,
+      "ageLabel": "22",
+      "cvap": 3865.0,
+      "voted": 2054.0,
+      "shareElig": 1.637,
+      "shareVote": 1.331,
+      "turnout": 53.1
+    },
+    {
+      "age": 23,
+      "ageLabel": "23",
+      "cvap": 3555.0,
+      "voted": 1939.0,
+      "shareElig": 1.505,
+      "shareVote": 1.257,
+      "turnout": 54.5
+    },
+    {
+      "age": 24,
+      "ageLabel": "24",
+      "cvap": 4326.0,
+      "voted": 2276.0,
+      "shareElig": 1.832,
+      "shareVote": 1.475,
+      "turnout": 52.6
+    },
+    {
+      "age": 25,
+      "ageLabel": "25",
+      "cvap": 3604.0,
+      "voted": 1852.0,
+      "shareElig": 1.526,
+      "shareVote": 1.2,
+      "turnout": 51.4
+    },
+    {
+      "age": 26,
+      "ageLabel": "26",
+      "cvap": 3881.0,
+      "voted": 2227.0,
+      "shareElig": 1.644,
+      "shareVote": 1.443,
+      "turnout": 57.4
+    },
+    {
+      "age": 27,
+      "ageLabel": "27",
+      "cvap": 3718.0,
+      "voted": 1958.0,
+      "shareElig": 1.575,
+      "shareVote": 1.269,
+      "turnout": 52.7
+    },
+    {
+      "age": 28,
+      "ageLabel": "28",
+      "cvap": 3871.0,
+      "voted": 2134.0,
+      "shareElig": 1.639,
+      "shareVote": 1.383,
+      "turnout": 55.1
+    },
+    {
+      "age": 29,
+      "ageLabel": "29",
+      "cvap": 3757.0,
+      "voted": 2216.0,
+      "shareElig": 1.591,
+      "shareVote": 1.436,
+      "turnout": 59.0
+    },
+    {
+      "age": 30,
+      "ageLabel": "30",
+      "cvap": 4094.0,
+      "voted": 2375.0,
+      "shareElig": 1.734,
+      "shareVote": 1.539,
+      "turnout": 58.0
+    },
+    {
+      "age": 31,
+      "ageLabel": "31",
+      "cvap": 3916.0,
+      "voted": 2285.0,
+      "shareElig": 1.658,
+      "shareVote": 1.481,
+      "turnout": 58.4
+    },
+    {
+      "age": 32,
+      "ageLabel": "32",
+      "cvap": 3942.0,
+      "voted": 2288.0,
+      "shareElig": 1.669,
+      "shareVote": 1.483,
+      "turnout": 58.0
+    },
+    {
+      "age": 33,
+      "ageLabel": "33",
+      "cvap": 3918.0,
+      "voted": 2330.0,
+      "shareElig": 1.659,
+      "shareVote": 1.51,
+      "turnout": 59.5
+    },
+    {
+      "age": 34,
+      "ageLabel": "34",
+      "cvap": 4263.0,
+      "voted": 2483.0,
+      "shareElig": 1.805,
+      "shareVote": 1.609,
+      "turnout": 58.2
+    },
+    {
+      "age": 35,
+      "ageLabel": "35",
+      "cvap": 3932.0,
+      "voted": 2255.0,
+      "shareElig": 1.665,
+      "shareVote": 1.461,
+      "turnout": 57.3
+    },
+    {
+      "age": 36,
+      "ageLabel": "36",
+      "cvap": 3887.0,
+      "voted": 2364.0,
+      "shareElig": 1.646,
+      "shareVote": 1.532,
+      "turnout": 60.8
+    },
+    {
+      "age": 37,
+      "ageLabel": "37",
+      "cvap": 3784.0,
+      "voted": 2436.0,
+      "shareElig": 1.602,
+      "shareVote": 1.579,
+      "turnout": 64.4
+    },
+    {
+      "age": 38,
+      "ageLabel": "38",
+      "cvap": 4101.0,
+      "voted": 2608.0,
+      "shareElig": 1.737,
+      "shareVote": 1.69,
+      "turnout": 63.6
+    },
+    {
+      "age": 39,
+      "ageLabel": "39",
+      "cvap": 3684.0,
+      "voted": 2379.0,
+      "shareElig": 1.56,
+      "shareVote": 1.542,
+      "turnout": 64.6
+    },
+    {
+      "age": 40,
+      "ageLabel": "40",
+      "cvap": 4009.0,
+      "voted": 2635.0,
+      "shareElig": 1.698,
+      "shareVote": 1.708,
+      "turnout": 65.7
+    },
+    {
+      "age": 41,
+      "ageLabel": "41",
+      "cvap": 3659.0,
+      "voted": 2458.0,
+      "shareElig": 1.55,
+      "shareVote": 1.593,
+      "turnout": 67.2
+    },
+    {
+      "age": 42,
+      "ageLabel": "42",
+      "cvap": 3579.0,
+      "voted": 2271.0,
+      "shareElig": 1.516,
+      "shareVote": 1.472,
+      "turnout": 63.5
+    },
+    {
+      "age": 43,
+      "ageLabel": "43",
+      "cvap": 3561.0,
+      "voted": 2322.0,
+      "shareElig": 1.508,
+      "shareVote": 1.505,
+      "turnout": 65.2
+    },
+    {
+      "age": 44,
+      "ageLabel": "44",
+      "cvap": 4032.0,
+      "voted": 2611.0,
+      "shareElig": 1.707,
+      "shareVote": 1.692,
+      "turnout": 64.8
+    },
+    {
+      "age": 45,
+      "ageLabel": "45",
+      "cvap": 3545.0,
+      "voted": 2461.0,
+      "shareElig": 1.501,
+      "shareVote": 1.595,
+      "turnout": 69.4
+    },
+    {
+      "age": 46,
+      "ageLabel": "46",
+      "cvap": 3555.0,
+      "voted": 2496.0,
+      "shareElig": 1.505,
+      "shareVote": 1.618,
+      "turnout": 70.2
+    },
+    {
+      "age": 47,
+      "ageLabel": "47",
+      "cvap": 3566.0,
+      "voted": 2389.0,
+      "shareElig": 1.51,
+      "shareVote": 1.548,
+      "turnout": 67.0
+    },
+    {
+      "age": 48,
+      "ageLabel": "48",
+      "cvap": 3566.0,
+      "voted": 2425.0,
+      "shareElig": 1.51,
+      "shareVote": 1.572,
+      "turnout": 68.0
+    },
+    {
+      "age": 49,
+      "ageLabel": "49",
+      "cvap": 3166.0,
+      "voted": 2172.0,
+      "shareElig": 1.341,
+      "shareVote": 1.408,
+      "turnout": 68.6
+    },
+    {
+      "age": 50,
+      "ageLabel": "50",
+      "cvap": 3572.0,
+      "voted": 2348.0,
+      "shareElig": 1.513,
+      "shareVote": 1.522,
+      "turnout": 65.7
+    },
+    {
+      "age": 51,
+      "ageLabel": "51",
+      "cvap": 3380.0,
+      "voted": 2392.0,
+      "shareElig": 1.431,
+      "shareVote": 1.55,
+      "turnout": 70.8
+    },
+    {
+      "age": 52,
+      "ageLabel": "52",
+      "cvap": 3518.0,
+      "voted": 2389.0,
+      "shareElig": 1.49,
+      "shareVote": 1.548,
+      "turnout": 67.9
+    },
+    {
+      "age": 53,
+      "ageLabel": "53",
+      "cvap": 3644.0,
+      "voted": 2473.0,
+      "shareElig": 1.543,
+      "shareVote": 1.603,
+      "turnout": 67.9
+    },
+    {
+      "age": 54,
+      "ageLabel": "54",
+      "cvap": 3910.0,
+      "voted": 2795.0,
+      "shareElig": 1.656,
+      "shareVote": 1.811,
+      "turnout": 71.5
+    },
+    {
+      "age": 55,
+      "ageLabel": "55",
+      "cvap": 3733.0,
+      "voted": 2622.0,
+      "shareElig": 1.581,
+      "shareVote": 1.699,
+      "turnout": 70.2
+    },
+    {
+      "age": 56,
+      "ageLabel": "56",
+      "cvap": 3514.0,
+      "voted": 2546.0,
+      "shareElig": 1.488,
+      "shareVote": 1.65,
+      "turnout": 72.5
+    },
+    {
+      "age": 57,
+      "ageLabel": "57",
+      "cvap": 3482.0,
+      "voted": 2373.0,
+      "shareElig": 1.475,
+      "shareVote": 1.538,
+      "turnout": 68.2
+    },
+    {
+      "age": 58,
+      "ageLabel": "58",
+      "cvap": 3438.0,
+      "voted": 2456.0,
+      "shareElig": 1.456,
+      "shareVote": 1.592,
+      "turnout": 71.4
+    },
+    {
+      "age": 59,
+      "ageLabel": "59",
+      "cvap": 4086.0,
+      "voted": 2861.0,
+      "shareElig": 1.73,
+      "shareVote": 1.854,
+      "turnout": 70.0
+    },
+    {
+      "age": 60,
+      "ageLabel": "60",
+      "cvap": 3905.0,
+      "voted": 2707.0,
+      "shareElig": 1.654,
+      "shareVote": 1.754,
+      "turnout": 69.3
+    },
+    {
+      "age": 61,
+      "ageLabel": "61",
+      "cvap": 4020.0,
+      "voted": 2808.0,
+      "shareElig": 1.702,
+      "shareVote": 1.82,
+      "turnout": 69.9
+    },
+    {
+      "age": 62,
+      "ageLabel": "62",
+      "cvap": 3909.0,
+      "voted": 2918.0,
+      "shareElig": 1.655,
+      "shareVote": 1.891,
+      "turnout": 74.6
+    },
+    {
+      "age": 63,
+      "ageLabel": "63",
+      "cvap": 3809.0,
+      "voted": 2757.0,
+      "shareElig": 1.613,
+      "shareVote": 1.787,
+      "turnout": 72.4
+    },
+    {
+      "age": 64,
+      "ageLabel": "64",
+      "cvap": 4086.0,
+      "voted": 2966.0,
+      "shareElig": 1.73,
+      "shareVote": 1.922,
+      "turnout": 72.6
+    },
+    {
+      "age": 65,
+      "ageLabel": "65",
+      "cvap": 3566.0,
+      "voted": 2583.0,
+      "shareElig": 1.51,
+      "shareVote": 1.674,
+      "turnout": 72.4
+    },
+    {
+      "age": 66,
+      "ageLabel": "66",
+      "cvap": 3673.0,
+      "voted": 2790.0,
+      "shareElig": 1.555,
+      "shareVote": 1.808,
+      "turnout": 76.0
+    },
+    {
+      "age": 67,
+      "ageLabel": "67",
+      "cvap": 3688.0,
+      "voted": 2742.0,
+      "shareElig": 1.562,
+      "shareVote": 1.777,
+      "turnout": 74.3
+    },
+    {
+      "age": 68,
+      "ageLabel": "68",
+      "cvap": 3669.0,
+      "voted": 2741.0,
+      "shareElig": 1.554,
+      "shareVote": 1.776,
+      "turnout": 74.7
+    },
+    {
+      "age": 69,
+      "ageLabel": "69",
+      "cvap": 3615.0,
+      "voted": 2729.0,
+      "shareElig": 1.531,
+      "shareVote": 1.769,
+      "turnout": 75.5
+    },
+    {
+      "age": 70,
+      "ageLabel": "70",
+      "cvap": 3414.0,
+      "voted": 2549.0,
+      "shareElig": 1.446,
+      "shareVote": 1.652,
+      "turnout": 74.7
+    },
+    {
+      "age": 71,
+      "ageLabel": "71",
+      "cvap": 3399.0,
+      "voted": 2524.0,
+      "shareElig": 1.439,
+      "shareVote": 1.636,
+      "turnout": 74.3
+    },
+    {
+      "age": 72,
+      "ageLabel": "72",
+      "cvap": 3098.0,
+      "voted": 2375.0,
+      "shareElig": 1.312,
+      "shareVote": 1.539,
+      "turnout": 76.7
+    },
+    {
+      "age": 73,
+      "ageLabel": "73",
+      "cvap": 2848.0,
+      "voted": 2206.0,
+      "shareElig": 1.206,
+      "shareVote": 1.43,
+      "turnout": 77.5
+    },
+    {
+      "age": 74,
+      "ageLabel": "74",
+      "cvap": 2783.0,
+      "voted": 2151.0,
+      "shareElig": 1.179,
+      "shareVote": 1.394,
+      "turnout": 77.3
+    },
+    {
+      "age": 75,
+      "ageLabel": "75",
+      "cvap": 2642.0,
+      "voted": 1992.0,
+      "shareElig": 1.119,
+      "shareVote": 1.291,
+      "turnout": 75.4
+    },
+    {
+      "age": 76,
+      "ageLabel": "76",
+      "cvap": 2549.0,
+      "voted": 1962.0,
+      "shareElig": 1.079,
+      "shareVote": 1.271,
+      "turnout": 77.0
+    },
+    {
+      "age": 77,
+      "ageLabel": "77",
+      "cvap": 2708.0,
+      "voted": 2103.0,
+      "shareElig": 1.147,
+      "shareVote": 1.363,
+      "turnout": 77.7
+    },
+    {
+      "age": 78,
+      "ageLabel": "78",
+      "cvap": 2118.0,
+      "voted": 1590.0,
+      "shareElig": 0.897,
+      "shareVote": 1.03,
+      "turnout": 75.1
+    },
+    {
+      "age": 79,
+      "ageLabel": "79",
+      "cvap": 1588.0,
+      "voted": 1183.0,
+      "shareElig": 0.672,
+      "shareVote": 0.767,
+      "turnout": 74.5
+    },
+    {
+      "age": 82,
+      "ageLabel": "80-84",
+      "cvap": 6991.0,
+      "voted": 5249.0,
+      "shareElig": 2.961,
+      "shareVote": 3.402,
+      "turnout": 75.1
+    },
+    {
+      "age": 87,
+      "ageLabel": "85+",
+      "cvap": 5646.0,
+      "voted": 3848.0,
+      "shareElig": 2.391,
+      "shareVote": 2.494,
+      "turnout": 68.2
+    }
+  ],
+  "nationalByBin": [
+    {
+      "year": 2016,
+      "isPresidential": true,
+      "bins": {
+        "18-24": {
+          "cvap": 26913.0,
+          "voted": 11560.0,
+          "moeVoted": 0.9,
+          "shareElig": 12.012,
+          "shareVote": 8.405,
+          "turnout": 43.0
+        },
+        "25-34": {
+          "cvap": 38283.0,
+          "voted": 20332.0,
+          "moeVoted": 0.8,
+          "shareElig": 17.086,
+          "shareVote": 14.783,
+          "turnout": 53.1
+        },
+        "35-44": {
+          "cvap": 34327.0,
+          "voted": 20662.0,
+          "moeVoted": 0.8,
+          "shareElig": 15.32,
+          "shareVote": 15.023,
+          "turnout": 60.2
+        },
+        "45-64": {
+          "cvap": 77544.0,
+          "voted": 51668.0,
+          "moeVoted": 0.5,
+          "shareElig": 34.609,
+          "shareVote": 37.567,
+          "turnout": 66.6
+        },
+        "65+": {
+          "cvap": 46993.0,
+          "voted": 33314.0,
+          "moeVoted": 0.6,
+          "shareElig": 20.973,
+          "shareVote": 24.222,
+          "turnout": 70.9
+        }
+      },
+      "under35Gap": -5.909,
+      "under35Turnout": 48.9,
+      "over65Turnout": 70.9
+    },
+    {
+      "year": 2018,
+      "isPresidential": false,
+      "bins": {
+        "18-24": {
+          "cvap": 26950.0,
+          "voted": 8726.0,
+          "moeVoted": 0.9,
+          "shareElig": 11.777,
+          "shareVote": 7.136,
+          "turnout": 32.4
+        },
+        "25-34": {
+          "cvap": 39280.0,
+          "voted": 16545.0,
+          "moeVoted": 0.8,
+          "shareElig": 17.166,
+          "shareVote": 13.53,
+          "turnout": 42.1
+        },
+        "35-44": {
+          "cvap": 35403.0,
+          "voted": 18041.0,
+          "moeVoted": 0.8,
+          "shareElig": 15.471,
+          "shareVote": 14.754,
+          "turnout": 51.0
+        },
+        "45-64": {
+          "cvap": 77085.0,
+          "voted": 45829.0,
+          "moeVoted": 0.5,
+          "shareElig": 33.686,
+          "shareVote": 37.479,
+          "turnout": 59.5
+        },
+        "65+": {
+          "cvap": 50113.0,
+          "voted": 33139.0,
+          "moeVoted": 0.7,
+          "shareElig": 21.9,
+          "shareVote": 27.101,
+          "turnout": 66.1
+        }
+      },
+      "under35Gap": -8.276,
+      "under35Turnout": 38.2,
+      "over65Turnout": 66.1
+    },
+    {
+      "year": 2020,
+      "isPresidential": true,
+      "bins": {
+        "18-24": {
+          "cvap": 26737.0,
+          "voted": 13752.0,
+          "moeVoted": 1.2,
+          "shareElig": 11.545,
+          "shareVote": 8.894,
+          "turnout": 51.4
+        },
+        "25-34": {
+          "cvap": 39962.0,
+          "voted": 24091.0,
+          "moeVoted": 0.9,
+          "shareElig": 17.255,
+          "shareVote": 15.58,
+          "turnout": 60.3
+        },
+        "35-44": {
+          "cvap": 35977.0,
+          "voted": 23421.0,
+          "moeVoted": 1.0,
+          "shareElig": 15.535,
+          "shareVote": 15.147,
+          "turnout": 65.1
+        },
+        "45-64": {
+          "cvap": 75590.0,
+          "voted": 53646.0,
+          "moeVoted": 0.6,
+          "shareElig": 32.639,
+          "shareVote": 34.694,
+          "turnout": 71.0
+        },
+        "65+": {
+          "cvap": 53326.0,
+          "voted": 39718.0,
+          "moeVoted": 0.7,
+          "shareElig": 23.026,
+          "shareVote": 25.686,
+          "turnout": 74.5
+        }
+      },
+      "under35Gap": -4.327,
+      "under35Turnout": 56.7,
+      "over65Turnout": 74.5
+    },
+    {
+      "year": 2022,
+      "isPresidential": false,
+      "bins": {
+        "18-24": {
+          "cvap": 26749.0,
+          "voted": 7372.0,
+          "moeVoted": 1.1,
+          "shareElig": 11.453,
+          "shareVote": 6.047,
+          "turnout": 27.6
+        },
+        "25-34": {
+          "cvap": 38879.0,
+          "voted": 15396.0,
+          "moeVoted": 1.1,
+          "shareElig": 16.647,
+          "shareVote": 12.628,
+          "turnout": 39.6
+        },
+        "35-44": {
+          "cvap": 37491.0,
+          "voted": 18401.0,
+          "moeVoted": 1.1,
+          "shareElig": 16.053,
+          "shareVote": 15.093,
+          "turnout": 49.1
+        },
+        "45-64": {
+          "cvap": 74944.0,
+          "voted": 43661.0,
+          "moeVoted": 0.7,
+          "shareElig": 32.09,
+          "shareVote": 35.812,
+          "turnout": 58.3
+        },
+        "65+": {
+          "cvap": 55483.0,
+          "voted": 37086.0,
+          "moeVoted": 0.8,
+          "shareElig": 23.757,
+          "shareVote": 30.419,
+          "turnout": 66.8
+        }
+      },
+      "under35Gap": -9.426,
+      "under35Turnout": 34.7,
+      "over65Turnout": 66.8
+    },
+    {
+      "year": 2024,
+      "isPresidential": true,
+      "bins": {
+        "18-24": {
+          "cvap": 27548.0,
+          "voted": 13150.0,
+          "moeVoted": 1.3,
+          "shareElig": 11.666,
+          "shareVote": 8.522,
+          "turnout": 47.7
+        },
+        "25-34": {
+          "cvap": 38963.0,
+          "voted": 22148.0,
+          "moeVoted": 1.0,
+          "shareElig": 16.5,
+          "shareVote": 14.353,
+          "turnout": 56.8
+        },
+        "35-44": {
+          "cvap": 38229.0,
+          "voted": 24340.0,
+          "moeVoted": 1.0,
+          "shareElig": 16.189,
+          "shareVote": 15.774,
+          "turnout": 63.7
+        },
+        "45-64": {
+          "cvap": 73404.0,
+          "voted": 51354.0,
+          "moeVoted": 0.7,
+          "shareElig": 31.085,
+          "shareVote": 33.28,
+          "turnout": 70.0
+        },
+        "65+": {
+          "cvap": 57994.0,
+          "voted": 43317.0,
+          "moeVoted": 0.7,
+          "shareElig": 24.559,
+          "shareVote": 28.072,
+          "turnout": 74.7
+        }
+      },
+      "under35Gap": -5.291,
+      "under35Turnout": 53.1,
+      "over65Turnout": 74.7
+    }
+  ],
+  "states": [
+    {
+      "state": "ALABAMA",
+      "abbr": "AL",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 497.0,
+              "voted": 212.0,
+              "moeVoted": 7.3
+            },
+            "25-34": {
+              "cvap": 568.0,
+              "voted": 310.0,
+              "moeVoted": 6.8
+            },
+            "35-44": {
+              "cvap": 548.0,
+              "voted": 306.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 1280.0,
+              "voted": 761.0,
+              "moeVoted": 4.5
+            },
+            "65+": {
+              "cvap": 758.0,
+              "voted": 507.0,
+              "moeVoted": 5.6
+            }
+          },
+          "under35Gap": -4.266
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 427.0,
+              "voted": 194.0,
+              "moeVoted": 9.8
+            },
+            "25-34": {
+              "cvap": 587.0,
+              "voted": 315.0,
+              "moeVoted": 8.4
+            },
+            "35-44": {
+              "cvap": 608.0,
+              "voted": 365.0,
+              "moeVoted": 8.1
+            },
+            "45-64": {
+              "cvap": 1246.0,
+              "voted": 824.0,
+              "moeVoted": 5.5
+            },
+            "65+": {
+              "cvap": 848.0,
+              "voted": 549.0,
+              "moeVoted": 6.7
+            }
+          },
+          "under35Gap": -4.635
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 400.0,
+              "voted": 167.0,
+              "moeVoted": 7.2
+            },
+            "25-34": {
+              "cvap": 681.0,
+              "voted": 318.0,
+              "moeVoted": 7.6
+            },
+            "35-44": {
+              "cvap": 555.0,
+              "voted": 304.0,
+              "moeVoted": 7.0
+            },
+            "45-64": {
+              "cvap": 1228.0,
+              "voted": 793.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 915.0,
+              "voted": 637.0,
+              "moeVoted": 7.6
+            }
+          },
+          "under35Gap": -6.749
+        }
+      },
+      "under35GapPooled": -5.217,
+      "under35Gap2024": -6.749,
+      "moeVoted1824_2024": 7.2,
+      "mailStatus": "never"
+    },
+    {
+      "state": "ALASKA",
+      "abbr": "AK",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 65.0,
+              "voted": 26.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 109.0,
+              "voted": 58.0,
+              "moeVoted": 6.2
+            },
+            "35-44": {
+              "cvap": 79.0,
+              "voted": 48.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 174.0,
+              "voted": 122.0,
+              "moeVoted": 4.5
+            },
+            "65+": {
+              "cvap": 75.0,
+              "voted": 54.0,
+              "moeVoted": null
+            }
+          },
+          "under35Gap": -7.389
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 59.0,
+              "voted": 29.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 94.0,
+              "voted": 41.0,
+              "moeVoted": 8.3
+            },
+            "35-44": {
+              "cvap": 99.0,
+              "voted": 62.0,
+              "moeVoted": 7.9
+            },
+            "45-64": {
+              "cvap": 174.0,
+              "voted": 131.0,
+              "moeVoted": 5.3
+            },
+            "65+": {
+              "cvap": 91.0,
+              "voted": 67.0,
+              "moeVoted": 7.5
+            }
+          },
+          "under35Gap": -8.382
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 54.0,
+              "voted": 24.0,
+              "moeVoted": 15.1
+            },
+            "25-34": {
+              "cvap": 102.0,
+              "voted": 50.0,
+              "moeVoted": 8.6
+            },
+            "35-44": {
+              "cvap": 102.0,
+              "voted": 64.0,
+              "moeVoted": 7.3
+            },
+            "45-64": {
+              "cvap": 162.0,
+              "voted": 111.0,
+              "moeVoted": 5.9
+            },
+            "65+": {
+              "cvap": 100.0,
+              "voted": 73.0,
+              "moeVoted": 6.4
+            }
+          },
+          "under35Gap": -7.019
+        }
+      },
+      "under35GapPooled": -7.597,
+      "under35Gap2024": -7.019,
+      "moeVoted1824_2024": 15.1,
+      "mailStatus": "never"
+    },
+    {
+      "state": "ARIZONA",
+      "abbr": "AZ",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 654.0,
+              "voted": 263.0,
+              "moeVoted": 6.3
+            },
+            "25-34": {
+              "cvap": 729.0,
+              "voted": 377.0,
+              "moeVoted": 6.1
+            },
+            "35-44": {
+              "cvap": 663.0,
+              "voted": 349.0,
+              "moeVoted": 6.4
+            },
+            "45-64": {
+              "cvap": 1510.0,
+              "voted": 1038.0,
+              "moeVoted": 4.0
+            },
+            "65+": {
+              "cvap": 1028.0,
+              "voted": 743.0,
+              "moeVoted": 4.6
+            }
+          },
+          "under35Gap": -7.065
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 629.0,
+              "voted": 327.0,
+              "moeVoted": 8.2
+            },
+            "25-34": {
+              "cvap": 850.0,
+              "voted": 579.0,
+              "moeVoted": 6.6
+            },
+            "35-44": {
+              "cvap": 756.0,
+              "voted": 509.0,
+              "moeVoted": 7.0
+            },
+            "45-64": {
+              "cvap": 1627.0,
+              "voted": 1242.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 1213.0,
+              "voted": 992.0,
+              "moeVoted": 4.6
+            }
+          },
+          "under35Gap": -4.314
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 664.0,
+              "voted": 212.0,
+              "moeVoted": 7.9
+            },
+            "25-34": {
+              "cvap": 879.0,
+              "voted": 482.0,
+              "moeVoted": 8.2
+            },
+            "35-44": {
+              "cvap": 785.0,
+              "voted": 475.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 1512.0,
+              "voted": 972.0,
+              "moeVoted": 5.2
+            },
+            "65+": {
+              "cvap": 1347.0,
+              "voted": 1060.0,
+              "moeVoted": 4.4
+            }
+          },
+          "under35Gap": -8.067
+        }
+      },
+      "under35GapPooled": -6.482,
+      "under35Gap2024": -8.067,
+      "moeVoted1824_2024": 7.9,
+      "mailStatus": "never"
+    },
+    {
+      "state": "ARKANSAS",
+      "abbr": "AR",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 180.0,
+              "voted": 62.0,
+              "moeVoted": 9.3
+            },
+            "25-34": {
+              "cvap": 367.0,
+              "voted": 173.0,
+              "moeVoted": 6.8
+            },
+            "35-44": {
+              "cvap": 362.0,
+              "voted": 211.0,
+              "moeVoted": 6.8
+            },
+            "45-64": {
+              "cvap": 697.0,
+              "voted": 452.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 510.0,
+              "voted": 343.0,
+              "moeVoted": 5.5
+            }
+          },
+          "under35Gap": -6.914
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 261.0,
+              "voted": 84.0,
+              "moeVoted": 9.5
+            },
+            "25-34": {
+              "cvap": 389.0,
+              "voted": 176.0,
+              "moeVoted": 8.2
+            },
+            "35-44": {
+              "cvap": 319.0,
+              "voted": 179.0,
+              "moeVoted": 9.1
+            },
+            "45-64": {
+              "cvap": 680.0,
+              "voted": 401.0,
+              "moeVoted": 6.2
+            },
+            "65+": {
+              "cvap": 547.0,
+              "voted": 346.0,
+              "moeVoted": 6.7
+            }
+          },
+          "under35Gap": -7.677
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 301.0,
+              "voted": 113.0,
+              "moeVoted": 7.3
+            },
+            "25-34": {
+              "cvap": 354.0,
+              "voted": 142.0,
+              "moeVoted": 7.2
+            },
+            "35-44": {
+              "cvap": 367.0,
+              "voted": 183.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 669.0,
+              "voted": 378.0,
+              "moeVoted": 5.2
+            },
+            "65+": {
+              "cvap": 583.0,
+              "voted": 384.0,
+              "moeVoted": 4.5
+            }
+          },
+          "under35Gap": -7.554
+        }
+      },
+      "under35GapPooled": -7.382,
+      "under35Gap2024": -7.554,
+      "moeVoted1824_2024": 7.3,
+      "mailStatus": "never"
+    },
+    {
+      "state": "CALIFORNIA",
+      "abbr": "CA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 3308.0,
+              "voted": 1411.0,
+              "moeVoted": 2.8
+            },
+            "25-34": {
+              "cvap": 4579.0,
+              "voted": 2379.0,
+              "moeVoted": 2.4
+            },
+            "35-44": {
+              "cvap": 3797.0,
+              "voted": 2074.0,
+              "moeVoted": 2.7
+            },
+            "45-64": {
+              "cvap": 8252.0,
+              "voted": 5124.0,
+              "moeVoted": 1.8
+            },
+            "65+": {
+              "cvap": 4955.0,
+              "voted": 3429.0,
+              "moeVoted": 2.2
+            }
+          },
+          "under35Gap": -5.398
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 3334.0,
+              "voted": 1786.0,
+              "moeVoted": 3.6
+            },
+            "25-34": {
+              "cvap": 4957.0,
+              "voted": 2976.0,
+              "moeVoted": 2.9
+            },
+            "35-44": {
+              "cvap": 4016.0,
+              "voted": 2554.0,
+              "moeVoted": 3.1
+            },
+            "45-64": {
+              "cvap": 7973.0,
+              "voted": 5534.0,
+              "moeVoted": 2.1
+            },
+            "65+": {
+              "cvap": 5666.0,
+              "voted": 4044.0,
+              "moeVoted": 2.5
+            }
+          },
+          "under35Gap": -3.767
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 3054.0,
+              "voted": 1621.0,
+              "moeVoted": 3.4
+            },
+            "25-34": {
+              "cvap": 4422.0,
+              "voted": 2560.0,
+              "moeVoted": 2.8
+            },
+            "35-44": {
+              "cvap": 4322.0,
+              "voted": 2783.0,
+              "moeVoted": 3.2
+            },
+            "45-64": {
+              "cvap": 7816.0,
+              "voted": 5238.0,
+              "moeVoted": 2.4
+            },
+            "65+": {
+              "cvap": 5713.0,
+              "voted": 4183.0,
+              "moeVoted": 2.4
+            }
+          },
+          "under35Gap": -4.001
+        }
+      },
+      "under35GapPooled": -4.389,
+      "under35Gap2024": -4.001,
+      "moeVoted1824_2024": 3.4,
+      "mailStatus": "permanent-post2020"
+    },
+    {
+      "state": "COLORADO",
+      "abbr": "CO",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 361.0,
+              "voted": 177.0,
+              "moeVoted": 8.8
+            },
+            "25-34": {
+              "cvap": 851.0,
+              "voted": 535.0,
+              "moeVoted": 5.5
+            },
+            "35-44": {
+              "cvap": 683.0,
+              "voted": 514.0,
+              "moeVoted": 5.5
+            },
+            "45-64": {
+              "cvap": 1243.0,
+              "voted": 867.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 757.0,
+              "voted": 614.0,
+              "moeVoted": 4.7
+            }
+          },
+          "under35Gap": -4.815
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 481.0,
+              "voted": 257.0,
+              "moeVoted": 9.4
+            },
+            "25-34": {
+              "cvap": 942.0,
+              "voted": 608.0,
+              "moeVoted": 6.5
+            },
+            "35-44": {
+              "cvap": 629.0,
+              "voted": 420.0,
+              "moeVoted": 7.8
+            },
+            "45-64": {
+              "cvap": 1302.0,
+              "voted": 922.0,
+              "moeVoted": 5.2
+            },
+            "65+": {
+              "cvap": 845.0,
+              "voted": 631.0,
+              "moeVoted": 6.2
+            }
+          },
+          "under35Gap": -3.41
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 475.0,
+              "voted": 267.0,
+              "moeVoted": 11.0
+            },
+            "25-34": {
+              "cvap": 876.0,
+              "voted": 529.0,
+              "moeVoted": 6.5
+            },
+            "35-44": {
+              "cvap": 712.0,
+              "voted": 502.0,
+              "moeVoted": 6.8
+            },
+            "45-64": {
+              "cvap": 1229.0,
+              "voted": 897.0,
+              "moeVoted": 7.3
+            },
+            "65+": {
+              "cvap": 984.0,
+              "voted": 802.0,
+              "moeVoted": 7.0
+            }
+          },
+          "under35Gap": -5.035
+        }
+      },
+      "under35GapPooled": -4.42,
+      "under35Gap2024": -5.035,
+      "moeVoted1824_2024": 11.0,
+      "mailStatus": "permanent-pre2016"
+    },
+    {
+      "state": "CONNECTICUT",
+      "abbr": "CT",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 225.0,
+              "voted": 97.0,
+              "moeVoted": 9.5
+            },
+            "25-34": {
+              "cvap": 425.0,
+              "voted": 244.0,
+              "moeVoted": 6.9
+            },
+            "35-44": {
+              "cvap": 347.0,
+              "voted": 208.0,
+              "moeVoted": 7.6
+            },
+            "45-64": {
+              "cvap": 943.0,
+              "voted": 636.0,
+              "moeVoted": 4.4
+            },
+            "65+": {
+              "cvap": 544.0,
+              "voted": 400.0,
+              "moeVoted": 5.5
+            }
+          },
+          "under35Gap": -4.653
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 271.0,
+              "voted": 141.0,
+              "moeVoted": 10.9
+            },
+            "25-34": {
+              "cvap": 372.0,
+              "voted": 225.0,
+              "moeVoted": 9.1
+            },
+            "35-44": {
+              "cvap": 366.0,
+              "voted": 228.0,
+              "moeVoted": 9.1
+            },
+            "45-64": {
+              "cvap": 942.0,
+              "voted": 660.0,
+              "moeVoted": 5.4
+            },
+            "65+": {
+              "cvap": 573.0,
+              "voted": 428.0,
+              "moeVoted": 6.5
+            }
+          },
+          "under35Gap": -3.716
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 355.0,
+              "voted": 146.0,
+              "moeVoted": 10.3
+            },
+            "25-34": {
+              "cvap": 347.0,
+              "voted": 218.0,
+              "moeVoted": 8.9
+            },
+            "35-44": {
+              "cvap": 388.0,
+              "voted": 250.0,
+              "moeVoted": 8.8
+            },
+            "45-64": {
+              "cvap": 863.0,
+              "voted": 618.0,
+              "moeVoted": 4.9
+            },
+            "65+": {
+              "cvap": 655.0,
+              "voted": 496.0,
+              "moeVoted": 4.8
+            }
+          },
+          "under35Gap": -5.852
+        }
+      },
+      "under35GapPooled": -4.74,
+      "under35Gap2024": -5.852,
+      "moeVoted1824_2024": 10.3,
+      "mailStatus": "never"
+    },
+    {
+      "state": "DELAWARE",
+      "abbr": "DE",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 69.0,
+              "voted": 29.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 91.0,
+              "voted": 48.0,
+              "moeVoted": null
+            },
+            "35-44": {
+              "cvap": 102.0,
+              "voted": 62.0,
+              "moeVoted": 7.1
+            },
+            "45-64": {
+              "cvap": 242.0,
+              "voted": 162.0,
+              "moeVoted": 4.5
+            },
+            "65+": {
+              "cvap": 164.0,
+              "voted": 116.0,
+              "moeVoted": 5.2
+            }
+          },
+          "under35Gap": -5.487
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 81.0,
+              "voted": 43.0,
+              "moeVoted": 10.2
+            },
+            "25-34": {
+              "cvap": 104.0,
+              "voted": 58.0,
+              "moeVoted": 8.9
+            },
+            "35-44": {
+              "cvap": 102.0,
+              "voted": 71.0,
+              "moeVoted": 8.3
+            },
+            "45-64": {
+              "cvap": 245.0,
+              "voted": 168.0,
+              "moeVoted": 5.4
+            },
+            "65+": {
+              "cvap": 189.0,
+              "voted": 147.0,
+              "moeVoted": 5.6
+            }
+          },
+          "under35Gap": -4.92
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 81.0,
+              "voted": 39.0,
+              "moeVoted": 11.2
+            },
+            "25-34": {
+              "cvap": 111.0,
+              "voted": 67.0,
+              "moeVoted": 10.0
+            },
+            "35-44": {
+              "cvap": 98.0,
+              "voted": 56.0,
+              "moeVoted": 10.0
+            },
+            "45-64": {
+              "cvap": 229.0,
+              "voted": 179.0,
+              "moeVoted": 5.9
+            },
+            "65+": {
+              "cvap": 226.0,
+              "voted": 180.0,
+              "moeVoted": 5.1
+            }
+          },
+          "under35Gap": -5.426
+        }
+      },
+      "under35GapPooled": -5.278,
+      "under35Gap2024": -5.426,
+      "moeVoted1824_2024": 11.2,
+      "mailStatus": "never"
+    },
+    {
+      "state": "DISTRICT OF COLUMBIA",
+      "abbr": "DC",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 55.0,
+              "voted": 34.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 164.0,
+              "voted": 120.0,
+              "moeVoted": 4.5
+            },
+            "35-44": {
+              "cvap": 80.0,
+              "voted": 64.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 131.0,
+              "voted": 99.0,
+              "moeVoted": 4.9
+            },
+            "65+": {
+              "cvap": 82.0,
+              "voted": 63.0,
+              "moeVoted": null
+            }
+          },
+          "under35Gap": -2.247
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 56.0,
+              "voted": 47.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 148.0,
+              "voted": 127.0,
+              "moeVoted": 4.6
+            },
+            "35-44": {
+              "cvap": 115.0,
+              "voted": 95.0,
+              "moeVoted": 5.7
+            },
+            "45-64": {
+              "cvap": 124.0,
+              "voted": 106.0,
+              "moeVoted": 5.1
+            },
+            "65+": {
+              "cvap": 89.0,
+              "voted": 72.0,
+              "moeVoted": 6.7
+            }
+          },
+          "under35Gap": 0.58
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 63.0,
+              "voted": 46.0,
+              "moeVoted": 9.6
+            },
+            "25-34": {
+              "cvap": 134.0,
+              "voted": 107.0,
+              "moeVoted": 5.2
+            },
+            "35-44": {
+              "cvap": 105.0,
+              "voted": 81.0,
+              "moeVoted": 6.3
+            },
+            "45-64": {
+              "cvap": 121.0,
+              "voted": 98.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 86.0,
+              "voted": 71.0,
+              "moeVoted": 4.9
+            }
+          },
+          "under35Gap": -0.738
+        }
+      },
+      "under35GapPooled": -0.802,
+      "under35Gap2024": -0.738,
+      "moeVoted1824_2024": 9.6,
+      "mailStatus": "permanent-post2020"
+    },
+    {
+      "state": "FLORIDA",
+      "abbr": "FL",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 1413.0,
+              "voted": 527.0,
+              "moeVoted": 4.2
+            },
+            "25-34": {
+              "cvap": 2245.0,
+              "voted": 1157.0,
+              "moeVoted": 3.4
+            },
+            "35-44": {
+              "cvap": 1985.0,
+              "voted": 1144.0,
+              "moeVoted": 3.6
+            },
+            "45-64": {
+              "cvap": 5091.0,
+              "voted": 3171.0,
+              "moeVoted": 2.2
+            },
+            "65+": {
+              "cvap": 3694.0,
+              "voted": 2578.0,
+              "moeVoted": 2.5
+            }
+          },
+          "under35Gap": -5.72
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 1391.0,
+              "voted": 648.0,
+              "moeVoted": 5.4
+            },
+            "25-34": {
+              "cvap": 2397.0,
+              "voted": 1302.0,
+              "moeVoted": 4.1
+            },
+            "35-44": {
+              "cvap": 2336.0,
+              "voted": 1370.0,
+              "moeVoted": 4.1
+            },
+            "45-64": {
+              "cvap": 5253.0,
+              "voted": 3325.0,
+              "moeVoted": 2.7
+            },
+            "65+": {
+              "cvap": 4267.0,
+              "voted": 3076.0,
+              "moeVoted": 2.8
+            }
+          },
+          "under35Gap": -4.154
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 1675.0,
+              "voted": 616.0,
+              "moeVoted": 5.9
+            },
+            "25-34": {
+              "cvap": 2366.0,
+              "voted": 1215.0,
+              "moeVoted": 4.3
+            },
+            "35-44": {
+              "cvap": 2323.0,
+              "voted": 1319.0,
+              "moeVoted": 4.2
+            },
+            "45-64": {
+              "cvap": 5010.0,
+              "voted": 3146.0,
+              "moeVoted": 3.2
+            },
+            "65+": {
+              "cvap": 4718.0,
+              "voted": 3406.0,
+              "moeVoted": 2.6
+            }
+          },
+          "under35Gap": -6.239
+        }
+      },
+      "under35GapPooled": -5.371,
+      "under35Gap2024": -6.239,
+      "moeVoted1824_2024": 5.9,
+      "mailStatus": "never"
+    },
+    {
+      "state": "GEORGIA",
+      "abbr": "GA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 923.0,
+              "voted": 401.0,
+              "moeVoted": 5.4
+            },
+            "25-34": {
+              "cvap": 1119.0,
+              "voted": 609.0,
+              "moeVoted": 4.9
+            },
+            "35-44": {
+              "cvap": 1211.0,
+              "voted": 672.0,
+              "moeVoted": 4.7
+            },
+            "45-64": {
+              "cvap": 2456.0,
+              "voted": 1593.0,
+              "moeVoted": 3.2
+            },
+            "65+": {
+              "cvap": 1340.0,
+              "voted": 971.0,
+              "moeVoted": 4.0
+            }
+          },
+          "under35Gap": -5.182
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 925.0,
+              "voted": 489.0,
+              "moeVoted": 6.8
+            },
+            "25-34": {
+              "cvap": 1354.0,
+              "voted": 794.0,
+              "moeVoted": 5.5
+            },
+            "35-44": {
+              "cvap": 1083.0,
+              "voted": 690.0,
+              "moeVoted": 6.0
+            },
+            "45-64": {
+              "cvap": 2454.0,
+              "voted": 1783.0,
+              "moeVoted": 3.7
+            },
+            "65+": {
+              "cvap": 1584.0,
+              "voted": 1132.0,
+              "moeVoted": 4.7
+            }
+          },
+          "under35Gap": -4.549
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 889.0,
+              "voted": 440.0,
+              "moeVoted": 8.0
+            },
+            "25-34": {
+              "cvap": 1341.0,
+              "voted": 733.0,
+              "moeVoted": 5.5
+            },
+            "35-44": {
+              "cvap": 1192.0,
+              "voted": 706.0,
+              "moeVoted": 5.8
+            },
+            "45-64": {
+              "cvap": 2487.0,
+              "voted": 1736.0,
+              "moeVoted": 4.2
+            },
+            "65+": {
+              "cvap": 1716.0,
+              "voted": 1294.0,
+              "moeVoted": 4.4
+            }
+          },
+          "under35Gap": -5.351
+        }
+      },
+      "under35GapPooled": -5.027,
+      "under35Gap2024": -5.351,
+      "moeVoted1824_2024": 8.0,
+      "mailStatus": "never"
+    },
+    {
+      "state": "HAWAII",
+      "abbr": "HI",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 108.0,
+              "voted": 23.0,
+              "moeVoted": 7.0
+            },
+            "25-34": {
+              "cvap": 178.0,
+              "voted": 61.0,
+              "moeVoted": 6.3
+            },
+            "35-44": {
+              "cvap": 148.0,
+              "voted": 69.0,
+              "moeVoted": 7.2
+            },
+            "45-64": {
+              "cvap": 333.0,
+              "voted": 182.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 207.0,
+              "voted": 125.0,
+              "moeVoted": 6.0
+            }
+          },
+          "under35Gap": -11.103
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 93.0,
+              "voted": 41.0,
+              "moeVoted": 11.3
+            },
+            "25-34": {
+              "cvap": 156.0,
+              "voted": 80.0,
+              "moeVoted": 8.8
+            },
+            "35-44": {
+              "cvap": 156.0,
+              "voted": 103.0,
+              "moeVoted": 8.4
+            },
+            "45-64": {
+              "cvap": 311.0,
+              "voted": 230.0,
+              "moeVoted": 5.5
+            },
+            "65+": {
+              "cvap": 263.0,
+              "voted": 175.0,
+              "moeVoted": 6.4
+            }
+          },
+          "under35Gap": -6.197
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 108.0,
+              "voted": 41.0,
+              "moeVoted": 9.1
+            },
+            "25-34": {
+              "cvap": 148.0,
+              "voted": 72.0,
+              "moeVoted": 8.6
+            },
+            "35-44": {
+              "cvap": 142.0,
+              "voted": 79.0,
+              "moeVoted": 7.4
+            },
+            "45-64": {
+              "cvap": 301.0,
+              "voted": 178.0,
+              "moeVoted": 6.2
+            },
+            "65+": {
+              "cvap": 306.0,
+              "voted": 216.0,
+              "moeVoted": 4.0
+            }
+          },
+          "under35Gap": -6.189
+        }
+      },
+      "under35GapPooled": -7.83,
+      "under35Gap2024": -6.189,
+      "moeVoted1824_2024": 9.1,
+      "mailStatus": "permanent-post2020"
+    },
+    {
+      "state": "IDAHO",
+      "abbr": "ID",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 153.0,
+              "voted": 68.0,
+              "moeVoted": 7.8
+            },
+            "25-34": {
+              "cvap": 198.0,
+              "voted": 102.0,
+              "moeVoted": 6.9
+            },
+            "35-44": {
+              "cvap": 172.0,
+              "voted": 96.0,
+              "moeVoted": 7.4
+            },
+            "45-64": {
+              "cvap": 357.0,
+              "voted": 247.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 270.0,
+              "voted": 202.0,
+              "moeVoted": 5.1
+            }
+          },
+          "under35Gap": -6.746
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 177.0,
+              "voted": 95.0,
+              "moeVoted": 9.1
+            },
+            "25-34": {
+              "cvap": 235.0,
+              "voted": 140.0,
+              "moeVoted": 7.7
+            },
+            "35-44": {
+              "cvap": 185.0,
+              "voted": 123.0,
+              "moeVoted": 8.4
+            },
+            "45-64": {
+              "cvap": 398.0,
+              "voted": 262.0,
+              "moeVoted": 5.8
+            },
+            "65+": {
+              "cvap": 304.0,
+              "voted": 223.0,
+              "moeVoted": 6.1
+            }
+          },
+          "under35Gap": -3.84
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 175.0,
+              "voted": 84.0,
+              "moeVoted": 7.2
+            },
+            "25-34": {
+              "cvap": 262.0,
+              "voted": 140.0,
+              "moeVoted": 5.6
+            },
+            "35-44": {
+              "cvap": 215.0,
+              "voted": 141.0,
+              "moeVoted": 5.6
+            },
+            "45-64": {
+              "cvap": 442.0,
+              "voted": 316.0,
+              "moeVoted": 3.7
+            },
+            "65+": {
+              "cvap": 333.0,
+              "voted": 251.0,
+              "moeVoted": 4.0
+            }
+          },
+          "under35Gap": -6.589
+        }
+      },
+      "under35GapPooled": -5.725,
+      "under35Gap2024": -6.589,
+      "moeVoted1824_2024": 7.2,
+      "mailStatus": "never"
+    },
+    {
+      "state": "ILLINOIS",
+      "abbr": "IL",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 1287.0,
+              "voted": 603.0,
+              "moeVoted": 4.6
+            },
+            "25-34": {
+              "cvap": 1460.0,
+              "voted": 795.0,
+              "moeVoted": 4.3
+            },
+            "35-44": {
+              "cvap": 1331.0,
+              "voted": 811.0,
+              "moeVoted": 4.4
+            },
+            "45-64": {
+              "cvap": 3202.0,
+              "voted": 2272.0,
+              "moeVoted": 2.7
+            },
+            "65+": {
+              "cvap": 1690.0,
+              "voted": 1237.0,
+              "moeVoted": 3.6
+            }
+          },
+          "under35Gap": -6.175
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 1060.0,
+              "voted": 583.0,
+              "moeVoted": 6.3
+            },
+            "25-34": {
+              "cvap": 1525.0,
+              "voted": 892.0,
+              "moeVoted": 5.2
+            },
+            "35-44": {
+              "cvap": 1418.0,
+              "voted": 985.0,
+              "moeVoted": 5.0
+            },
+            "45-64": {
+              "cvap": 2937.0,
+              "voted": 2153.0,
+              "moeVoted": 3.4
+            },
+            "65+": {
+              "cvap": 1920.0,
+              "voted": 1444.0,
+              "moeVoted": 4.1
+            }
+          },
+          "under35Gap": -4.824
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 1123.0,
+              "voted": 558.0,
+              "moeVoted": 6.5
+            },
+            "25-34": {
+              "cvap": 1368.0,
+              "voted": 744.0,
+              "moeVoted": 6.1
+            },
+            "35-44": {
+              "cvap": 1437.0,
+              "voted": 956.0,
+              "moeVoted": 5.4
+            },
+            "45-64": {
+              "cvap": 2849.0,
+              "voted": 2049.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 2054.0,
+              "voted": 1509.0,
+              "moeVoted": 4.2
+            }
+          },
+          "under35Gap": -5.821
+        }
+      },
+      "under35GapPooled": -5.607,
+      "under35Gap2024": -5.821,
+      "moeVoted1824_2024": 6.5,
+      "mailStatus": "never"
+    },
+    {
+      "state": "INDIANA",
+      "abbr": "IN",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 587.0,
+              "voted": 252.0,
+              "moeVoted": 6.7
+            },
+            "25-34": {
+              "cvap": 881.0,
+              "voted": 442.0,
+              "moeVoted": 5.5
+            },
+            "35-44": {
+              "cvap": 713.0,
+              "voted": 426.0,
+              "moeVoted": 6.0
+            },
+            "45-64": {
+              "cvap": 1682.0,
+              "voted": 1043.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 933.0,
+              "voted": 632.0,
+              "moeVoted": 5.0
+            }
+          },
+          "under35Gap": -5.779
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 571.0,
+              "voted": 221.0,
+              "moeVoted": 8.3
+            },
+            "25-34": {
+              "cvap": 760.0,
+              "voted": 401.0,
+              "moeVoted": 7.4
+            },
+            "35-44": {
+              "cvap": 888.0,
+              "voted": 515.0,
+              "moeVoted": 6.8
+            },
+            "45-64": {
+              "cvap": 1609.0,
+              "voted": 1045.0,
+              "moeVoted": 4.9
+            },
+            "65+": {
+              "cvap": 1092.0,
+              "voted": 820.0,
+              "moeVoted": 5.3
+            }
+          },
+          "under35Gap": -6.333
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 531.0,
+              "voted": 257.0,
+              "moeVoted": 7.2
+            },
+            "25-34": {
+              "cvap": 833.0,
+              "voted": 398.0,
+              "moeVoted": 7.3
+            },
+            "35-44": {
+              "cvap": 747.0,
+              "voted": 443.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 1611.0,
+              "voted": 1024.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 1079.0,
+              "voted": 789.0,
+              "moeVoted": 4.7
+            }
+          },
+          "under35Gap": -5.91
+        }
+      },
+      "under35GapPooled": -6.007,
+      "under35Gap2024": -5.91,
+      "moeVoted1824_2024": 7.2,
+      "mailStatus": "never"
+    },
+    {
+      "state": "IOWA",
+      "abbr": "IA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 278.0,
+              "voted": 105.0,
+              "moeVoted": 7.9
+            },
+            "25-34": {
+              "cvap": 405.0,
+              "voted": 241.0,
+              "moeVoted": 6.6
+            },
+            "35-44": {
+              "cvap": 325.0,
+              "voted": 196.0,
+              "moeVoted": 7.4
+            },
+            "45-64": {
+              "cvap": 754.0,
+              "voted": 499.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 529.0,
+              "voted": 413.0,
+              "moeVoted": 4.9
+            }
+          },
+          "under35Gap": -6.016
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 248.0,
+              "voted": 157.0,
+              "moeVoted": 10.3
+            },
+            "25-34": {
+              "cvap": 356.0,
+              "voted": 223.0,
+              "moeVoted": 8.7
+            },
+            "35-44": {
+              "cvap": 395.0,
+              "voted": 276.0,
+              "moeVoted": 7.8
+            },
+            "45-64": {
+              "cvap": 707.0,
+              "voted": 511.0,
+              "moeVoted": 5.7
+            },
+            "65+": {
+              "cvap": 587.0,
+              "voted": 451.0,
+              "moeVoted": 5.9
+            }
+          },
+          "under35Gap": -2.855
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 311.0,
+              "voted": 173.0,
+              "moeVoted": 10.7
+            },
+            "25-34": {
+              "cvap": 356.0,
+              "voted": 252.0,
+              "moeVoted": 8.4
+            },
+            "35-44": {
+              "cvap": 383.0,
+              "voted": 268.0,
+              "moeVoted": 9.3
+            },
+            "45-64": {
+              "cvap": 712.0,
+              "voted": 521.0,
+              "moeVoted": 6.0
+            },
+            "65+": {
+              "cvap": 548.0,
+              "voted": 445.0,
+              "moeVoted": 5.5
+            }
+          },
+          "under35Gap": -3.257
+        }
+      },
+      "under35GapPooled": -4.043,
+      "under35Gap2024": -3.257,
+      "moeVoted1824_2024": 10.7,
+      "mailStatus": "never"
+    },
+    {
+      "state": "KANSAS",
+      "abbr": "KS",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 254.0,
+              "voted": 91.0,
+              "moeVoted": 8.3
+            },
+            "25-34": {
+              "cvap": 362.0,
+              "voted": 184.0,
+              "moeVoted": 7.3
+            },
+            "35-44": {
+              "cvap": 314.0,
+              "voted": 210.0,
+              "moeVoted": 7.4
+            },
+            "45-64": {
+              "cvap": 682.0,
+              "voted": 445.0,
+              "moeVoted": 5.1
+            },
+            "65+": {
+              "cvap": 417.0,
+              "voted": 314.0,
+              "moeVoted": 5.9
+            }
+          },
+          "under35Gap": -8.254
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 240.0,
+              "voted": 128.0,
+              "moeVoted": 11.1
+            },
+            "25-34": {
+              "cvap": 331.0,
+              "voted": 191.0,
+              "moeVoted": 9.4
+            },
+            "35-44": {
+              "cvap": 304.0,
+              "voted": 204.0,
+              "moeVoted": 9.3
+            },
+            "45-64": {
+              "cvap": 607.0,
+              "voted": 392.0,
+              "moeVoted": 6.7
+            },
+            "65+": {
+              "cvap": 493.0,
+              "voted": 382.0,
+              "moeVoted": 6.5
+            }
+          },
+          "under35Gap": -4.316
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 259.0,
+              "voted": 132.0,
+              "moeVoted": 8.4
+            },
+            "25-34": {
+              "cvap": 286.0,
+              "voted": 163.0,
+              "moeVoted": 8.8
+            },
+            "35-44": {
+              "cvap": 374.0,
+              "voted": 262.0,
+              "moeVoted": 8.6
+            },
+            "45-64": {
+              "cvap": 625.0,
+              "voted": 489.0,
+              "moeVoted": 8.1
+            },
+            "65+": {
+              "cvap": 497.0,
+              "voted": 398.0,
+              "moeVoted": 7.1
+            }
+          },
+          "under35Gap": -6.273
+        }
+      },
+      "under35GapPooled": -6.281,
+      "under35Gap2024": -6.273,
+      "moeVoted1824_2024": 8.4,
+      "mailStatus": "never"
+    },
+    {
+      "state": "KENTUCKY",
+      "abbr": "KY",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 384.0,
+              "voted": 207.0,
+              "moeVoted": 8.4
+            },
+            "25-34": {
+              "cvap": 496.0,
+              "voted": 273.0,
+              "moeVoted": 7.4
+            },
+            "35-44": {
+              "cvap": 529.0,
+              "voted": 300.0,
+              "moeVoted": 7.1
+            },
+            "45-64": {
+              "cvap": 1229.0,
+              "voted": 703.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 609.0,
+              "voted": 366.0,
+              "moeVoted": 6.6
+            }
+          },
+          "under35Gap": -1.142
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 265.0,
+              "voted": 157.0,
+              "moeVoted": 12.4
+            },
+            "25-34": {
+              "cvap": 498.0,
+              "voted": 271.0,
+              "moeVoted": 9.2
+            },
+            "35-44": {
+              "cvap": 606.0,
+              "voted": 439.0,
+              "moeVoted": 7.5
+            },
+            "45-64": {
+              "cvap": 1111.0,
+              "voted": 787.0,
+              "moeVoted": 5.6
+            },
+            "65+": {
+              "cvap": 748.0,
+              "voted": 557.0,
+              "moeVoted": 6.6
+            }
+          },
+          "under35Gap": -4.279
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 277.0,
+              "voted": 103.0,
+              "moeVoted": 11.0
+            },
+            "25-34": {
+              "cvap": 435.0,
+              "voted": 266.0,
+              "moeVoted": 10.9
+            },
+            "35-44": {
+              "cvap": 616.0,
+              "voted": 384.0,
+              "moeVoted": 8.1
+            },
+            "45-64": {
+              "cvap": 1091.0,
+              "voted": 824.0,
+              "moeVoted": 4.6
+            },
+            "65+": {
+              "cvap": 759.0,
+              "voted": 576.0,
+              "moeVoted": 7.0
+            }
+          },
+          "under35Gap": -5.265
+        }
+      },
+      "under35GapPooled": -3.562,
+      "under35Gap2024": -5.265,
+      "moeVoted1824_2024": 11.0,
+      "mailStatus": "never"
+    },
+    {
+      "state": "LOUISIANA",
+      "abbr": "LA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 453.0,
+              "voted": 225.0,
+              "moeVoted": 7.4
+            },
+            "25-34": {
+              "cvap": 602.0,
+              "voted": 318.0,
+              "moeVoted": 6.4
+            },
+            "35-44": {
+              "cvap": 510.0,
+              "voted": 308.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 1197.0,
+              "voted": 801.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 592.0,
+              "voted": 415.0,
+              "moeVoted": 6.0
+            }
+          },
+          "under35Gap": -5.185
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 370.0,
+              "voted": 173.0,
+              "moeVoted": 10.2
+            },
+            "25-34": {
+              "cvap": 563.0,
+              "voted": 290.0,
+              "moeVoted": 8.3
+            },
+            "35-44": {
+              "cvap": 563.0,
+              "voted": 356.0,
+              "moeVoted": 8.0
+            },
+            "45-64": {
+              "cvap": 1043.0,
+              "voted": 688.0,
+              "moeVoted": 5.8
+            },
+            "65+": {
+              "cvap": 760.0,
+              "voted": 535.0,
+              "moeVoted": 6.5
+            }
+          },
+          "under35Gap": -5.607
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 371.0,
+              "voted": 142.0,
+              "moeVoted": 7.1
+            },
+            "25-34": {
+              "cvap": 529.0,
+              "voted": 253.0,
+              "moeVoted": 6.8
+            },
+            "35-44": {
+              "cvap": 550.0,
+              "voted": 301.0,
+              "moeVoted": 6.1
+            },
+            "45-64": {
+              "cvap": 1055.0,
+              "voted": 656.0,
+              "moeVoted": 4.1
+            },
+            "65+": {
+              "cvap": 768.0,
+              "voted": 546.0,
+              "moeVoted": 4.6
+            }
+          },
+          "under35Gap": -6.686
+        }
+      },
+      "under35GapPooled": -5.826,
+      "under35Gap2024": -6.686,
+      "moeVoted1824_2024": 7.1,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MAINE",
+      "abbr": "ME",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 100.0,
+              "voted": 49.0,
+              "moeVoted": 10.0
+            },
+            "25-34": {
+              "cvap": 154.0,
+              "voted": 95.0,
+              "moeVoted": 7.8
+            },
+            "35-44": {
+              "cvap": 139.0,
+              "voted": 97.0,
+              "moeVoted": 7.8
+            },
+            "45-64": {
+              "cvap": 418.0,
+              "voted": 327.0,
+              "moeVoted": 4.0
+            },
+            "65+": {
+              "cvap": 227.0,
+              "voted": 186.0,
+              "moeVoted": 5.1
+            }
+          },
+          "under35Gap": -5.372
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 90.0,
+              "voted": 57.0,
+              "moeVoted": 12.6
+            },
+            "25-34": {
+              "cvap": 157.0,
+              "voted": 102.0,
+              "moeVoted": 9.5
+            },
+            "35-44": {
+              "cvap": 170.0,
+              "voted": 120.0,
+              "moeVoted": 8.6
+            },
+            "45-64": {
+              "cvap": 361.0,
+              "voted": 263.0,
+              "moeVoted": 5.8
+            },
+            "65+": {
+              "cvap": 296.0,
+              "voted": 224.0,
+              "moeVoted": 6.2
+            }
+          },
+          "under35Gap": -2.241
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 69.0,
+              "voted": 26.0,
+              "moeVoted": 16.6
+            },
+            "25-34": {
+              "cvap": 189.0,
+              "voted": 109.0,
+              "moeVoted": 10.7
+            },
+            "35-44": {
+              "cvap": 185.0,
+              "voted": 107.0,
+              "moeVoted": 10.7
+            },
+            "45-64": {
+              "cvap": 327.0,
+              "voted": 213.0,
+              "moeVoted": 6.3
+            },
+            "65+": {
+              "cvap": 353.0,
+              "voted": 298.0,
+              "moeVoted": 4.1
+            }
+          },
+          "under35Gap": -5.046
+        }
+      },
+      "under35GapPooled": -4.22,
+      "under35Gap2024": -5.046,
+      "moeVoted1824_2024": 16.6,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MARYLAND",
+      "abbr": "MD",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 414.0,
+              "voted": 225.0,
+              "moeVoted": 8.2
+            },
+            "25-34": {
+              "cvap": 711.0,
+              "voted": 424.0,
+              "moeVoted": 6.2
+            },
+            "35-44": {
+              "cvap": 668.0,
+              "voted": 424.0,
+              "moeVoted": 6.2
+            },
+            "45-64": {
+              "cvap": 1586.0,
+              "voted": 1133.0,
+              "moeVoted": 3.8
+            },
+            "65+": {
+              "cvap": 778.0,
+              "voted": 530.0,
+              "moeVoted": 5.6
+            }
+          },
+          "under35Gap": -3.342
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 530.0,
+              "voted": 375.0,
+              "moeVoted": 8.3
+            },
+            "25-34": {
+              "cvap": 684.0,
+              "voted": 460.0,
+              "moeVoted": 7.5
+            },
+            "35-44": {
+              "cvap": 655.0,
+              "voted": 498.0,
+              "moeVoted": 7.0
+            },
+            "45-64": {
+              "cvap": 1447.0,
+              "voted": 1080.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 986.0,
+              "voted": 753.0,
+              "moeVoted": 5.6
+            }
+          },
+          "under35Gap": -1.845
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 410.0,
+              "voted": 243.0,
+              "moeVoted": 10.7
+            },
+            "25-34": {
+              "cvap": 675.0,
+              "voted": 474.0,
+              "moeVoted": 8.5
+            },
+            "35-44": {
+              "cvap": 719.0,
+              "voted": 520.0,
+              "moeVoted": 7.5
+            },
+            "45-64": {
+              "cvap": 1297.0,
+              "voted": 947.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 1248.0,
+              "voted": 905.0,
+              "moeVoted": 5.2
+            }
+          },
+          "under35Gap": -1.737
+        }
+      },
+      "under35GapPooled": -2.308,
+      "under35Gap2024": -1.737,
+      "moeVoted1824_2024": 10.7,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MASSACHUSETTS",
+      "abbr": "MA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 555.0,
+              "voted": 238.0,
+              "moeVoted": 6.9
+            },
+            "25-34": {
+              "cvap": 919.0,
+              "voted": 555.0,
+              "moeVoted": 5.3
+            },
+            "35-44": {
+              "cvap": 696.0,
+              "voted": 475.0,
+              "moeVoted": 5.8
+            },
+            "45-64": {
+              "cvap": 1743.0,
+              "voted": 1263.0,
+              "moeVoted": 3.5
+            },
+            "65+": {
+              "cvap": 1054.0,
+              "voted": 784.0,
+              "moeVoted": 4.4
+            }
+          },
+          "under35Gap": -5.754
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 469.0,
+              "voted": 259.0,
+              "moeVoted": 9.3
+            },
+            "25-34": {
+              "cvap": 939.0,
+              "voted": 566.0,
+              "moeVoted": 6.5
+            },
+            "35-44": {
+              "cvap": 696.0,
+              "voted": 433.0,
+              "moeVoted": 7.5
+            },
+            "45-64": {
+              "cvap": 1713.0,
+              "voted": 1171.0,
+              "moeVoted": 4.6
+            },
+            "65+": {
+              "cvap": 1081.0,
+              "voted": 820.0,
+              "moeVoted": 5.3
+            }
+          },
+          "under35Gap": -3.354
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 556.0,
+              "voted": 318.0,
+              "moeVoted": 8.7
+            },
+            "25-34": {
+              "cvap": 783.0,
+              "voted": 449.0,
+              "moeVoted": 7.0
+            },
+            "35-44": {
+              "cvap": 795.0,
+              "voted": 557.0,
+              "moeVoted": 5.4
+            },
+            "45-64": {
+              "cvap": 1648.0,
+              "voted": 1208.0,
+              "moeVoted": 4.1
+            },
+            "65+": {
+              "cvap": 1165.0,
+              "voted": 877.0,
+              "moeVoted": 4.6
+            }
+          },
+          "under35Gap": -4.568
+        }
+      },
+      "under35GapPooled": -4.559,
+      "under35Gap2024": -4.568,
+      "moeVoted1824_2024": 8.7,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MICHIGAN",
+      "abbr": "MI",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 813.0,
+              "voted": 308.0,
+              "moeVoted": 5.6
+            },
+            "25-34": {
+              "cvap": 1305.0,
+              "voted": 706.0,
+              "moeVoted": 4.6
+            },
+            "35-44": {
+              "cvap": 1012.0,
+              "voted": 650.0,
+              "moeVoted": 5.0
+            },
+            "45-64": {
+              "cvap": 2740.0,
+              "voted": 1962.0,
+              "moeVoted": 2.8
+            },
+            "65+": {
+              "cvap": 1462.0,
+              "voted": 1088.0,
+              "moeVoted": 3.8
+            }
+          },
+          "under35Gap": -7.377
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 887.0,
+              "voted": 469.0,
+              "moeVoted": 6.9
+            },
+            "25-34": {
+              "cvap": 1257.0,
+              "voted": 777.0,
+              "moeVoted": 5.6
+            },
+            "35-44": {
+              "cvap": 1063.0,
+              "voted": 666.0,
+              "moeVoted": 6.1
+            },
+            "45-64": {
+              "cvap": 2547.0,
+              "voted": 1798.0,
+              "moeVoted": 3.7
+            },
+            "65+": {
+              "cvap": 1713.0,
+              "voted": 1284.0,
+              "moeVoted": 4.3
+            }
+          },
+          "under35Gap": -3.763
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 832.0,
+              "voted": 483.0,
+              "moeVoted": 6.9
+            },
+            "25-34": {
+              "cvap": 1255.0,
+              "voted": 829.0,
+              "moeVoted": 6.1
+            },
+            "35-44": {
+              "cvap": 1140.0,
+              "voted": 791.0,
+              "moeVoted": 6.0
+            },
+            "45-64": {
+              "cvap": 2531.0,
+              "voted": 1924.0,
+              "moeVoted": 4.0
+            },
+            "65+": {
+              "cvap": 1775.0,
+              "voted": 1418.0,
+              "moeVoted": 4.4
+            }
+          },
+          "under35Gap": -3.609
+        }
+      },
+      "under35GapPooled": -4.916,
+      "under35Gap2024": -3.609,
+      "moeVoted1824_2024": 6.9,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MINNESOTA",
+      "abbr": "MN",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 476.0,
+              "voted": 260.0,
+              "moeVoted": 7.6
+            },
+            "25-34": {
+              "cvap": 674.0,
+              "voted": 435.0,
+              "moeVoted": 6.1
+            },
+            "35-44": {
+              "cvap": 625.0,
+              "voted": 438.0,
+              "moeVoted": 6.1
+            },
+            "45-64": {
+              "cvap": 1441.0,
+              "voted": 1047.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 769.0,
+              "voted": 558.0,
+              "moeVoted": 5.3
+            }
+          },
+          "under35Gap": -3.475
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 430.0,
+              "voted": 297.0,
+              "moeVoted": 9.2
+            },
+            "25-34": {
+              "cvap": 772.0,
+              "voted": 541.0,
+              "moeVoted": 6.8
+            },
+            "35-44": {
+              "cvap": 672.0,
+              "voted": 503.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 1379.0,
+              "voted": 1134.0,
+              "moeVoted": 4.2
+            },
+            "65+": {
+              "cvap": 889.0,
+              "voted": 749.0,
+              "moeVoted": 5.0
+            }
+          },
+          "under35Gap": -3.027
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 475.0,
+              "voted": 315.0,
+              "moeVoted": 8.0
+            },
+            "25-34": {
+              "cvap": 654.0,
+              "voted": 412.0,
+              "moeVoted": 5.5
+            },
+            "35-44": {
+              "cvap": 773.0,
+              "voted": 569.0,
+              "moeVoted": 4.9
+            },
+            "45-64": {
+              "cvap": 1233.0,
+              "voted": 993.0,
+              "moeVoted": 5.4
+            },
+            "65+": {
+              "cvap": 1073.0,
+              "voted": 904.0,
+              "moeVoted": 4.2
+            }
+          },
+          "under35Gap": -4.061
+        }
+      },
+      "under35GapPooled": -3.521,
+      "under35Gap2024": -4.061,
+      "moeVoted1824_2024": 8.0,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MISSISSIPPI",
+      "abbr": "MS",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 279.0,
+              "voted": 130.0,
+              "moeVoted": 7.7
+            },
+            "25-34": {
+              "cvap": 345.0,
+              "voted": 203.0,
+              "moeVoted": 6.9
+            },
+            "35-44": {
+              "cvap": 358.0,
+              "voted": 245.0,
+              "moeVoted": 6.4
+            },
+            "45-64": {
+              "cvap": 758.0,
+              "voted": 557.0,
+              "moeVoted": 4.2
+            },
+            "65+": {
+              "cvap": 431.0,
+              "voted": 335.0,
+              "moeVoted": 5.2
+            }
+          },
+          "under35Gap": -6.089
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 249.0,
+              "voted": 105.0,
+              "moeVoted": 10.1
+            },
+            "25-34": {
+              "cvap": 365.0,
+              "voted": 250.0,
+              "moeVoted": 7.8
+            },
+            "35-44": {
+              "cvap": 354.0,
+              "voted": 249.0,
+              "moeVoted": 7.8
+            },
+            "45-64": {
+              "cvap": 723.0,
+              "voted": 562.0,
+              "moeVoted": 5.0
+            },
+            "65+": {
+              "cvap": 485.0,
+              "voted": 365.0,
+              "moeVoted": 6.3
+            }
+          },
+          "under35Gap": -5.029
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 230.0,
+              "voted": 112.0,
+              "moeVoted": 7.6
+            },
+            "25-34": {
+              "cvap": 396.0,
+              "voted": 230.0,
+              "moeVoted": 8.0
+            },
+            "35-44": {
+              "cvap": 331.0,
+              "voted": 231.0,
+              "moeVoted": 8.1
+            },
+            "45-64": {
+              "cvap": 699.0,
+              "voted": 534.0,
+              "moeVoted": 2.7
+            },
+            "65+": {
+              "cvap": 505.0,
+              "voted": 383.0,
+              "moeVoted": 4.7
+            }
+          },
+          "under35Gap": -6.015
+        }
+      },
+      "under35GapPooled": -5.711,
+      "under35Gap2024": -6.015,
+      "moeVoted1824_2024": 7.6,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MISSOURI",
+      "abbr": "MO",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 540.0,
+              "voted": 259.0,
+              "moeVoted": 7.2
+            },
+            "25-34": {
+              "cvap": 734.0,
+              "voted": 404.0,
+              "moeVoted": 6.1
+            },
+            "35-44": {
+              "cvap": 692.0,
+              "voted": 418.0,
+              "moeVoted": 6.2
+            },
+            "45-64": {
+              "cvap": 1519.0,
+              "voted": 1065.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 1002.0,
+              "voted": 759.0,
+              "moeVoted": 4.5
+            }
+          },
+          "under35Gap": -5.57
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 563.0,
+              "voted": 313.0,
+              "moeVoted": 8.7
+            },
+            "25-34": {
+              "cvap": 697.0,
+              "voted": 418.0,
+              "moeVoted": 7.7
+            },
+            "35-44": {
+              "cvap": 682.0,
+              "voted": 368.0,
+              "moeVoted": 7.9
+            },
+            "45-64": {
+              "cvap": 1542.0,
+              "voted": 1124.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 992.0,
+              "voted": 768.0,
+              "moeVoted": 5.5
+            }
+          },
+          "under35Gap": -3.71
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 512.0,
+              "voted": 215.0,
+              "moeVoted": 8.4
+            },
+            "25-34": {
+              "cvap": 822.0,
+              "voted": 493.0,
+              "moeVoted": 7.1
+            },
+            "35-44": {
+              "cvap": 745.0,
+              "voted": 540.0,
+              "moeVoted": 5.0
+            },
+            "45-64": {
+              "cvap": 1416.0,
+              "voted": 1071.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 1170.0,
+              "voted": 921.0,
+              "moeVoted": 4.0
+            }
+          },
+          "under35Gap": -6.744
+        }
+      },
+      "under35GapPooled": -5.341,
+      "under35Gap2024": -6.744,
+      "moeVoted1824_2024": 8.4,
+      "mailStatus": "never"
+    },
+    {
+      "state": "MONTANA",
+      "abbr": "MT",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 95.0,
+              "voted": 38.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 129.0,
+              "voted": 65.0,
+              "moeVoted": 6.4
+            },
+            "35-44": {
+              "cvap": 113.0,
+              "voted": 77.0,
+              "moeVoted": 6.3
+            },
+            "45-64": {
+              "cvap": 272.0,
+              "voted": 199.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 182.0,
+              "voted": 142.0,
+              "moeVoted": 4.4
+            }
+          },
+          "under35Gap": -8.549
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 104.0,
+              "voted": 60.0,
+              "moeVoted": 8.7
+            },
+            "25-34": {
+              "cvap": 126.0,
+              "voted": 83.0,
+              "moeVoted": 7.6
+            },
+            "35-44": {
+              "cvap": 127.0,
+              "voted": 97.0,
+              "moeVoted": 6.8
+            },
+            "45-64": {
+              "cvap": 251.0,
+              "voted": 193.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 218.0,
+              "voted": 175.0,
+              "moeVoted": 4.9
+            }
+          },
+          "under35Gap": -4.325
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 102.0,
+              "voted": 47.0,
+              "moeVoted": 9.4
+            },
+            "25-34": {
+              "cvap": 132.0,
+              "voted": 82.0,
+              "moeVoted": 7.0
+            },
+            "35-44": {
+              "cvap": 151.0,
+              "voted": 102.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 255.0,
+              "voted": 185.0,
+              "moeVoted": 3.7
+            },
+            "65+": {
+              "cvap": 242.0,
+              "voted": 193.0,
+              "moeVoted": 3.5
+            }
+          },
+          "under35Gap": -5.348
+        }
+      },
+      "under35GapPooled": -6.074,
+      "under35Gap2024": -5.348,
+      "moeVoted1824_2024": 9.4,
+      "mailStatus": "covid-only"
+    },
+    {
+      "state": "NEBRASKA",
+      "abbr": "NE",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 180.0,
+              "voted": 95.0,
+              "moeVoted": 8.2
+            },
+            "25-34": {
+              "cvap": 238.0,
+              "voted": 130.0,
+              "moeVoted": 7.1
+            },
+            "35-44": {
+              "cvap": 191.0,
+              "voted": 131.0,
+              "moeVoted": 7.4
+            },
+            "45-64": {
+              "cvap": 438.0,
+              "voted": 306.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 290.0,
+              "voted": 230.0,
+              "moeVoted": 5.2
+            }
+          },
+          "under35Gap": -6.04
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 117.0,
+              "voted": 49.0,
+              "moeVoted": 12.5
+            },
+            "25-34": {
+              "cvap": 281.0,
+              "voted": 168.0,
+              "moeVoted": 8.0
+            },
+            "35-44": {
+              "cvap": 217.0,
+              "voted": 138.0,
+              "moeVoted": 8.9
+            },
+            "45-64": {
+              "cvap": 457.0,
+              "voted": 311.0,
+              "moeVoted": 6.0
+            },
+            "65+": {
+              "cvap": 297.0,
+              "voted": 226.0,
+              "moeVoted": 6.8
+            }
+          },
+          "under35Gap": -4.745
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 171.0,
+              "voted": 70.0,
+              "moeVoted": 9.5
+            },
+            "25-34": {
+              "cvap": 228.0,
+              "voted": 135.0,
+              "moeVoted": 8.9
+            },
+            "35-44": {
+              "cvap": 224.0,
+              "voted": 175.0,
+              "moeVoted": 6.3
+            },
+            "45-64": {
+              "cvap": 448.0,
+              "voted": 316.0,
+              "moeVoted": 6.5
+            },
+            "65+": {
+              "cvap": 307.0,
+              "voted": 231.0,
+              "moeVoted": 4.6
+            }
+          },
+          "under35Gap": -6.841
+        }
+      },
+      "under35GapPooled": -5.875,
+      "under35Gap2024": -6.841,
+      "moeVoted1824_2024": 9.5,
+      "mailStatus": "never"
+    },
+    {
+      "state": "NEVADA",
+      "abbr": "NV",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 229.0,
+              "voted": 98.0,
+              "moeVoted": 8.5
+            },
+            "25-34": {
+              "cvap": 361.0,
+              "voted": 183.0,
+              "moeVoted": 6.9
+            },
+            "35-44": {
+              "cvap": 305.0,
+              "voted": 186.0,
+              "moeVoted": 7.3
+            },
+            "45-64": {
+              "cvap": 678.0,
+              "voted": 431.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 402.0,
+              "voted": 297.0,
+              "moeVoted": 5.7
+            }
+          },
+          "under35Gap": -6.359
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 262.0,
+              "voted": 96.0,
+              "moeVoted": 9.7
+            },
+            "25-34": {
+              "cvap": 415.0,
+              "voted": 236.0,
+              "moeVoted": 7.9
+            },
+            "35-44": {
+              "cvap": 310.0,
+              "voted": 176.0,
+              "moeVoted": 9.1
+            },
+            "45-64": {
+              "cvap": 734.0,
+              "voted": 481.0,
+              "moeVoted": 5.7
+            },
+            "65+": {
+              "cvap": 477.0,
+              "voted": 363.0,
+              "moeVoted": 6.4
+            }
+          },
+          "under35Gap": -6.245
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 233.0,
+              "voted": 113.0,
+              "moeVoted": 12.2
+            },
+            "25-34": {
+              "cvap": 407.0,
+              "voted": 226.0,
+              "moeVoted": 9.1
+            },
+            "35-44": {
+              "cvap": 360.0,
+              "voted": 235.0,
+              "moeVoted": 7.9
+            },
+            "45-64": {
+              "cvap": 658.0,
+              "voted": 464.0,
+              "moeVoted": 4.9
+            },
+            "65+": {
+              "cvap": 573.0,
+              "voted": 454.0,
+              "moeVoted": 4.2
+            }
+          },
+          "under35Gap": -5.966
+        }
+      },
+      "under35GapPooled": -6.19,
+      "under35Gap2024": -5.966,
+      "moeVoted1824_2024": 12.2,
+      "mailStatus": "permanent-post2020"
+    },
+    {
+      "state": "NEW HAMPSHIRE",
+      "abbr": "NH",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 96.0,
+              "voted": 55.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 149.0,
+              "voted": 89.0,
+              "moeVoted": 7.3
+            },
+            "35-44": {
+              "cvap": 154.0,
+              "voted": 102.0,
+              "moeVoted": 6.9
+            },
+            "45-64": {
+              "cvap": 386.0,
+              "voted": 287.0,
+              "moeVoted": 4.1
+            },
+            "65+": {
+              "cvap": 225.0,
+              "voted": 165.0,
+              "moeVoted": 5.4
+            }
+          },
+          "under35Gap": -3.627
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 108.0,
+              "voted": 67.0,
+              "moeVoted": 10.6
+            },
+            "25-34": {
+              "cvap": 166.0,
+              "voted": 111.0,
+              "moeVoted": 8.3
+            },
+            "35-44": {
+              "cvap": 163.0,
+              "voted": 118.0,
+              "moeVoted": 7.9
+            },
+            "45-64": {
+              "cvap": 375.0,
+              "voted": 278.0,
+              "moeVoted": 5.1
+            },
+            "65+": {
+              "cvap": 264.0,
+              "voted": 223.0,
+              "moeVoted": 5.1
+            }
+          },
+          "under35Gap": -3.131
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 103.0,
+              "voted": 59.0,
+              "moeVoted": 11.7
+            },
+            "25-34": {
+              "cvap": 150.0,
+              "voted": 99.0,
+              "moeVoted": 9.8
+            },
+            "35-44": {
+              "cvap": 188.0,
+              "voted": 136.0,
+              "moeVoted": 7.5
+            },
+            "45-64": {
+              "cvap": 378.0,
+              "voted": 279.0,
+              "moeVoted": 5.1
+            },
+            "65+": {
+              "cvap": 278.0,
+              "voted": 216.0,
+              "moeVoted": 4.8
+            }
+          },
+          "under35Gap": -3.038
+        }
+      },
+      "under35GapPooled": -3.265,
+      "under35Gap2024": -3.038,
+      "moeVoted1824_2024": 11.7,
+      "mailStatus": "never"
+    },
+    {
+      "state": "NEW JERSEY",
+      "abbr": "NJ",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 750.0,
+              "voted": 305.0,
+              "moeVoted": 5.9
+            },
+            "25-34": {
+              "cvap": 814.0,
+              "voted": 426.0,
+              "moeVoted": 5.8
+            },
+            "35-44": {
+              "cvap": 881.0,
+              "voted": 566.0,
+              "moeVoted": 5.3
+            },
+            "45-64": {
+              "cvap": 2196.0,
+              "voted": 1472.0,
+              "moeVoted": 3.3
+            },
+            "65+": {
+              "cvap": 1317.0,
+              "voted": 896.0,
+              "moeVoted": 4.2
+            }
+          },
+          "under35Gap": -6.305
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 706.0,
+              "voted": 532.0,
+              "moeVoted": 6.7
+            },
+            "25-34": {
+              "cvap": 885.0,
+              "voted": 619.0,
+              "moeVoted": 6.3
+            },
+            "35-44": {
+              "cvap": 813.0,
+              "voted": 624.0,
+              "moeVoted": 6.1
+            },
+            "45-64": {
+              "cvap": 2134.0,
+              "voted": 1720.0,
+              "moeVoted": 3.5
+            },
+            "65+": {
+              "cvap": 1383.0,
+              "voted": 1143.0,
+              "moeVoted": 4.2
+            }
+          },
+          "under35Gap": -2.054
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 669.0,
+              "voted": 350.0,
+              "moeVoted": 7.8
+            },
+            "25-34": {
+              "cvap": 968.0,
+              "voted": 596.0,
+              "moeVoted": 6.5
+            },
+            "35-44": {
+              "cvap": 997.0,
+              "voted": 690.0,
+              "moeVoted": 6.7
+            },
+            "45-64": {
+              "cvap": 2001.0,
+              "voted": 1515.0,
+              "moeVoted": 3.8
+            },
+            "65+": {
+              "cvap": 1688.0,
+              "voted": 1430.0,
+              "moeVoted": 3.7
+            }
+          },
+          "under35Gap": -5.239
+        }
+      },
+      "under35GapPooled": -4.533,
+      "under35Gap2024": -5.239,
+      "moeVoted1824_2024": 7.8,
+      "mailStatus": "covid-only"
+    },
+    {
+      "state": "NEW MEXICO",
+      "abbr": "NM",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 223.0,
+              "voted": 91.0,
+              "moeVoted": 6.7
+            },
+            "25-34": {
+              "cvap": 196.0,
+              "voted": 77.0,
+              "moeVoted": 7.1
+            },
+            "35-44": {
+              "cvap": 183.0,
+              "voted": 94.0,
+              "moeVoted": 7.5
+            },
+            "45-64": {
+              "cvap": 500.0,
+              "voted": 283.0,
+              "moeVoted": 4.5
+            },
+            "65+": {
+              "cvap": 294.0,
+              "voted": 220.0,
+              "moeVoted": 5.2
+            }
+          },
+          "under35Gap": -8.054
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 177.0,
+              "voted": 76.0,
+              "moeVoted": 9.4
+            },
+            "25-34": {
+              "cvap": 269.0,
+              "voted": 143.0,
+              "moeVoted": 7.7
+            },
+            "35-44": {
+              "cvap": 231.0,
+              "voted": 132.0,
+              "moeVoted": 8.3
+            },
+            "45-64": {
+              "cvap": 455.0,
+              "voted": 312.0,
+              "moeVoted": 5.5
+            },
+            "65+": {
+              "cvap": 366.0,
+              "voted": 274.0,
+              "moeVoted": 5.8
+            }
+          },
+          "under35Gap": -6.401
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 185.0,
+              "voted": 81.0,
+              "moeVoted": 8.9
+            },
+            "25-34": {
+              "cvap": 239.0,
+              "voted": 128.0,
+              "moeVoted": 9.3
+            },
+            "35-44": {
+              "cvap": 226.0,
+              "voted": 152.0,
+              "moeVoted": 7.1
+            },
+            "45-64": {
+              "cvap": 434.0,
+              "voted": 297.0,
+              "moeVoted": 5.2
+            },
+            "65+": {
+              "cvap": 407.0,
+              "voted": 326.0,
+              "moeVoted": 3.5
+            }
+          },
+          "under35Gap": -7.197
+        }
+      },
+      "under35GapPooled": -7.217,
+      "under35Gap2024": -7.197,
+      "moeVoted1824_2024": 8.9,
+      "mailStatus": "never"
+    },
+    {
+      "state": "NEW YORK",
+      "abbr": "NY",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 1590.0,
+              "voted": 607.0,
+              "moeVoted": 4.1
+            },
+            "25-34": {
+              "cvap": 2503.0,
+              "voted": 1276.0,
+              "moeVoted": 3.4
+            },
+            "35-44": {
+              "cvap": 2092.0,
+              "voted": 1153.0,
+              "moeVoted": 3.6
+            },
+            "45-64": {
+              "cvap": 4531.0,
+              "voted": 2875.0,
+              "moeVoted": 2.4
+            },
+            "65+": {
+              "cvap": 3035.0,
+              "voted": 1957.0,
+              "moeVoted": 2.9
+            }
+          },
+          "under35Gap": -5.833
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 1461.0,
+              "voted": 698.0,
+              "moeVoted": 5.5
+            },
+            "25-34": {
+              "cvap": 2171.0,
+              "voted": 1371.0,
+              "moeVoted": 4.3
+            },
+            "35-44": {
+              "cvap": 2191.0,
+              "voted": 1457.0,
+              "moeVoted": 4.2
+            },
+            "45-64": {
+              "cvap": 4197.0,
+              "voted": 2856.0,
+              "moeVoted": 3.0
+            },
+            "65+": {
+              "cvap": 3279.0,
+              "voted": 2226.0,
+              "moeVoted": 3.4
+            }
+          },
+          "under35Gap": -3.275
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 1570.0,
+              "voted": 646.0,
+              "moeVoted": 6.7
+            },
+            "25-34": {
+              "cvap": 2190.0,
+              "voted": 1087.0,
+              "moeVoted": 5.0
+            },
+            "35-44": {
+              "cvap": 2216.0,
+              "voted": 1309.0,
+              "moeVoted": 5.1
+            },
+            "45-64": {
+              "cvap": 4187.0,
+              "voted": 2703.0,
+              "moeVoted": 4.0
+            },
+            "65+": {
+              "cvap": 3504.0,
+              "voted": 2346.0,
+              "moeVoted": 3.6
+            }
+          },
+          "under35Gap": -6.093
+        }
+      },
+      "under35GapPooled": -5.067,
+      "under35Gap2024": -6.093,
+      "moeVoted1824_2024": 6.7,
+      "mailStatus": "never"
+    },
+    {
+      "state": "NORTH CAROLINA",
+      "abbr": "NC",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 817.0,
+              "voted": 414.0,
+              "moeVoted": 5.8
+            },
+            "25-34": {
+              "cvap": 1111.0,
+              "voted": 666.0,
+              "moeVoted": 4.9
+            },
+            "35-44": {
+              "cvap": 1037.0,
+              "voted": 676.0,
+              "moeVoted": 4.9
+            },
+            "45-64": {
+              "cvap": 2520.0,
+              "voted": 1841.0,
+              "moeVoted": 3.0
+            },
+            "65+": {
+              "cvap": 1476.0,
+              "voted": 1102.0,
+              "moeVoted": 3.8
+            }
+          },
+          "under35Gap": -4.714
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 820.0,
+              "voted": 404.0,
+              "moeVoted": 7.3
+            },
+            "25-34": {
+              "cvap": 1259.0,
+              "voted": 706.0,
+              "moeVoted": 5.8
+            },
+            "35-44": {
+              "cvap": 1068.0,
+              "voted": 637.0,
+              "moeVoted": 6.2
+            },
+            "45-64": {
+              "cvap": 2303.0,
+              "voted": 1638.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 1941.0,
+              "voted": 1396.0,
+              "moeVoted": 4.2
+            }
+          },
+          "under35Gap": -4.912
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 1076.0,
+              "voted": 562.0,
+              "moeVoted": 8.1
+            },
+            "25-34": {
+              "cvap": 1213.0,
+              "voted": 671.0,
+              "moeVoted": 5.6
+            },
+            "35-44": {
+              "cvap": 1045.0,
+              "voted": 664.0,
+              "moeVoted": 5.0
+            },
+            "45-64": {
+              "cvap": 2459.0,
+              "voted": 1703.0,
+              "moeVoted": 3.7
+            },
+            "65+": {
+              "cvap": 1902.0,
+              "voted": 1371.0,
+              "moeVoted": 4.1
+            }
+          },
+          "under35Gap": -4.943
+        }
+      },
+      "under35GapPooled": -4.856,
+      "under35Gap2024": -4.943,
+      "moeVoted1824_2024": 8.1,
+      "mailStatus": "never"
+    },
+    {
+      "state": "NORTH DAKOTA",
+      "abbr": "ND",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 78.0,
+              "voted": 37.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 117.0,
+              "voted": 70.0,
+              "moeVoted": 5.9
+            },
+            "35-44": {
+              "cvap": 87.0,
+              "voted": 56.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 187.0,
+              "voted": 132.0,
+              "moeVoted": 4.4
+            },
+            "65+": {
+              "cvap": 96.0,
+              "voted": 67.0,
+              "moeVoted": null
+            }
+          },
+          "under35Gap": -4.955
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 64.0,
+              "voted": 30.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 114.0,
+              "voted": 69.0,
+              "moeVoted": 7.4
+            },
+            "35-44": {
+              "cvap": 93.0,
+              "voted": 63.0,
+              "moeVoted": 7.9
+            },
+            "45-64": {
+              "cvap": 173.0,
+              "voted": 129.0,
+              "moeVoted": 5.4
+            },
+            "65+": {
+              "cvap": 111.0,
+              "voted": 82.0,
+              "moeVoted": 6.8
+            }
+          },
+          "under35Gap": -5.531
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 65.0,
+              "voted": 30.0,
+              "moeVoted": 9.9
+            },
+            "25-34": {
+              "cvap": 98.0,
+              "voted": 61.0,
+              "moeVoted": 7.6
+            },
+            "35-44": {
+              "cvap": 110.0,
+              "voted": 75.0,
+              "moeVoted": 7.1
+            },
+            "45-64": {
+              "cvap": 157.0,
+              "voted": 126.0,
+              "moeVoted": 3.7
+            },
+            "65+": {
+              "cvap": 134.0,
+              "voted": 110.0,
+              "moeVoted": 3.9
+            }
+          },
+          "under35Gap": -6.264
+        }
+      },
+      "under35GapPooled": -5.583,
+      "under35Gap2024": -6.264,
+      "moeVoted1824_2024": 9.9,
+      "mailStatus": "never"
+    },
+    {
+      "state": "OHIO",
+      "abbr": "OH",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 1060.0,
+              "voted": 425.0,
+              "moeVoted": 5.0
+            },
+            "25-34": {
+              "cvap": 1276.0,
+              "voted": 718.0,
+              "moeVoted": 4.6
+            },
+            "35-44": {
+              "cvap": 1270.0,
+              "voted": 792.0,
+              "moeVoted": 4.5
+            },
+            "45-64": {
+              "cvap": 2997.0,
+              "voted": 2072.0,
+              "moeVoted": 2.8
+            },
+            "65+": {
+              "cvap": 1895.0,
+              "voted": 1402.0,
+              "moeVoted": 3.3
+            }
+          },
+          "under35Gap": -6.357
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 1049.0,
+              "voted": 556.0,
+              "moeVoted": 6.3
+            },
+            "25-34": {
+              "cvap": 1465.0,
+              "voted": 898.0,
+              "moeVoted": 5.2
+            },
+            "35-44": {
+              "cvap": 1245.0,
+              "voted": 839.0,
+              "moeVoted": 5.5
+            },
+            "45-64": {
+              "cvap": 2952.0,
+              "voted": 2186.0,
+              "moeVoted": 3.3
+            },
+            "65+": {
+              "cvap": 2030.0,
+              "voted": 1650.0,
+              "moeVoted": 3.6
+            }
+          },
+          "under35Gap": -5.038
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 944.0,
+              "voted": 386.0,
+              "moeVoted": 6.5
+            },
+            "25-34": {
+              "cvap": 1473.0,
+              "voted": 895.0,
+              "moeVoted": 6.0
+            },
+            "35-44": {
+              "cvap": 1389.0,
+              "voted": 898.0,
+              "moeVoted": 4.8
+            },
+            "45-64": {
+              "cvap": 2720.0,
+              "voted": 2012.0,
+              "moeVoted": 4.2
+            },
+            "65+": {
+              "cvap": 2255.0,
+              "voted": 1730.0,
+              "moeVoted": 3.4
+            }
+          },
+          "under35Gap": -5.89
+        }
+      },
+      "under35GapPooled": -5.762,
+      "under35Gap2024": -5.89,
+      "moeVoted1824_2024": 6.5,
+      "mailStatus": "never"
+    },
+    {
+      "state": "OKLAHOMA",
+      "abbr": "OK",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 303.0,
+              "voted": 102.0,
+              "moeVoted": 8.6
+            },
+            "25-34": {
+              "cvap": 502.0,
+              "voted": 241.0,
+              "moeVoted": 7.1
+            },
+            "35-44": {
+              "cvap": 457.0,
+              "voted": 240.0,
+              "moeVoted": 7.4
+            },
+            "45-64": {
+              "cvap": 892.0,
+              "voted": 553.0,
+              "moeVoted": 5.2
+            },
+            "65+": {
+              "cvap": 593.0,
+              "voted": 419.0,
+              "moeVoted": 5.9
+            }
+          },
+          "under35Gap": -7.247
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 333.0,
+              "voted": 102.0,
+              "moeVoted": 10.0
+            },
+            "25-34": {
+              "cvap": 431.0,
+              "voted": 212.0,
+              "moeVoted": 9.5
+            },
+            "35-44": {
+              "cvap": 501.0,
+              "voted": 258.0,
+              "moeVoted": 8.8
+            },
+            "45-64": {
+              "cvap": 917.0,
+              "voted": 624.0,
+              "moeVoted": 6.1
+            },
+            "65+": {
+              "cvap": 618.0,
+              "voted": 435.0,
+              "moeVoted": 7.3
+            }
+          },
+          "under35Gap": -8.034
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 462.0,
+              "voted": 158.0,
+              "moeVoted": 7.8
+            },
+            "25-34": {
+              "cvap": 420.0,
+              "voted": 226.0,
+              "moeVoted": 8.8
+            },
+            "35-44": {
+              "cvap": 507.0,
+              "voted": 294.0,
+              "moeVoted": 6.4
+            },
+            "45-64": {
+              "cvap": 794.0,
+              "voted": 499.0,
+              "moeVoted": 5.6
+            },
+            "65+": {
+              "cvap": 742.0,
+              "voted": 570.0,
+              "moeVoted": 4.7
+            }
+          },
+          "under35Gap": -8.173
+        }
+      },
+      "under35GapPooled": -7.818,
+      "under35Gap2024": -8.173,
+      "moeVoted1824_2024": 7.8,
+      "mailStatus": "never"
+    },
+    {
+      "state": "OREGON",
+      "abbr": "OR",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 320.0,
+              "voted": 156.0,
+              "moeVoted": 8.9
+            },
+            "25-34": {
+              "cvap": 504.0,
+              "voted": 275.0,
+              "moeVoted": 7.0
+            },
+            "35-44": {
+              "cvap": 442.0,
+              "voted": 320.0,
+              "moeVoted": 6.7
+            },
+            "45-64": {
+              "cvap": 977.0,
+              "voted": 679.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 685.0,
+              "voted": 512.0,
+              "moeVoted": 5.3
+            }
+          },
+          "under35Gap": -5.948
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 373.0,
+              "voted": 209.0,
+              "moeVoted": 10.1
+            },
+            "25-34": {
+              "cvap": 550.0,
+              "voted": 381.0,
+              "moeVoted": 7.8
+            },
+            "35-44": {
+              "cvap": 539.0,
+              "voted": 418.0,
+              "moeVoted": 7.1
+            },
+            "45-64": {
+              "cvap": 984.0,
+              "voted": 761.0,
+              "moeVoted": 5.3
+            },
+            "65+": {
+              "cvap": 796.0,
+              "voted": 633.0,
+              "moeVoted": 5.6
+            }
+          },
+          "under35Gap": -3.907
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 252.0,
+              "voted": 115.0,
+              "moeVoted": 12.4
+            },
+            "25-34": {
+              "cvap": 578.0,
+              "voted": 393.0,
+              "moeVoted": 6.9
+            },
+            "35-44": {
+              "cvap": 550.0,
+              "voted": 418.0,
+              "moeVoted": 5.2
+            },
+            "45-64": {
+              "cvap": 930.0,
+              "voted": 735.0,
+              "moeVoted": 4.1
+            },
+            "65+": {
+              "cvap": 828.0,
+              "voted": 701.0,
+              "moeVoted": 3.7
+            }
+          },
+          "under35Gap": -4.943
+        }
+      },
+      "under35GapPooled": -4.933,
+      "under35Gap2024": -4.943,
+      "moeVoted1824_2024": 12.4,
+      "mailStatus": "permanent-pre2016"
+    },
+    {
+      "state": "PENNSYLVANIA",
+      "abbr": "PA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 1130.0,
+              "voted": 581.0,
+              "moeVoted": 4.9
+            },
+            "25-34": {
+              "cvap": 1525.0,
+              "voted": 837.0,
+              "moeVoted": 4.2
+            },
+            "35-44": {
+              "cvap": 1351.0,
+              "voted": 865.0,
+              "moeVoted": 4.3
+            },
+            "45-64": {
+              "cvap": 3382.0,
+              "voted": 2294.0,
+              "moeVoted": 2.7
+            },
+            "65+": {
+              "cvap": 2208.0,
+              "voted": 1431.0,
+              "moeVoted": 3.4
+            }
+          },
+          "under35Gap": -4.066
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 1017.0,
+              "voted": 519.0,
+              "moeVoted": 6.5
+            },
+            "25-34": {
+              "cvap": 1747.0,
+              "voted": 1207.0,
+              "moeVoted": 4.6
+            },
+            "35-44": {
+              "cvap": 1281.0,
+              "voted": 866.0,
+              "moeVoted": 5.4
+            },
+            "45-64": {
+              "cvap": 3122.0,
+              "voted": 2315.0,
+              "moeVoted": 3.2
+            },
+            "65+": {
+              "cvap": 2453.0,
+              "voted": 1850.0,
+              "moeVoted": 3.6
+            }
+          },
+          "under35Gap": -3.188
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 1096.0,
+              "voted": 592.0,
+              "moeVoted": 6.8
+            },
+            "25-34": {
+              "cvap": 1570.0,
+              "voted": 979.0,
+              "moeVoted": 5.3
+            },
+            "35-44": {
+              "cvap": 1458.0,
+              "voted": 1004.0,
+              "moeVoted": 5.5
+            },
+            "45-64": {
+              "cvap": 3157.0,
+              "voted": 2364.0,
+              "moeVoted": 3.5
+            },
+            "65+": {
+              "cvap": 2507.0,
+              "voted": 1890.0,
+              "moeVoted": 3.3
+            }
+          },
+          "under35Gap": -4.233
+        }
+      },
+      "under35GapPooled": -3.829,
+      "under35Gap2024": -4.233,
+      "moeVoted1824_2024": 6.8,
+      "mailStatus": "never"
+    },
+    {
+      "state": "RHODE ISLAND",
+      "abbr": "RI",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 69.0,
+              "voted": 34.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 137.0,
+              "voted": 74.0,
+              "moeVoted": 6.9
+            },
+            "35-44": {
+              "cvap": 125.0,
+              "voted": 78.0,
+              "moeVoted": 7.1
+            },
+            "45-64": {
+              "cvap": 263.0,
+              "voted": 169.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 172.0,
+              "voted": 111.0,
+              "moeVoted": 5.9
+            }
+          },
+          "under35Gap": -3.717
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 96.0,
+              "voted": 50.0,
+              "moeVoted": 10.3
+            },
+            "25-34": {
+              "cvap": 135.0,
+              "voted": 80.0,
+              "moeVoted": 8.6
+            },
+            "35-44": {
+              "cvap": 111.0,
+              "voted": 71.0,
+              "moeVoted": 9.2
+            },
+            "45-64": {
+              "cvap": 268.0,
+              "voted": 187.0,
+              "moeVoted": 5.7
+            },
+            "65+": {
+              "cvap": 166.0,
+              "voted": 126.0,
+              "moeVoted": 6.7
+            }
+          },
+          "under35Gap": -4.476
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 84.0,
+              "voted": 54.0,
+              "moeVoted": 11.6
+            },
+            "25-34": {
+              "cvap": 157.0,
+              "voted": 108.0,
+              "moeVoted": 9.2
+            },
+            "35-44": {
+              "cvap": 116.0,
+              "voted": 75.0,
+              "moeVoted": 10.7
+            },
+            "45-64": {
+              "cvap": 227.0,
+              "voted": 162.0,
+              "moeVoted": 6.6
+            },
+            "65+": {
+              "cvap": 227.0,
+              "voted": 169.0,
+              "moeVoted": 6.2
+            }
+          },
+          "under35Gap": -1.195
+        }
+      },
+      "under35GapPooled": -3.129,
+      "under35Gap2024": -1.195,
+      "moeVoted1824_2024": 11.6,
+      "mailStatus": "never"
+    },
+    {
+      "state": "SOUTH CAROLINA",
+      "abbr": "SC",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 332.0,
+              "voted": 146.0,
+              "moeVoted": 8.9
+            },
+            "25-34": {
+              "cvap": 585.0,
+              "voted": 288.0,
+              "moeVoted": 6.7
+            },
+            "35-44": {
+              "cvap": 587.0,
+              "voted": 346.0,
+              "moeVoted": 6.6
+            },
+            "45-64": {
+              "cvap": 1281.0,
+              "voted": 860.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 812.0,
+              "voted": 594.0,
+              "moeVoted": 5.1
+            }
+          },
+          "under35Gap": -6.066
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 421.0,
+              "voted": 225.0,
+              "moeVoted": 9.8
+            },
+            "25-34": {
+              "cvap": 673.0,
+              "voted": 329.0,
+              "moeVoted": 7.8
+            },
+            "35-44": {
+              "cvap": 543.0,
+              "voted": 326.0,
+              "moeVoted": 8.5
+            },
+            "45-64": {
+              "cvap": 1227.0,
+              "voted": 844.0,
+              "moeVoted": 5.4
+            },
+            "65+": {
+              "cvap": 1015.0,
+              "voted": 735.0,
+              "moeVoted": 5.7
+            }
+          },
+          "under35Gap": -5.674
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 459.0,
+              "voted": 221.0,
+              "moeVoted": 8.2
+            },
+            "25-34": {
+              "cvap": 575.0,
+              "voted": 284.0,
+              "moeVoted": 8.6
+            },
+            "35-44": {
+              "cvap": 620.0,
+              "voted": 375.0,
+              "moeVoted": 7.0
+            },
+            "45-64": {
+              "cvap": 1208.0,
+              "voted": 795.0,
+              "moeVoted": 6.7
+            },
+            "65+": {
+              "cvap": 1145.0,
+              "voted": 836.0,
+              "moeVoted": 5.2
+            }
+          },
+          "under35Gap": -5.693
+        }
+      },
+      "under35GapPooled": -5.811,
+      "under35Gap2024": -5.693,
+      "moeVoted1824_2024": 8.2,
+      "mailStatus": "never"
+    },
+    {
+      "state": "SOUTH DAKOTA",
+      "abbr": "SD",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 81.0,
+              "voted": 26.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 98.0,
+              "voted": 50.0,
+              "moeVoted": null
+            },
+            "35-44": {
+              "cvap": 90.0,
+              "voted": 52.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 224.0,
+              "voted": 147.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 119.0,
+              "voted": 88.0,
+              "moeVoted": 5.9
+            }
+          },
+          "under35Gap": -8.312
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 77.0,
+              "voted": 34.0,
+              "moeVoted": 10.4
+            },
+            "25-34": {
+              "cvap": 117.0,
+              "voted": 53.0,
+              "moeVoted": 8.4
+            },
+            "35-44": {
+              "cvap": 95.0,
+              "voted": 50.0,
+              "moeVoted": 9.4
+            },
+            "45-64": {
+              "cvap": 208.0,
+              "voted": 138.0,
+              "moeVoted": 6.0
+            },
+            "65+": {
+              "cvap": 152.0,
+              "voted": 106.0,
+              "moeVoted": 6.9
+            }
+          },
+          "under35Gap": -7.057
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 74.0,
+              "voted": 26.0,
+              "moeVoted": 12.4
+            },
+            "25-34": {
+              "cvap": 97.0,
+              "voted": 44.0,
+              "moeVoted": 7.8
+            },
+            "35-44": {
+              "cvap": 125.0,
+              "voted": 76.0,
+              "moeVoted": 7.6
+            },
+            "45-64": {
+              "cvap": 191.0,
+              "voted": 108.0,
+              "moeVoted": 7.7
+            },
+            "65+": {
+              "cvap": 182.0,
+              "voted": 141.0,
+              "moeVoted": 4.5
+            }
+          },
+          "under35Gap": -7.839
+        }
+      },
+      "under35GapPooled": -7.736,
+      "under35Gap2024": -7.839,
+      "moeVoted1824_2024": 12.4,
+      "mailStatus": "never"
+    },
+    {
+      "state": "TENNESSEE",
+      "abbr": "TN",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 503.0,
+              "voted": 156.0,
+              "moeVoted": 6.8
+            },
+            "25-34": {
+              "cvap": 903.0,
+              "voted": 379.0,
+              "moeVoted": 5.4
+            },
+            "35-44": {
+              "cvap": 741.0,
+              "voted": 411.0,
+              "moeVoted": 6.0
+            },
+            "45-64": {
+              "cvap": 1674.0,
+              "voted": 1008.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 1052.0,
+              "voted": 676.0,
+              "moeVoted": 4.9
+            }
+          },
+          "under35Gap": -8.511
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 611.0,
+              "voted": 300.0,
+              "moeVoted": 8.3
+            },
+            "25-34": {
+              "cvap": 761.0,
+              "voted": 428.0,
+              "moeVoted": 7.3
+            },
+            "35-44": {
+              "cvap": 829.0,
+              "voted": 549.0,
+              "moeVoted": 6.7
+            },
+            "45-64": {
+              "cvap": 1699.0,
+              "voted": 1247.0,
+              "moeVoted": 4.4
+            },
+            "65+": {
+              "cvap": 1138.0,
+              "voted": 822.0,
+              "moeVoted": 5.4
+            }
+          },
+          "under35Gap": -5.476
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 476.0,
+              "voted": 234.0,
+              "moeVoted": 9.5
+            },
+            "25-34": {
+              "cvap": 962.0,
+              "voted": 553.0,
+              "moeVoted": 6.3
+            },
+            "35-44": {
+              "cvap": 911.0,
+              "voted": 534.0,
+              "moeVoted": 5.9
+            },
+            "45-64": {
+              "cvap": 1665.0,
+              "voted": 1134.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 1286.0,
+              "voted": 979.0,
+              "moeVoted": 3.7
+            }
+          },
+          "under35Gap": -4.214
+        }
+      },
+      "under35GapPooled": -6.067,
+      "under35Gap2024": -4.214,
+      "moeVoted1824_2024": 9.5,
+      "mailStatus": "never"
+    },
+    {
+      "state": "TEXAS",
+      "abbr": "TX",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 2175.0,
+              "voted": 694.0,
+              "moeVoted": 3.3
+            },
+            "25-34": {
+              "cvap": 3186.0,
+              "voted": 1483.0,
+              "moeVoted": 2.9
+            },
+            "35-44": {
+              "cvap": 3008.0,
+              "voted": 1617.0,
+              "moeVoted": 3.0
+            },
+            "45-64": {
+              "cvap": 5743.0,
+              "voted": 3579.0,
+              "moeVoted": 2.1
+            },
+            "65+": {
+              "cvap": 3265.0,
+              "voted": 2254.0,
+              "moeVoted": 2.7
+            }
+          },
+          "under35Gap": -8.238
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 2366.0,
+              "voted": 1024.0,
+              "moeVoted": 4.2
+            },
+            "25-34": {
+              "cvap": 3491.0,
+              "voted": 1912.0,
+              "moeVoted": 3.5
+            },
+            "35-44": {
+              "cvap": 3124.0,
+              "voted": 1983.0,
+              "moeVoted": 3.6
+            },
+            "45-64": {
+              "cvap": 5988.0,
+              "voted": 4201.0,
+              "moeVoted": 2.4
+            },
+            "65+": {
+              "cvap": 3613.0,
+              "voted": 2755.0,
+              "moeVoted": 2.9
+            }
+          },
+          "under35Gap": -6.796
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 2768.0,
+              "voted": 1154.0,
+              "moeVoted": 4.7
+            },
+            "25-34": {
+              "cvap": 3456.0,
+              "voted": 1712.0,
+              "moeVoted": 5.0
+            },
+            "35-44": {
+              "cvap": 3535.0,
+              "voted": 1943.0,
+              "moeVoted": 4.4
+            },
+            "45-64": {
+              "cvap": 5978.0,
+              "voted": 3948.0,
+              "moeVoted": 2.8
+            },
+            "65+": {
+              "cvap": 4017.0,
+              "voted": 2685.0,
+              "moeVoted": 3.2
+            }
+          },
+          "under35Gap": -6.459
+        }
+      },
+      "under35GapPooled": -7.164,
+      "under35Gap2024": -6.459,
+      "moeVoted1824_2024": 4.7,
+      "mailStatus": "never"
+    },
+    {
+      "state": "UTAH",
+      "abbr": "UT",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 326.0,
+              "voted": 142.0,
+              "moeVoted": 6.0
+            },
+            "25-34": {
+              "cvap": 388.0,
+              "voted": 201.0,
+              "moeVoted": 5.6
+            },
+            "35-44": {
+              "cvap": 373.0,
+              "voted": 243.0,
+              "moeVoted": 5.4
+            },
+            "45-64": {
+              "cvap": 549.0,
+              "voted": 393.0,
+              "moeVoted": 4.2
+            },
+            "65+": {
+              "cvap": 333.0,
+              "voted": 255.0,
+              "moeVoted": 5.1
+            }
+          },
+          "under35Gap": -8.466
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 401.0,
+              "voted": 201.0,
+              "moeVoted": 6.8
+            },
+            "25-34": {
+              "cvap": 416.0,
+              "voted": 247.0,
+              "moeVoted": 6.6
+            },
+            "35-44": {
+              "cvap": 382.0,
+              "voted": 236.0,
+              "moeVoted": 6.8
+            },
+            "45-64": {
+              "cvap": 622.0,
+              "voted": 432.0,
+              "moeVoted": 5.0
+            },
+            "65+": {
+              "cvap": 357.0,
+              "voted": 269.0,
+              "moeVoted": 6.2
+            }
+          },
+          "under35Gap": -5.165
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 384.0,
+              "voted": 201.0,
+              "moeVoted": 7.3
+            },
+            "25-34": {
+              "cvap": 465.0,
+              "voted": 271.0,
+              "moeVoted": 5.4
+            },
+            "35-44": {
+              "cvap": 407.0,
+              "voted": 271.0,
+              "moeVoted": 5.5
+            },
+            "45-64": {
+              "cvap": 670.0,
+              "voted": 503.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 398.0,
+              "voted": 310.0,
+              "moeVoted": 4.7
+            }
+          },
+          "under35Gap": -6.198
+        }
+      },
+      "under35GapPooled": -6.61,
+      "under35Gap2024": -6.198,
+      "moeVoted1824_2024": 7.3,
+      "mailStatus": "permanent-post2020"
+    },
+    {
+      "state": "VERMONT",
+      "abbr": "VT",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 55.0,
+              "voted": 26.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 75.0,
+              "voted": 35.0,
+              "moeVoted": null
+            },
+            "35-44": {
+              "cvap": 70.0,
+              "voted": 42.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 177.0,
+              "voted": 118.0,
+              "moeVoted": 4.9
+            },
+            "65+": {
+              "cvap": 111.0,
+              "voted": 85.0,
+              "moeVoted": 5.5
+            }
+          },
+          "under35Gap": -6.705
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 53.0,
+              "voted": 26.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 81.0,
+              "voted": 43.0,
+              "moeVoted": 9.5
+            },
+            "35-44": {
+              "cvap": 72.0,
+              "voted": 49.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 154.0,
+              "voted": 113.0,
+              "moeVoted": 6.1
+            },
+            "65+": {
+              "cvap": 140.0,
+              "voted": 111.0,
+              "moeVoted": 5.8
+            }
+          },
+          "under35Gap": -6.625
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 38.0,
+              "voted": 27.0,
+              "moeVoted": 9.4
+            },
+            "25-34": {
+              "cvap": 80.0,
+              "voted": 52.0,
+              "moeVoted": 8.1
+            },
+            "35-44": {
+              "cvap": 93.0,
+              "voted": 63.0,
+              "moeVoted": 6.3
+            },
+            "45-64": {
+              "cvap": 149.0,
+              "voted": 111.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 159.0,
+              "voted": 121.0,
+              "moeVoted": 4.4
+            }
+          },
+          "under35Gap": -1.613
+        }
+      },
+      "under35GapPooled": -4.981,
+      "under35Gap2024": -1.613,
+      "moeVoted1824_2024": 9.4,
+      "mailStatus": "permanent-post2020"
+    },
+    {
+      "state": "VIRGINIA",
+      "abbr": "VA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 737.0,
+              "voted": 447.0,
+              "moeVoted": 6.0
+            },
+            "25-34": {
+              "cvap": 993.0,
+              "voted": 549.0,
+              "moeVoted": 5.3
+            },
+            "35-44": {
+              "cvap": 833.0,
+              "voted": 573.0,
+              "moeVoted": 5.4
+            },
+            "45-64": {
+              "cvap": 2023.0,
+              "voted": 1500.0,
+              "moeVoted": 3.3
+            },
+            "65+": {
+              "cvap": 1244.0,
+              "voted": 903.0,
+              "moeVoted": 4.2
+            }
+          },
+          "under35Gap": -4.599
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 668.0,
+              "voted": 346.0,
+              "moeVoted": 8.1
+            },
+            "25-34": {
+              "cvap": 956.0,
+              "voted": 666.0,
+              "moeVoted": 6.2
+            },
+            "35-44": {
+              "cvap": 925.0,
+              "voted": 671.0,
+              "moeVoted": 6.1
+            },
+            "45-64": {
+              "cvap": 2084.0,
+              "voted": 1570.0,
+              "moeVoted": 3.9
+            },
+            "65+": {
+              "cvap": 1341.0,
+              "voted": 1022.0,
+              "moeVoted": 4.9
+            }
+          },
+          "under35Gap": -3.512
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 763.0,
+              "voted": 405.0,
+              "moeVoted": 7.9
+            },
+            "25-34": {
+              "cvap": 983.0,
+              "voted": 657.0,
+              "moeVoted": 5.8
+            },
+            "35-44": {
+              "cvap": 992.0,
+              "voted": 707.0,
+              "moeVoted": 6.0
+            },
+            "45-64": {
+              "cvap": 1986.0,
+              "voted": 1610.0,
+              "moeVoted": 3.5
+            },
+            "65+": {
+              "cvap": 1535.0,
+              "voted": 1186.0,
+              "moeVoted": 3.9
+            }
+          },
+          "under35Gap": -4.632
+        }
+      },
+      "under35GapPooled": -4.248,
+      "under35Gap2024": -4.632,
+      "moeVoted1824_2024": 7.9,
+      "mailStatus": "never"
+    },
+    {
+      "state": "WASHINGTON",
+      "abbr": "WA",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 594.0,
+              "voted": 273.0,
+              "moeVoted": 6.8
+            },
+            "25-34": {
+              "cvap": 848.0,
+              "voted": 460.0,
+              "moeVoted": 5.7
+            },
+            "35-44": {
+              "cvap": 876.0,
+              "voted": 564.0,
+              "moeVoted": 5.4
+            },
+            "45-64": {
+              "cvap": 1859.0,
+              "voted": 1366.0,
+              "moeVoted": 3.4
+            },
+            "65+": {
+              "cvap": 927.0,
+              "voted": 720.0,
+              "moeVoted": 4.6
+            }
+          },
+          "under35Gap": -6.585
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 516.0,
+              "voted": 271.0,
+              "moeVoted": 9.1
+            },
+            "25-34": {
+              "cvap": 989.0,
+              "voted": 654.0,
+              "moeVoted": 6.2
+            },
+            "35-44": {
+              "cvap": 983.0,
+              "voted": 698.0,
+              "moeVoted": 6.0
+            },
+            "45-64": {
+              "cvap": 1650.0,
+              "voted": 1264.0,
+              "moeVoted": 4.3
+            },
+            "65+": {
+              "cvap": 1250.0,
+              "voted": 967.0,
+              "moeVoted": 4.9
+            }
+          },
+          "under35Gap": -3.931
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 698.0,
+              "voted": 347.0,
+              "moeVoted": 13.3
+            },
+            "25-34": {
+              "cvap": 944.0,
+              "voted": 648.0,
+              "moeVoted": 5.2
+            },
+            "35-44": {
+              "cvap": 876.0,
+              "voted": 594.0,
+              "moeVoted": 5.6
+            },
+            "45-64": {
+              "cvap": 1649.0,
+              "voted": 1210.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 1349.0,
+              "voted": 1064.0,
+              "moeVoted": 4.7
+            }
+          },
+          "under35Gap": -4.011
+        }
+      },
+      "under35GapPooled": -4.842,
+      "under35Gap2024": -4.011,
+      "moeVoted1824_2024": 13.3,
+      "mailStatus": "permanent-pre2016"
+    },
+    {
+      "state": "WEST VIRGINIA",
+      "abbr": "WV",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 153.0,
+              "voted": 50.0,
+              "moeVoted": 8.2
+            },
+            "25-34": {
+              "cvap": 225.0,
+              "voted": 98.0,
+              "moeVoted": 7.2
+            },
+            "35-44": {
+              "cvap": 204.0,
+              "voted": 96.0,
+              "moeVoted": 7.6
+            },
+            "45-64": {
+              "cvap": 509.0,
+              "voted": 268.0,
+              "moeVoted": 4.8
+            },
+            "65+": {
+              "cvap": 334.0,
+              "voted": 211.0,
+              "moeVoted": 5.7
+            }
+          },
+          "under35Gap": -6.056
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 153.0,
+              "voted": 53.0,
+              "moeVoted": 10.4
+            },
+            "25-34": {
+              "cvap": 191.0,
+              "voted": 79.0,
+              "moeVoted": 9.6
+            },
+            "35-44": {
+              "cvap": 209.0,
+              "voted": 119.0,
+              "moeVoted": 9.3
+            },
+            "45-64": {
+              "cvap": 462.0,
+              "voted": 274.0,
+              "moeVoted": 6.2
+            },
+            "65+": {
+              "cvap": 364.0,
+              "voted": 247.0,
+              "moeVoted": 6.6
+            }
+          },
+          "under35Gap": -7.847
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 151.0,
+              "voted": 73.0,
+              "moeVoted": 7.9
+            },
+            "25-34": {
+              "cvap": 200.0,
+              "voted": 107.0,
+              "moeVoted": 7.5
+            },
+            "35-44": {
+              "cvap": 186.0,
+              "voted": 109.0,
+              "moeVoted": 6.5
+            },
+            "45-64": {
+              "cvap": 412.0,
+              "voted": 263.0,
+              "moeVoted": 7.0
+            },
+            "65+": {
+              "cvap": 406.0,
+              "voted": 255.0,
+              "moeVoted": 5.5
+            }
+          },
+          "under35Gap": -3.599
+        }
+      },
+      "under35GapPooled": -5.834,
+      "under35Gap2024": -3.599,
+      "moeVoted1824_2024": 7.9,
+      "mailStatus": "never"
+    },
+    {
+      "state": "WISCONSIN",
+      "abbr": "WI",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 530.0,
+              "voted": 249.0,
+              "moeVoted": 7.2
+            },
+            "25-34": {
+              "cvap": 678.0,
+              "voted": 370.0,
+              "moeVoted": 6.3
+            },
+            "35-44": {
+              "cvap": 701.0,
+              "voted": 527.0,
+              "moeVoted": 5.4
+            },
+            "45-64": {
+              "cvap": 1479.0,
+              "voted": 1169.0,
+              "moeVoted": 3.5
+            },
+            "65+": {
+              "cvap": 966.0,
+              "voted": 753.0,
+              "moeVoted": 4.4
+            }
+          },
+          "under35Gap": -7.569
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 577.0,
+              "voted": 323.0,
+              "moeVoted": 8.5
+            },
+            "25-34": {
+              "cvap": 714.0,
+              "voted": 557.0,
+              "moeVoted": 6.4
+            },
+            "35-44": {
+              "cvap": 617.0,
+              "voted": 426.0,
+              "moeVoted": 7.7
+            },
+            "45-64": {
+              "cvap": 1572.0,
+              "voted": 1171.0,
+              "moeVoted": 4.5
+            },
+            "65+": {
+              "cvap": 941.0,
+              "voted": 776.0,
+              "moeVoted": 5.1
+            }
+          },
+          "under35Gap": -2.15
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 432.0,
+              "voted": 285.0,
+              "moeVoted": 12.5
+            },
+            "25-34": {
+              "cvap": 700.0,
+              "voted": 387.0,
+              "moeVoted": 7.6
+            },
+            "35-44": {
+              "cvap": 770.0,
+              "voted": 522.0,
+              "moeVoted": 6.7
+            },
+            "45-64": {
+              "cvap": 1410.0,
+              "voted": 1125.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 1119.0,
+              "voted": 881.0,
+              "moeVoted": 5.4
+            }
+          },
+          "under35Gap": -4.547
+        }
+      },
+      "under35GapPooled": -4.755,
+      "under35Gap2024": -4.547,
+      "moeVoted1824_2024": 12.5,
+      "mailStatus": "never"
+    },
+    {
+      "state": "WYOMING",
+      "abbr": "WY",
+      "years": {
+        "2016": {
+          "bins": {
+            "18-24": {
+              "cvap": 55.0,
+              "voted": 30.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 73.0,
+              "voted": 42.0,
+              "moeVoted": null
+            },
+            "35-44": {
+              "cvap": 68.0,
+              "voted": 40.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 148.0,
+              "voted": 102.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 83.0,
+              "voted": 63.0,
+              "moeVoted": null
+            }
+          },
+          "under35Gap": -3.984
+        },
+        "2020": {
+          "bins": {
+            "18-24": {
+              "cvap": 51.0,
+              "voted": 25.0,
+              "moeVoted": null
+            },
+            "25-34": {
+              "cvap": 69.0,
+              "voted": 36.0,
+              "moeVoted": null
+            },
+            "35-44": {
+              "cvap": 69.0,
+              "voted": 39.0,
+              "moeVoted": null
+            },
+            "45-64": {
+              "cvap": 143.0,
+              "voted": 106.0,
+              "moeVoted": 5.6
+            },
+            "65+": {
+              "cvap": 95.0,
+              "voted": 73.0,
+              "moeVoted": 6.6
+            }
+          },
+          "under35Gap": -6.239
+        },
+        "2024": {
+          "bins": {
+            "18-24": {
+              "cvap": 45.0,
+              "voted": 22.0,
+              "moeVoted": 9.2
+            },
+            "25-34": {
+              "cvap": 75.0,
+              "voted": 41.0,
+              "moeVoted": 6.1
+            },
+            "35-44": {
+              "cvap": 75.0,
+              "voted": 47.0,
+              "moeVoted": 8.0
+            },
+            "45-64": {
+              "cvap": 118.0,
+              "voted": 75.0,
+              "moeVoted": 4.7
+            },
+            "65+": {
+              "cvap": 130.0,
+              "voted": 99.0,
+              "moeVoted": 3.9
+            }
+          },
+          "under35Gap": -4.905
+        }
+      },
+      "under35GapPooled": -5.043,
+      "under35Gap2024": -4.905,
+      "moeVoted1824_2024": 9.2,
+      "mailStatus": "never"
+    }
+  ]
+}
