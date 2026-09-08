@@ -292,12 +292,11 @@
   list-style: none;
   margin: 0 0 0.75rem;
   padding: 0;
-  max-height: 190px;
+  max-height: 244px;
   overflow-y: auto;
 }
 
 .sdo-card-movies li {
-  padding: 0.16rem 0;
   border-top: 1px solid var(--gridline);
 }
 
@@ -305,17 +304,62 @@
   border-top: none;
 }
 
-.sdo-card-movies a {
-  color: var(--accent);
+/* The whole row is the link target, not just the title text - a 38px poster
+   beside a short title makes for a small tap target otherwise. */
+.sdo-movie-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.2rem;
   text-decoration: none;
+  border-radius: 5px;
 }
 
-.sdo-card-movies a:hover {
-  text-decoration: underline;
+a.sdo-movie-row:hover {
+  background: var(--gridline);
 }
 
-.sdo-card-movies span {
-  color: var(--text-secondary);
+.sdo-movie-poster {
+  width: 38px;
+  height: 57px;
+  flex: 0 0 38px;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--gridline);
+}
+
+.sdo-movie-poster-fallback {
+  display: block;
+}
+
+.sdo-movie-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.sdo-movie-title {
+  color: var(--accent);
+  line-height: 1.25;
+}
+
+span.sdo-movie-row .sdo-movie-title {
+  color: var(--text-primary);
+}
+
+.sdo-movie-meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sdo-movie-dot {
+  margin: 0 0.3rem;
+}
+
+.sdo-movie-rating {
+  white-space: nowrap;
 }
 
 .sdo-card-center {

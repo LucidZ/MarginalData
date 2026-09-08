@@ -38,12 +38,12 @@ Requires TMDB_READ_ACCESS_TOKEN in .env.local (v4 bearer token).
 import argparse
 import csv
 import gzip
+import http.client
 import itertools
 import json
 import os
 import sys
 import time
-import urllib.error
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
@@ -208,34 +208,85 @@ def load_names(pool):
     return names
 
 
-def tmdb_find(imdb_id, token, result_key, retries=3):
-    """Shared by actor and movie lookups - TMDB's /find endpoint resolves any
-    IMDb id (person or title) to the matching TMDB record via result_key
-    ("person_results" or "movie_results")."""
-    url = f"https://api.themoviedb.org/3/find/{imdb_id}?external_source=imdb_id"
-    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read())
-            results = data.get(result_key) or []
-            return results[0] if results else None
-        except urllib.error.HTTPError as e:
-            if e.code == 429:
-                time.sleep(1.0)
-                continue
-            return None
-        except Exception:
-            time.sleep(0.5)
-    return None
+TMDB_CACHE_PATH = RAW_DIR.parent / "tmdb_cache.json"
 
 
-def enrich_with_tmdb(pool, token):
-    print(f"Enriching {len(pool):,} actors with TMDB photos (~{len(pool)/40:.0f}s at 40 req/s)...")
+def load_tmdb_cache():
+    """Keyed by IMDb id (nconst or tconst - never ambiguous, each id is one or
+    the other) -> the resolved /find record, or null for a confirmed miss.
+    Without this, every regeneration re-resolves the same ~16K ids from
+    scratch - this run alone re-fetched actor photos for the 4th time today
+    before it ever got to the new poster/year/rating fields."""
+    if TMDB_CACHE_PATH.exists():
+        return json.loads(TMDB_CACHE_PATH.read_text())
+    return {}
+
+
+def save_tmdb_cache(cache):
+    TMDB_CACHE_PATH.write_text(json.dumps(cache))
+
+
+class TmdbClient:
+    """http.client instead of urllib.request specifically for HTTP/1.1
+    keep-alive - urllib opens a brand new TCP+TLS connection for every single
+    call, and across ~16K calls that handshake overhead (not the API's rate
+    limit, which was never the bottleneck) is what made a fresh-cache run take
+    over an hour. One persistent connection, reconnecting only on drops."""
+
+    def __init__(self, token):
+        self.token = token
+        self.conn = None
+
+    def _connect(self):
+        if self.conn is not None:
+            try:
+                self.conn.close()
+            except Exception:
+                pass
+        self.conn = http.client.HTTPSConnection("api.themoviedb.org", timeout=10)
+
+    def find(self, imdb_id, result_key, retries=3):
+        path = f"/3/find/{imdb_id}?external_source=imdb_id"
+        headers = {"Authorization": f"Bearer {self.token}", "Connection": "keep-alive"}
+        for attempt in range(retries):
+            try:
+                if self.conn is None:
+                    self._connect()
+                self.conn.request("GET", path, headers=headers)
+                resp = self.conn.getresponse()
+                body = resp.read()
+                if resp.status == 429:
+                    time.sleep(1.0)
+                    continue
+                if resp.status != 200:
+                    return None
+                results = json.loads(body).get(result_key) or []
+                return results[0] if results else None
+            except Exception:
+                # Server likely closed the idle keep-alive connection - reconnect and retry.
+                self._connect()
+                time.sleep(0.3)
+        return None
+
+    def close(self):
+        if self.conn is not None:
+            self.conn.close()
+
+
+def enrich_with_tmdb(pool, token, cache):
+    print(f"Enriching {len(pool):,} actors with TMDB photos...")
+    client = TmdbClient(token)
     tmdb_data = {}
     hits = 0
+    misses = 0
     for i, nconst in enumerate(sorted(pool), 1):
-        person = tmdb_find(nconst, token, "person_results")
+        if nconst in cache:
+            person = cache[nconst]
+        else:
+            person = client.find(nconst, "person_results")
+            cache[nconst] = person
+            misses += 1
+            time.sleep(0.025)  # ~40 req/s, well under the 50 req/s TMDB API limit - only paid on a real cache miss
         if person and person.get("profile_path"):
             hits += 1
         tmdb_data[nconst] = {
@@ -243,29 +294,56 @@ def enrich_with_tmdb(pool, token):
             "photo": person.get("profile_path") if person else None,
         }
         if i % 200 == 0:
-            print(f"  {i:,}/{len(pool):,} ({hits:,} photos found so far)")
-        time.sleep(0.025)  # ~40 req/s, well under the 50 req/s TMDB API limit
-    print(f"  done: {hits:,}/{len(pool):,} actors have a TMDB photo")
+            print(f"  {i:,}/{len(pool):,} ({hits:,} photos found, {misses:,} fresh API calls so far)")
+            save_tmdb_cache(cache)
+    client.close()
+    save_tmdb_cache(cache)
+    print(f"  done: {hits:,}/{len(pool):,} actors have a TMDB photo ({misses:,} were fresh calls, rest from cache)")
     return tmdb_data
 
 
-def enrich_movies_with_tmdb(used_tconsts, token):
-    """Resolves each referenced movie's TMDB id, for linking to
-    themoviedb.org/movie/{id} in the hover tooltip - see project_six_degrees_of.md
-    for why TMDB (not a streaming/affiliate link) is the default here."""
-    print(f"Enriching {len(used_tconsts):,} movies with TMDB ids (~{len(used_tconsts)/40:.0f}s at 40 req/s)...")
-    tmdb_ids = {}
+# A TMDB rating built on a handful of votes is noise, not signal - below this
+# we ship no rating rather than an authoritative-looking number derived from
+# three people.
+MIN_TMDB_VOTES_FOR_RATING = 10
+
+
+def enrich_movies_with_tmdb(used_tconsts, token, cache):
+    """Resolves each referenced movie's TMDB id plus the poster/year/rating
+    shown in the detail card. All of this rides along in the same /find
+    response we already need for the id, so the poster and rating cost no
+    extra API calls - see project_six_degrees_of.md."""
+    print(f"Enriching {len(used_tconsts):,} movies from TMDB...")
+    client = TmdbClient(token)
+    info = {}
     hits = 0
+    misses = 0
     for i, tconst in enumerate(used_tconsts, 1):
-        movie = tmdb_find(tconst, token, "movie_results")
+        if tconst in cache:
+            movie = cache[tconst]
+        else:
+            movie = client.find(tconst, "movie_results")
+            cache[tconst] = movie
+            misses += 1
+            time.sleep(0.025)
         if movie:
             hits += 1
-            tmdb_ids[tconst] = movie.get("id")
+            release = movie.get("release_date") or ""
+            votes = movie.get("vote_count") or 0
+            rating = movie.get("vote_average") or 0
+            info[tconst] = {
+                "tmdbId": movie.get("id"),
+                "poster": movie.get("poster_path"),
+                "year": int(release[:4]) if release[:4].isdigit() else None,
+                "rating": round(rating, 1) if votes >= MIN_TMDB_VOTES_FOR_RATING and rating > 0 else None,
+            }
         if i % 1000 == 0:
-            print(f"  {i:,}/{len(used_tconsts):,} ({hits:,} matched so far)")
-        time.sleep(0.025)
-    print(f"  done: {hits:,}/{len(used_tconsts):,} movies matched on TMDB")
-    return tmdb_ids
+            print(f"  {i:,}/{len(used_tconsts):,} ({hits:,} matched, {misses:,} fresh API calls so far)")
+            save_tmdb_cache(cache)  # so a kill mid-run (this took 80+ minutes once) doesn't lose all progress
+    client.close()
+    save_tmdb_cache(cache)
+    print(f"  done: {hits:,}/{len(used_tconsts):,} movies matched on TMDB ({misses:,} were fresh calls, rest from cache)")
+    return info
 
 
 def main():
@@ -285,6 +363,8 @@ def main():
         sys.exit("TMDB_READ_ACCESS_TOKEN not set in .env.local (or pass --skip-tmdb)")
 
     ensure_raw_data()
+    tmdb_cache = load_tmdb_cache()
+    print(f"TMDB cache: {len(tmdb_cache):,} ids already resolved from a previous run")
 
     movie_ids, movie_titles = load_theatrical_movie_ids()
     votes = load_votes()
@@ -293,7 +373,7 @@ def main():
     shared_movies = build_edges(cast, pool)
     names = load_names(pool)
 
-    tmdb_data = enrich_with_tmdb(pool, token) if not args.skip_tmdb else {}
+    tmdb_data = enrich_with_tmdb(pool, token, tmdb_cache) if not args.skip_tmdb else {}
 
     # Compact int IDs, most-connected first (nicer default rendering order)
     degree = defaultdict(int)
@@ -319,13 +399,15 @@ def main():
     # matter to this pool's edges.
     used_tconsts = sorted({t for tconsts in shared_movies.values() for t in tconsts})
     movie_id_of = {tconst: i for i, tconst in enumerate(used_tconsts)}
-    movie_tmdb_ids = enrich_movies_with_tmdb(used_tconsts, token) if not args.skip_tmdb else {}
+    movie_info = enrich_movies_with_tmdb(used_tconsts, token, tmdb_cache) if not args.skip_tmdb else {}
+    # No `tconst` here on purpose: the frontend never reads it, and at ~13.6K
+    # movies the dead string costs more than the poster/year/rating we're
+    # adding. It stays available in the raw IMDb files if ever needed.
     movies_out = [
         {
             "id": movie_id_of[t],
             "title": movie_titles.get(t, "?"),
-            "tconst": t,
-            "tmdbId": movie_tmdb_ids.get(t),
+            **{k: v for k, v in (movie_info.get(t) or {}).items() if v is not None},
         }
         for t in used_tconsts
     ]

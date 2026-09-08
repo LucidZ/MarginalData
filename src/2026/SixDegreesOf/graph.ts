@@ -14,6 +14,12 @@ export function photoUrl(actor: Actor, renderedSize: number): string | null {
   return `${TMDB_IMAGE_BASE}/${size}${actor.photo}`;
 }
 
+/** Poster thumbnails only ever render ~38px wide in the detail card, and only
+ * for the handful of films one pair shares - so w92 is always right here. */
+export function posterUrl(movie: { poster?: string }): string | null {
+  return movie.poster ? `${TMDB_IMAGE_BASE}/w92${movie.poster}` : null;
+}
+
 interface AdjacencyEntry {
   id: number;
   weight: number;

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { photoUrl } from "./graph";
+import { photoUrl, posterUrl } from "./graph";
 import type { Actor, Movie } from "./types";
 
 export interface Selection {
@@ -39,11 +39,17 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   // otherwise open a card that's half off-screen.
   let style: React.CSSProperties = {};
   if (!compact) {
+    // Estimate the card's height from its row count so a 20-film card doesn't
+    // hang off the bottom of the viewport the way a flat reserve would let it.
+    // Rows are ~66px (38x57 poster + padding); the list stops growing at the
+    // CSS max-height of 244px and scrolls from there.
+    const listHeight = Math.min(sharedMovies.length * 66, 244);
+    const estHeight = 56 + 24 + listHeight + 46;
     const flipLeft = clientX + GAP + CARD_WIDTH > window.innerWidth - EDGE;
     const left = flipLeft ? clientX - GAP - CARD_WIDTH : clientX + GAP;
     style = {
       left: Math.max(EDGE, Math.min(left, window.innerWidth - CARD_WIDTH - EDGE)),
-      top: Math.max(EDGE, Math.min(clientY - 40, window.innerHeight - 260)),
+      top: Math.max(EDGE, Math.min(clientY - 40, window.innerHeight - estHeight - EDGE)),
       width: CARD_WIDTH,
     };
   }
@@ -74,17 +80,46 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
         </div>
 
         <ul className="sdo-card-movies">
-          {sharedMovies.map((movie) => (
-            <li key={movie.id}>
-              {movie.tmdbId ? (
-                <a href={`https://www.themoviedb.org/movie/${movie.tmdbId}`} target="_blank" rel="noreferrer">
-                  {movie.title}
-                </a>
-              ) : (
-                <span>{movie.title}</span>
-              )}
-            </li>
-          ))}
+          {sharedMovies.map((movie) => {
+            const poster = posterUrl(movie);
+            const body = (
+              <>
+                {poster ? (
+                  <img className="sdo-movie-poster" src={poster} alt="" loading="lazy" width={38} height={57} />
+                ) : (
+                  <span className="sdo-movie-poster sdo-movie-poster-fallback" aria-hidden="true" />
+                )}
+                <span className="sdo-movie-text">
+                  <span className="sdo-movie-title">{movie.title}</span>
+                  <span className="sdo-movie-meta">
+                    {movie.year ?? "—"}
+                    {movie.rating !== undefined && (
+                      <>
+                        <span className="sdo-movie-dot">·</span>
+                        <span className="sdo-movie-rating">★ {movie.rating.toFixed(1)}</span>
+                      </>
+                    )}
+                  </span>
+                </span>
+              </>
+            );
+            return (
+              <li key={movie.id}>
+                {movie.tmdbId ? (
+                  <a
+                    className="sdo-movie-row"
+                    href={`https://www.themoviedb.org/movie/${movie.tmdbId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {body}
+                  </a>
+                ) : (
+                  <span className="sdo-movie-row">{body}</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         <button className="sdo-card-center" onClick={() => onCenter(actor)}>

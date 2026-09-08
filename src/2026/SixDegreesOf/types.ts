@@ -9,11 +9,17 @@ export interface Actor {
   photo: string | null;
 }
 
+/** Poster/year/rating ride along in the same TMDB /find response the id comes
+ * from, so they cost no extra API calls. All optional: ~0.6% of movies don't
+ * match on TMDB at all, and a rating is omitted rather than shipped when too
+ * few people voted on it to mean anything. */
 export interface Movie {
   id: number;
   title: string;
-  tconst: string;
-  tmdbId: number | null;
+  tmdbId?: number;
+  poster?: string;
+  year?: number;
+  rating?: number;
 }
 
 /** [actorIdA, actorIdB, number of theatrical movies they share, [movieId, ...]] */
