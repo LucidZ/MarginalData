@@ -19,10 +19,33 @@ export interface Column {
   top: number;
 }
 
-export const COLUMN_WIDTH = 220;
-const MIN_NODE_SIZE = 26;
-const MAX_NODE_SIZE = 88;
-const TARGET_COLUMN_HEIGHT = 900;
+/** Layout dimensions, picked from viewport width by the caller - a 220px column
+ * that reads fine on a desktop makes the chart ~12x the screen width on a
+ * 390px phone, so the whole geometry scales rather than just being scrolled. */
+export interface LayoutConfig {
+  columnWidth: number;
+  targetColumnHeight: number;
+  sideMargin: number;
+  minNodeSize: number;
+  maxNodeSize: number;
+}
+
+export const DESKTOP_LAYOUT: LayoutConfig = {
+  columnWidth: 200,
+  targetColumnHeight: 900,
+  sideMargin: 120,
+  minNodeSize: 24,
+  maxNodeSize: 88,
+};
+
+export const COMPACT_LAYOUT: LayoutConfig = {
+  columnWidth: 128,
+  targetColumnHeight: 560,
+  sideMargin: 56,
+  minNodeSize: 17,
+  maxNodeSize: 62,
+};
+
 const PACKING_EFFICIENCY = 0.72; // real beeswarms aren't perfect hex-packing
 
 /** Bigger buckets get smaller avatars, so a 227-person "1 shared film" column
@@ -31,10 +54,10 @@ const PACKING_EFFICIENCY = 0.72; // real beeswarms aren't perfect hex-packing
  * singleton bucket (someone's single most-frequent collaborator) gets the
  * largest size instead, since being the only entry in that bucket is itself
  * the point. */
-function sizeForBucket(count: number): number {
-  const areaPerNode = (TARGET_COLUMN_HEIGHT * COLUMN_WIDTH * PACKING_EFFICIENCY) / count;
+function sizeForBucket(count: number, cfg: LayoutConfig): number {
+  const areaPerNode = (cfg.targetColumnHeight * cfg.columnWidth * PACKING_EFFICIENCY) / count;
   const diameter = 2 * Math.sqrt(areaPerNode / Math.PI);
-  return Math.max(MIN_NODE_SIZE, Math.min(MAX_NODE_SIZE, diameter));
+  return Math.max(cfg.minNodeSize, Math.min(cfg.maxNodeSize, diameter));
 }
 
 /**
@@ -44,26 +67,31 @@ function sizeForBucket(count: number): number {
  * "beeswarm" spreading - no node is dropped or curated out to make it fit,
  * dense buckets just render smaller (see sizeForBucket).
  *
- * Columns are laid out at a FIXED x per shared-film count (1..maxSharedFilms),
- * not per this actor's own present values - so "3 films together" always
- * sits at the same x whether this root has 8 people there or nobody at all.
- * A count with nobody in it just renders as a bare axis label with an empty
- * column beneath - see App.tsx's request for stable x-positions between actors.
+ * Columns run 1..(this actor's own highest shared-film count) at a fixed x
+ * per count, so a given count always sits at the same offset from the left
+ * edge and stays comparable between actors. Interior gaps are preserved as
+ * real blank columns (Anupam Kher shares 4 films with someone and 6 with
+ * someone else, so "5 films" renders empty - that gap is information).
+ * Only the empty tail past an actor's maximum is trimmed: rendering all the
+ * way to the dataset-wide max of 20 made every chart 4,692px wide, ~75% of
+ * it dead scroll for anyone who isn't Anupam Kher.
  */
-export function layoutBeeswarm(buckets: Bucket[], maxSharedFilms: number): Column[] {
+export function layoutBeeswarm(buckets: Bucket[], cfg: LayoutConfig): Column[] {
   interface SimNode extends SimulationNodeDatum {
     id: number;
     columnX: number;
     r: number;
   }
 
+  const actorMax = buckets.reduce((max, b) => Math.max(max, b.sharedFilms), 0);
   const bucketByWeight = new Map(buckets.map((b) => [b.sharedFilms, b]));
+
   const nodes: SimNode[] = [];
-  const columnMeta = Array.from({ length: maxSharedFilms }, (_, i) => {
+  const columnMeta = Array.from({ length: actorMax }, (_, i) => {
     const sharedFilms = i + 1;
     const bucket = bucketByWeight.get(sharedFilms);
-    const size = bucket ? sizeForBucket(bucket.entries.length) : 0;
-    return { sharedFilms, x: i * COLUMN_WIDTH, size, bucket };
+    const size = bucket ? sizeForBucket(bucket.entries.length, cfg) : 0;
+    return { sharedFilms, x: i * cfg.columnWidth, size, bucket };
   });
 
   columnMeta.forEach(({ x, size, bucket }) => {
@@ -84,7 +112,7 @@ export function layoutBeeswarm(buckets: Bucket[], maxSharedFilms: number): Colum
     // Weak pull back toward the swarm's center line - without this, collision
     // alone just pushes nodes apart with nothing bringing them back together,
     // and the swarm drifts into a diffuse mess with random gaps instead of a
-    // cohesive cluster (this was the actual bug: gaps in the rendered swarm).
+    // cohesive cluster.
     .force("y", forceY<SimNode>(0).strength(0.06))
     .force("collide", forceCollide<SimNode>((d) => d.r + 1))
     .stop();

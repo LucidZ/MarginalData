@@ -7,9 +7,9 @@ interface Props {
   y: number;
   size: number;
   sharedMovies: Movie[];
-  onClick: (actor: Actor) => void;
-  onHover: (actor: Actor, sharedMovies: Movie[], e: React.MouseEvent) => void;
-  onLeave: () => void;
+  isSelected: boolean;
+  /** Click/tap opens the detail card - re-centering is a deliberate button inside that card, not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
+  onSelect: (actor: Actor, sharedMovies: Movie[], e: React.MouseEvent) => void;
 }
 
 function initials(name: string): string {
@@ -22,24 +22,28 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-export default function ActorNode({ actor, x, y, size, sharedMovies, onClick, onHover, onLeave }: Props) {
-  const url = photoUrl(actor);
+export default function ActorNode({ actor, x, y, size, sharedMovies, isSelected, onSelect }: Props) {
+  const url = photoUrl(actor, size);
   const r = size / 2;
   return (
     <g
-      className="sdo-node"
+      className={`sdo-node${isSelected ? " sdo-node-selected" : ""}`}
       transform={`translate(${x}, ${y})`}
-      onClick={() => onClick(actor)}
-      onMouseEnter={(e) => onHover(actor, sharedMovies, e)}
-      onMouseMove={(e) => onHover(actor, sharedMovies, e)}
-      onMouseLeave={onLeave}
+      onClick={(e) => onSelect(actor, sharedMovies, e)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onClick(actor);
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(actor, sharedMovies, e as unknown as React.MouseEvent);
+        }
       }}
-      aria-label={`${actor.name} - click to re-center`}
+      aria-label={`${actor.name} - open details`}
     >
+      {/* Native tooltip kept as a cheap desktop hover hint. The real detail
+          (films, links, re-center) lives in the click-opened card, since touch
+          devices never fire hover at all. */}
+      <title>{actor.name}</title>
       <clipPath id={`sdo-clip-${actor.id}`}>
         <circle r={r} />
       </clipPath>

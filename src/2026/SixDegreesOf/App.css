@@ -133,17 +133,16 @@
   font-size: 0.85rem;
 }
 
-/* The graph is a fixed pixel size (see App.tsx) wide enough to hold every
-   possible shared-film count at a stable x-position - wider than the page on
-   most actors, so it scrolls horizontally inside this wrapper rather than
-   being squashed with width:100% (that was the earlier bug: cramming 20
-   columns' worth of text into a ~1068px container made it unreadable at any
-   font-size). A light shadow/fade would be a nice affordance that more is
-   off to the right, but plain scroll is enough for v1. */
+/* The graph is a fixed pixel size (see App.tsx) - it runs only as wide as the
+   current actor's own highest film-count column, so most actors now fit or
+   very nearly fit the page and only outliers scroll. Squashing it to
+   width:100% instead is not an option: that crams every column's text into
+   the container and makes it unreadable at any font-size. */
 .sdo-graph-scroll {
   overflow-x: auto;
   margin: 0 -1rem;
   padding: 0 1rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sdo-graph {
@@ -188,6 +187,13 @@
   outline: none;
 }
 
+/* Keeps the tapped node visibly tied to the open card - on touch there's no
+   hover state to carry that association. */
+.sdo-node-selected .sdo-node-ring {
+  stroke: var(--accent);
+  stroke-width: 4;
+}
+
 .sdo-node-fallback {
   fill: var(--gridline);
 }
@@ -199,44 +205,152 @@
   pointer-events: none;
 }
 
-.sdo-tooltip {
+.sdo-axis-note {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* --- Detail card (click/tap opened) ---------------------------------------
+   Replaces the old hover tooltip, which had two fatal problems: it chased the
+   cursor (every mousemove over the node re-positioned it, so its links could
+   never be reached), and on touch it was unreachable entirely because the same
+   tap that revealed it also re-centered the chart underneath. Click-to-open
+   with an explicit "Center on" button makes one gesture do one thing on both
+   platforms. */
+.sdo-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: transparent;
+}
+
+.sdo-card {
   position: fixed;
   z-index: 100;
-  left: 0;
-  top: 0;
-  max-width: 260px;
-  padding: 0.6rem 0.75rem;
+  padding: 0.85rem 0.95rem;
   background: var(--surface-1);
   border: 1px solid var(--gridline);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  font-size: 0.85rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  font-size: 0.88rem;
 }
 
-.sdo-tooltip-name {
+.sdo-card-close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.45rem;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+}
+
+.sdo-card-close:hover {
+  color: var(--text-primary);
+  background: var(--gridline);
+}
+
+.sdo-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.6rem;
+  padding-right: 1.25rem;
+}
+
+.sdo-card-photo {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sdo-card-photo-fallback {
+  background: var(--gridline);
+}
+
+.sdo-card-name {
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  line-height: 1.25;
 }
 
-.sdo-tooltip-movies {
+.sdo-card-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.1rem;
+}
+
+.sdo-card-movies {
   list-style: none;
-  margin: 0;
+  margin: 0 0 0.75rem;
   padding: 0;
-  color: var(--text-secondary);
+  max-height: 190px;
+  overflow-y: auto;
 }
 
-.sdo-tooltip-movies li {
-  padding: 0.1rem 0;
+.sdo-card-movies li {
+  padding: 0.16rem 0;
+  border-top: 1px solid var(--gridline);
 }
 
-.sdo-tooltip-movies a {
+.sdo-card-movies li:first-child {
+  border-top: none;
+}
+
+.sdo-card-movies a {
   color: var(--accent);
   text-decoration: none;
 }
 
-.sdo-tooltip-movies a:hover {
+.sdo-card-movies a:hover {
   text-decoration: underline;
+}
+
+.sdo-card-movies span {
+  color: var(--text-secondary);
+}
+
+.sdo-card-center {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.sdo-card-center:hover {
+  background: var(--accent);
+  color: var(--surface-1);
+}
+
+/* On a 390px screen a floating card anchored to a tapped node has nowhere to
+   go, so it becomes a bottom sheet instead. */
+.sdo-card-sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  width: auto;
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+  padding-bottom: 1.1rem;
+}
+
+.sdo-card-sheet .sdo-card-movies {
+  max-height: 40vh;
 }
 
 .sdo-error {

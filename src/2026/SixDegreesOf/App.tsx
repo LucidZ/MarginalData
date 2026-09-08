@@ -1,10 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import ActorNode from "./ActorNode";
-import { COLUMN_WIDTH, layoutBeeswarm } from "./beeswarm";
+import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm } from "./beeswarm";
+import DetailCard, { type Selection } from "./DetailCard";
 import { buildAdjacency, bucketCostars, photoUrl } from "./graph";
 import SearchBox from "./SearchBox";
-import Tooltip, { type HoverInfo } from "./Tooltip";
 import { useData } from "./useData";
 import type { Actor, Movie } from "./types";
 import "./App.css";
@@ -12,30 +12,30 @@ import "./App.css";
 const AXIS_LABEL_HEIGHT = 28;
 const COUNT_LABEL_GAP = 20;
 const TOP_MARGIN = 40;
-const MAX_COLUMN_CONTENT_HEIGHT = 1100;
-const SIDE_MARGIN = 130;
+const COMPACT_BREAKPOINT = 640;
 
-function filmLabel(n: number): string {
+function filmLabel(n: number, compact: boolean): string {
+  if (compact) return `${n}`;
   return `${n} film${n === 1 ? "" : "s"} together`;
+}
+
+function useViewportWidth(): number {
+  const [width, setWidth] = useState(() => (typeof window === "undefined" ? 1200 : window.innerWidth));
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return width;
 }
 
 export default function App() {
   const { data, error } = useData();
   const [rootId, setRootId] = useState<number | null>(null);
-  const [hover, setHover] = useState<HoverInfo | null>(null);
-  // Movie links need the tooltip to survive the mouse moving from the node
-  // toward the tooltip itself, which briefly leaves the node's own hit area
-  // - a short cancelable delay before hiding is what makes "hover to see
-  // details, then click a link in that tooltip" actually work instead of the
-  // tooltip vanishing the instant you move toward it.
-  const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelHide = () => {
-    if (hideTimeout.current) clearTimeout(hideTimeout.current);
-  };
-  const scheduleHide = () => {
-    cancelHide();
-    hideTimeout.current = setTimeout(() => setHover(null), 200);
-  };
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const viewportWidth = useViewportWidth();
+  const compact = viewportWidth < COMPACT_BREAKPOINT;
+  const layout = compact ? COMPACT_LAYOUT : DESKTOP_LAYOUT;
 
   const adjacency = useMemo(() => (data ? buildAdjacency(data) : null), [data]);
 
@@ -56,10 +56,12 @@ export default function App() {
     return bucketCostars(adjacency, actorById, movieById, rootId);
   }, [adjacency, actorById, movieById, rootId]);
 
-  const columns = useMemo(
-    () => (buckets && data ? layoutBeeswarm(buckets, data.maxSharedFilms) : null),
-    [buckets, data],
-  );
+  const columns = useMemo(() => (buckets ? layoutBeeswarm(buckets, layout) : null), [buckets, layout]);
+
+  const recenter = (actor: Actor) => {
+    setRootId(actor.id);
+    setSelection(null);
+  };
 
   if (error) {
     return (
@@ -73,25 +75,16 @@ export default function App() {
   const root = rootId !== null ? actorById.get(rootId) : null;
   const totalCostars = buckets?.reduce((sum, b) => sum + b.entries.length, 0) ?? 0;
 
-  // Fixed frame spanning every possible shared-film count (1..maxSharedFilms)
-  // at a fixed x each, calibrated against the real dataset-wide max (checked
-  // against the actual generated pool, not assumed - Anupam Kher needs 9 of
-  // these columns, not the 5 you'd guess from Samuel L. Jackson, and someone
-  // shares as many as 20 films with a costar) so the graph never resizes or
-  // shifts meaning between actors. Smaller actors just leave columns blank
-  // rather than the frame shrinking or the axis compressing.
-  //
-  // Rendered at true 1:1 (SVG pixel width/height == viewBox units, no CSS
-  // scaling) inside a horizontally-scrolling wrapper - the earlier version
-  // used width:100% to force-fit this into the page's ~1068px column, which
-  // crushed 20 columns' worth of text into that width and made it unreadable
-  // no matter the font-size. A fixed-size chart this wide needs real scroll,
-  // not squashing.
-  const maxColumns = data.maxSharedFilms;
-  const fixedWidth = maxColumns * COLUMN_WIDTH + SIDE_MARGIN * 2;
-  const fixedMinY = -(MAX_COLUMN_CONTENT_HEIGHT + TOP_MARGIN + COUNT_LABEL_GAP);
-  const fixedHeight = -fixedMinY + AXIS_LABEL_HEIGHT + 10;
-  const viewBox = `${-SIDE_MARGIN} ${fixedMinY} ${fixedWidth} ${fixedHeight}`;
+  // Frame runs 1..(this actor's own highest shared-film count) - see
+  // layoutBeeswarm for why the empty tail out to the dataset-wide max of 20
+  // is trimmed. Height stays fixed so switching actors never jerks vertically.
+  const columnCount = columns?.length ?? 0;
+  const frameWidth = columnCount * layout.columnWidth + layout.sideMargin * 2;
+  const frameMinY = -(layout.targetColumnHeight * 1.22 + TOP_MARGIN + COUNT_LABEL_GAP);
+  const frameHeight = -frameMinY + AXIS_LABEL_HEIGHT + 10;
+  const viewBox = `${-layout.sideMargin} ${frameMinY} ${frameWidth} ${frameHeight}`;
+
+  const rootPhoto = root ? photoUrl(root, 56) : null;
 
   return (
     <div className="sdo-root">
@@ -99,10 +92,10 @@ export default function App() {
         <h1>Six Degrees Of...</h1>
         <p className="sdo-subtitle">
           Type an actor's name. Every real costar of theirs (within this pool) shows up, grouped
-          by how many films they've actually made together - nothing curated or capped. Hover
-          anyone to see which films; click to re-center on them.
+          by how many films they've actually made together - nothing curated or capped. Tap
+          anyone to see the films they share.
         </p>
-        <SearchBox actors={data.actors} onSelect={(actor) => setRootId(actor.id)} />
+        <SearchBox actors={data.actors} onSelect={(actor) => recenter(actor)} />
       </header>
 
       {root === null || root === undefined ? (
@@ -110,8 +103,8 @@ export default function App() {
       ) : (
         <>
           <div className="sdo-root-banner">
-            {photoUrl(root) ? (
-              <img className="sdo-root-photo" src={photoUrl(root)!} alt={root.name} />
+            {rootPhoto ? (
+              <img className="sdo-root-photo" src={rootPhoto} alt="" />
             ) : (
               <div className="sdo-root-photo sdo-root-photo-fallback" />
             )}
@@ -127,15 +120,15 @@ export default function App() {
             <svg
               className="sdo-graph"
               viewBox={viewBox}
-              width={fixedWidth}
-              height={fixedHeight}
+              width={frameWidth}
+              height={frameHeight}
               role="img"
               aria-label={`Costars of ${root.name}, grouped by shared film count`}
             >
               <line
                 className="sdo-baseline"
-                x1={-SIDE_MARGIN}
-                x2={fixedWidth - SIDE_MARGIN}
+                x1={-layout.sideMargin}
+                x2={frameWidth - layout.sideMargin}
                 y1={0}
                 y2={0}
               />
@@ -147,7 +140,7 @@ export default function App() {
                     </text>
                   )}
                   <text className="sdo-axis-label" x={col.x} y={AXIS_LABEL_HEIGHT - 6} textAnchor="middle">
-                    {filmLabel(col.sharedFilms)}
+                    {filmLabel(col.sharedFilms, compact)}
                   </text>
                   {col.actors.map((p) => {
                     const actor = actorById.get(p.id);
@@ -160,12 +153,10 @@ export default function App() {
                         y={p.y}
                         size={p.size}
                         sharedMovies={p.sharedMovies}
-                        onClick={(a) => setRootId(a.id)}
-                        onHover={(a, movies, e) => {
-                          cancelHide();
-                          setHover({ actor: a, sharedMovies: movies, clientX: e.clientX, clientY: e.clientY });
-                        }}
-                        onLeave={scheduleHide}
+                        isSelected={selection?.actor.id === actor.id}
+                        onSelect={(a, movies, e) =>
+                          setSelection({ actor: a, sharedMovies: movies, clientX: e.clientX, clientY: e.clientY })
+                        }
                       />
                     );
                   })}
@@ -173,7 +164,17 @@ export default function App() {
               ))}
             </svg>
           </div>
-          {hover && <Tooltip hover={hover} onMouseEnter={cancelHide} onMouseLeave={scheduleHide} />}
+          {compact && <p className="sdo-axis-note">Columns: films made together</p>}
+
+          {selection && (
+            <DetailCard
+              selection={selection}
+              rootActor={root}
+              compact={compact}
+              onCenter={recenter}
+              onClose={() => setSelection(null)}
+            />
+          )}
         </>
       )}
     </div>
