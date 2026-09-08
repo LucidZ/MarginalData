@@ -3,15 +3,19 @@
 // full derivation and the integrity guardrails these fields exist to serve.
 
 export interface SingleYearRow {
-  age: number; // 82 = representative x-position for the pooled "80+" row
-  ageLabel: string; // "80+" for the pooled row, else the literal age
-  /** Present only on the pooled "80+" row - the Census source stops
-   * single-year reporting at 79, so this row sums the "80-84" and "85+"
-   * tail buckets. ageMin/ageMax (80/85) give it a plot width so it can
-   * be rendered as a band rather than a single-age point; the true width
-   * is unknown since 85+ is open-ended, so 80-85 is a display
-   * approximation, not a measurement. See generate_voter_age_data.py's
-   * TAIL_AGE_* constants. */
+  age: number; // 87 = representative x-position for the pooled "85+" row
+  ageLabel: string; // "85+" for the pooled row, else the literal age
+  /** True for ages 80-84 - the Census source only reports these five
+   * years pooled as "80-84 years", so each row here holds that bucket's
+   * per-year average (total / 5) rather than an individually reported
+   * figure. */
+  approxFromBucket?: boolean;
+  /** Present only on the pooled "85+" row - Census's source stops at an
+   * open-ended "85 years and over" with no reported width to divide by,
+   * so unlike 80-84 it's kept as one pooled row rather than split.
+   * ageMin/ageMax give it a plot width so it can be rendered as a band;
+   * this is a display approximation only (see generate_voter_age_data.py's
+   * OLD_AGE_* constants) - no arithmetic depends on it. */
   ageMin?: number;
   ageMax?: number;
   cvap: number; // citizen voting-age population, thousands

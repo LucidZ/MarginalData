@@ -371,6 +371,10 @@
   color: var(--text-primary);
   margin-bottom: 0.2rem;
 }
+.voa-tooltip__note {
+  font-style: italic;
+  margin-top: 0.2rem;
+}
 
 /* ---------- Sources / footer ---------- */
 .voa-sources {

@@ -32,7 +32,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
   // Stable domain from both years combined, so the axes don't rescale
   // when the midterm curve is added in step 1 - only the second line
   // appears. Includes band edges (not just the representative age) so
-  // the "80+" oval isn't clipped at the right edge of the chart.
+  // the "85+" oval isn't clipped at the right edge of the chart.
   const xDomain = useMemo((): [number, number] => {
     const ages = [...rowsPres, ...rowsMid].flatMap((r) =>
       r.ageMax != null ? [r.age, r.ageMin!, r.ageMax] : [r.age]
@@ -50,9 +50,10 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
   const gapOf = (row: SingleYearRow) => row.shareVote - row.shareElig;
   const youngestPres = rowsPres.find((r) => r.age === Math.min(...rowsPres.map((x) => x.age)))!;
   const youngestMid = rowsMid.find((r) => r.age === Math.min(...rowsMid.map((x) => x.age)))!;
-  // The peak (max-gap) row - the pooled "80+" row in practice, but found by
-  // actual value rather than assumed, since the curve dips slightly past
-  // 40 first (see Beat 1's full reveal).
+  // The peak (max-gap) row - found by actual value rather than assumed,
+  // since it isn't the oldest age: the curve rises unevenly through the
+  // 40s-60s, peaks in the high 60s, then eases off toward the oldest ages
+  // (see Beat 1's full reveal).
   const peakPres = rowsPres.reduce((a, b) => (gapOf(b) > gapOf(a) ? b : a));
   const peakMid = rowsMid.reduce((a, b) => (gapOf(b) > gapOf(a) ? b : a));
 
@@ -94,6 +95,9 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
         <div className="voa-tooltip__head">{formatAgeLabel(row)} · {year}</div>
         <div>Gap: <strong>{fmtPP(p.y)}</strong></div>
         <div>Turnout: <strong>{fmtPct(row.turnout)}</strong></div>
+        {row.approxFromBucket && (
+          <div className="voa-tooltip__note">Census pools ages 80–84; this is that bucket's average</div>
+        )}
       </>
     );
   };
@@ -147,9 +151,10 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
               <h3>Both ends stretch</h3>
               <p>
                 At age {youngestMid.age}, the gap is <strong>{fmtPP(gapOf(youngestMid))}</strong> in
-                2022 versus <strong>{fmtPP(gapOf(youngestPres))}</strong> in 2024. At the oldest
-                ages, it's <strong>{fmtPP(gapOf(peakMid))}</strong> versus{" "}
-                <strong>{fmtPP(gapOf(peakPres))}</strong>. Same direction, bigger swing.
+                2022 versus <strong>{fmtPP(gapOf(youngestPres))}</strong> in 2024. It peaks in the
+                high 60s — age {peakMid.age} in 2022 (<strong>{fmtPP(gapOf(peakMid))}</strong>),
+                age {peakPres.age} in 2024 (<strong>{fmtPP(gapOf(peakPres))}</strong>) — before
+                easing off toward the oldest ages. Same direction, bigger swing in the midterm.
               </p>
             </div>
           </div>

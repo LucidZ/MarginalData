@@ -6,9 +6,10 @@ Pulls two Census Bureau CPS November Voting and Registration Supplement
 tables across five election cycles (2016/2018/2020/2022/2024):
 
   Table 1  - national, reported voting/registration by SINGLE YEAR OF AGE
-             (18-79, plus 80-84 and 85+ tail buckets - pooled here into one
-             "80+" row, see TAIL_AGE_* below). Only 2016, 2020, 2022 and
-             2024 are usable - see NOTE below on 2018.
+             (18-79, plus 80-84 and 85+ tail buckets - the former split into
+             5 per-year-average rows, the latter kept as one pooled "85+"
+             row, see OLD_AGE_* below). Only 2016, 2020, 2022 and 2024 are
+             usable - see NOTE below on 2018.
   Table 4c - reported voting/registration by 5 age bins (18-24, 25-34,
              35-44, 45-64, 65+), broken out by state (+ US total, + DC).
              All 5 years are clean.
@@ -215,31 +216,37 @@ SINGLE_YEAR_RE = re.compile(r"^(\d+) years$")
 # "85 years and over". shareElig/shareVote (add_shares, below) are each
 # row's count divided by the *national* total, so that only means the
 # same thing across rows if every row spans the same number of ages -
-# plotting the 80-84 bucket (5 years of people) as if it were a single
-# age like the rest of the curve made its share ~5x too large purely
-# from bucket width, producing a spurious spike at that point (and then
-# a matching cliff at the 85+ point right after it). The two tail
-# buckets are pooled into one honest "80+" row instead. TAIL_AGE_MIN/MAX
-# give that pooled row a plot width so callers can render it as a band
-# rather than a point; the true width is unknown since 85+ is
-# open-ended, so 80-85 (matching the 80-84 bucket) is a deliberate
-# approximation for display, not a measurement.
-TAIL_AGE_MIN = 80
-TAIL_AGE_MAX = 85
-TAIL_AGE_REP = 82  # representative x-position for the pooled row
+# plotting either bucket as if it were a single age like the rest of the
+# curve inflates its share by the bucket's width, producing a spurious
+# spike.
+#
+# "80-84" has a known width (5 years), so it's split into 5 identical
+# rows (one per age) each holding the bucket's per-year average -
+# comparable in kind to the real single-year rows on either side of it,
+# at the cost of flattening whatever the true within-bucket age curve
+# looks like (unknowable from this source).
+#
+# "85 years and over" has no known width - there's no data-derived
+# number of years to divide by - so it's kept as a single pooled row
+# instead of guessing one. OLD_AGE_BAND gives it a plot width purely for
+# rendering it as a band/oval (a deliberate display approximation, not a
+# measurement); no arithmetic depends on it.
+OLD_AGE_BAND = (85, 90)  # (min, max) plot width for the "85+" oval
+OLD_AGE_REP = 87  # representative x-position for the "85+" row
 
 
 def parse_table1(path):
     """
     Returns a list of { age, ageLabel, cvap, voted } for single years of
-    age 18-79, plus one pooled "80+" row combining the "80-84" and "85+"
-    tail buckets (see TAIL_AGE_* above). Scans the BOTH SEXES block only
-    (stops at MALE/FEMALE).
+    age 18-79, five rows for ages 80-84 each holding that bucket's
+    per-year average (approxFromBucket=True), and one pooled "85+" row
+    (see OLD_AGE_* above). Scans the BOTH SEXES block only (stops at
+    MALE/FEMALE).
     """
     ws = load_sheet(path)
     rows = []
-    tail = {"cvap": 0.0, "voted": 0.0}
-    tail_seen = 0
+    bucket_80_84 = None
+    bucket_85_plus = None
     in_block = False
     for row in ws.iter_rows(values_only=True):
         col_a = str(row[0]).strip() if row[0] else ""
@@ -253,8 +260,7 @@ def parse_table1(path):
             continue
 
         m = SINGLE_YEAR_RE.match(col_b)
-        is_tail = col_b in ("80-84 years", "85 years and over")
-        if not m and not is_tail:
+        if not m and col_b not in ("80-84 years", "85 years and over"):
             continue
 
         try:
@@ -265,24 +271,33 @@ def parse_table1(path):
 
         if m:
             rows.append({"age": int(m.group(1)), "ageLabel": m.group(1), "cvap": cvap, "voted": voted})
+        elif col_b == "80-84 years":
+            bucket_80_84 = {"cvap": cvap, "voted": voted}
         else:
-            tail["cvap"] += cvap
-            tail["voted"] += voted
-            tail_seen += 1
+            bucket_85_plus = {"cvap": cvap, "voted": voted}
 
-    if tail_seen != 2:
-        raise ValueError(f"{path.name}: expected both 80-84 and 85+ tail rows, found {tail_seen}")
+    if bucket_80_84 is None or bucket_85_plus is None:
+        raise ValueError(f"{path.name}: expected both 80-84 and 85+ tail rows, found none")
+
+    for age in range(80, 85):
+        rows.append({
+            "age": age,
+            "ageLabel": str(age),
+            "cvap": bucket_80_84["cvap"] / 5,
+            "voted": bucket_80_84["voted"] / 5,
+            "approxFromBucket": True,
+        })
     rows.append({
-        "age": TAIL_AGE_REP,
-        "ageLabel": "80+",
-        "ageMin": TAIL_AGE_MIN,
-        "ageMax": TAIL_AGE_MAX,
-        "cvap": tail["cvap"],
-        "voted": tail["voted"],
+        "age": OLD_AGE_REP,
+        "ageLabel": "85+",
+        "ageMin": OLD_AGE_BAND[0],
+        "ageMax": OLD_AGE_BAND[1],
+        "cvap": bucket_85_plus["cvap"],
+        "voted": bucket_85_plus["voted"],
     })
 
-    if len(rows) != 63:  # single years 18-79 (62) + one pooled "80+" row
-        raise ValueError(f"{path.name}: expected 63 rows (18-79 + pooled 80+), got {len(rows)}")
+    if len(rows) != 68:  # single years 18-79 (62) + split 80-84 (5) + pooled 85+ (1)
+        raise ValueError(f"{path.name}: expected 68 rows (18-79 + split 80-84 + pooled 85+), got {len(rows)}")
     return sorted(rows, key=lambda r: r["age"])
 
 

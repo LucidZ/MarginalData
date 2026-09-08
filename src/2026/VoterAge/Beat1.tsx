@@ -7,10 +7,10 @@ import type { VoterAgeData, SingleYearRow } from "./types";
 const STEP_COUNT = 8;
 const EXAMPLE_OLD_AGE = 70;
 const EXAMPLE_YOUNG_AGE = 20;
-// Oldest x-position in the dataset - the pooled "80+" row's representative
-// age (see generate_voter_age_data.py's TAIL_AGE_REP), used only to
+// Oldest x-position in the dataset - the pooled "85+" row's representative
+// age (see generate_voter_age_data.py's OLD_AGE_REP), used only to
 // normalize the sequential color ramp.
-const MAX_AGE_FOR_COLOR = 82;
+const MAX_AGE_FOR_COLOR = 87;
 
 function seqT(age: number) {
   return (age - 18) / (MAX_AGE_FOR_COLOR - 18);
@@ -59,7 +59,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
     [rows2024]
   );
   const gapXDomain = useMemo((): [number, number] => {
-    // Include band edges (not just the representative age) so the "80+"
+    // Include band edges (not just the representative age) so the "85+"
     // oval isn't clipped at the right edge of the chart.
     const ages = allGapPoints.flatMap((p) =>
       p.ageMax != null ? [p.age, p.ageMin!, p.ageMax] : [p.age]
@@ -137,6 +137,11 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
 
   const rowForPoint = (p: ScatterPoint) => rows2024.find((r) => `age-${r.age}` === p.key);
 
+  const bucketNote = (row: SingleYearRow) =>
+    row.approxFromBucket ? (
+      <div className="voa-tooltip__note">Census pools ages 80–84; this is that bucket's average</div>
+    ) : null;
+
   const tooltipProportional = (p: ScatterPoint) => {
     const row = rowForPoint(p);
     if (!row) return null;
@@ -146,6 +151,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
         <div>Eligible: <strong>{fmtPct(row.shareElig)}</strong></div>
         <div>Votes cast: <strong>{fmtPct(row.shareVote)}</strong></div>
         <div>Gap: <strong>{fmtPP(row.shareVote - row.shareElig)}</strong></div>
+        {bucketNote(row)}
       </>
     );
   };
@@ -158,6 +164,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
         <div className="voa-tooltip__head">{formatAgeLabel(row)}</div>
         <div>Gap: <strong>{fmtPP(p.y)}</strong></div>
         <div>Turnout: <strong>{fmtPct(row.turnout)}</strong></div>
+        {bucketNote(row)}
       </>
     );
   };
@@ -252,10 +259,11 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
             <div className="voa-step-inner">
               <h3>Every age, all at once</h3>
               <p>
-                Here's every single year of age, 18 through 79, plus one pooled point for
-                everyone 80 and older — that's as fine-grained as the Census data goes. Somewhere
-                around <strong>age {crossoverAge ?? "40"}</strong>, the line crosses zero — below
-                it you're outnumbered relative to your share of the electorate; above it, you're
+                Here's every single year of age, 18 through 79, each one individually reported.
+                From 80 on, the Census data gets coarser: 80–84 shown at that bucket's average
+                (hover to see), 85+ pooled into one point. Somewhere around{" "}
+                <strong>age {crossoverAge ?? "40"}</strong>, the line crosses zero — below it
+                you're outnumbered relative to your share of the electorate; above it, you're
                 overrepresented.
               </p>
             </div>

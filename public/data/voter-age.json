@@ -628,15 +628,65 @@
         "turnout": 74.0
       },
       {
+        "age": 80,
+        "ageLabel": "80",
+        "cvap": 1107.8,
+        "voted": 768.0,
+        "approxFromBucket": true,
+        "shareElig": 0.494,
+        "shareVote": 0.558,
+        "turnout": 69.3
+      },
+      {
+        "age": 81,
+        "ageLabel": "81",
+        "cvap": 1107.8,
+        "voted": 768.0,
+        "approxFromBucket": true,
+        "shareElig": 0.494,
+        "shareVote": 0.558,
+        "turnout": 69.3
+      },
+      {
         "age": 82,
-        "ageLabel": "80+",
-        "ageMin": 80,
-        "ageMax": 85,
-        "cvap": 11016.0,
-        "voted": 7231.0,
-        "shareElig": 4.917,
-        "shareVote": 5.258,
-        "turnout": 65.6
+        "ageLabel": "82",
+        "cvap": 1107.8,
+        "voted": 768.0,
+        "approxFromBucket": true,
+        "shareElig": 0.494,
+        "shareVote": 0.558,
+        "turnout": 69.3
+      },
+      {
+        "age": 83,
+        "ageLabel": "83",
+        "cvap": 1107.8,
+        "voted": 768.0,
+        "approxFromBucket": true,
+        "shareElig": 0.494,
+        "shareVote": 0.558,
+        "turnout": 69.3
+      },
+      {
+        "age": 84,
+        "ageLabel": "84",
+        "cvap": 1107.8,
+        "voted": 768.0,
+        "approxFromBucket": true,
+        "shareElig": 0.494,
+        "shareVote": 0.558,
+        "turnout": 69.3
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "ageMin": 85,
+        "ageMax": 90,
+        "cvap": 5477.0,
+        "voted": 3391.0,
+        "shareElig": 2.444,
+        "shareVote": 2.466,
+        "turnout": 61.9
       }
     ],
     "2020": [
@@ -1199,15 +1249,65 @@
         "turnout": 74.2
       },
       {
+        "age": 80,
+        "ageLabel": "80",
+        "cvap": 1258.2,
+        "voted": 919.2,
+        "approxFromBucket": true,
+        "shareElig": 0.543,
+        "shareVote": 0.594,
+        "turnout": 73.1
+      },
+      {
+        "age": 81,
+        "ageLabel": "81",
+        "cvap": 1258.2,
+        "voted": 919.2,
+        "approxFromBucket": true,
+        "shareElig": 0.543,
+        "shareVote": 0.594,
+        "turnout": 73.1
+      },
+      {
         "age": 82,
-        "ageLabel": "80+",
-        "ageMin": 80,
-        "ageMax": 85,
-        "cvap": 12030.0,
-        "voted": 8213.0,
-        "shareElig": 5.194,
-        "shareVote": 5.311,
-        "turnout": 68.3
+        "ageLabel": "82",
+        "cvap": 1258.2,
+        "voted": 919.2,
+        "approxFromBucket": true,
+        "shareElig": 0.543,
+        "shareVote": 0.594,
+        "turnout": 73.1
+      },
+      {
+        "age": 83,
+        "ageLabel": "83",
+        "cvap": 1258.2,
+        "voted": 919.2,
+        "approxFromBucket": true,
+        "shareElig": 0.543,
+        "shareVote": 0.594,
+        "turnout": 73.1
+      },
+      {
+        "age": 84,
+        "ageLabel": "84",
+        "cvap": 1258.2,
+        "voted": 919.2,
+        "approxFromBucket": true,
+        "shareElig": 0.543,
+        "shareVote": 0.594,
+        "turnout": 73.1
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "ageMin": 85,
+        "ageMax": 90,
+        "cvap": 5739.0,
+        "voted": 3617.0,
+        "shareElig": 2.478,
+        "shareVote": 2.339,
+        "turnout": 63.0
       }
     ],
     "2022": [
@@ -1770,15 +1870,65 @@
         "turnout": 69.7
       },
       {
+        "age": 80,
+        "ageLabel": "80",
+        "cvap": 1283.0,
+        "voted": 848.2,
+        "approxFromBucket": true,
+        "shareElig": 0.549,
+        "shareVote": 0.696,
+        "turnout": 66.1
+      },
+      {
+        "age": 81,
+        "ageLabel": "81",
+        "cvap": 1283.0,
+        "voted": 848.2,
+        "approxFromBucket": true,
+        "shareElig": 0.549,
+        "shareVote": 0.696,
+        "turnout": 66.1
+      },
+      {
         "age": 82,
-        "ageLabel": "80+",
-        "ageMin": 80,
-        "ageMax": 85,
-        "cvap": 12033.0,
-        "voted": 7455.0,
-        "shareElig": 5.152,
-        "shareVote": 6.115,
-        "turnout": 62.0
+        "ageLabel": "82",
+        "cvap": 1283.0,
+        "voted": 848.2,
+        "approxFromBucket": true,
+        "shareElig": 0.549,
+        "shareVote": 0.696,
+        "turnout": 66.1
+      },
+      {
+        "age": 83,
+        "ageLabel": "83",
+        "cvap": 1283.0,
+        "voted": 848.2,
+        "approxFromBucket": true,
+        "shareElig": 0.549,
+        "shareVote": 0.696,
+        "turnout": 66.1
+      },
+      {
+        "age": 84,
+        "ageLabel": "84",
+        "cvap": 1283.0,
+        "voted": 848.2,
+        "approxFromBucket": true,
+        "shareElig": 0.549,
+        "shareVote": 0.696,
+        "turnout": 66.1
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "ageMin": 85,
+        "ageMax": 90,
+        "cvap": 5618.0,
+        "voted": 3214.0,
+        "shareElig": 2.406,
+        "shareVote": 2.636,
+        "turnout": 57.2
       }
     ],
     "2024": [
@@ -2341,15 +2491,65 @@
         "turnout": 74.5
       },
       {
+        "age": 80,
+        "ageLabel": "80",
+        "cvap": 1398.2,
+        "voted": 1049.8,
+        "approxFromBucket": true,
+        "shareElig": 0.592,
+        "shareVote": 0.68,
+        "turnout": 75.1
+      },
+      {
+        "age": 81,
+        "ageLabel": "81",
+        "cvap": 1398.2,
+        "voted": 1049.8,
+        "approxFromBucket": true,
+        "shareElig": 0.592,
+        "shareVote": 0.68,
+        "turnout": 75.1
+      },
+      {
         "age": 82,
-        "ageLabel": "80+",
-        "ageMin": 80,
-        "ageMax": 85,
-        "cvap": 12637.0,
-        "voted": 9097.0,
-        "shareElig": 5.352,
-        "shareVote": 5.895,
-        "turnout": 72.0
+        "ageLabel": "82",
+        "cvap": 1398.2,
+        "voted": 1049.8,
+        "approxFromBucket": true,
+        "shareElig": 0.592,
+        "shareVote": 0.68,
+        "turnout": 75.1
+      },
+      {
+        "age": 83,
+        "ageLabel": "83",
+        "cvap": 1398.2,
+        "voted": 1049.8,
+        "approxFromBucket": true,
+        "shareElig": 0.592,
+        "shareVote": 0.68,
+        "turnout": 75.1
+      },
+      {
+        "age": 84,
+        "ageLabel": "84",
+        "cvap": 1398.2,
+        "voted": 1049.8,
+        "approxFromBucket": true,
+        "shareElig": 0.592,
+        "shareVote": 0.68,
+        "turnout": 75.1
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "ageMin": 85,
+        "ageMax": 90,
+        "cvap": 5646.0,
+        "voted": 3848.0,
+        "shareElig": 2.391,
+        "shareVote": 2.494,
+        "turnout": 68.2
       }
     ]
   },
