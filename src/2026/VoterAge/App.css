@@ -215,6 +215,13 @@
 .voa-dot {
   stroke: var(--surface-1);
   stroke-width: 1;
+  pointer-events: none; /* the invisible .voa-dot-hit overlay owns interaction */
+}
+.voa-dot-hit {
+  fill: transparent;
+  pointer-events: all; /* explicit - don't rely on fill:transparent alone counting as "painted" */
+  cursor: pointer;
+  touch-action: manipulation;
 }
 .voa-dot-label {
   fill: var(--text-secondary);
@@ -276,6 +283,8 @@
   color: var(--text-primary);
   min-width: 22px;
   position: relative;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 .voa-tile--mail {
   box-shadow: 0 0 0 2px var(--series-1) inset;
@@ -327,6 +336,30 @@
 .voa-trend-label {
   font-size: 11px;
   font-weight: 600;
+}
+
+/* ---------- Tooltip (shared by AgeScatter, StateGrid, MailTrend) ---------- */
+.voa-tooltip {
+  position: fixed;
+  z-index: 20;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  color: var(--text-secondary);
+  max-width: 200px;
+}
+.voa-tooltip strong {
+  color: var(--text-primary);
+}
+.voa-tooltip__head {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
 }
 
 /* ---------- Sources / footer ---------- */

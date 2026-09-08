@@ -16,6 +16,10 @@ function toPoint(row: SingleYearRow): ScatterPoint {
   return { key: `age-${row.age}`, x: row.shareElig, y: row.shareVote, seqT: seqT(row.age), r: 4 };
 }
 
+function ageLabel(row: SingleYearRow): string {
+  return /^\d+$/.test(row.ageLabel) ? `Age ${row.ageLabel}` : `Ages ${row.ageLabel}`;
+}
+
 export default function Beat1({ data }: { data: VoterAgeData }) {
   const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
 
@@ -123,13 +127,46 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
   const under35 = cycle2024.bins["18-24"].voted + cycle2024.bins["25-34"].voted;
   const over65 = cycle2024.bins["65+"].voted;
 
+  const rowForPoint = (p: ScatterPoint) =>
+    data.nationalByYearOfAge.find((r) => `age-${r.age}` === p.key);
+
+  const tooltipProportional = (p: ScatterPoint) => {
+    const row = rowForPoint(p);
+    if (!row) return null;
+    return (
+      <>
+        <div className="voa-tooltip__head">{ageLabel(row)}</div>
+        <div>Eligible: <strong>{fmtPct(row.shareElig)}</strong></div>
+        <div>Votes cast: <strong>{fmtPct(row.shareVote)}</strong></div>
+        <div>Gap: <strong>{fmtPP(row.shareVote - row.shareElig)}</strong></div>
+      </>
+    );
+  };
+
+  const tooltipGap = (p: ScatterPoint) => {
+    const row = rowForPoint(p);
+    if (!row) return null;
+    return (
+      <>
+        <div className="voa-tooltip__head">{ageLabel(row)}</div>
+        <div>Gap: <strong>{fmtPP(p.y)}</strong></div>
+        <div>Turnout: <strong>{fmtPct(row.turnout)}</strong></div>
+      </>
+    );
+  };
+
   return (
     <section className="voa-beat">
       <h2 className="voa-beat-title">Beat 1 — Turnout by age</h2>
       <div className="voa-scrolly">
         <div className="voa-scrolly-viz">
           {mode === "proportional" ? (
-            <AgeScatter points={points} fixedDomain={exampleDomain} gapBrackets={gapBrackets} />
+            <AgeScatter
+              points={points}
+              fixedDomain={exampleDomain}
+              gapBrackets={gapBrackets}
+              tooltipFor={tooltipProportional}
+            />
           ) : (
             <AgeScatter
               points={points}
@@ -141,6 +178,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               yTickFormat={(d) => fmtPP(d, 1)}
               annotation={crossoverAnnotation}
               defaultRadius={4}
+              tooltipFor={tooltipGap}
             />
           )}
         </div>

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { select, scaleLinear, axisBottom, axisLeft, easeCubicOut } from "d3";
 import { seqBucketClass } from "./colorScales";
+import Tooltip from "./Tooltip";
 
 export interface ScatterPoint {
   key: string;
@@ -56,6 +57,10 @@ interface Props {
   referenceLine?: "diagonal" | "horizontal-zero" | "none";
   xTickFormat?: (d: number) => string;
   yTickFormat?: (d: number) => string;
+  /** When given, dots become hoverable/tappable and show this tooltip
+   * content on hover (mouse) or tap (touch). Omit to leave the chart
+   * non-interactive. */
+  tooltipFor?: (point: ScatterPoint) => ReactNode;
 }
 
 const MARGIN = { top: 16, right: 20, bottom: 40, left: 58 };
@@ -74,10 +79,12 @@ export default function AgeScatter({
   referenceLine,
   xTickFormat = pct,
   yTickFormat = pct,
+  tooltipFor,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(560);
+  const [hover, setHover] = useState<{ point: ScatterPoint; clientX: number; clientY: number } | null>(null);
 
   useEffect(() => {
     const obs = new ResizeObserver((entries) => {
@@ -136,6 +143,7 @@ export default function AgeScatter({
         .attr("text-anchor", "middle");
       root.append("g").attr("class", "voa-brackets");
       root.append("g").attr("class", "voa-dots");
+      root.append("g").attr("class", "voa-dot-hits");
       root.append("g").attr("class", "voa-annotation-layer");
     }
     root.attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
@@ -212,6 +220,36 @@ export default function AgeScatter({
       .attr("cy", (d) => scaleY(d.y))
       .attr("r", (d) => d.r ?? defaultRadius);
 
+    // Invisible, larger hit-targets layered on top of the visible dots -
+    // "hit targets bigger than the mark" (dataviz skill, interaction.md).
+    // Pointer events (not mouse/touch events separately) unify hover and
+    // tap: pointerenter/pointermove/pointerdown all show the tooltip;
+    // pointerleave only clears it for non-touch pointers, since touch has
+    // no natural "leave" after a tap - the marker persists until the next
+    // tap moves it (same convention as WildfireStateTrends/StateTile.tsx).
+    if (tooltipFor) {
+      const hits = root
+        .select<SVGGElement>("g.voa-dot-hits")
+        .selectAll<SVGCircleElement, ScatterPoint>("circle")
+        .data(points, (d) => d.key);
+      hits.exit().remove();
+      hits
+        .enter()
+        .append("circle")
+        .attr("class", "voa-dot-hit")
+        .merge(hits)
+        .attr("cx", (d) => scaleX(d.x))
+        .attr("cy", (d) => scaleY(d.y))
+        .attr("r", (d) => Math.max(12, (d.r ?? defaultRadius) + 6))
+        .on("pointerenter pointermove pointerdown", (event: PointerEvent, d: ScatterPoint) => {
+          setHover({ point: d, clientX: event.clientX, clientY: event.clientY });
+        })
+        .on("pointerleave", (event: PointerEvent) => {
+          if (event.pointerType === "touch") return;
+          setHover(null);
+        });
+    }
+
     // Gap brackets: a vertical segment from the point down/up to the
     // diagonal (proportional layout: diagonal value at x is x itself),
     // with a label. Only meaningful pre-transform, so callers pass
@@ -284,11 +322,15 @@ export default function AgeScatter({
     refLine,
     xTickFormat,
     yTickFormat,
+    tooltipFor,
   ]);
 
   return (
     <div className="voa-chart-surface" ref={wrapRef}>
       <svg ref={svgRef} width="100%" style={{ display: "block" }} />
+      {hover && tooltipFor && (
+        <Tooltip content={tooltipFor(hover.point)} clientX={hover.clientX} clientY={hover.clientY} />
+      )}
     </div>
   );
 }

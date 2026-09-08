@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { select, scaleLinear, scalePoint, line as d3line, axisLeft, curveMonotoneX } from "d3";
+import Tooltip from "./Tooltip";
+import { fmtPP } from "./format";
 
 export interface TrendSeries {
   key: string;
@@ -21,6 +23,12 @@ export default function MailTrend({ series, visibleKeys, years }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(560);
+  const [hover, setHover] = useState<{
+    series: TrendSeries;
+    point: { year: number; gap: number };
+    clientX: number;
+    clientY: number;
+  } | null>(null);
 
   useEffect(() => {
     const obs = new ResizeObserver((entries) => {
@@ -54,6 +62,7 @@ export default function MailTrend({ series, visibleKeys, years }: Props) {
       root.append("g").attr("class", "voa-axis voa-axis-x");
       root.append("line").attr("class", "voa-zero-line");
       root.append("g").attr("class", "voa-lines");
+      root.append("g").attr("class", "voa-trend-hits");
     }
     root.attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
 
@@ -127,6 +136,37 @@ export default function MailTrend({ series, visibleKeys, years }: Props) {
         .attr("r", 4);
     });
 
+    // Invisible larger hit-targets, same convention as AgeScatter: pointer
+    // events unify hover/tap, pointerleave only clears for non-touch.
+    const hitsLayer = root.select<SVGGElement>("g.voa-trend-hits");
+    const hitGroups = hitsLayer
+      .selectAll<SVGGElement, TrendSeries>("g.voa-trend-hit-group")
+      .data(visible, (d) => d.key);
+    hitGroups.exit().remove();
+    const hitEnter = hitGroups.enter().append("g").attr("class", "voa-trend-hit-group");
+    hitEnter.merge(hitGroups).each(function (s) {
+      const g = select(this);
+      const hits = g
+        .selectAll<SVGCircleElement, { year: number; gap: number }>("circle")
+        .data(s.values, (d: any) => d.year);
+      hits.exit().remove();
+      hits
+        .enter()
+        .append("circle")
+        .attr("class", "voa-dot-hit")
+        .merge(hits)
+        .attr("cx", (d) => x(d.year) ?? 0)
+        .attr("cy", (d) => y(d.gap))
+        .attr("r", 12)
+        .on("pointerenter pointermove pointerdown", (event: PointerEvent, d) => {
+          setHover({ series: s, point: d, clientX: event.clientX, clientY: event.clientY });
+        })
+        .on("pointerleave", (event: PointerEvent) => {
+          if (event.pointerType === "touch") return;
+          setHover(null);
+        });
+    });
+
     // Direct labels at the last visible point of each series. When two
     // series end close together (e.g. never-mail/NJ/Montana all land
     // within a couple pp of each other by 2024), their natural y positions
@@ -162,6 +202,20 @@ export default function MailTrend({ series, visibleKeys, years }: Props) {
   return (
     <div className="voa-chart-surface" ref={wrapRef}>
       <svg ref={svgRef} width="100%" style={{ display: "block" }} />
+      {hover && (
+        <Tooltip
+          clientX={hover.clientX}
+          clientY={hover.clientY}
+          content={
+            <>
+              <div className="voa-tooltip__head">
+                {hover.series.label} · {hover.point.year}
+              </div>
+              <div>Gap: <strong>{fmtPP(hover.point.gap)}</strong></div>
+            </>
+          }
+        />
+      )}
     </div>
   );
 }

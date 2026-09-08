@@ -42,12 +42,27 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
     c.isPresidential && c.under35Gap > best.under35Gap ? c : best
   , data.nationalByBin[0]);
 
+  const tooltipForBin = (p: ScatterPoint) => {
+    const bin = p.key.replace("bin-", "") as AgeBin;
+    const stats = cycle.bins[bin];
+    return (
+      <>
+        <div className="voa-tooltip__head">
+          {bin} · {cycle.year} ({cycle.isPresidential ? "presidential" : "midterm"})
+        </div>
+        <div>Eligible: <strong>{fmtPct(stats.shareElig)}</strong></div>
+        <div>Votes cast: <strong>{fmtPct(stats.shareVote)}</strong></div>
+        <div>Turnout: <strong>{fmtPct(stats.turnout)}</strong></div>
+      </>
+    );
+  };
+
   return (
     <section className="voa-beat">
       <h2 className="voa-beat-title">Beat 2 — Midterms make it worse</h2>
       <div className="voa-scrolly">
         <div className="voa-scrolly-viz">
-          <AgeScatter points={points} fixedDomain={fixedDomain} />
+          <AgeScatter points={points} fixedDomain={fixedDomain} tooltipFor={tooltipForBin} />
           <div className="voa-legend">
             <span className="voa-legend-swatch voa-cat-pres" />
             <span>presidential</span>

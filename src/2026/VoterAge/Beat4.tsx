@@ -74,6 +74,7 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
               valueFor={(s) => s.under35Gap2024}
               domain={domain2024}
               highlightMail
+              valueLabel="2024 gap"
               legendCaption="2024 only"
             />
           </div>

@@ -37,6 +37,7 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
             states={data.states}
             valueFor={(s) => s.under35GapPooled}
             domain={domain}
+            valueLabel="pooled gap"
             legendCaption="pooled 2016/2020/2024"
           />
         </div>
