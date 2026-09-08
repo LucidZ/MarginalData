@@ -230,4 +230,14 @@ export const ROUTES: RouteEntry[] = [
     date: "2026-02-16",
     note: "In the book The Expanse, ships simulate gravity by accelerating at the same rate gravity pulls on Earth. I wanted to see what that travel actually looks like as planets orbit. Turns out it's a lot faster than expected.",
   },
+  {
+    path: "/2026/SixDegreesOf",
+    title: "Six Degrees Of... — Marginal Data",
+    description:
+      "Type an actor's name and watch rings of their real-life costars expand outward, built from actual IMDb co-star data.",
+    component: () => import("./2026/SixDegreesOf"),
+    group: "Explorers & Simulators",
+    date: "2026-09-02",
+    note: "Everyone knows the Kevin Bacon game, but I'd never seen it as an actual expanding network you could explore. Turns out the real co-star graph is so densely connected that most searches reach half of Hollywood within two rings.",
+  },
 ];
