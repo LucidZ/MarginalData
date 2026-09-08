@@ -1,6 +1,6 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import AgeScatter, { type ScatterPoint, type GapBracket } from "./AgeScatter";
-import { useScrollProgress, stepFromProgress } from "./useScrollProgress";
+import { useActiveStep } from "./useActiveStep";
 import { fmtM, fmtPct, fmtPP, findCrossoverAge } from "./format";
 import type { VoterAgeData, SingleYearRow } from "./types";
 
@@ -17,9 +17,7 @@ function toPoint(row: SingleYearRow): ScatterPoint {
 }
 
 export default function Beat1({ data }: { data: VoterAgeData }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const progress = useScrollProgress(containerRef);
-  const step = stepFromProgress(progress, STEP_COUNT);
+  const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
 
   const cycle2024 = data.nationalByBin.find((c) => c.year === 2024)!;
   const crossoverAge = useMemo(() => findCrossoverAge(data.nationalByYearOfAge), [data]);
@@ -29,9 +27,10 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
   const oldGap = oldRow.shareVote - oldRow.shareElig;
   const youngGap = youngRow.shareVote - youngRow.shareElig;
 
-  // A domain that comfortably fits both example points from the start, so
-  // steps a-d share one frame instead of rescaling as the second point
-  // (and later the diagonal->horizontal transform) appears.
+  // A domain that comfortably fits both example points - used from the
+  // very first (empty) frame onward, so the axes never jump when the
+  // first point appears; steps a-d then share this one frame instead of
+  // rescaling as the second point (and later the transform) appears.
   const exampleDomain = useMemo((): [number, number] => {
     const values = [oldRow.shareElig, oldRow.shareVote, youngRow.shareElig, youngRow.shareVote];
     const lo = Math.min(...values);
@@ -81,11 +80,9 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
   let points: ScatterPoint[] = [];
   let gapBrackets: GapBracket[] | undefined;
   let mode: "proportional" | "gap" = "proportional";
-  let domain: [number, number] | undefined = exampleDomain;
 
   if (step === 0) {
     points = [];
-    domain = undefined; // empty intro, default [0,35]
   } else if (step === 1) {
     points = [oldPoint];
   } else if (step === 2) {
@@ -127,12 +124,12 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
   const over65 = cycle2024.bins["65+"].voted;
 
   return (
-    <section className="voa-beat" ref={containerRef}>
+    <section className="voa-beat">
       <h2 className="voa-beat-title">Beat 1 — Turnout by age</h2>
       <div className="voa-scrolly">
         <div className="voa-scrolly-viz">
           {mode === "proportional" ? (
-            <AgeScatter points={points} fixedDomain={domain} gapBrackets={gapBrackets} />
+            <AgeScatter points={points} fixedDomain={exampleDomain} gapBrackets={gapBrackets} />
           ) : (
             <AgeScatter
               points={points}
@@ -148,7 +145,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
           )}
         </div>
         <div className="voa-scrolly-steps">
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(0)}>
             <div className="voa-step-inner">
               <h3>One person, one vote — but not one turnout rate</h3>
               <p>
@@ -157,7 +154,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               </p>
             </div>
           </div>
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(1)}>
             <div className="voa-step-inner">
               <h3>Start with one age</h3>
               <p>
@@ -167,7 +164,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               </p>
             </div>
           </div>
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(2)}>
             <div className="voa-step-inner">
               <h3>Above the line</h3>
               <p>
@@ -178,7 +175,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               </p>
             </div>
           </div>
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(3)}>
             <div className="voa-step-inner">
               <h3>Now a younger age</h3>
               <p>
@@ -187,7 +184,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               </p>
             </div>
           </div>
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(4)}>
             <div className="voa-step-inner">
               <h3>Below the line</h3>
               <p>
@@ -196,7 +193,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               </p>
             </div>
           </div>
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(5)}>
             <div className="voa-step-inner">
               <h3>Make the gap the whole chart</h3>
               <p>
@@ -206,7 +203,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               </p>
             </div>
           </div>
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(6)}>
             <div className="voa-step-inner">
               <h3>Every age, all at once</h3>
               <p>
@@ -217,7 +214,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
               </p>
             </div>
           </div>
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(7)}>
             <div className="voa-step-inner">
               <h3>In raw votes</h3>
               <p>

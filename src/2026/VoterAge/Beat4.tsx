@@ -1,7 +1,7 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import StateGrid from "./StateGrid";
 import MailTrend, { type TrendSeries } from "./MailTrend";
-import { useScrollProgress, stepFromProgress } from "./useScrollProgress";
+import { useActiveStep } from "./useActiveStep";
 import { fmtPP } from "./format";
 import type { VoterAgeData } from "./types";
 
@@ -11,12 +11,8 @@ const YEARS = [2016, 2020, 2024];
 export default function Beat4({ data }: { data: VoterAgeData }) {
   // The 2024 cross-section map doesn't change across its two text steps
   // (same pattern as Beat3) - only the trend chart below needs step-driven
-  // reveal, so only its progress is tracked.
-  const gridRef = useRef<HTMLDivElement>(null);
-
-  const trendRef = useRef<HTMLDivElement>(null);
-  const trendProgress = useScrollProgress(trendRef);
-  const trendStep = stepFromProgress(trendProgress, TREND_STEP_COUNT);
+  // reveal.
+  const { activeStep: trendStep, setStepRef: setTrendStepRef } = useActiveStep(TREND_STEP_COUNT);
 
   const cross = data.derived.mailCrossSection2024;
   const cross2024Values = data.states.map((s) => s.under35Gap2024 ?? 0);
@@ -69,7 +65,7 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
 
   return (
     <>
-      <section className="voa-beat" ref={gridRef}>
+      <section className="voa-beat">
         <h2 className="voa-beat-title">Beat 4 — Does mail-in voting help?</h2>
         <div className="voa-scrolly">
           <div className="voa-scrolly-viz">
@@ -110,14 +106,14 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
         </div>
       </section>
 
-      <section className="voa-beat" ref={trendRef}>
+      <section className="voa-beat">
         <h2 className="voa-beat-title">Beat 4b — A state that switched on, then off</h2>
         <div className="voa-scrolly">
           <div className="voa-scrolly-viz">
             <MailTrend series={series} visibleKeys={visibleKeys} years={YEARS} />
           </div>
           <div className="voa-scrolly-steps">
-            <div className="voa-step">
+            <div className="voa-step" ref={setTrendStepRef(0)}>
               <div className="voa-step-inner">
                 <h3>The baseline</h3>
                 <p>
@@ -127,7 +123,7 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
                 </p>
               </div>
             </div>
-            <div className="voa-step">
+            <div className="voa-step" ref={setTrendStepRef(1)}>
               <div className="voa-step-inner">
                 <h3>States that adopted and stayed</h3>
                 <p>
@@ -138,7 +134,7 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
                 </p>
               </div>
             </div>
-            <div className="voa-step">
+            <div className="voa-step" ref={setTrendStepRef(2)}>
               <div className="voa-step-inner">
                 <h3>New Jersey: on, then off</h3>
                 <p>
@@ -151,7 +147,7 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
                 </p>
               </div>
             </div>
-            <div className="voa-step">
+            <div className="voa-step" ref={setTrendStepRef(3)}>
               <div className="voa-step-inner">
                 <h3>Montana: the same shape, weaker</h3>
                 <p>

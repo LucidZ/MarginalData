@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import StateGrid from "./StateGrid";
 import { fmtPP } from "./format";
 import type { VoterAgeData } from "./types";
@@ -10,8 +10,6 @@ function median(values: number[]): number {
 }
 
 export default function Beat3({ data }: { data: VoterAgeData }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const pooledValues = data.states.map((s) => s.under35GapPooled ?? 0);
   const domain = useMemo((): [number, number] => {
     return [Math.min(...pooledValues), Math.max(...pooledValues)];
@@ -31,7 +29,7 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
   );
 
   return (
-    <section className="voa-beat" ref={containerRef}>
+    <section className="voa-beat">
       <h2 className="voa-beat-title">Beat 3 — It varies by state</h2>
       <div className="voa-scrolly">
         <div className="voa-scrolly-viz">

@@ -119,7 +119,11 @@
 }
 .voa-scrolly-viz {
   position: sticky;
-  top: 1.5rem;
+  /* Center vertically while stuck, not pin to the top: top:50% parks the
+     element's top edge at mid-viewport, then translateY(-50%) shifts it
+     up by half its own height so its center - not its top - lands there. */
+  top: 50%;
+  transform: translateY(-50%);
   flex: 0 0 56%;
   min-width: 0;
 }
@@ -170,6 +174,7 @@
   .voa-scrolly-viz {
     position: sticky;
     top: 0;
+    transform: none; /* undo the desktop centering transform - mobile pins to the top */
     width: 100%;
     height: min(48vh, 380px);
     z-index: 1;

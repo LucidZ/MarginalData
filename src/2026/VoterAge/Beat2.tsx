@@ -1,18 +1,16 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import AgeScatter, { type ScatterPoint } from "./AgeScatter";
-import { useScrollProgress, stepFromProgress } from "./useScrollProgress";
+import { useActiveStep } from "./useActiveStep";
 import { fmtPct, fmtPP } from "./format";
 import type { VoterAgeData, AgeBin } from "./types";
 
 const BIN_ORDER: AgeBin[] = ["18-24", "25-34", "35-44", "45-64", "65+"];
 const CYCLES = [2016, 2018, 2020, 2022, 2024];
-// +1 zone for the trailing summary step, which reuses the final (2024) view
+// +1 step for the trailing summary, which reuses the final (2024) view
 const STEP_COUNT = CYCLES.length + 1;
 
 export default function Beat2({ data }: { data: VoterAgeData }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const progress = useScrollProgress(containerRef);
-  const step = stepFromProgress(progress, STEP_COUNT);
+  const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
   const year = CYCLES[Math.min(step, CYCLES.length - 1)];
   const cycle = data.nationalByBin.find((c) => c.year === year)!;
 
@@ -45,7 +43,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
   , data.nationalByBin[0]);
 
   return (
-    <section className="voa-beat" ref={containerRef}>
+    <section className="voa-beat">
       <h2 className="voa-beat-title">Beat 2 — Midterms make it worse</h2>
       <div className="voa-scrolly">
         <div className="voa-scrolly-viz">
@@ -58,10 +56,10 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
           </div>
         </div>
         <div className="voa-scrolly-steps">
-          {CYCLES.map((y) => {
+          {CYCLES.map((y, i) => {
             const c = data.nationalByBin.find((cy) => cy.year === y)!;
             return (
-              <div className="voa-step" key={y}>
+              <div className="voa-step" key={y} ref={setStepRef(i)}>
                 <div className="voa-step-inner">
                   <h3>
                     {y} — {c.isPresidential ? "presidential" : "midterm"}
@@ -81,7 +79,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
               </div>
             );
           })}
-          <div className="voa-step">
+          <div className="voa-step" ref={setStepRef(CYCLES.length)}>
             <div className="voa-step-inner">
               <div className="voa-callout">
                 In {worstMid.year}, 65+ turnout ({fmtPct(worstMid.over65Turnout)}) was{" "}
