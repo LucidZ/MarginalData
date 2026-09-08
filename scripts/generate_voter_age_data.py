@@ -6,8 +6,9 @@ Pulls two Census Bureau CPS November Voting and Registration Supplement
 tables across five election cycles (2016/2018/2020/2022/2024):
 
   Table 1  - national, reported voting/registration by SINGLE YEAR OF AGE
-             (18-79, plus 80-84 and 85+ tail buckets). Only 2016, 2020, 2022
-             and 2024 are usable - see NOTE below on 2018.
+             (18-79, plus 80-84 and 85+ tail buckets - pooled here into one
+             "80+" row, see TAIL_AGE_* below). Only 2016, 2020, 2022 and
+             2024 are usable - see NOTE below on 2018.
   Table 4c - reported voting/registration by 5 age bins (18-24, 25-34,
              35-44, 45-64, 65+), broken out by state (+ US total, + DC).
              All 5 years are clean.
@@ -209,15 +210,36 @@ def parse_table4c(path):
 
 SINGLE_YEAR_RE = re.compile(r"^(\d+) years$")
 
+# Census Table 1 stops reporting single years of age at 79 and pools
+# everyone older into two tail buckets: "80-84 years" and an open-ended
+# "85 years and over". shareElig/shareVote (add_shares, below) are each
+# row's count divided by the *national* total, so that only means the
+# same thing across rows if every row spans the same number of ages -
+# plotting the 80-84 bucket (5 years of people) as if it were a single
+# age like the rest of the curve made its share ~5x too large purely
+# from bucket width, producing a spurious spike at that point (and then
+# a matching cliff at the 85+ point right after it). The two tail
+# buckets are pooled into one honest "80+" row instead. TAIL_AGE_MIN/MAX
+# give that pooled row a plot width so callers can render it as a band
+# rather than a point; the true width is unknown since 85+ is
+# open-ended, so 80-85 (matching the 80-84 bucket) is a deliberate
+# approximation for display, not a measurement.
+TAIL_AGE_MIN = 80
+TAIL_AGE_MAX = 85
+TAIL_AGE_REP = 82  # representative x-position for the pooled row
+
 
 def parse_table1(path):
     """
     Returns a list of { age, ageLabel, cvap, voted } for single years of
-    age 18-79, plus two tail buckets (80-84 at label "80-84", 85+ at
-    label "85+"). Scans the BOTH SEXES block only (stops at MALE/FEMALE).
+    age 18-79, plus one pooled "80+" row combining the "80-84" and "85+"
+    tail buckets (see TAIL_AGE_* above). Scans the BOTH SEXES block only
+    (stops at MALE/FEMALE).
     """
     ws = load_sheet(path)
     rows = []
+    tail = {"cvap": 0.0, "voted": 0.0}
+    tail_seen = 0
     in_block = False
     for row in ws.iter_rows(values_only=True):
         col_a = str(row[0]).strip() if row[0] else ""
@@ -231,13 +253,8 @@ def parse_table1(path):
             continue
 
         m = SINGLE_YEAR_RE.match(col_b)
-        if m:
-            age, label = int(m.group(1)), m.group(1)
-        elif col_b == "80-84 years":
-            age, label = 82, "80-84"
-        elif col_b == "85 years and over":
-            age, label = 87, "85+"
-        else:
+        is_tail = col_b in ("80-84 years", "85 years and over")
+        if not m and not is_tail:
             continue
 
         try:
@@ -245,10 +262,27 @@ def parse_table1(path):
             voted = float(row[10])
         except (TypeError, ValueError):
             continue
-        rows.append({"age": age, "ageLabel": label, "cvap": cvap, "voted": voted})
 
-    if len(rows) < 60:  # 18-79 (62 rows) + 2 tail buckets, minus slack for parsing misses
-        raise ValueError(f"{path.name}: expected ~64 single-year rows, got {len(rows)}")
+        if m:
+            rows.append({"age": int(m.group(1)), "ageLabel": m.group(1), "cvap": cvap, "voted": voted})
+        else:
+            tail["cvap"] += cvap
+            tail["voted"] += voted
+            tail_seen += 1
+
+    if tail_seen != 2:
+        raise ValueError(f"{path.name}: expected both 80-84 and 85+ tail rows, found {tail_seen}")
+    rows.append({
+        "age": TAIL_AGE_REP,
+        "ageLabel": "80+",
+        "ageMin": TAIL_AGE_MIN,
+        "ageMax": TAIL_AGE_MAX,
+        "cvap": tail["cvap"],
+        "voted": tail["voted"],
+    })
+
+    if len(rows) != 63:  # single years 18-79 (62) + one pooled "80+" row
+        raise ValueError(f"{path.name}: expected 63 rows (18-79 + pooled 80+), got {len(rows)}")
     return sorted(rows, key=lambda r: r["age"])
 
 

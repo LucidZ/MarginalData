@@ -223,6 +223,11 @@
   cursor: pointer;
   touch-action: manipulation;
 }
+.voa-band {
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  fill-opacity: 0.5;
+}
 .voa-dot-label {
   fill: var(--text-secondary);
   font-size: 10px;

@@ -629,21 +629,14 @@
       },
       {
         "age": 82,
-        "ageLabel": "80-84",
-        "cvap": 5539.0,
-        "voted": 3840.0,
-        "shareElig": 2.472,
-        "shareVote": 2.792,
-        "turnout": 69.3
-      },
-      {
-        "age": 87,
-        "ageLabel": "85+",
-        "cvap": 5477.0,
-        "voted": 3391.0,
-        "shareElig": 2.444,
-        "shareVote": 2.466,
-        "turnout": 61.9
+        "ageLabel": "80+",
+        "ageMin": 80,
+        "ageMax": 85,
+        "cvap": 11016.0,
+        "voted": 7231.0,
+        "shareElig": 4.917,
+        "shareVote": 5.258,
+        "turnout": 65.6
       }
     ],
     "2020": [
@@ -1207,21 +1200,14 @@
       },
       {
         "age": 82,
-        "ageLabel": "80-84",
-        "cvap": 6291.0,
-        "voted": 4596.0,
-        "shareElig": 2.716,
-        "shareVote": 2.972,
-        "turnout": 73.1
-      },
-      {
-        "age": 87,
-        "ageLabel": "85+",
-        "cvap": 5739.0,
-        "voted": 3617.0,
-        "shareElig": 2.478,
-        "shareVote": 2.339,
-        "turnout": 63.0
+        "ageLabel": "80+",
+        "ageMin": 80,
+        "ageMax": 85,
+        "cvap": 12030.0,
+        "voted": 8213.0,
+        "shareElig": 5.194,
+        "shareVote": 5.311,
+        "turnout": 68.3
       }
     ],
     "2022": [
@@ -1785,21 +1771,14 @@
       },
       {
         "age": 82,
-        "ageLabel": "80-84",
-        "cvap": 6415.0,
-        "voted": 4241.0,
-        "shareElig": 2.747,
-        "shareVote": 3.479,
-        "turnout": 66.1
-      },
-      {
-        "age": 87,
-        "ageLabel": "85+",
-        "cvap": 5618.0,
-        "voted": 3214.0,
-        "shareElig": 2.406,
-        "shareVote": 2.636,
-        "turnout": 57.2
+        "ageLabel": "80+",
+        "ageMin": 80,
+        "ageMax": 85,
+        "cvap": 12033.0,
+        "voted": 7455.0,
+        "shareElig": 5.152,
+        "shareVote": 6.115,
+        "turnout": 62.0
       }
     ],
     "2024": [
@@ -2363,21 +2342,14 @@
       },
       {
         "age": 82,
-        "ageLabel": "80-84",
-        "cvap": 6991.0,
-        "voted": 5249.0,
-        "shareElig": 2.961,
-        "shareVote": 3.402,
-        "turnout": 75.1
-      },
-      {
-        "age": 87,
-        "ageLabel": "85+",
-        "cvap": 5646.0,
-        "voted": 3848.0,
-        "shareElig": 2.391,
-        "shareVote": 2.494,
-        "turnout": 68.2
+        "ageLabel": "80+",
+        "ageMin": 80,
+        "ageMax": 85,
+        "cvap": 12637.0,
+        "voted": 9097.0,
+        "shareElig": 5.352,
+        "shareVote": 5.895,
+        "turnout": 72.0
       }
     ]
   },

@@ -13,6 +13,12 @@ export interface ScatterPoint {
    * uses (e.g. beat 2's presidential-vs-midterm coloring) where the color
    * job isn't "magnitude" but "identity". */
   colorClass?: string;
+  /** [xMin, xMax] in data units - renders this point as a wide oval
+   * spanning that range instead of a plain dot, for a point that pools
+   * several x-values into one (e.g. the "80+" row combining several
+   * years of age). Excluded from connectLines' series lines, since
+   * connecting a range summary to a point implies false precision. */
+  band?: [number, number];
 }
 
 export interface ScatterAnnotation {
@@ -153,6 +159,7 @@ export default function AgeScatter({
         .attr("text-anchor", "middle");
       root.append("g").attr("class", "voa-brackets");
       root.append("g").attr("class", "voa-series-lines");
+      root.append("g").attr("class", "voa-bands");
       root.append("g").attr("class", "voa-dots");
       root.append("g").attr("class", "voa-dot-hits");
       root.append("g").attr("class", "voa-annotation-layer");
@@ -204,13 +211,21 @@ export default function AgeScatter({
       .attr("transform", `translate(${-MARGIN.left + 14},${innerH / 2}) rotate(-90)`)
       .text(yLabel);
 
+    // Points that pool a range render as a wide oval (below) rather than
+    // through the regular dot/line machinery, which assumes one x = one
+    // observation.
+    const plainPoints = points.filter((p) => !p.band);
+    const bandPoints = points.filter((p): p is ScatterPoint & { band: [number, number] } => !!p.band);
+
     // Connect each colorClass group's points into its own line, sorted by
     // x - a multi-series age curve (e.g. 2022 vs 2024) reads far more
-    // clearly as two lines than as one interleaved dot cloud.
+    // clearly as two lines than as one interleaved dot cloud. Banded
+    // points are excluded so the line stops at the last real observation
+    // instead of implying a precise value at the pooled point.
     const linesLayer = root.select<SVGGElement>("g.voa-series-lines");
     if (connectLines) {
       const groups = new Map<string, ScatterPoint[]>();
-      for (const p of points) {
+      for (const p of plainPoints) {
         const key = p.colorClass ?? "default";
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key)!.push(p);
@@ -243,7 +258,7 @@ export default function AgeScatter({
     const dots = root
       .select<SVGGElement>("g.voa-dots")
       .selectAll<SVGCircleElement, ScatterPoint>("circle")
-      .data(points, (d) => d.key);
+      .data(plainPoints, (d) => d.key);
 
     dots
       .exit()
@@ -278,7 +293,7 @@ export default function AgeScatter({
       const hits = root
         .select<SVGGElement>("g.voa-dot-hits")
         .selectAll<SVGCircleElement, ScatterPoint>("circle")
-        .data(points, (d) => d.key);
+        .data(plainPoints, (d) => d.key);
       hits.exit().remove();
       hits
         .enter()
@@ -296,6 +311,44 @@ export default function AgeScatter({
           setHover(null);
         });
     }
+
+    // Banded points (pooled ranges, e.g. "80+"): a wide oval spanning the
+    // range in data units, tall enough to read clearly as a distinct
+    // shape from the single-value dots. It owns its own pointer events
+    // directly (it's already a large hit target, unlike the tiny dots).
+    const bandLayer = root.select<SVGGElement>("g.voa-bands");
+    const bandRy = Math.max(10, defaultRadius * 2.5);
+    const bands = bandLayer
+      .selectAll<SVGEllipseElement, ScatterPoint & { band: [number, number] }>("ellipse")
+      .data(bandPoints, (d) => d.key);
+    bands.exit().transition(t as any).attr("rx", 0).attr("ry", 0).remove();
+    const bandEntered = bands
+      .enter()
+      .append("ellipse")
+      .attr("cx", (d) => scaleX(d.x))
+      .attr("cy", (d) => scaleY(d.y))
+      .attr("rx", 0)
+      .attr("ry", 0);
+    const bandMerged = bandEntered
+      .merge(bands)
+      .attr("class", (d) => `voa-band ${d.colorClass ?? seqBucketClass(d.seqT)}`);
+    if (tooltipFor) {
+      bandMerged
+        .style("cursor", "pointer")
+        .on("pointerenter pointermove pointerdown", (event: PointerEvent, d: ScatterPoint) => {
+          setHover({ point: d, clientX: event.clientX, clientY: event.clientY });
+        })
+        .on("pointerleave", (event: PointerEvent) => {
+          if (event.pointerType === "touch") return;
+          setHover(null);
+        });
+    }
+    bandMerged
+      .transition(t as any)
+      .attr("cx", (d) => scaleX(d.x))
+      .attr("cy", (d) => scaleY(d.y))
+      .attr("rx", (d) => Math.max(8, Math.abs(scaleX(d.band[1]) - scaleX(d.band[0])) / 2))
+      .attr("ry", bandRy);
 
     // Gap brackets: a vertical segment from the point down/up to the
     // diagonal (proportional layout: diagonal value at x is x itself),

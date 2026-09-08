@@ -1,23 +1,23 @@
 import { useMemo } from "react";
 import AgeScatter, { type ScatterPoint, type GapBracket } from "./AgeScatter";
 import { useActiveStep } from "./useActiveStep";
-import { fmtM, fmtPct, fmtPP, findCrossoverAge } from "./format";
+import { fmtM, fmtPct, fmtPP, findCrossoverAge, formatAgeLabel } from "./format";
 import type { VoterAgeData, SingleYearRow } from "./types";
 
 const STEP_COUNT = 8;
 const EXAMPLE_OLD_AGE = 70;
 const EXAMPLE_YOUNG_AGE = 20;
+// Oldest x-position in the dataset - the pooled "80+" row's representative
+// age (see generate_voter_age_data.py's TAIL_AGE_REP), used only to
+// normalize the sequential color ramp.
+const MAX_AGE_FOR_COLOR = 82;
 
 function seqT(age: number) {
-  return (age - 18) / (87 - 18);
+  return (age - 18) / (MAX_AGE_FOR_COLOR - 18);
 }
 
 function toPoint(row: SingleYearRow): ScatterPoint {
   return { key: `age-${row.age}`, x: row.shareElig, y: row.shareVote, seqT: seqT(row.age), r: 4 };
-}
-
-function ageLabel(row: SingleYearRow): string {
-  return /^\d+$/.test(row.ageLabel) ? `Age ${row.ageLabel}` : `Ages ${row.ageLabel}`;
 }
 
 export default function Beat1({ data }: { data: VoterAgeData }) {
@@ -53,11 +53,17 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
         key: `age-${row.age}`,
         age: row.age,
         gap: row.shareVote - row.shareElig,
+        ageMin: row.ageMin,
+        ageMax: row.ageMax,
       })),
     [rows2024]
   );
   const gapXDomain = useMemo((): [number, number] => {
-    const ages = allGapPoints.map((p) => p.age);
+    // Include band edges (not just the representative age) so the "80+"
+    // oval isn't clipped at the right edge of the chart.
+    const ages = allGapPoints.flatMap((p) =>
+      p.ageMax != null ? [p.age, p.ageMin!, p.ageMax] : [p.age]
+    );
     return [Math.min(...ages) - 3, Math.max(...ages) + 3];
   }, [allGapPoints]);
   const gapYDomain = useMemo((): [number, number] => {
@@ -76,6 +82,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
     y: p.gap,
     seqT: seqT(p.age),
     r: 4,
+    band: p.ageMax != null ? ([p.ageMin!, p.ageMax] as [number, number]) : undefined,
   }));
 
   const oldPoint = toPoint(oldRow);
@@ -135,7 +142,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
     if (!row) return null;
     return (
       <>
-        <div className="voa-tooltip__head">{ageLabel(row)}</div>
+        <div className="voa-tooltip__head">{formatAgeLabel(row)}</div>
         <div>Eligible: <strong>{fmtPct(row.shareElig)}</strong></div>
         <div>Votes cast: <strong>{fmtPct(row.shareVote)}</strong></div>
         <div>Gap: <strong>{fmtPP(row.shareVote - row.shareElig)}</strong></div>
@@ -148,7 +155,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
     if (!row) return null;
     return (
       <>
-        <div className="voa-tooltip__head">{ageLabel(row)}</div>
+        <div className="voa-tooltip__head">{formatAgeLabel(row)}</div>
         <div>Gap: <strong>{fmtPP(p.y)}</strong></div>
         <div>Turnout: <strong>{fmtPct(row.turnout)}</strong></div>
       </>
@@ -245,7 +252,8 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
             <div className="voa-step-inner">
               <h3>Every age, all at once</h3>
               <p>
-                Here's every single year of age, 18 through 85+, on the same scale. Somewhere
+                Here's every single year of age, 18 through 79, plus one pooled point for
+                everyone 80 and older — that's as fine-grained as the Census data goes. Somewhere
                 around <strong>age {crossoverAge ?? "40"}</strong>, the line crosses zero — below
                 it you're outnumbered relative to your share of the electorate; above it, you're
                 overrepresented.

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import AgeScatter, { type ScatterPoint, type ScatterAnnotation } from "./AgeScatter";
 import { useActiveStep } from "./useActiveStep";
-import { fmtPct, fmtPP } from "./format";
+import { fmtPct, fmtPP, formatAgeLabel } from "./format";
 import type { VoterAgeData, SingleYearRow } from "./types";
 
 const STEP_COUNT = 4;
@@ -16,6 +16,7 @@ function toGapPoints(rows: SingleYearRow[], year: string, colorClass: string): S
     seqT: 0,
     r: 3,
     colorClass,
+    band: row.ageMax != null ? ([row.ageMin!, row.ageMax] as [number, number]) : undefined,
   }));
 }
 
@@ -29,9 +30,13 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
   const midPoints = useMemo(() => toGapPoints(rowsMid, MIDTERM_YEAR, "voa-cat-mid"), [rowsMid]);
 
   // Stable domain from both years combined, so the axes don't rescale
-  // when the midterm curve is added in step 1 - only the second line appears.
+  // when the midterm curve is added in step 1 - only the second line
+  // appears. Includes band edges (not just the representative age) so
+  // the "80+" oval isn't clipped at the right edge of the chart.
   const xDomain = useMemo((): [number, number] => {
-    const ages = [...rowsPres, ...rowsMid].map((r) => r.age);
+    const ages = [...rowsPres, ...rowsMid].flatMap((r) =>
+      r.ageMax != null ? [r.age, r.ageMin!, r.ageMax] : [r.age]
+    );
     return [Math.min(...ages) - 3, Math.max(...ages) + 3];
   }, [rowsPres, rowsMid]);
   const yDomain = useMemo((): [number, number] => {
@@ -45,9 +50,9 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
   const gapOf = (row: SingleYearRow) => row.shareVote - row.shareElig;
   const youngestPres = rowsPres.find((r) => r.age === Math.min(...rowsPres.map((x) => x.age)))!;
   const youngestMid = rowsMid.find((r) => r.age === Math.min(...rowsMid.map((x) => x.age)))!;
-  // The peak (max-gap) row - among the oldest ages in practice, but found
-  // by actual value rather than assumed, since the curve dips slightly
-  // past 40 and declines again after ~80 (see Beat 1's full reveal).
+  // The peak (max-gap) row - the pooled "80+" row in practice, but found by
+  // actual value rather than assumed, since the curve dips slightly past
+  // 40 first (see Beat 1's full reveal).
   const peakPres = rowsPres.reduce((a, b) => (gapOf(b) > gapOf(a) ? b : a));
   const peakMid = rowsMid.reduce((a, b) => (gapOf(b) > gapOf(a) ? b : a));
 
@@ -59,14 +64,14 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
           {
             x: youngestMid.age,
             y: gapOf(youngestMid),
-            text: `age ${youngestMid.age}: ${fmtPP(gapOf(youngestMid))} in ${MIDTERM_YEAR}`,
+            text: `${formatAgeLabel(youngestMid).toLowerCase()}: ${fmtPP(gapOf(youngestMid))} in ${MIDTERM_YEAR}`,
             dx: 16,
             dy: -30,
           },
           {
             x: peakMid.age,
             y: gapOf(peakMid),
-            text: `age ${peakMid.age}: ${fmtPP(gapOf(peakMid))} in ${MIDTERM_YEAR}`,
+            text: `${formatAgeLabel(peakMid).toLowerCase()}: ${fmtPP(gapOf(peakMid))} in ${MIDTERM_YEAR}`,
             dx: -16,
             dy: 24,
           },
@@ -86,7 +91,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
     const year = p.key.split("-")[0];
     return (
       <>
-        <div className="voa-tooltip__head">Age {row.age} · {year}</div>
+        <div className="voa-tooltip__head">{formatAgeLabel(row)} · {year}</div>
         <div>Gap: <strong>{fmtPP(p.y)}</strong></div>
         <div>Turnout: <strong>{fmtPct(row.turnout)}</strong></div>
       </>

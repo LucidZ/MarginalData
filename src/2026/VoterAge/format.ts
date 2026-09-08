@@ -4,6 +4,11 @@ export const fmtPct = (v: number, digits = 1) => `${v.toFixed(digits)}%`;
 export const fmtPP = (v: number, digits = 2) => `${v >= 0 ? "+" : ""}${v.toFixed(digits)}pp`;
 export const fmtM = (thousands: number) => `${(thousands / 1000).toFixed(1)}M`;
 
+/** "Age 24" for a single year, "Age 80+" for the pooled tail row. */
+export function formatAgeLabel(row: { ageLabel: string }): string {
+  return /^\d+\+?$/.test(row.ageLabel) ? `Age ${row.ageLabel}` : `Ages ${row.ageLabel}`;
+}
+
 /**
  * Finds the approximate single-year-of-age "representation crossover" -
  * the age at which a 3-year rolling average of (shareVote / shareElig)
