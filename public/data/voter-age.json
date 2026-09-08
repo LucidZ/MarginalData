@@ -67,584 +67,2320 @@
       "under35Gap = shareOfVotesCast(18-34) - shareOfEligible(18-34), in percentage points. Negative = underrepresented."
     ]
   },
-  "nationalByYearOfAge": [
-    {
-      "age": 18,
-      "ageLabel": "18",
-      "cvap": 4258.0,
-      "voted": 1586.0,
-      "shareElig": 1.803,
-      "shareVote": 1.028,
-      "turnout": 37.2
-    },
-    {
-      "age": 19,
-      "ageLabel": "19",
-      "cvap": 3796.0,
-      "voted": 1744.0,
-      "shareElig": 1.608,
-      "shareVote": 1.13,
-      "turnout": 45.9
-    },
-    {
-      "age": 20,
-      "ageLabel": "20",
-      "cvap": 3733.0,
-      "voted": 1664.0,
-      "shareElig": 1.581,
-      "shareVote": 1.078,
-      "turnout": 44.6
-    },
-    {
-      "age": 21,
-      "ageLabel": "21",
-      "cvap": 4014.0,
-      "voted": 1887.0,
-      "shareElig": 1.7,
-      "shareVote": 1.223,
-      "turnout": 47.0
-    },
-    {
-      "age": 22,
-      "ageLabel": "22",
-      "cvap": 3865.0,
-      "voted": 2054.0,
-      "shareElig": 1.637,
-      "shareVote": 1.331,
-      "turnout": 53.1
-    },
-    {
-      "age": 23,
-      "ageLabel": "23",
-      "cvap": 3555.0,
-      "voted": 1939.0,
-      "shareElig": 1.505,
-      "shareVote": 1.257,
-      "turnout": 54.5
-    },
-    {
-      "age": 24,
-      "ageLabel": "24",
-      "cvap": 4326.0,
-      "voted": 2276.0,
-      "shareElig": 1.832,
-      "shareVote": 1.475,
-      "turnout": 52.6
-    },
-    {
-      "age": 25,
-      "ageLabel": "25",
-      "cvap": 3604.0,
-      "voted": 1852.0,
-      "shareElig": 1.526,
-      "shareVote": 1.2,
-      "turnout": 51.4
-    },
-    {
-      "age": 26,
-      "ageLabel": "26",
-      "cvap": 3881.0,
-      "voted": 2227.0,
-      "shareElig": 1.644,
-      "shareVote": 1.443,
-      "turnout": 57.4
-    },
-    {
-      "age": 27,
-      "ageLabel": "27",
-      "cvap": 3718.0,
-      "voted": 1958.0,
-      "shareElig": 1.575,
-      "shareVote": 1.269,
-      "turnout": 52.7
-    },
-    {
-      "age": 28,
-      "ageLabel": "28",
-      "cvap": 3871.0,
-      "voted": 2134.0,
-      "shareElig": 1.639,
-      "shareVote": 1.383,
-      "turnout": 55.1
-    },
-    {
-      "age": 29,
-      "ageLabel": "29",
-      "cvap": 3757.0,
-      "voted": 2216.0,
-      "shareElig": 1.591,
-      "shareVote": 1.436,
-      "turnout": 59.0
-    },
-    {
-      "age": 30,
-      "ageLabel": "30",
-      "cvap": 4094.0,
-      "voted": 2375.0,
-      "shareElig": 1.734,
-      "shareVote": 1.539,
-      "turnout": 58.0
-    },
-    {
-      "age": 31,
-      "ageLabel": "31",
-      "cvap": 3916.0,
-      "voted": 2285.0,
-      "shareElig": 1.658,
-      "shareVote": 1.481,
-      "turnout": 58.4
-    },
-    {
-      "age": 32,
-      "ageLabel": "32",
-      "cvap": 3942.0,
-      "voted": 2288.0,
-      "shareElig": 1.669,
-      "shareVote": 1.483,
-      "turnout": 58.0
-    },
-    {
-      "age": 33,
-      "ageLabel": "33",
-      "cvap": 3918.0,
-      "voted": 2330.0,
-      "shareElig": 1.659,
-      "shareVote": 1.51,
-      "turnout": 59.5
-    },
-    {
-      "age": 34,
-      "ageLabel": "34",
-      "cvap": 4263.0,
-      "voted": 2483.0,
-      "shareElig": 1.805,
-      "shareVote": 1.609,
-      "turnout": 58.2
-    },
-    {
-      "age": 35,
-      "ageLabel": "35",
-      "cvap": 3932.0,
-      "voted": 2255.0,
-      "shareElig": 1.665,
-      "shareVote": 1.461,
-      "turnout": 57.3
-    },
-    {
-      "age": 36,
-      "ageLabel": "36",
-      "cvap": 3887.0,
-      "voted": 2364.0,
-      "shareElig": 1.646,
-      "shareVote": 1.532,
-      "turnout": 60.8
-    },
-    {
-      "age": 37,
-      "ageLabel": "37",
-      "cvap": 3784.0,
-      "voted": 2436.0,
-      "shareElig": 1.602,
-      "shareVote": 1.579,
-      "turnout": 64.4
-    },
-    {
-      "age": 38,
-      "ageLabel": "38",
-      "cvap": 4101.0,
-      "voted": 2608.0,
-      "shareElig": 1.737,
-      "shareVote": 1.69,
-      "turnout": 63.6
-    },
-    {
-      "age": 39,
-      "ageLabel": "39",
-      "cvap": 3684.0,
-      "voted": 2379.0,
-      "shareElig": 1.56,
-      "shareVote": 1.542,
-      "turnout": 64.6
-    },
-    {
-      "age": 40,
-      "ageLabel": "40",
-      "cvap": 4009.0,
-      "voted": 2635.0,
-      "shareElig": 1.698,
-      "shareVote": 1.708,
-      "turnout": 65.7
-    },
-    {
-      "age": 41,
-      "ageLabel": "41",
-      "cvap": 3659.0,
-      "voted": 2458.0,
-      "shareElig": 1.55,
-      "shareVote": 1.593,
-      "turnout": 67.2
-    },
-    {
-      "age": 42,
-      "ageLabel": "42",
-      "cvap": 3579.0,
-      "voted": 2271.0,
-      "shareElig": 1.516,
-      "shareVote": 1.472,
-      "turnout": 63.5
-    },
-    {
-      "age": 43,
-      "ageLabel": "43",
-      "cvap": 3561.0,
-      "voted": 2322.0,
-      "shareElig": 1.508,
-      "shareVote": 1.505,
-      "turnout": 65.2
-    },
-    {
-      "age": 44,
-      "ageLabel": "44",
-      "cvap": 4032.0,
-      "voted": 2611.0,
-      "shareElig": 1.707,
-      "shareVote": 1.692,
-      "turnout": 64.8
-    },
-    {
-      "age": 45,
-      "ageLabel": "45",
-      "cvap": 3545.0,
-      "voted": 2461.0,
-      "shareElig": 1.501,
-      "shareVote": 1.595,
-      "turnout": 69.4
-    },
-    {
-      "age": 46,
-      "ageLabel": "46",
-      "cvap": 3555.0,
-      "voted": 2496.0,
-      "shareElig": 1.505,
-      "shareVote": 1.618,
-      "turnout": 70.2
-    },
-    {
-      "age": 47,
-      "ageLabel": "47",
-      "cvap": 3566.0,
-      "voted": 2389.0,
-      "shareElig": 1.51,
-      "shareVote": 1.548,
-      "turnout": 67.0
-    },
-    {
-      "age": 48,
-      "ageLabel": "48",
-      "cvap": 3566.0,
-      "voted": 2425.0,
-      "shareElig": 1.51,
-      "shareVote": 1.572,
-      "turnout": 68.0
-    },
-    {
-      "age": 49,
-      "ageLabel": "49",
-      "cvap": 3166.0,
-      "voted": 2172.0,
-      "shareElig": 1.341,
-      "shareVote": 1.408,
-      "turnout": 68.6
-    },
-    {
-      "age": 50,
-      "ageLabel": "50",
-      "cvap": 3572.0,
-      "voted": 2348.0,
-      "shareElig": 1.513,
-      "shareVote": 1.522,
-      "turnout": 65.7
-    },
-    {
-      "age": 51,
-      "ageLabel": "51",
-      "cvap": 3380.0,
-      "voted": 2392.0,
-      "shareElig": 1.431,
-      "shareVote": 1.55,
-      "turnout": 70.8
-    },
-    {
-      "age": 52,
-      "ageLabel": "52",
-      "cvap": 3518.0,
-      "voted": 2389.0,
-      "shareElig": 1.49,
-      "shareVote": 1.548,
-      "turnout": 67.9
-    },
-    {
-      "age": 53,
-      "ageLabel": "53",
-      "cvap": 3644.0,
-      "voted": 2473.0,
-      "shareElig": 1.543,
-      "shareVote": 1.603,
-      "turnout": 67.9
-    },
-    {
-      "age": 54,
-      "ageLabel": "54",
-      "cvap": 3910.0,
-      "voted": 2795.0,
-      "shareElig": 1.656,
-      "shareVote": 1.811,
-      "turnout": 71.5
-    },
-    {
-      "age": 55,
-      "ageLabel": "55",
-      "cvap": 3733.0,
-      "voted": 2622.0,
-      "shareElig": 1.581,
-      "shareVote": 1.699,
-      "turnout": 70.2
-    },
-    {
-      "age": 56,
-      "ageLabel": "56",
-      "cvap": 3514.0,
-      "voted": 2546.0,
-      "shareElig": 1.488,
-      "shareVote": 1.65,
-      "turnout": 72.5
-    },
-    {
-      "age": 57,
-      "ageLabel": "57",
-      "cvap": 3482.0,
-      "voted": 2373.0,
-      "shareElig": 1.475,
-      "shareVote": 1.538,
-      "turnout": 68.2
-    },
-    {
-      "age": 58,
-      "ageLabel": "58",
-      "cvap": 3438.0,
-      "voted": 2456.0,
-      "shareElig": 1.456,
-      "shareVote": 1.592,
-      "turnout": 71.4
-    },
-    {
-      "age": 59,
-      "ageLabel": "59",
-      "cvap": 4086.0,
-      "voted": 2861.0,
-      "shareElig": 1.73,
-      "shareVote": 1.854,
-      "turnout": 70.0
-    },
-    {
-      "age": 60,
-      "ageLabel": "60",
-      "cvap": 3905.0,
-      "voted": 2707.0,
-      "shareElig": 1.654,
-      "shareVote": 1.754,
-      "turnout": 69.3
-    },
-    {
-      "age": 61,
-      "ageLabel": "61",
-      "cvap": 4020.0,
-      "voted": 2808.0,
-      "shareElig": 1.702,
-      "shareVote": 1.82,
-      "turnout": 69.9
-    },
-    {
-      "age": 62,
-      "ageLabel": "62",
-      "cvap": 3909.0,
-      "voted": 2918.0,
-      "shareElig": 1.655,
-      "shareVote": 1.891,
-      "turnout": 74.6
-    },
-    {
-      "age": 63,
-      "ageLabel": "63",
-      "cvap": 3809.0,
-      "voted": 2757.0,
-      "shareElig": 1.613,
-      "shareVote": 1.787,
-      "turnout": 72.4
-    },
-    {
-      "age": 64,
-      "ageLabel": "64",
-      "cvap": 4086.0,
-      "voted": 2966.0,
-      "shareElig": 1.73,
-      "shareVote": 1.922,
-      "turnout": 72.6
-    },
-    {
-      "age": 65,
-      "ageLabel": "65",
-      "cvap": 3566.0,
-      "voted": 2583.0,
-      "shareElig": 1.51,
-      "shareVote": 1.674,
-      "turnout": 72.4
-    },
-    {
-      "age": 66,
-      "ageLabel": "66",
-      "cvap": 3673.0,
-      "voted": 2790.0,
-      "shareElig": 1.555,
-      "shareVote": 1.808,
-      "turnout": 76.0
-    },
-    {
-      "age": 67,
-      "ageLabel": "67",
-      "cvap": 3688.0,
-      "voted": 2742.0,
-      "shareElig": 1.562,
-      "shareVote": 1.777,
-      "turnout": 74.3
-    },
-    {
-      "age": 68,
-      "ageLabel": "68",
-      "cvap": 3669.0,
-      "voted": 2741.0,
-      "shareElig": 1.554,
-      "shareVote": 1.776,
-      "turnout": 74.7
-    },
-    {
-      "age": 69,
-      "ageLabel": "69",
-      "cvap": 3615.0,
-      "voted": 2729.0,
-      "shareElig": 1.531,
-      "shareVote": 1.769,
-      "turnout": 75.5
-    },
-    {
-      "age": 70,
-      "ageLabel": "70",
-      "cvap": 3414.0,
-      "voted": 2549.0,
-      "shareElig": 1.446,
-      "shareVote": 1.652,
-      "turnout": 74.7
-    },
-    {
-      "age": 71,
-      "ageLabel": "71",
-      "cvap": 3399.0,
-      "voted": 2524.0,
-      "shareElig": 1.439,
-      "shareVote": 1.636,
-      "turnout": 74.3
-    },
-    {
-      "age": 72,
-      "ageLabel": "72",
-      "cvap": 3098.0,
-      "voted": 2375.0,
-      "shareElig": 1.312,
-      "shareVote": 1.539,
-      "turnout": 76.7
-    },
-    {
-      "age": 73,
-      "ageLabel": "73",
-      "cvap": 2848.0,
-      "voted": 2206.0,
-      "shareElig": 1.206,
-      "shareVote": 1.43,
-      "turnout": 77.5
-    },
-    {
-      "age": 74,
-      "ageLabel": "74",
-      "cvap": 2783.0,
-      "voted": 2151.0,
-      "shareElig": 1.179,
-      "shareVote": 1.394,
-      "turnout": 77.3
-    },
-    {
-      "age": 75,
-      "ageLabel": "75",
-      "cvap": 2642.0,
-      "voted": 1992.0,
-      "shareElig": 1.119,
-      "shareVote": 1.291,
-      "turnout": 75.4
-    },
-    {
-      "age": 76,
-      "ageLabel": "76",
-      "cvap": 2549.0,
-      "voted": 1962.0,
-      "shareElig": 1.079,
-      "shareVote": 1.271,
-      "turnout": 77.0
-    },
-    {
-      "age": 77,
-      "ageLabel": "77",
-      "cvap": 2708.0,
-      "voted": 2103.0,
-      "shareElig": 1.147,
-      "shareVote": 1.363,
-      "turnout": 77.7
-    },
-    {
-      "age": 78,
-      "ageLabel": "78",
-      "cvap": 2118.0,
-      "voted": 1590.0,
-      "shareElig": 0.897,
-      "shareVote": 1.03,
-      "turnout": 75.1
-    },
-    {
-      "age": 79,
-      "ageLabel": "79",
-      "cvap": 1588.0,
-      "voted": 1183.0,
-      "shareElig": 0.672,
-      "shareVote": 0.767,
-      "turnout": 74.5
-    },
-    {
-      "age": 82,
-      "ageLabel": "80-84",
-      "cvap": 6991.0,
-      "voted": 5249.0,
-      "shareElig": 2.961,
-      "shareVote": 3.402,
-      "turnout": 75.1
-    },
-    {
-      "age": 87,
-      "ageLabel": "85+",
-      "cvap": 5646.0,
-      "voted": 3848.0,
-      "shareElig": 2.391,
-      "shareVote": 2.494,
-      "turnout": 68.2
-    }
-  ],
+  "nationalByYearOfAge": {
+    "2016": [
+      {
+        "age": 18,
+        "ageLabel": "18",
+        "cvap": 3754.0,
+        "voted": 1293.0,
+        "shareElig": 1.675,
+        "shareVote": 0.94,
+        "turnout": 34.4
+      },
+      {
+        "age": 19,
+        "ageLabel": "19",
+        "cvap": 3471.0,
+        "voted": 1370.0,
+        "shareElig": 1.549,
+        "shareVote": 0.996,
+        "turnout": 39.5
+      },
+      {
+        "age": 20,
+        "ageLabel": "20",
+        "cvap": 3712.0,
+        "voted": 1606.0,
+        "shareElig": 1.657,
+        "shareVote": 1.168,
+        "turnout": 43.3
+      },
+      {
+        "age": 21,
+        "ageLabel": "21",
+        "cvap": 3967.0,
+        "voted": 1707.0,
+        "shareElig": 1.771,
+        "shareVote": 1.241,
+        "turnout": 43.0
+      },
+      {
+        "age": 22,
+        "ageLabel": "22",
+        "cvap": 3891.0,
+        "voted": 1775.0,
+        "shareElig": 1.737,
+        "shareVote": 1.291,
+        "turnout": 45.6
+      },
+      {
+        "age": 23,
+        "ageLabel": "23",
+        "cvap": 3997.0,
+        "voted": 1832.0,
+        "shareElig": 1.784,
+        "shareVote": 1.332,
+        "turnout": 45.8
+      },
+      {
+        "age": 24,
+        "ageLabel": "24",
+        "cvap": 4120.0,
+        "voted": 1977.0,
+        "shareElig": 1.839,
+        "shareVote": 1.437,
+        "turnout": 48.0
+      },
+      {
+        "age": 25,
+        "ageLabel": "25",
+        "cvap": 4211.0,
+        "voted": 2036.0,
+        "shareElig": 1.879,
+        "shareVote": 1.48,
+        "turnout": 48.3
+      },
+      {
+        "age": 26,
+        "ageLabel": "26",
+        "cvap": 4145.0,
+        "voted": 2073.0,
+        "shareElig": 1.85,
+        "shareVote": 1.507,
+        "turnout": 50.0
+      },
+      {
+        "age": 27,
+        "ageLabel": "27",
+        "cvap": 3704.0,
+        "voted": 1828.0,
+        "shareElig": 1.653,
+        "shareVote": 1.329,
+        "turnout": 49.4
+      },
+      {
+        "age": 28,
+        "ageLabel": "28",
+        "cvap": 4000.0,
+        "voted": 2071.0,
+        "shareElig": 1.785,
+        "shareVote": 1.506,
+        "turnout": 51.8
+      },
+      {
+        "age": 29,
+        "ageLabel": "29",
+        "cvap": 3896.0,
+        "voted": 2053.0,
+        "shareElig": 1.739,
+        "shareVote": 1.493,
+        "turnout": 52.7
+      },
+      {
+        "age": 30,
+        "ageLabel": "30",
+        "cvap": 3709.0,
+        "voted": 2013.0,
+        "shareElig": 1.655,
+        "shareVote": 1.464,
+        "turnout": 54.3
+      },
+      {
+        "age": 31,
+        "ageLabel": "31",
+        "cvap": 3619.0,
+        "voted": 2059.0,
+        "shareElig": 1.615,
+        "shareVote": 1.497,
+        "turnout": 56.9
+      },
+      {
+        "age": 32,
+        "ageLabel": "32",
+        "cvap": 3710.0,
+        "voted": 2003.0,
+        "shareElig": 1.656,
+        "shareVote": 1.456,
+        "turnout": 54.0
+      },
+      {
+        "age": 33,
+        "ageLabel": "33",
+        "cvap": 3614.0,
+        "voted": 2064.0,
+        "shareElig": 1.613,
+        "shareVote": 1.501,
+        "turnout": 57.1
+      },
+      {
+        "age": 34,
+        "ageLabel": "34",
+        "cvap": 3674.0,
+        "voted": 2132.0,
+        "shareElig": 1.64,
+        "shareVote": 1.55,
+        "turnout": 58.0
+      },
+      {
+        "age": 35,
+        "ageLabel": "35",
+        "cvap": 3626.0,
+        "voted": 2078.0,
+        "shareElig": 1.618,
+        "shareVote": 1.511,
+        "turnout": 57.3
+      },
+      {
+        "age": 36,
+        "ageLabel": "36",
+        "cvap": 3831.0,
+        "voted": 2220.0,
+        "shareElig": 1.71,
+        "shareVote": 1.614,
+        "turnout": 57.9
+      },
+      {
+        "age": 37,
+        "ageLabel": "37",
+        "cvap": 3434.0,
+        "voted": 2089.0,
+        "shareElig": 1.533,
+        "shareVote": 1.519,
+        "turnout": 60.8
+      },
+      {
+        "age": 38,
+        "ageLabel": "38",
+        "cvap": 3353.0,
+        "voted": 2044.0,
+        "shareElig": 1.496,
+        "shareVote": 1.486,
+        "turnout": 61.0
+      },
+      {
+        "age": 39,
+        "ageLabel": "39",
+        "cvap": 3284.0,
+        "voted": 1993.0,
+        "shareElig": 1.466,
+        "shareVote": 1.449,
+        "turnout": 60.7
+      },
+      {
+        "age": 40,
+        "ageLabel": "40",
+        "cvap": 3425.0,
+        "voted": 2031.0,
+        "shareElig": 1.529,
+        "shareVote": 1.477,
+        "turnout": 59.3
+      },
+      {
+        "age": 41,
+        "ageLabel": "41",
+        "cvap": 3411.0,
+        "voted": 2109.0,
+        "shareElig": 1.522,
+        "shareVote": 1.533,
+        "turnout": 61.8
+      },
+      {
+        "age": 42,
+        "ageLabel": "42",
+        "cvap": 3283.0,
+        "voted": 1976.0,
+        "shareElig": 1.465,
+        "shareVote": 1.437,
+        "turnout": 60.2
+      },
+      {
+        "age": 43,
+        "ageLabel": "43",
+        "cvap": 3167.0,
+        "voted": 2021.0,
+        "shareElig": 1.413,
+        "shareVote": 1.469,
+        "turnout": 63.8
+      },
+      {
+        "age": 44,
+        "ageLabel": "44",
+        "cvap": 3513.0,
+        "voted": 2101.0,
+        "shareElig": 1.568,
+        "shareVote": 1.528,
+        "turnout": 59.8
+      },
+      {
+        "age": 45,
+        "ageLabel": "45",
+        "cvap": 3867.0,
+        "voted": 2541.0,
+        "shareElig": 1.726,
+        "shareVote": 1.848,
+        "turnout": 65.7
+      },
+      {
+        "age": 46,
+        "ageLabel": "46",
+        "cvap": 3881.0,
+        "voted": 2538.0,
+        "shareElig": 1.732,
+        "shareVote": 1.845,
+        "turnout": 65.4
+      },
+      {
+        "age": 47,
+        "ageLabel": "47",
+        "cvap": 3548.0,
+        "voted": 2359.0,
+        "shareElig": 1.584,
+        "shareVote": 1.715,
+        "turnout": 66.5
+      },
+      {
+        "age": 48,
+        "ageLabel": "48",
+        "cvap": 3468.0,
+        "voted": 2230.0,
+        "shareElig": 1.548,
+        "shareVote": 1.621,
+        "turnout": 64.3
+      },
+      {
+        "age": 49,
+        "ageLabel": "49",
+        "cvap": 3718.0,
+        "voted": 2369.0,
+        "shareElig": 1.659,
+        "shareVote": 1.722,
+        "turnout": 63.7
+      },
+      {
+        "age": 50,
+        "ageLabel": "50",
+        "cvap": 3788.0,
+        "voted": 2426.0,
+        "shareElig": 1.691,
+        "shareVote": 1.764,
+        "turnout": 64.0
+      },
+      {
+        "age": 51,
+        "ageLabel": "51",
+        "cvap": 3965.0,
+        "voted": 2621.0,
+        "shareElig": 1.77,
+        "shareVote": 1.906,
+        "turnout": 66.1
+      },
+      {
+        "age": 52,
+        "ageLabel": "52",
+        "cvap": 3941.0,
+        "voted": 2637.0,
+        "shareElig": 1.759,
+        "shareVote": 1.917,
+        "turnout": 66.9
+      },
+      {
+        "age": 53,
+        "ageLabel": "53",
+        "cvap": 4126.0,
+        "voted": 2667.0,
+        "shareElig": 1.841,
+        "shareVote": 1.939,
+        "turnout": 64.6
+      },
+      {
+        "age": 54,
+        "ageLabel": "54",
+        "cvap": 3999.0,
+        "voted": 2624.0,
+        "shareElig": 1.785,
+        "shareVote": 1.908,
+        "turnout": 65.6
+      },
+      {
+        "age": 55,
+        "ageLabel": "55",
+        "cvap": 4006.0,
+        "voted": 2619.0,
+        "shareElig": 1.788,
+        "shareVote": 1.904,
+        "turnout": 65.4
+      },
+      {
+        "age": 56,
+        "ageLabel": "56",
+        "cvap": 4349.0,
+        "voted": 2843.0,
+        "shareElig": 1.941,
+        "shareVote": 2.067,
+        "turnout": 65.4
+      },
+      {
+        "age": 57,
+        "ageLabel": "57",
+        "cvap": 4237.0,
+        "voted": 2861.0,
+        "shareElig": 1.891,
+        "shareVote": 2.08,
+        "turnout": 67.5
+      },
+      {
+        "age": 58,
+        "ageLabel": "58",
+        "cvap": 4131.0,
+        "voted": 2814.0,
+        "shareElig": 1.844,
+        "shareVote": 2.046,
+        "turnout": 68.1
+      },
+      {
+        "age": 59,
+        "ageLabel": "59",
+        "cvap": 3833.0,
+        "voted": 2635.0,
+        "shareElig": 1.711,
+        "shareVote": 1.916,
+        "turnout": 68.7
+      },
+      {
+        "age": 60,
+        "ageLabel": "60",
+        "cvap": 4098.0,
+        "voted": 2701.0,
+        "shareElig": 1.829,
+        "shareVote": 1.964,
+        "turnout": 65.9
+      },
+      {
+        "age": 61,
+        "ageLabel": "61",
+        "cvap": 3758.0,
+        "voted": 2571.0,
+        "shareElig": 1.677,
+        "shareVote": 1.869,
+        "turnout": 68.4
+      },
+      {
+        "age": 62,
+        "ageLabel": "62",
+        "cvap": 3771.0,
+        "voted": 2608.0,
+        "shareElig": 1.683,
+        "shareVote": 1.896,
+        "turnout": 69.2
+      },
+      {
+        "age": 63,
+        "ageLabel": "63",
+        "cvap": 3575.0,
+        "voted": 2523.0,
+        "shareElig": 1.596,
+        "shareVote": 1.834,
+        "turnout": 70.6
+      },
+      {
+        "age": 64,
+        "ageLabel": "64",
+        "cvap": 3485.0,
+        "voted": 2483.0,
+        "shareElig": 1.555,
+        "shareVote": 1.805,
+        "turnout": 71.2
+      },
+      {
+        "age": 65,
+        "ageLabel": "65",
+        "cvap": 3450.0,
+        "voted": 2450.0,
+        "shareElig": 1.54,
+        "shareVote": 1.781,
+        "turnout": 71.0
+      },
+      {
+        "age": 66,
+        "ageLabel": "66",
+        "cvap": 3306.0,
+        "voted": 2321.0,
+        "shareElig": 1.476,
+        "shareVote": 1.688,
+        "turnout": 70.2
+      },
+      {
+        "age": 67,
+        "ageLabel": "67",
+        "cvap": 3095.0,
+        "voted": 2231.0,
+        "shareElig": 1.381,
+        "shareVote": 1.622,
+        "turnout": 72.1
+      },
+      {
+        "age": 68,
+        "ageLabel": "68",
+        "cvap": 3105.0,
+        "voted": 2217.0,
+        "shareElig": 1.386,
+        "shareVote": 1.612,
+        "turnout": 71.4
+      },
+      {
+        "age": 69,
+        "ageLabel": "69",
+        "cvap": 3169.0,
+        "voted": 2335.0,
+        "shareElig": 1.414,
+        "shareVote": 1.698,
+        "turnout": 73.7
+      },
+      {
+        "age": 70,
+        "ageLabel": "70",
+        "cvap": 2671.0,
+        "voted": 1996.0,
+        "shareElig": 1.192,
+        "shareVote": 1.451,
+        "turnout": 74.7
+      },
+      {
+        "age": 71,
+        "ageLabel": "71",
+        "cvap": 2478.0,
+        "voted": 1784.0,
+        "shareElig": 1.106,
+        "shareVote": 1.297,
+        "turnout": 72.0
+      },
+      {
+        "age": 72,
+        "ageLabel": "72",
+        "cvap": 2097.0,
+        "voted": 1561.0,
+        "shareElig": 0.936,
+        "shareVote": 1.135,
+        "turnout": 74.4
+      },
+      {
+        "age": 73,
+        "ageLabel": "73",
+        "cvap": 2392.0,
+        "voted": 1809.0,
+        "shareElig": 1.068,
+        "shareVote": 1.315,
+        "turnout": 75.6
+      },
+      {
+        "age": 74,
+        "ageLabel": "74",
+        "cvap": 2077.0,
+        "voted": 1513.0,
+        "shareElig": 0.927,
+        "shareVote": 1.1,
+        "turnout": 72.8
+      },
+      {
+        "age": 75,
+        "ageLabel": "75",
+        "cvap": 1957.0,
+        "voted": 1420.0,
+        "shareElig": 0.873,
+        "shareVote": 1.032,
+        "turnout": 72.6
+      },
+      {
+        "age": 76,
+        "ageLabel": "76",
+        "cvap": 1644.0,
+        "voted": 1147.0,
+        "shareElig": 0.734,
+        "shareVote": 0.834,
+        "turnout": 69.8
+      },
+      {
+        "age": 77,
+        "ageLabel": "77",
+        "cvap": 1701.0,
+        "voted": 1235.0,
+        "shareElig": 0.759,
+        "shareVote": 0.898,
+        "turnout": 72.6
+      },
+      {
+        "age": 78,
+        "ageLabel": "78",
+        "cvap": 1509.0,
+        "voted": 1081.0,
+        "shareElig": 0.673,
+        "shareVote": 0.786,
+        "turnout": 71.6
+      },
+      {
+        "age": 79,
+        "ageLabel": "79",
+        "cvap": 1325.0,
+        "voted": 981.0,
+        "shareElig": 0.591,
+        "shareVote": 0.713,
+        "turnout": 74.0
+      },
+      {
+        "age": 82,
+        "ageLabel": "80-84",
+        "cvap": 5539.0,
+        "voted": 3840.0,
+        "shareElig": 2.472,
+        "shareVote": 2.792,
+        "turnout": 69.3
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "cvap": 5477.0,
+        "voted": 3391.0,
+        "shareElig": 2.444,
+        "shareVote": 2.466,
+        "turnout": 61.9
+      }
+    ],
+    "2020": [
+      {
+        "age": 18,
+        "ageLabel": "18",
+        "cvap": 3767.0,
+        "voted": 1574.0,
+        "shareElig": 1.627,
+        "shareVote": 1.018,
+        "turnout": 41.8
+      },
+      {
+        "age": 19,
+        "ageLabel": "19",
+        "cvap": 3622.0,
+        "voted": 1781.0,
+        "shareElig": 1.564,
+        "shareVote": 1.152,
+        "turnout": 49.2
+      },
+      {
+        "age": 20,
+        "ageLabel": "20",
+        "cvap": 4328.0,
+        "voted": 2240.0,
+        "shareElig": 1.869,
+        "shareVote": 1.449,
+        "turnout": 51.8
+      },
+      {
+        "age": 21,
+        "ageLabel": "21",
+        "cvap": 3834.0,
+        "voted": 1923.0,
+        "shareElig": 1.655,
+        "shareVote": 1.244,
+        "turnout": 50.2
+      },
+      {
+        "age": 22,
+        "ageLabel": "22",
+        "cvap": 3732.0,
+        "voted": 2036.0,
+        "shareElig": 1.611,
+        "shareVote": 1.317,
+        "turnout": 54.6
+      },
+      {
+        "age": 23,
+        "ageLabel": "23",
+        "cvap": 3648.0,
+        "voted": 2087.0,
+        "shareElig": 1.575,
+        "shareVote": 1.35,
+        "turnout": 57.2
+      },
+      {
+        "age": 24,
+        "ageLabel": "24",
+        "cvap": 3806.0,
+        "voted": 2111.0,
+        "shareElig": 1.643,
+        "shareVote": 1.365,
+        "turnout": 55.5
+      },
+      {
+        "age": 25,
+        "ageLabel": "25",
+        "cvap": 3659.0,
+        "voted": 2022.0,
+        "shareElig": 1.58,
+        "shareVote": 1.308,
+        "turnout": 55.3
+      },
+      {
+        "age": 26,
+        "ageLabel": "26",
+        "cvap": 3843.0,
+        "voted": 2088.0,
+        "shareElig": 1.659,
+        "shareVote": 1.35,
+        "turnout": 54.3
+      },
+      {
+        "age": 27,
+        "ageLabel": "27",
+        "cvap": 4318.0,
+        "voted": 2575.0,
+        "shareElig": 1.864,
+        "shareVote": 1.665,
+        "turnout": 59.6
+      },
+      {
+        "age": 28,
+        "ageLabel": "28",
+        "cvap": 4065.0,
+        "voted": 2344.0,
+        "shareElig": 1.755,
+        "shareVote": 1.516,
+        "turnout": 57.7
+      },
+      {
+        "age": 29,
+        "ageLabel": "29",
+        "cvap": 4421.0,
+        "voted": 2672.0,
+        "shareElig": 1.909,
+        "shareVote": 1.728,
+        "turnout": 60.4
+      },
+      {
+        "age": 30,
+        "ageLabel": "30",
+        "cvap": 4173.0,
+        "voted": 2523.0,
+        "shareElig": 1.802,
+        "shareVote": 1.632,
+        "turnout": 60.5
+      },
+      {
+        "age": 31,
+        "ageLabel": "31",
+        "cvap": 4084.0,
+        "voted": 2507.0,
+        "shareElig": 1.763,
+        "shareVote": 1.621,
+        "turnout": 61.4
+      },
+      {
+        "age": 32,
+        "ageLabel": "32",
+        "cvap": 3802.0,
+        "voted": 2550.0,
+        "shareElig": 1.642,
+        "shareVote": 1.649,
+        "turnout": 67.1
+      },
+      {
+        "age": 33,
+        "ageLabel": "33",
+        "cvap": 3778.0,
+        "voted": 2407.0,
+        "shareElig": 1.631,
+        "shareVote": 1.557,
+        "turnout": 63.7
+      },
+      {
+        "age": 34,
+        "ageLabel": "34",
+        "cvap": 3819.0,
+        "voted": 2403.0,
+        "shareElig": 1.649,
+        "shareVote": 1.554,
+        "turnout": 62.9
+      },
+      {
+        "age": 35,
+        "ageLabel": "35",
+        "cvap": 3917.0,
+        "voted": 2463.0,
+        "shareElig": 1.691,
+        "shareVote": 1.593,
+        "turnout": 62.9
+      },
+      {
+        "age": 36,
+        "ageLabel": "36",
+        "cvap": 3949.0,
+        "voted": 2538.0,
+        "shareElig": 1.705,
+        "shareVote": 1.641,
+        "turnout": 64.3
+      },
+      {
+        "age": 37,
+        "ageLabel": "37",
+        "cvap": 3452.0,
+        "voted": 2223.0,
+        "shareElig": 1.491,
+        "shareVote": 1.438,
+        "turnout": 64.4
+      },
+      {
+        "age": 38,
+        "ageLabel": "38",
+        "cvap": 3820.0,
+        "voted": 2595.0,
+        "shareElig": 1.649,
+        "shareVote": 1.678,
+        "turnout": 67.9
+      },
+      {
+        "age": 39,
+        "ageLabel": "39",
+        "cvap": 3456.0,
+        "voted": 2270.0,
+        "shareElig": 1.492,
+        "shareVote": 1.468,
+        "turnout": 65.7
+      },
+      {
+        "age": 40,
+        "ageLabel": "40",
+        "cvap": 3711.0,
+        "voted": 2382.0,
+        "shareElig": 1.602,
+        "shareVote": 1.54,
+        "turnout": 64.2
+      },
+      {
+        "age": 41,
+        "ageLabel": "41",
+        "cvap": 3420.0,
+        "voted": 2205.0,
+        "shareElig": 1.477,
+        "shareVote": 1.426,
+        "turnout": 64.5
+      },
+      {
+        "age": 42,
+        "ageLabel": "42",
+        "cvap": 3495.0,
+        "voted": 2295.0,
+        "shareElig": 1.509,
+        "shareVote": 1.484,
+        "turnout": 65.7
+      },
+      {
+        "age": 43,
+        "ageLabel": "43",
+        "cvap": 3347.0,
+        "voted": 2252.0,
+        "shareElig": 1.445,
+        "shareVote": 1.456,
+        "turnout": 67.3
+      },
+      {
+        "age": 44,
+        "ageLabel": "44",
+        "cvap": 3410.0,
+        "voted": 2198.0,
+        "shareElig": 1.472,
+        "shareVote": 1.421,
+        "turnout": 64.5
+      },
+      {
+        "age": 45,
+        "ageLabel": "45",
+        "cvap": 3550.0,
+        "voted": 2346.0,
+        "shareElig": 1.533,
+        "shareVote": 1.517,
+        "turnout": 66.1
+      },
+      {
+        "age": 46,
+        "ageLabel": "46",
+        "cvap": 3412.0,
+        "voted": 2307.0,
+        "shareElig": 1.473,
+        "shareVote": 1.492,
+        "turnout": 67.6
+      },
+      {
+        "age": 47,
+        "ageLabel": "47",
+        "cvap": 3378.0,
+        "voted": 2273.0,
+        "shareElig": 1.459,
+        "shareVote": 1.47,
+        "turnout": 67.3
+      },
+      {
+        "age": 48,
+        "ageLabel": "48",
+        "cvap": 3473.0,
+        "voted": 2387.0,
+        "shareElig": 1.5,
+        "shareVote": 1.544,
+        "turnout": 68.7
+      },
+      {
+        "age": 49,
+        "ageLabel": "49",
+        "cvap": 3625.0,
+        "voted": 2472.0,
+        "shareElig": 1.565,
+        "shareVote": 1.599,
+        "turnout": 68.2
+      },
+      {
+        "age": 50,
+        "ageLabel": "50",
+        "cvap": 3766.0,
+        "voted": 2697.0,
+        "shareElig": 1.626,
+        "shareVote": 1.744,
+        "turnout": 71.6
+      },
+      {
+        "age": 51,
+        "ageLabel": "51",
+        "cvap": 3879.0,
+        "voted": 2651.0,
+        "shareElig": 1.675,
+        "shareVote": 1.714,
+        "turnout": 68.3
+      },
+      {
+        "age": 52,
+        "ageLabel": "52",
+        "cvap": 3673.0,
+        "voted": 2609.0,
+        "shareElig": 1.586,
+        "shareVote": 1.687,
+        "turnout": 71.0
+      },
+      {
+        "age": 53,
+        "ageLabel": "53",
+        "cvap": 3656.0,
+        "voted": 2596.0,
+        "shareElig": 1.579,
+        "shareVote": 1.679,
+        "turnout": 71.0
+      },
+      {
+        "age": 54,
+        "ageLabel": "54",
+        "cvap": 3501.0,
+        "voted": 2453.0,
+        "shareElig": 1.512,
+        "shareVote": 1.586,
+        "turnout": 70.1
+      },
+      {
+        "age": 55,
+        "ageLabel": "55",
+        "cvap": 4111.0,
+        "voted": 2897.0,
+        "shareElig": 1.775,
+        "shareVote": 1.874,
+        "turnout": 70.5
+      },
+      {
+        "age": 56,
+        "ageLabel": "56",
+        "cvap": 3740.0,
+        "voted": 2678.0,
+        "shareElig": 1.615,
+        "shareVote": 1.732,
+        "turnout": 71.6
+      },
+      {
+        "age": 57,
+        "ageLabel": "57",
+        "cvap": 3744.0,
+        "voted": 2745.0,
+        "shareElig": 1.617,
+        "shareVote": 1.775,
+        "turnout": 73.3
+      },
+      {
+        "age": 58,
+        "ageLabel": "58",
+        "cvap": 3876.0,
+        "voted": 2782.0,
+        "shareElig": 1.674,
+        "shareVote": 1.799,
+        "turnout": 71.8
+      },
+      {
+        "age": 59,
+        "ageLabel": "59",
+        "cvap": 4082.0,
+        "voted": 2924.0,
+        "shareElig": 1.763,
+        "shareVote": 1.891,
+        "turnout": 71.6
+      },
+      {
+        "age": 60,
+        "ageLabel": "60",
+        "cvap": 4291.0,
+        "voted": 3109.0,
+        "shareElig": 1.853,
+        "shareVote": 2.011,
+        "turnout": 72.5
+      },
+      {
+        "age": 61,
+        "ageLabel": "61",
+        "cvap": 4126.0,
+        "voted": 2892.0,
+        "shareElig": 1.782,
+        "shareVote": 1.87,
+        "turnout": 70.1
+      },
+      {
+        "age": 62,
+        "ageLabel": "62",
+        "cvap": 3867.0,
+        "voted": 2849.0,
+        "shareElig": 1.67,
+        "shareVote": 1.842,
+        "turnout": 73.7
+      },
+      {
+        "age": 63,
+        "ageLabel": "63",
+        "cvap": 3918.0,
+        "voted": 3032.0,
+        "shareElig": 1.692,
+        "shareVote": 1.961,
+        "turnout": 77.4
+      },
+      {
+        "age": 64,
+        "ageLabel": "64",
+        "cvap": 3922.0,
+        "voted": 2946.0,
+        "shareElig": 1.693,
+        "shareVote": 1.905,
+        "turnout": 75.1
+      },
+      {
+        "age": 65,
+        "ageLabel": "65",
+        "cvap": 3780.0,
+        "voted": 2839.0,
+        "shareElig": 1.632,
+        "shareVote": 1.836,
+        "turnout": 75.1
+      },
+      {
+        "age": 66,
+        "ageLabel": "66",
+        "cvap": 3587.0,
+        "voted": 2731.0,
+        "shareElig": 1.549,
+        "shareVote": 1.766,
+        "turnout": 76.1
+      },
+      {
+        "age": 67,
+        "ageLabel": "67",
+        "cvap": 3449.0,
+        "voted": 2604.0,
+        "shareElig": 1.489,
+        "shareVote": 1.684,
+        "turnout": 75.5
+      },
+      {
+        "age": 68,
+        "ageLabel": "68",
+        "cvap": 3278.0,
+        "voted": 2480.0,
+        "shareElig": 1.415,
+        "shareVote": 1.604,
+        "turnout": 75.7
+      },
+      {
+        "age": 69,
+        "ageLabel": "69",
+        "cvap": 3199.0,
+        "voted": 2432.0,
+        "shareElig": 1.381,
+        "shareVote": 1.573,
+        "turnout": 76.0
+      },
+      {
+        "age": 70,
+        "ageLabel": "70",
+        "cvap": 3025.0,
+        "voted": 2242.0,
+        "shareElig": 1.306,
+        "shareVote": 1.45,
+        "turnout": 74.1
+      },
+      {
+        "age": 71,
+        "ageLabel": "71",
+        "cvap": 2896.0,
+        "voted": 2182.0,
+        "shareElig": 1.25,
+        "shareVote": 1.411,
+        "turnout": 75.3
+      },
+      {
+        "age": 72,
+        "ageLabel": "72",
+        "cvap": 3054.0,
+        "voted": 2394.0,
+        "shareElig": 1.319,
+        "shareVote": 1.548,
+        "turnout": 78.4
+      },
+      {
+        "age": 73,
+        "ageLabel": "73",
+        "cvap": 2874.0,
+        "voted": 2253.0,
+        "shareElig": 1.241,
+        "shareVote": 1.457,
+        "turnout": 78.4
+      },
+      {
+        "age": 74,
+        "ageLabel": "74",
+        "cvap": 2508.0,
+        "voted": 1894.0,
+        "shareElig": 1.083,
+        "shareVote": 1.225,
+        "turnout": 75.5
+      },
+      {
+        "age": 75,
+        "ageLabel": "75",
+        "cvap": 2208.0,
+        "voted": 1703.0,
+        "shareElig": 0.953,
+        "shareVote": 1.101,
+        "turnout": 77.1
+      },
+      {
+        "age": 76,
+        "ageLabel": "76",
+        "cvap": 2058.0,
+        "voted": 1604.0,
+        "shareElig": 0.889,
+        "shareVote": 1.037,
+        "turnout": 77.9
+      },
+      {
+        "age": 77,
+        "ageLabel": "77",
+        "cvap": 1900.0,
+        "voted": 1460.0,
+        "shareElig": 0.82,
+        "shareVote": 0.944,
+        "turnout": 76.8
+      },
+      {
+        "age": 78,
+        "ageLabel": "78",
+        "cvap": 1891.0,
+        "voted": 1506.0,
+        "shareElig": 0.817,
+        "shareVote": 0.974,
+        "turnout": 79.6
+      },
+      {
+        "age": 79,
+        "ageLabel": "79",
+        "cvap": 1591.0,
+        "voted": 1181.0,
+        "shareElig": 0.687,
+        "shareVote": 0.764,
+        "turnout": 74.2
+      },
+      {
+        "age": 82,
+        "ageLabel": "80-84",
+        "cvap": 6291.0,
+        "voted": 4596.0,
+        "shareElig": 2.716,
+        "shareVote": 2.972,
+        "turnout": 73.1
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "cvap": 5739.0,
+        "voted": 3617.0,
+        "shareElig": 2.478,
+        "shareVote": 2.339,
+        "turnout": 63.0
+      }
+    ],
+    "2022": [
+      {
+        "age": 18,
+        "ageLabel": "18",
+        "cvap": 3984.0,
+        "voted": 781.0,
+        "shareElig": 1.706,
+        "shareVote": 0.641,
+        "turnout": 19.6
+      },
+      {
+        "age": 19,
+        "ageLabel": "19",
+        "cvap": 3418.0,
+        "voted": 837.0,
+        "shareElig": 1.464,
+        "shareVote": 0.687,
+        "turnout": 24.5
+      },
+      {
+        "age": 20,
+        "ageLabel": "20",
+        "cvap": 3714.0,
+        "voted": 1099.0,
+        "shareElig": 1.59,
+        "shareVote": 0.901,
+        "turnout": 29.6
+      },
+      {
+        "age": 21,
+        "ageLabel": "21",
+        "cvap": 3820.0,
+        "voted": 1131.0,
+        "shareElig": 1.636,
+        "shareVote": 0.928,
+        "turnout": 29.6
+      },
+      {
+        "age": 22,
+        "ageLabel": "22",
+        "cvap": 4073.0,
+        "voted": 1217.0,
+        "shareElig": 1.744,
+        "shareVote": 0.998,
+        "turnout": 29.9
+      },
+      {
+        "age": 23,
+        "ageLabel": "23",
+        "cvap": 3821.0,
+        "voted": 1069.0,
+        "shareElig": 1.636,
+        "shareVote": 0.877,
+        "turnout": 28.0
+      },
+      {
+        "age": 24,
+        "ageLabel": "24",
+        "cvap": 3920.0,
+        "voted": 1237.0,
+        "shareElig": 1.678,
+        "shareVote": 1.015,
+        "turnout": 31.6
+      },
+      {
+        "age": 25,
+        "ageLabel": "25",
+        "cvap": 3762.0,
+        "voted": 1281.0,
+        "shareElig": 1.611,
+        "shareVote": 1.051,
+        "turnout": 34.1
+      },
+      {
+        "age": 26,
+        "ageLabel": "26",
+        "cvap": 3577.0,
+        "voted": 1226.0,
+        "shareElig": 1.532,
+        "shareVote": 1.006,
+        "turnout": 34.3
+      },
+      {
+        "age": 27,
+        "ageLabel": "27",
+        "cvap": 3814.0,
+        "voted": 1367.0,
+        "shareElig": 1.633,
+        "shareVote": 1.121,
+        "turnout": 35.8
+      },
+      {
+        "age": 28,
+        "ageLabel": "28",
+        "cvap": 3938.0,
+        "voted": 1502.0,
+        "shareElig": 1.686,
+        "shareVote": 1.232,
+        "turnout": 38.1
+      },
+      {
+        "age": 29,
+        "ageLabel": "29",
+        "cvap": 3980.0,
+        "voted": 1540.0,
+        "shareElig": 1.704,
+        "shareVote": 1.263,
+        "turnout": 38.7
+      },
+      {
+        "age": 30,
+        "ageLabel": "30",
+        "cvap": 3890.0,
+        "voted": 1446.0,
+        "shareElig": 1.666,
+        "shareVote": 1.186,
+        "turnout": 37.2
+      },
+      {
+        "age": 31,
+        "ageLabel": "31",
+        "cvap": 4009.0,
+        "voted": 1760.0,
+        "shareElig": 1.717,
+        "shareVote": 1.444,
+        "turnout": 43.9
+      },
+      {
+        "age": 32,
+        "ageLabel": "32",
+        "cvap": 4142.0,
+        "voted": 1800.0,
+        "shareElig": 1.774,
+        "shareVote": 1.476,
+        "turnout": 43.5
+      },
+      {
+        "age": 33,
+        "ageLabel": "33",
+        "cvap": 4040.0,
+        "voted": 1820.0,
+        "shareElig": 1.73,
+        "shareVote": 1.493,
+        "turnout": 45.0
+      },
+      {
+        "age": 34,
+        "ageLabel": "34",
+        "cvap": 3727.0,
+        "voted": 1654.0,
+        "shareElig": 1.596,
+        "shareVote": 1.357,
+        "turnout": 44.4
+      },
+      {
+        "age": 35,
+        "ageLabel": "35",
+        "cvap": 3854.0,
+        "voted": 1730.0,
+        "shareElig": 1.65,
+        "shareVote": 1.419,
+        "turnout": 44.9
+      },
+      {
+        "age": 36,
+        "ageLabel": "36",
+        "cvap": 3889.0,
+        "voted": 1927.0,
+        "shareElig": 1.665,
+        "shareVote": 1.581,
+        "turnout": 49.6
+      },
+      {
+        "age": 37,
+        "ageLabel": "37",
+        "cvap": 3895.0,
+        "voted": 1843.0,
+        "shareElig": 1.668,
+        "shareVote": 1.512,
+        "turnout": 47.3
+      },
+      {
+        "age": 38,
+        "ageLabel": "38",
+        "cvap": 3840.0,
+        "voted": 1713.0,
+        "shareElig": 1.644,
+        "shareVote": 1.405,
+        "turnout": 44.6
+      },
+      {
+        "age": 39,
+        "ageLabel": "39",
+        "cvap": 3471.0,
+        "voted": 1694.0,
+        "shareElig": 1.486,
+        "shareVote": 1.39,
+        "turnout": 48.8
+      },
+      {
+        "age": 40,
+        "ageLabel": "40",
+        "cvap": 3751.0,
+        "voted": 1953.0,
+        "shareElig": 1.606,
+        "shareVote": 1.602,
+        "turnout": 52.1
+      },
+      {
+        "age": 41,
+        "ageLabel": "41",
+        "cvap": 4044.0,
+        "voted": 2048.0,
+        "shareElig": 1.732,
+        "shareVote": 1.68,
+        "turnout": 50.6
+      },
+      {
+        "age": 42,
+        "ageLabel": "42",
+        "cvap": 3854.0,
+        "voted": 1880.0,
+        "shareElig": 1.65,
+        "shareVote": 1.542,
+        "turnout": 48.8
+      },
+      {
+        "age": 43,
+        "ageLabel": "43",
+        "cvap": 3638.0,
+        "voted": 1915.0,
+        "shareElig": 1.558,
+        "shareVote": 1.571,
+        "turnout": 52.6
+      },
+      {
+        "age": 44,
+        "ageLabel": "44",
+        "cvap": 3256.0,
+        "voted": 1699.0,
+        "shareElig": 1.394,
+        "shareVote": 1.394,
+        "turnout": 52.2
+      },
+      {
+        "age": 45,
+        "ageLabel": "45",
+        "cvap": 3540.0,
+        "voted": 1839.0,
+        "shareElig": 1.516,
+        "shareVote": 1.508,
+        "turnout": 51.9
+      },
+      {
+        "age": 46,
+        "ageLabel": "46",
+        "cvap": 3418.0,
+        "voted": 1806.0,
+        "shareElig": 1.464,
+        "shareVote": 1.481,
+        "turnout": 52.8
+      },
+      {
+        "age": 47,
+        "ageLabel": "47",
+        "cvap": 3305.0,
+        "voted": 1839.0,
+        "shareElig": 1.415,
+        "shareVote": 1.508,
+        "turnout": 55.6
+      },
+      {
+        "age": 48,
+        "ageLabel": "48",
+        "cvap": 3550.0,
+        "voted": 1822.0,
+        "shareElig": 1.52,
+        "shareVote": 1.494,
+        "turnout": 51.3
+      },
+      {
+        "age": 49,
+        "ageLabel": "49",
+        "cvap": 3293.0,
+        "voted": 1794.0,
+        "shareElig": 1.41,
+        "shareVote": 1.472,
+        "turnout": 54.5
+      },
+      {
+        "age": 50,
+        "ageLabel": "50",
+        "cvap": 3482.0,
+        "voted": 1962.0,
+        "shareElig": 1.491,
+        "shareVote": 1.609,
+        "turnout": 56.3
+      },
+      {
+        "age": 51,
+        "ageLabel": "51",
+        "cvap": 3737.0,
+        "voted": 2001.0,
+        "shareElig": 1.6,
+        "shareVote": 1.641,
+        "turnout": 53.5
+      },
+      {
+        "age": 52,
+        "ageLabel": "52",
+        "cvap": 3885.0,
+        "voted": 2226.0,
+        "shareElig": 1.663,
+        "shareVote": 1.826,
+        "turnout": 57.3
+      },
+      {
+        "age": 53,
+        "ageLabel": "53",
+        "cvap": 3867.0,
+        "voted": 2220.0,
+        "shareElig": 1.656,
+        "shareVote": 1.821,
+        "turnout": 57.4
+      },
+      {
+        "age": 54,
+        "ageLabel": "54",
+        "cvap": 3692.0,
+        "voted": 2035.0,
+        "shareElig": 1.581,
+        "shareVote": 1.669,
+        "turnout": 55.1
+      },
+      {
+        "age": 55,
+        "ageLabel": "55",
+        "cvap": 3620.0,
+        "voted": 2165.0,
+        "shareElig": 1.55,
+        "shareVote": 1.776,
+        "turnout": 59.8
+      },
+      {
+        "age": 56,
+        "ageLabel": "56",
+        "cvap": 3631.0,
+        "voted": 2043.0,
+        "shareElig": 1.555,
+        "shareVote": 1.676,
+        "turnout": 56.3
+      },
+      {
+        "age": 57,
+        "ageLabel": "57",
+        "cvap": 3790.0,
+        "voted": 2192.0,
+        "shareElig": 1.623,
+        "shareVote": 1.798,
+        "turnout": 57.8
+      },
+      {
+        "age": 58,
+        "ageLabel": "58",
+        "cvap": 3979.0,
+        "voted": 2501.0,
+        "shareElig": 1.704,
+        "shareVote": 2.051,
+        "turnout": 62.9
+      },
+      {
+        "age": 59,
+        "ageLabel": "59",
+        "cvap": 4104.0,
+        "voted": 2627.0,
+        "shareElig": 1.757,
+        "shareVote": 2.155,
+        "turnout": 64.0
+      },
+      {
+        "age": 60,
+        "ageLabel": "60",
+        "cvap": 4094.0,
+        "voted": 2405.0,
+        "shareElig": 1.753,
+        "shareVote": 1.973,
+        "turnout": 58.7
+      },
+      {
+        "age": 61,
+        "ageLabel": "61",
+        "cvap": 3872.0,
+        "voted": 2432.0,
+        "shareElig": 1.658,
+        "shareVote": 1.995,
+        "turnout": 62.8
+      },
+      {
+        "age": 62,
+        "ageLabel": "62",
+        "cvap": 4174.0,
+        "voted": 2705.0,
+        "shareElig": 1.787,
+        "shareVote": 2.219,
+        "turnout": 64.8
+      },
+      {
+        "age": 63,
+        "ageLabel": "63",
+        "cvap": 3866.0,
+        "voted": 2453.0,
+        "shareElig": 1.655,
+        "shareVote": 2.012,
+        "turnout": 63.5
+      },
+      {
+        "age": 64,
+        "ageLabel": "64",
+        "cvap": 4044.0,
+        "voted": 2592.0,
+        "shareElig": 1.732,
+        "shareVote": 2.126,
+        "turnout": 64.1
+      },
+      {
+        "age": 65,
+        "ageLabel": "65",
+        "cvap": 3753.0,
+        "voted": 2528.0,
+        "shareElig": 1.607,
+        "shareVote": 2.074,
+        "turnout": 67.4
+      },
+      {
+        "age": 66,
+        "ageLabel": "66",
+        "cvap": 3684.0,
+        "voted": 2384.0,
+        "shareElig": 1.577,
+        "shareVote": 1.955,
+        "turnout": 64.7
+      },
+      {
+        "age": 67,
+        "ageLabel": "67",
+        "cvap": 3609.0,
+        "voted": 2393.0,
+        "shareElig": 1.545,
+        "shareVote": 1.963,
+        "turnout": 66.3
+      },
+      {
+        "age": 68,
+        "ageLabel": "68",
+        "cvap": 3567.0,
+        "voted": 2404.0,
+        "shareElig": 1.527,
+        "shareVote": 1.972,
+        "turnout": 67.4
+      },
+      {
+        "age": 69,
+        "ageLabel": "69",
+        "cvap": 3302.0,
+        "voted": 2371.0,
+        "shareElig": 1.414,
+        "shareVote": 1.945,
+        "turnout": 71.8
+      },
+      {
+        "age": 70,
+        "ageLabel": "70",
+        "cvap": 3163.0,
+        "voted": 2202.0,
+        "shareElig": 1.354,
+        "shareVote": 1.806,
+        "turnout": 69.6
+      },
+      {
+        "age": 71,
+        "ageLabel": "71",
+        "cvap": 2987.0,
+        "voted": 2070.0,
+        "shareElig": 1.279,
+        "shareVote": 1.698,
+        "turnout": 69.3
+      },
+      {
+        "age": 72,
+        "ageLabel": "72",
+        "cvap": 3170.0,
+        "voted": 2100.0,
+        "shareElig": 1.357,
+        "shareVote": 1.723,
+        "turnout": 66.2
+      },
+      {
+        "age": 73,
+        "ageLabel": "73",
+        "cvap": 2847.0,
+        "voted": 1936.0,
+        "shareElig": 1.219,
+        "shareVote": 1.588,
+        "turnout": 68.0
+      },
+      {
+        "age": 74,
+        "ageLabel": "74",
+        "cvap": 2830.0,
+        "voted": 1981.0,
+        "shareElig": 1.212,
+        "shareVote": 1.625,
+        "turnout": 70.0
+      },
+      {
+        "age": 75,
+        "ageLabel": "75",
+        "cvap": 2904.0,
+        "voted": 1965.0,
+        "shareElig": 1.243,
+        "shareVote": 1.612,
+        "turnout": 67.7
+      },
+      {
+        "age": 76,
+        "ageLabel": "76",
+        "cvap": 2253.0,
+        "voted": 1556.0,
+        "shareElig": 0.965,
+        "shareVote": 1.276,
+        "turnout": 69.1
+      },
+      {
+        "age": 77,
+        "ageLabel": "77",
+        "cvap": 1865.0,
+        "voted": 1300.0,
+        "shareElig": 0.799,
+        "shareVote": 1.066,
+        "turnout": 69.7
+      },
+      {
+        "age": 78,
+        "ageLabel": "78",
+        "cvap": 1744.0,
+        "voted": 1206.0,
+        "shareElig": 0.747,
+        "shareVote": 0.989,
+        "turnout": 69.2
+      },
+      {
+        "age": 79,
+        "ageLabel": "79",
+        "cvap": 1772.0,
+        "voted": 1235.0,
+        "shareElig": 0.759,
+        "shareVote": 1.013,
+        "turnout": 69.7
+      },
+      {
+        "age": 82,
+        "ageLabel": "80-84",
+        "cvap": 6415.0,
+        "voted": 4241.0,
+        "shareElig": 2.747,
+        "shareVote": 3.479,
+        "turnout": 66.1
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "cvap": 5618.0,
+        "voted": 3214.0,
+        "shareElig": 2.406,
+        "shareVote": 2.636,
+        "turnout": 57.2
+      }
+    ],
+    "2024": [
+      {
+        "age": 18,
+        "ageLabel": "18",
+        "cvap": 4258.0,
+        "voted": 1586.0,
+        "shareElig": 1.803,
+        "shareVote": 1.028,
+        "turnout": 37.2
+      },
+      {
+        "age": 19,
+        "ageLabel": "19",
+        "cvap": 3796.0,
+        "voted": 1744.0,
+        "shareElig": 1.608,
+        "shareVote": 1.13,
+        "turnout": 45.9
+      },
+      {
+        "age": 20,
+        "ageLabel": "20",
+        "cvap": 3733.0,
+        "voted": 1664.0,
+        "shareElig": 1.581,
+        "shareVote": 1.078,
+        "turnout": 44.6
+      },
+      {
+        "age": 21,
+        "ageLabel": "21",
+        "cvap": 4014.0,
+        "voted": 1887.0,
+        "shareElig": 1.7,
+        "shareVote": 1.223,
+        "turnout": 47.0
+      },
+      {
+        "age": 22,
+        "ageLabel": "22",
+        "cvap": 3865.0,
+        "voted": 2054.0,
+        "shareElig": 1.637,
+        "shareVote": 1.331,
+        "turnout": 53.1
+      },
+      {
+        "age": 23,
+        "ageLabel": "23",
+        "cvap": 3555.0,
+        "voted": 1939.0,
+        "shareElig": 1.505,
+        "shareVote": 1.257,
+        "turnout": 54.5
+      },
+      {
+        "age": 24,
+        "ageLabel": "24",
+        "cvap": 4326.0,
+        "voted": 2276.0,
+        "shareElig": 1.832,
+        "shareVote": 1.475,
+        "turnout": 52.6
+      },
+      {
+        "age": 25,
+        "ageLabel": "25",
+        "cvap": 3604.0,
+        "voted": 1852.0,
+        "shareElig": 1.526,
+        "shareVote": 1.2,
+        "turnout": 51.4
+      },
+      {
+        "age": 26,
+        "ageLabel": "26",
+        "cvap": 3881.0,
+        "voted": 2227.0,
+        "shareElig": 1.644,
+        "shareVote": 1.443,
+        "turnout": 57.4
+      },
+      {
+        "age": 27,
+        "ageLabel": "27",
+        "cvap": 3718.0,
+        "voted": 1958.0,
+        "shareElig": 1.575,
+        "shareVote": 1.269,
+        "turnout": 52.7
+      },
+      {
+        "age": 28,
+        "ageLabel": "28",
+        "cvap": 3871.0,
+        "voted": 2134.0,
+        "shareElig": 1.639,
+        "shareVote": 1.383,
+        "turnout": 55.1
+      },
+      {
+        "age": 29,
+        "ageLabel": "29",
+        "cvap": 3757.0,
+        "voted": 2216.0,
+        "shareElig": 1.591,
+        "shareVote": 1.436,
+        "turnout": 59.0
+      },
+      {
+        "age": 30,
+        "ageLabel": "30",
+        "cvap": 4094.0,
+        "voted": 2375.0,
+        "shareElig": 1.734,
+        "shareVote": 1.539,
+        "turnout": 58.0
+      },
+      {
+        "age": 31,
+        "ageLabel": "31",
+        "cvap": 3916.0,
+        "voted": 2285.0,
+        "shareElig": 1.658,
+        "shareVote": 1.481,
+        "turnout": 58.4
+      },
+      {
+        "age": 32,
+        "ageLabel": "32",
+        "cvap": 3942.0,
+        "voted": 2288.0,
+        "shareElig": 1.669,
+        "shareVote": 1.483,
+        "turnout": 58.0
+      },
+      {
+        "age": 33,
+        "ageLabel": "33",
+        "cvap": 3918.0,
+        "voted": 2330.0,
+        "shareElig": 1.659,
+        "shareVote": 1.51,
+        "turnout": 59.5
+      },
+      {
+        "age": 34,
+        "ageLabel": "34",
+        "cvap": 4263.0,
+        "voted": 2483.0,
+        "shareElig": 1.805,
+        "shareVote": 1.609,
+        "turnout": 58.2
+      },
+      {
+        "age": 35,
+        "ageLabel": "35",
+        "cvap": 3932.0,
+        "voted": 2255.0,
+        "shareElig": 1.665,
+        "shareVote": 1.461,
+        "turnout": 57.3
+      },
+      {
+        "age": 36,
+        "ageLabel": "36",
+        "cvap": 3887.0,
+        "voted": 2364.0,
+        "shareElig": 1.646,
+        "shareVote": 1.532,
+        "turnout": 60.8
+      },
+      {
+        "age": 37,
+        "ageLabel": "37",
+        "cvap": 3784.0,
+        "voted": 2436.0,
+        "shareElig": 1.602,
+        "shareVote": 1.579,
+        "turnout": 64.4
+      },
+      {
+        "age": 38,
+        "ageLabel": "38",
+        "cvap": 4101.0,
+        "voted": 2608.0,
+        "shareElig": 1.737,
+        "shareVote": 1.69,
+        "turnout": 63.6
+      },
+      {
+        "age": 39,
+        "ageLabel": "39",
+        "cvap": 3684.0,
+        "voted": 2379.0,
+        "shareElig": 1.56,
+        "shareVote": 1.542,
+        "turnout": 64.6
+      },
+      {
+        "age": 40,
+        "ageLabel": "40",
+        "cvap": 4009.0,
+        "voted": 2635.0,
+        "shareElig": 1.698,
+        "shareVote": 1.708,
+        "turnout": 65.7
+      },
+      {
+        "age": 41,
+        "ageLabel": "41",
+        "cvap": 3659.0,
+        "voted": 2458.0,
+        "shareElig": 1.55,
+        "shareVote": 1.593,
+        "turnout": 67.2
+      },
+      {
+        "age": 42,
+        "ageLabel": "42",
+        "cvap": 3579.0,
+        "voted": 2271.0,
+        "shareElig": 1.516,
+        "shareVote": 1.472,
+        "turnout": 63.5
+      },
+      {
+        "age": 43,
+        "ageLabel": "43",
+        "cvap": 3561.0,
+        "voted": 2322.0,
+        "shareElig": 1.508,
+        "shareVote": 1.505,
+        "turnout": 65.2
+      },
+      {
+        "age": 44,
+        "ageLabel": "44",
+        "cvap": 4032.0,
+        "voted": 2611.0,
+        "shareElig": 1.707,
+        "shareVote": 1.692,
+        "turnout": 64.8
+      },
+      {
+        "age": 45,
+        "ageLabel": "45",
+        "cvap": 3545.0,
+        "voted": 2461.0,
+        "shareElig": 1.501,
+        "shareVote": 1.595,
+        "turnout": 69.4
+      },
+      {
+        "age": 46,
+        "ageLabel": "46",
+        "cvap": 3555.0,
+        "voted": 2496.0,
+        "shareElig": 1.505,
+        "shareVote": 1.618,
+        "turnout": 70.2
+      },
+      {
+        "age": 47,
+        "ageLabel": "47",
+        "cvap": 3566.0,
+        "voted": 2389.0,
+        "shareElig": 1.51,
+        "shareVote": 1.548,
+        "turnout": 67.0
+      },
+      {
+        "age": 48,
+        "ageLabel": "48",
+        "cvap": 3566.0,
+        "voted": 2425.0,
+        "shareElig": 1.51,
+        "shareVote": 1.572,
+        "turnout": 68.0
+      },
+      {
+        "age": 49,
+        "ageLabel": "49",
+        "cvap": 3166.0,
+        "voted": 2172.0,
+        "shareElig": 1.341,
+        "shareVote": 1.408,
+        "turnout": 68.6
+      },
+      {
+        "age": 50,
+        "ageLabel": "50",
+        "cvap": 3572.0,
+        "voted": 2348.0,
+        "shareElig": 1.513,
+        "shareVote": 1.522,
+        "turnout": 65.7
+      },
+      {
+        "age": 51,
+        "ageLabel": "51",
+        "cvap": 3380.0,
+        "voted": 2392.0,
+        "shareElig": 1.431,
+        "shareVote": 1.55,
+        "turnout": 70.8
+      },
+      {
+        "age": 52,
+        "ageLabel": "52",
+        "cvap": 3518.0,
+        "voted": 2389.0,
+        "shareElig": 1.49,
+        "shareVote": 1.548,
+        "turnout": 67.9
+      },
+      {
+        "age": 53,
+        "ageLabel": "53",
+        "cvap": 3644.0,
+        "voted": 2473.0,
+        "shareElig": 1.543,
+        "shareVote": 1.603,
+        "turnout": 67.9
+      },
+      {
+        "age": 54,
+        "ageLabel": "54",
+        "cvap": 3910.0,
+        "voted": 2795.0,
+        "shareElig": 1.656,
+        "shareVote": 1.811,
+        "turnout": 71.5
+      },
+      {
+        "age": 55,
+        "ageLabel": "55",
+        "cvap": 3733.0,
+        "voted": 2622.0,
+        "shareElig": 1.581,
+        "shareVote": 1.699,
+        "turnout": 70.2
+      },
+      {
+        "age": 56,
+        "ageLabel": "56",
+        "cvap": 3514.0,
+        "voted": 2546.0,
+        "shareElig": 1.488,
+        "shareVote": 1.65,
+        "turnout": 72.5
+      },
+      {
+        "age": 57,
+        "ageLabel": "57",
+        "cvap": 3482.0,
+        "voted": 2373.0,
+        "shareElig": 1.475,
+        "shareVote": 1.538,
+        "turnout": 68.2
+      },
+      {
+        "age": 58,
+        "ageLabel": "58",
+        "cvap": 3438.0,
+        "voted": 2456.0,
+        "shareElig": 1.456,
+        "shareVote": 1.592,
+        "turnout": 71.4
+      },
+      {
+        "age": 59,
+        "ageLabel": "59",
+        "cvap": 4086.0,
+        "voted": 2861.0,
+        "shareElig": 1.73,
+        "shareVote": 1.854,
+        "turnout": 70.0
+      },
+      {
+        "age": 60,
+        "ageLabel": "60",
+        "cvap": 3905.0,
+        "voted": 2707.0,
+        "shareElig": 1.654,
+        "shareVote": 1.754,
+        "turnout": 69.3
+      },
+      {
+        "age": 61,
+        "ageLabel": "61",
+        "cvap": 4020.0,
+        "voted": 2808.0,
+        "shareElig": 1.702,
+        "shareVote": 1.82,
+        "turnout": 69.9
+      },
+      {
+        "age": 62,
+        "ageLabel": "62",
+        "cvap": 3909.0,
+        "voted": 2918.0,
+        "shareElig": 1.655,
+        "shareVote": 1.891,
+        "turnout": 74.6
+      },
+      {
+        "age": 63,
+        "ageLabel": "63",
+        "cvap": 3809.0,
+        "voted": 2757.0,
+        "shareElig": 1.613,
+        "shareVote": 1.787,
+        "turnout": 72.4
+      },
+      {
+        "age": 64,
+        "ageLabel": "64",
+        "cvap": 4086.0,
+        "voted": 2966.0,
+        "shareElig": 1.73,
+        "shareVote": 1.922,
+        "turnout": 72.6
+      },
+      {
+        "age": 65,
+        "ageLabel": "65",
+        "cvap": 3566.0,
+        "voted": 2583.0,
+        "shareElig": 1.51,
+        "shareVote": 1.674,
+        "turnout": 72.4
+      },
+      {
+        "age": 66,
+        "ageLabel": "66",
+        "cvap": 3673.0,
+        "voted": 2790.0,
+        "shareElig": 1.555,
+        "shareVote": 1.808,
+        "turnout": 76.0
+      },
+      {
+        "age": 67,
+        "ageLabel": "67",
+        "cvap": 3688.0,
+        "voted": 2742.0,
+        "shareElig": 1.562,
+        "shareVote": 1.777,
+        "turnout": 74.3
+      },
+      {
+        "age": 68,
+        "ageLabel": "68",
+        "cvap": 3669.0,
+        "voted": 2741.0,
+        "shareElig": 1.554,
+        "shareVote": 1.776,
+        "turnout": 74.7
+      },
+      {
+        "age": 69,
+        "ageLabel": "69",
+        "cvap": 3615.0,
+        "voted": 2729.0,
+        "shareElig": 1.531,
+        "shareVote": 1.769,
+        "turnout": 75.5
+      },
+      {
+        "age": 70,
+        "ageLabel": "70",
+        "cvap": 3414.0,
+        "voted": 2549.0,
+        "shareElig": 1.446,
+        "shareVote": 1.652,
+        "turnout": 74.7
+      },
+      {
+        "age": 71,
+        "ageLabel": "71",
+        "cvap": 3399.0,
+        "voted": 2524.0,
+        "shareElig": 1.439,
+        "shareVote": 1.636,
+        "turnout": 74.3
+      },
+      {
+        "age": 72,
+        "ageLabel": "72",
+        "cvap": 3098.0,
+        "voted": 2375.0,
+        "shareElig": 1.312,
+        "shareVote": 1.539,
+        "turnout": 76.7
+      },
+      {
+        "age": 73,
+        "ageLabel": "73",
+        "cvap": 2848.0,
+        "voted": 2206.0,
+        "shareElig": 1.206,
+        "shareVote": 1.43,
+        "turnout": 77.5
+      },
+      {
+        "age": 74,
+        "ageLabel": "74",
+        "cvap": 2783.0,
+        "voted": 2151.0,
+        "shareElig": 1.179,
+        "shareVote": 1.394,
+        "turnout": 77.3
+      },
+      {
+        "age": 75,
+        "ageLabel": "75",
+        "cvap": 2642.0,
+        "voted": 1992.0,
+        "shareElig": 1.119,
+        "shareVote": 1.291,
+        "turnout": 75.4
+      },
+      {
+        "age": 76,
+        "ageLabel": "76",
+        "cvap": 2549.0,
+        "voted": 1962.0,
+        "shareElig": 1.079,
+        "shareVote": 1.271,
+        "turnout": 77.0
+      },
+      {
+        "age": 77,
+        "ageLabel": "77",
+        "cvap": 2708.0,
+        "voted": 2103.0,
+        "shareElig": 1.147,
+        "shareVote": 1.363,
+        "turnout": 77.7
+      },
+      {
+        "age": 78,
+        "ageLabel": "78",
+        "cvap": 2118.0,
+        "voted": 1590.0,
+        "shareElig": 0.897,
+        "shareVote": 1.03,
+        "turnout": 75.1
+      },
+      {
+        "age": 79,
+        "ageLabel": "79",
+        "cvap": 1588.0,
+        "voted": 1183.0,
+        "shareElig": 0.672,
+        "shareVote": 0.767,
+        "turnout": 74.5
+      },
+      {
+        "age": 82,
+        "ageLabel": "80-84",
+        "cvap": 6991.0,
+        "voted": 5249.0,
+        "shareElig": 2.961,
+        "shareVote": 3.402,
+        "turnout": 75.1
+      },
+      {
+        "age": 87,
+        "ageLabel": "85+",
+        "cvap": 5646.0,
+        "voted": 3848.0,
+        "shareElig": 2.391,
+        "shareVote": 2.494,
+        "turnout": 68.2
+      }
+    ]
+  },
   "nationalByBin": [
     {
       "year": 2016,

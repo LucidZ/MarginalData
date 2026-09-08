@@ -22,12 +22,13 @@ function ageLabel(row: SingleYearRow): string {
 
 export default function Beat1({ data }: { data: VoterAgeData }) {
   const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
+  const rows2024 = data.nationalByYearOfAge["2024"];
 
   const cycle2024 = data.nationalByBin.find((c) => c.year === 2024)!;
-  const crossoverAge = useMemo(() => findCrossoverAge(data.nationalByYearOfAge), [data]);
+  const crossoverAge = useMemo(() => findCrossoverAge(rows2024), [rows2024]);
 
-  const oldRow = data.nationalByYearOfAge.find((r) => r.age === EXAMPLE_OLD_AGE)!;
-  const youngRow = data.nationalByYearOfAge.find((r) => r.age === EXAMPLE_YOUNG_AGE)!;
+  const oldRow = rows2024.find((r) => r.age === EXAMPLE_OLD_AGE)!;
+  const youngRow = rows2024.find((r) => r.age === EXAMPLE_YOUNG_AGE)!;
   const oldGap = oldRow.shareVote - oldRow.shareElig;
   const youngGap = youngRow.shareVote - youngRow.shareElig;
 
@@ -48,12 +49,12 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
   // full reveal - only the dots appear.
   const allGapPoints = useMemo(
     () =>
-      data.nationalByYearOfAge.map((row) => ({
+      rows2024.map((row) => ({
         key: `age-${row.age}`,
         age: row.age,
         gap: row.shareVote - row.shareElig,
       })),
-    [data]
+    [rows2024]
   );
   const gapXDomain = useMemo((): [number, number] => {
     const ages = allGapPoints.map((p) => p.age);
@@ -127,8 +128,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
   const under35 = cycle2024.bins["18-24"].voted + cycle2024.bins["25-34"].voted;
   const over65 = cycle2024.bins["65+"].voted;
 
-  const rowForPoint = (p: ScatterPoint) =>
-    data.nationalByYearOfAge.find((r) => `age-${r.age}` === p.key);
+  const rowForPoint = (p: ScatterPoint) => rows2024.find((r) => `age-${r.age}` === p.key);
 
   const tooltipProportional = (p: ScatterPoint) => {
     const row = rowForPoint(p);

@@ -347,9 +347,17 @@ def main():
         table1[year] = parse_table1(table1_paths[year])
         print(f"  {year}: {len(table1[year])} single-year rows OK")
 
-    # --- nationalByYearOfAge: single years of age, 2024 only (per spec S5) ---
-    national_by_year_of_age = [dict(r) for r in table1[2024]]
-    add_shares(national_by_year_of_age)
+    # --- nationalByYearOfAge: single years of age, every cycle Table 1 is
+    #     available for (2016/2020/2022/2024 - not 2018, see NOTE above).
+    #     Beat 2 uses 2022 (midterm) alongside 2024 (presidential) to show
+    #     the same over/under-representation curve gets more extreme in a
+    #     midterm; keyed by year so any future beat can pull another cycle
+    #     without another pipeline change. ---
+    national_by_year_of_age = {}
+    for year in table1:
+        rows = [dict(r) for r in table1[year]]
+        add_shares(rows)
+        national_by_year_of_age[str(year)] = rows
 
     # --- nationalByBin: 5-bin national series across all 5 cycles ---
     national_by_bin = []
@@ -511,7 +519,7 @@ def main():
         json.dump(output, f, indent=2)
 
     print(f"\nWrote {OUT_PATH} ({OUT_PATH.stat().st_size / 1024:.0f} KB)")
-    print(f"  nationalByYearOfAge: {len(national_by_year_of_age)} rows (2024)")
+    print(f"  nationalByYearOfAge: {list(national_by_year_of_age.keys())}")
     print(f"  nationalByBin: {len(national_by_bin)} cycles")
     print(f"  states: {len(states_out)} jurisdictions")
 

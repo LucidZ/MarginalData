@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { select, scaleLinear, axisBottom, axisLeft, easeCubicOut } from "d3";
+import { select, scaleLinear, axisBottom, axisLeft, easeCubicOut, line as d3line, curveMonotoneX } from "d3";
 import { seqBucketClass } from "./colorScales";
 import Tooltip from "./Tooltip";
 
@@ -40,6 +40,9 @@ export interface GapBracket {
 interface Props {
   points: ScatterPoint[];
   annotation?: ScatterAnnotation | null;
+  /** For more than one simultaneous annotation (e.g. highlighting both
+   * extremes of a curve at once). Combined with `annotation` if both are given. */
+  annotations?: ScatterAnnotation[];
   gapBrackets?: GapBracket[];
   xLabel?: string;
   yLabel?: string;
@@ -61,6 +64,11 @@ interface Props {
    * content on hover (mouse) or tap (touch). Omit to leave the chart
    * non-interactive. */
   tooltipFor?: (point: ScatterPoint) => ReactNode;
+  /** Draws a line through each colorClass group's points (sorted by x) -
+   * for a multi-series age curve (e.g. beat 2's 2022-vs-2024 overlay)
+   * rather than a bare dot cloud. Points without a colorClass are not
+   * connected (there's no shared identity to group them by). */
+  connectLines?: boolean;
 }
 
 const MARGIN = { top: 16, right: 20, bottom: 40, left: 58 };
@@ -69,6 +77,7 @@ const pct = (d: number) => `${d}%`;
 export default function AgeScatter({
   points,
   annotation,
+  annotations,
   gapBrackets,
   xLabel = "Share of eligible citizens",
   yLabel = "Share of votes cast",
@@ -80,6 +89,7 @@ export default function AgeScatter({
   xTickFormat = pct,
   yTickFormat = pct,
   tooltipFor,
+  connectLines,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -142,6 +152,7 @@ export default function AgeScatter({
         .attr("class", "voa-axis-label voa-axis-label-y")
         .attr("text-anchor", "middle");
       root.append("g").attr("class", "voa-brackets");
+      root.append("g").attr("class", "voa-series-lines");
       root.append("g").attr("class", "voa-dots");
       root.append("g").attr("class", "voa-dot-hits");
       root.append("g").attr("class", "voa-annotation-layer");
@@ -192,6 +203,42 @@ export default function AgeScatter({
       .select("text.voa-axis-label-y")
       .attr("transform", `translate(${-MARGIN.left + 14},${innerH / 2}) rotate(-90)`)
       .text(yLabel);
+
+    // Connect each colorClass group's points into its own line, sorted by
+    // x - a multi-series age curve (e.g. 2022 vs 2024) reads far more
+    // clearly as two lines than as one interleaved dot cloud.
+    const linesLayer = root.select<SVGGElement>("g.voa-series-lines");
+    if (connectLines) {
+      const groups = new Map<string, ScatterPoint[]>();
+      for (const p of points) {
+        const key = p.colorClass ?? "default";
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(p);
+      }
+      const seriesData = [...groups.entries()].map(([colorClass, pts]) => ({
+        colorClass,
+        pts: [...pts].sort((a, b) => a.x - b.x),
+      }));
+      const lineGen = d3line<ScatterPoint>()
+        .x((d) => scaleX(d.x))
+        .y((d) => scaleY(d.y))
+        .curve(curveMonotoneX);
+
+      const seriesLines = linesLayer
+        .selectAll<SVGPathElement, { colorClass: string; pts: ScatterPoint[] }>("path.voa-series-line")
+        .data(seriesData, (d) => d.colorClass);
+      seriesLines.exit().remove();
+      seriesLines
+        .enter()
+        .append("path")
+        .attr("class", (d) => `voa-series-line ${d.colorClass}`)
+        .merge(seriesLines)
+        .attr("class", (d) => `voa-series-line ${d.colorClass}`)
+        .transition(t as any)
+        .attr("d", (d) => lineGen(d.pts));
+    } else {
+      linesLayer.selectAll("*").remove();
+    }
 
     const dots = root
       .select<SVGGElement>("g.voa-dots")
@@ -286,11 +333,12 @@ export default function AgeScatter({
 
     const annLayer = root.select<SVGGElement>("g.voa-annotation-layer");
     annLayer.selectAll("*").remove();
-    if (annotation) {
-      const ax = scaleX(annotation.x);
-      const ay = scaleY(annotation.y);
-      const dx = annotation.dx ?? 12;
-      const dy = annotation.dy ?? -14;
+    const allAnnotations = [...(annotation ? [annotation] : []), ...(annotations ?? [])];
+    for (const ann of allAnnotations) {
+      const ax = scaleX(ann.x);
+      const ay = scaleY(ann.y);
+      const dx = ann.dx ?? 12;
+      const dy = ann.dy ?? -14;
       annLayer
         .append("line")
         .attr("class", "voa-annotation-line")
@@ -304,13 +352,14 @@ export default function AgeScatter({
         .attr("x", ax + dx + (dx >= 0 ? 4 : -4))
         .attr("y", ay + dy)
         .attr("text-anchor", dx >= 0 ? "start" : "end")
-        .text(annotation.text);
+        .text(ann.text);
     }
   }, [
     points,
     width,
     height,
     annotation,
+    annotations,
     gapBrackets,
     xLabel,
     yLabel,
@@ -323,6 +372,7 @@ export default function AgeScatter({
     xTickFormat,
     yTickFormat,
     tooltipFor,
+    connectLines,
   ]);
 
   return (

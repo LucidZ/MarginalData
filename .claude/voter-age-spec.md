@@ -172,6 +172,21 @@ Suggested form: the same scatter, toggling 2022 vs 2024 so the whole cloud visib
 and left; or a small-multiples strip of all five cycles. Requires Table 1 for 2018 and 2022, so
 pull all five years in the pipeline (§3).
 
+**As shipped (2026-09):** not the 5-bin scatter above - continues directly from Beat 1's
+single-year-of-age transform instead. Table 1 turned out to be available for one midterm (2022)
+alongside the three presidential cycles (2018 is the only gap, and that's the mislabeled-file
+issue in §2/pipeline NOTE, unrelated to election type) - `nationalByYearOfAge` in the pipeline
+output was widened from 2024-only to `Record<year, SingleYearRow[]>` for 2016/2020/2022/2024 to
+support this. Beat 2 overlays 2022's and 2024's (age, gap) curves as two connected lines on one
+chart (`AgeScatter`'s new `connectLines` prop, grouping points by `colorClass`): same S-shape,
+visibly wider swing at both ends in the midterm (age 18: −1.06pp vs −0.77pp; peak ~age 82:
++0.73pp vs +0.44pp - all computed live, not hand-typed). The closing turnout-ratio insight
+(65+ barely moves, under-35 collapses) is unchanged in substance, now stated for 2022-vs-2024
+specifically rather than "the worst midterm" across all five cycles, so it doesn't cite a year
+that isn't drawn on screen. The 5-cycle table above is still useful context/backup for why 2022
+was picked as the midterm example - it's the more extreme of the two available (2018 is
+unusable here since it has no single-year data).
+
 ---
 
 ## 7. Beat 3 — it varies by state

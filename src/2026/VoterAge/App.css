@@ -261,8 +261,13 @@
 .voa-seq-6 { fill: var(--voa-seq-6); background-color: var(--voa-seq-6); }
 
 /* categorical (identity) fills, for beat 2's presidential-vs-midterm coloring */
-.voa-cat-pres { fill: var(--series-1); }
-.voa-cat-mid { fill: var(--series-2); }
+.voa-cat-pres { fill: var(--series-1); stroke: var(--series-1); }
+.voa-cat-mid { fill: var(--series-2); stroke: var(--series-2); }
+
+.voa-series-line {
+  fill: none;
+  stroke-width: 2;
+}
 
 /* ---------- StateGrid ---------- */
 .voa-grid-wrap {

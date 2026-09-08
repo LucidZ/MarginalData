@@ -102,7 +102,10 @@ export interface VoterAgeData {
     units: string;
     notes: string[];
   };
-  nationalByYearOfAge: SingleYearRow[];
+  /** Keyed by election year as a string, e.g. "2024". Covers every cycle
+   * Table 1 (single year of age) is available for: 2016/2020/2022/2024
+   * - not 2018 (mislabeled at the source, see the pipeline script). */
+  nationalByYearOfAge: Record<string, SingleYearRow[]>;
   nationalByBin: NationalCycle[];
   states: StateRow[];
 }
