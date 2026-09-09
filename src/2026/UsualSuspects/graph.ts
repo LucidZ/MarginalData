@@ -1,6 +1,6 @@
 import type { Actor, GraphData, Movie } from "./types";
 
-/** TMDB hotlinks its images off this CDN base rather than us hosting photo bytes ourselves - see project_six_degrees_of.md for why (23K actors x ~7KB/photo is too much to bundle or self-host). */
+/** TMDB hotlinks its images off this CDN base rather than us hosting photo bytes ourselves - see project_usual_suspects.md for why (23K actors x ~7KB/photo is too much to bundle or self-host). */
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
 /** w92 is the widest size a small avatar can actually show (a 28px node needs

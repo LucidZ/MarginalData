@@ -1,7 +1,15 @@
-# Six Degrees Of… — UX fix gameplan
+# The Usual Suspects — UX fix gameplan
+
+> **Renamed 2026-09-09.** This story shipped as "Six Degrees Of…" at
+> `/2026/SixDegreesOf`; it is now "The Usual Suspects" at
+> `/2026/UsualSuspects`, with `src/2026/UsualSuspects/` and a `tus-` CSS
+> prefix (was `sdo-`). The old name is left in place below wherever it's
+> recording *why* a past decision was made — notably §"Disown the path
+> framing", whose whole argument is what led to this rename. Copy quoted from
+> that section no longer matches the page verbatim.
 
 Handoff spec. Branch `6-degrees-of`, last commit `c4ca17d`. Everything below is
-scoped to `src/2026/SixDegreesOf/` plus two lines in `src/routes.ts`.
+scoped to `src/2026/UsualSuspects/` plus two lines in `src/routes.ts`.
 
 These fixes came out of a live UX review at 1440×900 and iPhone 13 (390×664),
 with a production build checked under 1.5 Mbps throttling. Measured baselines
@@ -169,7 +177,7 @@ At 1440×900 and 390×664, with the page scrolled to top:
 
 - The axis label row is fully visible without scrolling, for every actor tested.
   **This is the hard requirement** — it's what the phase exists to fix.
-- `document.querySelector('.sdo-graph').getBoundingClientRect().bottom <= window.innerHeight`
+- `document.querySelector('.tus-graph').getBoundingClientRect().bottom <= window.innerHeight`
   — holds at 1440×900 for every actor (verified against the pool's two most
   extreme cases, see the `MIN_SCALE` note above). **On a short mobile viewport
   this is not achievable and that's fine**: `MIN_CHART_HEIGHT` (360) is a
@@ -181,7 +189,7 @@ At 1440×900 and 390×664, with the page scrolled to top:
 - Measured `scale` sits at 0.70–1.0 for every actor tested at 1440×900, not the
   0.85+ originally hoped for — see the implementation note above on why the
   realistic range is tighter than expected, and why the floor moved to 0.65.
-- The mobile `.sdo-axis-note` ("Columns: films made together") becomes redundant
+- The mobile `.tus-axis-note` ("Columns: films made together") becomes redundant
   once the header row is visible on mobile too — remove it, and instead keep
   compact axis labels as bare numbers with a single header-row unit label.
   Decide during implementation which reads better at 390px; whichever you pick,
@@ -219,7 +227,7 @@ differently.
 
 In `App.tsx`, an empty column renders a **bare number** (e.g. `13`) in muted
 styling rather than the full `13 films together` — the long label will not fit in
-36px. Add `.sdo-axis-label-empty { font-size: 11px; fill: var(--muted); }`.
+36px. Add `.tus-axis-label-empty { font-size: 11px; fill: var(--muted); }`.
 
 ### Acceptance (phase 2)
 
@@ -245,14 +253,14 @@ styling rather than the full `13 films together` — the long label will not fit
 
 ## Phase 3 — Full-bleed chart region
 
-`.sdo-root` is `max-width: 1100px`, so Michael Caine's 1228px chart is clipped and
+`.tus-root` is `max-width: 1100px`, so Michael Caine's 1228px chart is clipped and
 forced to scroll on a 1440px screen with 340px of unused margin.
 
 Wrap the scroll container in a frame that breaks out of the text column while the
 header prose keeps its 640px measure:
 
 ```css
-.sdo-graph-frame {
+.tus-graph-frame {
   position: relative;               /* also the containing block for phase 4 */
   margin-inline: calc(50% - 50vw);
   padding-inline: 1.5rem;
@@ -263,10 +271,10 @@ header prose keeps its 640px measure:
 
 The two `margin-inline` declarations conflict — pick one approach and make it
 work, don't ship both. Suggested: breakout via `calc(50% - 50vw)`, then constrain
-the inner `.sdo-graph-scroll` with `max-width: 1500px; margin-inline: auto`.
+the inner `.tus-graph-scroll` with `max-width: 1500px; margin-inline: auto`.
 
 > **Implemented outcome:** `max-width: 1500px; margin-inline: auto` on
-> `.sdo-graph-scroll` does nothing on its own — a block div's `width` defaults
+> `.tus-graph-scroll` does nothing on its own — a block div's `width` defaults
 > to filling its parent regardless of content size, so `margin-inline: auto`
 > had no width discrepancy to center within, and Michael Caine's 818px chart
 > sat flush left against a 1440px frame with the whole right side empty.
@@ -279,7 +287,7 @@ the inner `.sdo-graph-scroll` with `max-width: 1500px; margin-inline: auto`.
 > its own `overflow-x: auto`. Confirmed this broke `scrollWidth <=
 > innerWidth` at 768px and 390px, which had passed before that change.
 > **Fix shipped:** `display: flex; justify-content: center;` on
-> `.sdo-graph-scroll`, no `max-width`. A flex item that's smaller than its
+> `.tus-graph-scroll`, no `max-width`. A flex item that's smaller than its
 > container centers; one that's larger still overflows the container and
 > scrolls, exactly like a plain block would - flex has no min-content floor
 > forcing the *container* to grow. Verified scroll starts at the left edge
@@ -306,7 +314,7 @@ Whichever you choose, the acceptance check below is non-negotiable.
 > extra clamping was required to pass the acceptance check at any tested
 > width. Re-verify this holds if that sitewide rule is ever removed.
 
-`frameRef` from phase 1b goes on `.sdo-graph-frame`.
+`frameRef` from phase 1b goes on `.tus-graph-frame`.
 
 ### Acceptance (phase 3)
 
@@ -326,13 +334,13 @@ document.documentElement.scrollWidth <= window.innerWidth   // must be true at e
 Nothing currently signals that the chart scrolls sideways. On mobile you see 2 of
 7 columns and the content ends cleanly at the edge, so it reads as complete.
 
-Add edge gradient overlays on `.sdo-graph-frame` (the positioned ancestor from
+Add edge gradient overlays on `.tus-graph-frame` (the positioned ancestor from
 phase 3 — they must be on the frame, not the scrolling element, or they scroll
 away):
 
 ```css
-.sdo-graph-frame::before,
-.sdo-graph-frame::after {
+.tus-graph-frame::before,
+.tus-graph-frame::after {
   content: "";
   position: absolute;
   top: 0;
@@ -343,13 +351,13 @@ away):
   transition: opacity 150ms ease;
   z-index: 2;
 }
-.sdo-graph-frame::before { left: 0;  background: linear-gradient(to right, var(--page), transparent); }
-.sdo-graph-frame::after  { right: 0; background: linear-gradient(to left,  var(--page), transparent); }
-.sdo-graph-frame[data-overflow~="left"]::before,
-.sdo-graph-frame[data-overflow~="right"]::after { opacity: 1; }
+.tus-graph-frame::before { left: 0;  background: linear-gradient(to right, var(--page), transparent); }
+.tus-graph-frame::after  { right: 0; background: linear-gradient(to left,  var(--page), transparent); }
+.tus-graph-frame[data-overflow~="left"]::before,
+.tus-graph-frame[data-overflow~="right"]::after { opacity: 1; }
 ```
 
-Drive `data-overflow` from a scroll + resize listener on `.sdo-graph-scroll`
+Drive `data-overflow` from a scroll + resize listener on `.tus-graph-scroll`
 (space-separated `left` / `right` tokens, recomputed on scroll, on resize, and
 whenever `rootId` changes — the chart width changes on recenter). Use a small
 threshold (~2px) so subpixel rounding doesn't flicker the gradient.
@@ -467,7 +475,7 @@ branch:
 - `loading` → "Still loading the full list…"
 - loaded, no matches → "No actor by that name in this pool of 2,465." (derive the
   count from `actors.length`, don't hardcode)
-- error → reuse the existing `.sdo-error-note` wording
+- error → reuse the existing `.tus-error-note` wording
 
 Render these as a non-interactive `<li>` inside the dropdown so the panel still
 appears — the user needs to see *something* happen when they type.
@@ -511,7 +519,7 @@ Implement roving tabindex:
   to first/last. Enter/Space opens the card for the focused node.
 - Programmatically `.focus()` the focused node's element and ensure it's scrolled
   into view horizontally (`scrollIntoView({ inline: "nearest", block: "nearest" })`).
-- Keep a visible focus ring — `.sdo-node:focus .sdo-node-ring` already styles
+- Keep a visible focus ring — `.tus-node:focus .tus-node-ring` already styles
   this; make sure it isn't suppressed by the `outline: none` currently in that
   rule.
 
@@ -526,7 +534,7 @@ to the focused node's own `getBoundingClientRect()` centre.
 - Tab from the search input reaches the chart in **one** stop, and one more Tab
   leaves the chart entirely.
   **Verified, with a caveat the spec didn't account for:** the root actor's
-  name is a real link to their TMDB page (`.sdo-root-name`), and it sits
+  name is a real link to their TMDB page (`.tus-root-name`), and it sits
   between the search box and the chart in DOM order - so it's Tab 1, and the
   chart is Tab 2. That's legitimate content, not a bug; the property that
   actually matters held: Tab 2 lands inside the chart already redirected to a
@@ -544,7 +552,7 @@ to the focused node's own `getBoundingClientRect()` centre.
 - **Found and fixed a rough edge not in the original spec:** the sitewide
   `:focus-visible` outline (`src/index.css`) also draws a square box around
   the focused `<g>`, stacking with the ring - a box around a circular avatar
-  read as two competing indicators. Added `.sdo-node:focus-visible { outline:
+  read as two competing indicators. Added `.tus-node:focus-visible { outline:
   none; }`, since the ring (already accent-colored on focus, matching hover)
   is the purpose-built indicator here.
 - Regression-checked: mouse click still opens the card exactly as before -
@@ -585,7 +593,7 @@ card opens.
 **This phase's testing surfaced a real, already-shipped bug from phase 3,
 now fixed as part of this phase's commit** (it isn't a phase-8 change
 itself, but this is where it was caught): `justify-content: center` on
-`.sdo-graph-scroll` does true geometric centering *even when the item
+`.tus-graph-scroll` does true geometric centering *even when the item
 overflows* - it does not fall back to start-alignment the way phase 3's
 notes assumed. Concretely, on Robert Downey Jr.'s mobile chart (665px svg
 in a 342px container, 323px of overflow), the svg's own rendered box
@@ -669,7 +677,7 @@ it was doing real work as a discovery affordance; this preserves it explicitly.
   don't reuse that shorter number when timing this specific case).
 - Load with `?actor=999999999` → falls back to a random actor, URL cleaned.
   **Verified** (settled on "Willem Dafoe", URL back to bare
-  `/2026/SixDegreesOf`).
+  `/2026/UsualSuspects`).
 - Shuffle → new actor, URL updated. **Verified** (Keith David → Scarlett
   Johansson, URL gained `?actor=13`).
 - Also verified, not in the original acceptance list: loading with **no**
@@ -745,20 +753,20 @@ didn't call out explicitly:
 The Playwright scaffold (`playwright.config.ts`, `tests/*.spec.ts`) was deleted
 from the repo at some point — `tests/screenshots/` and `tests/results/` remain and
 are gitignored. Recreate a minimal `playwright.config.ts` plus
-`tests/six-degrees.spec.ts` rather than writing throwaway scripts, so this is
+`tests/usual-suspects.spec.ts` rather than writing throwaway scripts, so this is
 re-runnable.
 
 The spec should cover, at both 1440×900 and iPhone 13:
 
 - Axis header row visible above the fold at scroll 0 (phase 1)
-- `.sdo-graph` bottom within the viewport at scroll 0 (phase 1)
+- `.tus-graph` bottom within the viewport at scroll 0 (phase 1)
 - `document.documentElement.scrollWidth <= window.innerWidth` at 1440/1280/1024/768/390 (phase 3)
 - Anupam Kher `scrollWidth` under the phase-2 thresholds
 - Detail card fully on-screen for extreme node positions (phase 5)
 - "Bruce Willis" + ArrowDown + Enter recenters (phase 6)
 - Deep link `?actor=<id>` survives reload; Back walks history (phase 9)
 
-Screenshots to `tests/screenshots/six-degrees-*.png` for eyeball review.
+Screenshots to `tests/screenshots/usual-suspects-*.png` for eyeball review.
 
 **Do not regress the load path.** Re-measure after the work:
 
@@ -766,7 +774,7 @@ Screenshots to `tests/screenshots/six-degrees-*.png` for eyeball review.
 npm run build && npx vite preview --port 4188
 ```
 
-then load `/2026/SixDegreesOf` throttled to 1.5 Mbps and confirm first painted
+then load `/2026/UsualSuspects` throttled to 1.5 Mbps and confirm first painted
 node stays at ~2s. The bundled-slice strategy in `defaultActors.json` +
 `useData()` is what buys that; nothing here should touch it. (Note: the **dev**
 server shows ~16s to first paint because Vite serves unbundled modules — that is
@@ -789,7 +797,7 @@ plus a `test:visual` script - only the base `playwright` automation library
 afterward (`npx playwright install chromium`); the previously-installed
 revision didn't match the newly-installed `@playwright/test` version.
 
-Wrote `tests/six-degrees.spec.ts` covering the acceptance checks above as
+Wrote `tests/usual-suspects.spec.ts` covering the acceptance checks above as
 real, re-runnable tests rather than the throwaway scripts used to verify
 each phase live: axis-visible-on-load (desktop + mobile), chart height
 within the desktop viewport, no horizontal page overflow across five
@@ -808,7 +816,7 @@ Mbps) after all ten phases: first painted node still lands at ~2.1s,
 unchanged from the pre-work baseline.
 
 ESLint's `files` glob (`eslint.config.js`) only covers `**/*.{js,jsx}` -
-`.ts`/`.tsx` files, including every SixDegreesOf source file and the new
+`.ts`/`.tsx` files, including every UsualSuspects source file and the new
 spec/config files, were never linted by `npm run lint` at any point in this
 work, on this branch. Not something this task should fix unprompted (it's a
 project-wide config decision, not a Six Degrees Of concern), but worth

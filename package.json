@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "og": "node scripts/capture-og.mjs",
-    "six-degrees:defaults": "node scripts/generate-six-degrees-defaults.mjs",
+    "usual-suspects:defaults": "node scripts/generate-usual-suspects-defaults.mjs",
     "test:visual": "playwright test",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"

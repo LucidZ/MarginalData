@@ -8,7 +8,7 @@ import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm, type Column } from "./b
 // render the instant the chunk loads: no fetch, no spinner, nothing to wait
 // on. `useData()`'s full ~3MB fetch still runs in the background for
 // search-any-actor - see the `data ?? defaultActors` merge below, and
-// scripts/generate-six-degrees-defaults.mjs for how this file is derived.
+// scripts/generate-usual-suspects-defaults.mjs for how this file is derived.
 import defaultActorsRaw from "./defaultActors.json";
 import DetailCard, { type Selection } from "./DetailCard";
 import { buildAdjacency, bucketCostars, photoUrl } from "./graph";
@@ -330,7 +330,7 @@ export default function App() {
   };
 
   // Signals whether the chart scrolls sideways past what's currently in
-  // view, so the edge gradients (see .sdo-graph-frame in App.css) only show
+  // view, so the edge gradients (see .tus-graph-frame in App.css) only show
   // up when there's actually more to see - otherwise a chart that already
   // fits the frame (most actors, after phases 2-3) would render a
   // permanent, meaningless hint.
@@ -428,16 +428,20 @@ export default function App() {
   const firstLabeledColumnFilms = columns.find((c) => c.actors.length > 0)?.sharedFilms;
 
   return (
-    <div className="sdo-root">
-      <header className="sdo-header">
-        <h1>Six Degrees Of...</h1>
-        <p className="sdo-subtitle">
-          {/* First clause corrects the expectation "Six Degrees Of..." sets: this
-              is a one-hop collaboration histogram, not the Bacon-number path
-              game the title otherwise implies. */}
-          Not the Bacon-number game - this is every real costar a given actor
-          has, stacked by how many films they actually made together, nothing
-          curated or capped. Type a name
+    <div className="tus-root">
+      <header className="tus-header">
+        <h1>The Usual Suspects</h1>
+        <p className="tus-subtitle">
+          {/* Leads with the finding rather than the mechanic: the long column
+              on the left is the boring part, and the point of the title is the
+              short columns on the right. Also quietly rules out the two things
+              the title could otherwise be taken for - the 1995 film, and the
+              Bacon-number path game - by stating in the first breath that this
+              is one actor's own costars, one hop out. */}
+          Most costars are a one-film fling. This is every real costar a given
+          actor has, stacked by how many films they actually made together -
+          nothing curated or capped, so the handful they keep coming back to
+          pile up on the right. Type a name
           {/* Gated on `data` (the full pool), not `activeData` - the bundled
               default slice's count (1,389) is real but wrong for this claim
               until the full pool (2,465) lands, so the figure is omitted
@@ -445,34 +449,34 @@ export default function App() {
           {data && <> from this pool of {data.actors.length.toLocaleString()} actors</>} and{" "}
           {compact ? "tap" : "click"} anyone to see the films they share.
         </p>
-        <div className="sdo-search-row">
+        <div className="tus-search-row">
           <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
-          <button type="button" className="sdo-shuffle" onClick={shuffle}>
+          <button type="button" className="tus-shuffle" onClick={shuffle}>
             Shuffle
           </button>
         </div>
         {error && !data && (
-          <p className="sdo-error-note">
+          <p className="tus-error-note">
             Showing a small sample - the full pool didn't load ({error.message}), so search only
             covers the actors already on screen.
           </p>
         )}
       </header>
 
-      {paramPending && <p className="sdo-root-loading">Loading this actor…</p>}
+      {paramPending && <p className="tus-root-loading">Loading this actor…</p>}
 
       {root && (
         <>
-          <div className="sdo-root-banner">
+          <div className="tus-root-banner">
             {rootPhoto ? (
-              <img className="sdo-root-photo" src={rootPhoto} alt="" />
+              <img className="tus-root-photo" src={rootPhoto} alt="" />
             ) : (
-              <div className="sdo-root-photo sdo-root-photo-fallback" />
+              <div className="tus-root-photo tus-root-photo-fallback" />
             )}
             <div>
               {root.tmdbId ? (
                 <a
-                  className="sdo-root-name sdo-person-link"
+                  className="tus-root-name tus-person-link"
                   href={`https://www.themoviedb.org/person/${root.tmdbId}`}
                   target="_blank"
                   rel="noreferrer"
@@ -480,9 +484,9 @@ export default function App() {
                   {root.name}
                 </a>
               ) : (
-                <div className="sdo-root-name">{root.name}</div>
+                <div className="tus-root-name">{root.name}</div>
               )}
-              <div className="sdo-root-meta">
+              <div className="tus-root-meta">
                 {totalCostars.toLocaleString()} costars across this pool
               </div>
             </div>
@@ -492,15 +496,15 @@ export default function App() {
             // On mobile the per-column labels are bare numbers (see
             // filmLabel) - this is the one place the unit they're counting
             // gets spelled out. It sits directly above the chart rather than
-            // below (where its predecessor, .sdo-axis-note, used to live)
+            // below (where its predecessor, .tus-axis-note, used to live)
             // so it's visible without scrolling, and outside the svg so it
             // can't collide with a column's own number label.
-            <p className="sdo-axis-unit-note">Columns: films together</p>
+            <p className="tus-axis-unit-note">Columns: films together</p>
           )}
-          <div className="sdo-graph-frame" ref={frameRef} data-overflow={overflowTokens}>
-            <div className="sdo-graph-scroll" ref={scrollRef}>
+          <div className="tus-graph-frame" ref={frameRef} data-overflow={overflowTokens}>
+            <div className="tus-graph-scroll" ref={scrollRef}>
               <svg
-                className="sdo-graph"
+                className="tus-graph"
                 viewBox={viewBox}
                 width={frameWidth * scale}
                 height={frameHeight * scale}
@@ -518,18 +522,18 @@ export default function App() {
                 onKeyDown={onGraphKeyDown}
                 onFocus={onGraphFocus}
               >
-                <line className="sdo-baseline" x1={viewLeft} x2={viewRight} y1={0} y2={0} />
+                <line className="tus-baseline" x1={viewLeft} x2={viewRight} y1={0} y2={0} />
                 {columns.map((col) => (
                   <g key={col.sharedFilms}>
                     {col.actors.length > 0 && (
-                      <text className="sdo-count-label" x={col.x} y={col.top - COUNT_LABEL_GAP} textAnchor="middle">
+                      <text className="tus-count-label" x={col.x} y={col.top - COUNT_LABEL_GAP} textAnchor="middle">
                         {col.sharedFilms === firstLabeledColumnFilms
                           ? `${col.actors.length} costars`
                           : col.actors.length}
                       </text>
                     )}
                     <text
-                      className={col.isEmpty ? "sdo-axis-label sdo-axis-label-empty" : "sdo-axis-label"}
+                      className={col.isEmpty ? "tus-axis-label tus-axis-label-empty" : "tus-axis-label"}
                       x={col.x}
                       y={axisLabelY}
                       textAnchor="middle"

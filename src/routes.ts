@@ -231,13 +231,13 @@ export const ROUTES: RouteEntry[] = [
     note: "In the book The Expanse, ships simulate gravity by accelerating at the same rate gravity pulls on Earth. I wanted to see what that travel actually looks like as planets orbit. Turns out it's a lot faster than expected.",
   },
   {
-    path: "/2026/SixDegreesOf",
-    title: "Six Degrees Of... — Marginal Data",
+    path: "/2026/UsualSuspects",
+    title: "The Usual Suspects — Marginal Data",
     description:
-      "Type an actor's name and see every real costar they've shared a film with, stacked by how many films they actually made together, built from actual IMDb co-star data.",
-    component: () => import("./2026/SixDegreesOf"),
+      "Every actor has a pile of one-film costars and a few they keep coming back to. Type a name to see all of them, stacked by how many films they actually made together.",
+    component: () => import("./2026/UsualSuspects"),
     group: "Explorers & Simulators",
     date: "2026-09-02",
-    note: "Everyone knows the Kevin Bacon game, but I'd never actually looked at one actor's full costar list at once. Turns out most of it is one-film flings - it's the handful of people someone's made 5, 10, 20 films with that the pile-of-faces view actually reveals.",
+    note: "Everyone knows the Kevin Bacon game, but I'd never actually looked at one actor's full costar list at once. Turns out most of it is one-film flings - it's the handful of people someone's made 5, 10, 20 films with that the pile-of-faces view actually reveals. Those are the usual suspects.",
   },
 ];

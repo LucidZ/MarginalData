@@ -39,7 +39,7 @@ export default function ActorNode({ actor, x, y, size, hitRadius, sharedMovies, 
   return (
     <g
       ref={domRef}
-      className={`sdo-node${isSelected ? " sdo-node-selected" : ""}`}
+      className={`tus-node${isSelected ? " tus-node-selected" : ""}`}
       transform={`translate(${x}, ${y})`}
       onClick={(e) => onSelect(actor, sharedMovies, e)}
       role="button"
@@ -66,7 +66,7 @@ export default function ActorNode({ actor, x, y, size, hitRadius, sharedMovies, 
           other - that would mean moving the avatars, which breaks the
           chart; the detail card that opens tells you who you got. */}
       <circle r={hitRadius} fill="transparent" pointerEvents="all" />
-      <clipPath id={`sdo-clip-${actor.id}`}>
+      <clipPath id={`tus-clip-${actor.id}`}>
         <circle r={r} />
       </clipPath>
       {/* Surface-color ring, not a gridline-gray stroke - beeswarm-packed avatars
@@ -74,7 +74,7 @@ export default function ActorNode({ actor, x, y, size, hitRadius, sharedMovies, 
           is what keeps adjacent circles visually separated (see dataviz skill's
           "surface ring" spec) rather than drawing a border that adds data-weight
           ink that isn't data. */}
-      <circle className="sdo-node-ring" r={r + 1.5} />
+      <circle className="tus-node-ring" r={r + 1.5} />
       {url ? (
         <image
           href={url}
@@ -82,14 +82,14 @@ export default function ActorNode({ actor, x, y, size, hitRadius, sharedMovies, 
           y={-r}
           width={size}
           height={size}
-          clipPath={`url(#sdo-clip-${actor.id})`}
+          clipPath={`url(#tus-clip-${actor.id})`}
           preserveAspectRatio="xMidYMid slice"
         />
       ) : (
         <>
-          <circle className="sdo-node-fallback" r={r} clipPath={`url(#sdo-clip-${actor.id})`} />
+          <circle className="tus-node-fallback" r={r} clipPath={`url(#tus-clip-${actor.id})`} />
           {size >= 20 && (
-            <text className="sdo-node-initials" textAnchor="middle" dominantBaseline="central">
+            <text className="tus-node-initials" textAnchor="middle" dominantBaseline="central">
               {initials(actor.name)}
             </text>
           )}

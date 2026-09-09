@@ -14,7 +14,7 @@ interface Props {
 }
 
 const MAX_RESULTS = 8;
-const LISTBOX_ID = "sdo-search-listbox";
+const LISTBOX_ID = "tus-search-listbox";
 
 export default function SearchBox({ actors, status, onSelect }: Props) {
   const [query, setQuery] = useState("");
@@ -25,7 +25,7 @@ export default function SearchBox({ actors, status, onSelect }: Props) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // `actors` arrives pre-sorted by co-star degree (see generate_six_degrees_data.py),
+  // `actors` arrives pre-sorted by co-star degree (see generate_usual_suspects_data.py),
   // so among equally-good substring matches the more-connected actor surfaces first.
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -96,7 +96,7 @@ export default function SearchBox({ actors, status, onSelect }: Props) {
   }
 
   return (
-    <div className="sdo-search" ref={containerRef}>
+    <div className="tus-search" ref={containerRef}>
       <input
         type="text"
         value={query}
@@ -110,24 +110,24 @@ export default function SearchBox({ actors, status, onSelect }: Props) {
         }}
         onKeyDown={onKeyDown}
         placeholder="Type an actor's name..."
-        className="sdo-search-input"
+        className="tus-search-input"
         aria-label="Search for an actor"
         role="combobox"
         aria-expanded={isOpen}
         aria-controls={LISTBOX_ID}
         aria-autocomplete="list"
-        aria-activedescendant={activeOption ? `sdo-search-option-${activeOption.id}` : undefined}
+        aria-activedescendant={activeOption ? `tus-search-option-${activeOption.id}` : undefined}
       />
       {isOpen && (
-        <ul className="sdo-search-results" id={LISTBOX_ID} role="listbox">
+        <ul className="tus-search-results" id={LISTBOX_ID} role="listbox">
           {matches.map((actor, i) => (
             <li key={actor.id}>
               <button
                 type="button"
-                id={`sdo-search-option-${actor.id}`}
+                id={`tus-search-option-${actor.id}`}
                 role="option"
                 aria-selected={i === activeIndex}
-                className={i === activeIndex ? "sdo-search-option-active" : undefined}
+                className={i === activeIndex ? "tus-search-option-active" : undefined}
                 onClick={() => select(actor)}
               >
                 {actor.name}
@@ -135,7 +135,7 @@ export default function SearchBox({ actors, status, onSelect }: Props) {
             </li>
           ))}
           {statusMessage && (
-            <li className="sdo-search-status" role="presentation">
+            <li className="tus-search-status" role="presentation">
               {statusMessage}
             </li>
           )}

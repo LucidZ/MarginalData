@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Generate Six Degrees Of... Network Data
+Generate The Usual Suspects Co-Star Data
 
-Builds a bounded co-star graph for the "type an actor, watch the rings of
-costars expand" visualization. Two things make the full IMDb actor graph
+Builds a bounded co-star graph for the "type an actor, see every costar they
+have, stacked by films made together" visualization. Two things make the full IMDb actor graph
 unshippable as static data: it's ~1.1M actors / ~13M co-appearance pairs
 across theatrical movies alone, and the graph is a small-world network
 (avg path length ~3.65 - see Watts & Strogatz 1998), so unbounded rings
@@ -26,11 +26,11 @@ So this script bounds the actor pool by fame *before* building edges:
   5. Enrich each kept actor with a TMDB profile photo via TMDB's
      find-by-external-id endpoint (IMDb nconst -> TMDB profile_path).
      Photos are hotlinked from image.tmdb.org at runtime, not
-     downloaded/stored here - see project_six_degrees_of.md for why.
+     downloaded/stored here - see project_usual_suspects.md for why.
 
 Usage:
-    python scripts/generate_six_degrees_data.py --min-votes 500000 --min-movies 1 --out pool-a
-    python scripts/generate_six_degrees_data.py --min-votes 25000 --min-movies 3 --out pool-b
+    python scripts/generate_usual_suspects_data.py --min-votes 500000 --min-movies 1 --out pool-a
+    python scripts/generate_usual_suspects_data.py --min-votes 25000 --min-movies 3 --out pool-b
 
 Requires TMDB_READ_ACCESS_TOKEN in .env.local (v4 bearer token).
 """
@@ -51,7 +51,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 os.chdir(project_root)
 
-RAW_DIR = Path("data/six_degrees/imdb")
+RAW_DIR = Path("data/usual_suspects/imdb")
 TITLE_BASICS = RAW_DIR / "title.basics.tsv.gz"
 TITLE_PRINCIPALS = RAW_DIR / "title.principals.tsv.gz"
 TITLE_RATINGS = RAW_DIR / "title.ratings.tsv.gz"
@@ -312,7 +312,7 @@ def enrich_movies_with_tmdb(used_tconsts, token, cache):
     """Resolves each referenced movie's TMDB id plus the poster/year/rating
     shown in the detail card. All of this rides along in the same /find
     response we already need for the id, so the poster and rating cost no
-    extra API calls - see project_six_degrees_of.md."""
+    extra API calls - see project_usual_suspects.md."""
     print(f"Enriching {len(used_tconsts):,} movies from TMDB...")
     client = TmdbClient(token)
     info = {}
@@ -423,7 +423,7 @@ def main():
     # that particular actor happens to have.
     max_shared_films = max((len(tconsts) for tconsts in shared_movies.values()), default=0)
 
-    out_path = Path("public/data") / f"six-degrees-{args.out}.json"
+    out_path = Path("public/data") / f"usual-suspects-{args.out}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w") as f:
         json.dump(

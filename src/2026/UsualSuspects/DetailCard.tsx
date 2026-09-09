@@ -85,13 +85,13 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   const head = (
     <>
       {photo ? (
-        <img className="sdo-card-photo" src={photo} alt="" width={56} height={56} />
+        <img className="tus-card-photo" src={photo} alt="" width={56} height={56} />
       ) : (
-        <div className="sdo-card-photo sdo-card-photo-fallback" />
+        <div className="tus-card-photo tus-card-photo-fallback" />
       )}
       <div>
-        <div className="sdo-card-name">{actor.name}</div>
-        <div className="sdo-card-meta">
+        <div className="tus-card-name">{actor.name}</div>
+        <div className="tus-card-meta">
           {count} film{count === 1 ? "" : "s"} with {rootActor.name}
         </div>
       </div>
@@ -100,21 +100,21 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
 
   return (
     <>
-      <div className="sdo-card-backdrop" onClick={onClose} />
+      <div className="tus-card-backdrop" onClick={onClose} />
       <div
         ref={cardRef}
-        className={`sdo-card${compact ? " sdo-card-sheet" : ""}`}
+        className={`tus-card${compact ? " tus-card-sheet" : ""}`}
         style={style}
         role="dialog"
         aria-label={actor.name}
       >
-        <button className="sdo-card-close" onClick={onClose} aria-label="Close">
+        <button className="tus-card-close" onClick={onClose} aria-label="Close">
           ×
         </button>
 
         {actor.tmdbId ? (
           <a
-            className="sdo-card-head sdo-person-link"
+            className="tus-card-head tus-person-link"
             href={`https://www.themoviedb.org/person/${actor.tmdbId}`}
             target="_blank"
             rel="noreferrer"
@@ -122,27 +122,27 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
             {head}
           </a>
         ) : (
-          <div className="sdo-card-head">{head}</div>
+          <div className="tus-card-head">{head}</div>
         )}
 
-        <ul className="sdo-card-movies">
+        <ul className="tus-card-movies">
           {sharedMovies.map((movie) => {
             const poster = posterUrl(movie);
             const body = (
               <>
                 {poster ? (
-                  <img className="sdo-movie-poster" src={poster} alt="" loading="lazy" width={38} height={57} />
+                  <img className="tus-movie-poster" src={poster} alt="" loading="lazy" width={38} height={57} />
                 ) : (
-                  <span className="sdo-movie-poster sdo-movie-poster-fallback" aria-hidden="true" />
+                  <span className="tus-movie-poster tus-movie-poster-fallback" aria-hidden="true" />
                 )}
-                <span className="sdo-movie-text">
-                  <span className="sdo-movie-title">{movie.title}</span>
-                  <span className="sdo-movie-meta">
+                <span className="tus-movie-text">
+                  <span className="tus-movie-title">{movie.title}</span>
+                  <span className="tus-movie-meta">
                     {movie.year ?? "—"}
                     {movie.rating !== undefined && (
                       <>
-                        <span className="sdo-movie-dot">·</span>
-                        <span className="sdo-movie-rating">★ {movie.rating.toFixed(1)}</span>
+                        <span className="tus-movie-dot">·</span>
+                        <span className="tus-movie-rating">★ {movie.rating.toFixed(1)}</span>
                       </>
                     )}
                   </span>
@@ -153,7 +153,7 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
               <li key={movie.id}>
                 {movie.tmdbId ? (
                   <a
-                    className="sdo-movie-row"
+                    className="tus-movie-row"
                     href={`https://www.themoviedb.org/movie/${movie.tmdbId}`}
                     target="_blank"
                     rel="noreferrer"
@@ -161,14 +161,14 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
                     {body}
                   </a>
                 ) : (
-                  <span className="sdo-movie-row">{body}</span>
+                  <span className="tus-movie-row">{body}</span>
                 )}
               </li>
             );
           })}
         </ul>
 
-        <button className="sdo-card-center" onClick={() => onCenter(actor)}>
+        <button className="tus-card-center" onClick={() => onCenter(actor)}>
           Center on {actor.name}
         </button>
       </div>

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Derives a small "default actors" bundle from the full Six Degrees Of...
+// Derives a small "default actors" bundle from the full Usual Suspects
 // pool, so the app can render a random default actor instantly - as part of
 // the route's own JS chunk, no fetch required - instead of blocking on the
 // full ~3MB pool file. The full file still loads in the background for
@@ -8,9 +8,9 @@
 // This is a pure derivation from the already-generated pool file, not a
 // re-run of the IMDb/TMDB pipeline, so it can't drift from it in content -
 // only in *staleness* if pool-a.json regenerates and this doesn't. Re-run
-// this whenever `python scripts/generate_six_degrees_data.py` does.
+// this whenever `python scripts/generate_usual_suspects_data.py` does.
 //
-// Usage: node scripts/generate-six-degrees-defaults.mjs
+// Usage: node scripts/generate-usual-suspects-defaults.mjs
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -19,8 +19,8 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 
-const SOURCE_PATH = path.join(rootDir, "public/data/six-degrees-pool-a.json");
-const OUT_PATH = path.join(rootDir, "src/2026/SixDegreesOf/defaultActors.json");
+const SOURCE_PATH = path.join(rootDir, "public/data/usual-suspects-pool-a.json");
+const OUT_PATH = path.join(rootDir, "src/2026/UsualSuspects/defaultActors.json");
 
 // How many of the most-connected actors are eligible as a random default.
 // Each one pulls in their full real ego-network (every direct costar + the
@@ -31,7 +31,7 @@ const DEFAULT_ACTOR_COUNT = 15;
 async function main() {
   const source = JSON.parse(await readFile(SOURCE_PATH, "utf-8"));
 
-  // `actors` arrives pre-sorted by co-star degree (see generate_six_degrees_data.py),
+  // `actors` arrives pre-sorted by co-star degree (see generate_usual_suspects_data.py),
   // so the first N are the most-connected - always a rich, legible default chart.
   const defaultActorIds = source.actors.slice(0, DEFAULT_ACTOR_COUNT).map((a) => a.id);
   const defaultIdSet = new Set(defaultActorIds);

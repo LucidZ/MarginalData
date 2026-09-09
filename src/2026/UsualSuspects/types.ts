@@ -1,4 +1,4 @@
-/** One actor in the bounded co-star pool (see scripts/generate_six_degrees_data.py). */
+/** One actor in the bounded co-star pool (see scripts/generate_usual_suspects_data.py). */
 export interface Actor {
   id: number;
   name: string;
