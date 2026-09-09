@@ -325,6 +325,10 @@ export default function App() {
 
           {selection && (
             <DetailCard
+              // Keyed by actor id so a new selection is a fresh mount - its
+              // position state (DetailCard.tsx) starts from a fresh estimate
+              // instead of carrying over the previous card's corrected top.
+              key={selection.actor.id}
               selection={selection}
               rootActor={root}
               compact={compact}

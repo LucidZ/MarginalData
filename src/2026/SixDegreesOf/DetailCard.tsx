@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { photoUrl, posterUrl } from "./graph";
 import type { Actor, Movie } from "./types";
 
@@ -23,8 +23,37 @@ const CARD_WIDTH = 300;
 const GAP = 14;
 const EDGE = 8;
 
+// Anchor beside the clicked node, then clamp so the card never leaves the
+// viewport - nodes near the right edge or low on a tall column would
+// otherwise open a card that's half off-screen. `top` here is a cheap guess
+// (estimated from row count, no DOM access) for the very first frame,
+// before the card has actually rendered - see the layout effect below,
+// which corrects it against the card's real height the instant it mounts.
+// The estimate undercounted for a tall movie list, which used to let the
+// "Center on" button clip past the bottom of the viewport.
+function estimatePosition(clientX: number, clientY: number, movieCount: number): React.CSSProperties {
+  // Rows are ~66px (38x57 poster + padding); the list stops growing at the
+  // CSS max-height of 244px and scrolls from there.
+  const listHeight = Math.min(movieCount * 66, 244);
+  const estHeight = 56 + 24 + listHeight + 46;
+  const flipLeft = clientX + GAP + CARD_WIDTH > window.innerWidth - EDGE;
+  const left = flipLeft ? clientX - GAP - CARD_WIDTH : clientX + GAP;
+  return {
+    left: Math.max(EDGE, Math.min(left, window.innerWidth - CARD_WIDTH - EDGE)),
+    top: Math.max(EDGE, Math.min(clientY - 40, window.innerHeight - estHeight - EDGE)),
+    width: CARD_WIDTH,
+  };
+}
+
 export default function DetailCard({ selection, rootActor, compact, onCenter, onClose }: Props) {
   const { actor, sharedMovies, clientX, clientY } = selection;
+  const cardRef = useRef<HTMLDivElement>(null);
+  // App.tsx keys this component by actor id, so a new selection is a fresh
+  // mount with a fresh estimate here, not a stale corrected position left
+  // over from whichever actor's card was open before.
+  const [style, setStyle] = useState<React.CSSProperties>(() =>
+    compact ? {} : estimatePosition(clientX, clientY, sharedMovies.length),
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -34,25 +63,21 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Anchor beside the clicked node, then clamp so the card never leaves the
-  // viewport - nodes near the right edge or low on a tall column would
-  // otherwise open a card that's half off-screen.
-  let style: React.CSSProperties = {};
-  if (!compact) {
-    // Estimate the card's height from its row count so a 20-film card doesn't
-    // hang off the bottom of the viewport the way a flat reserve would let it.
-    // Rows are ~66px (38x57 poster + padding); the list stops growing at the
-    // CSS max-height of 244px and scrolls from there.
-    const listHeight = Math.min(sharedMovies.length * 66, 244);
-    const estHeight = 56 + 24 + listHeight + 46;
-    const flipLeft = clientX + GAP + CARD_WIDTH > window.innerWidth - EDGE;
-    const left = flipLeft ? clientX - GAP - CARD_WIDTH : clientX + GAP;
-    style = {
-      left: Math.max(EDGE, Math.min(left, window.innerWidth - CARD_WIDTH - EDGE)),
-      top: Math.max(EDGE, Math.min(clientY - 40, window.innerHeight - estHeight - EDGE)),
-      width: CARD_WIDTH,
-    };
-  }
+  // Corrects `top` against the card's real rendered height once it's
+  // actually in the DOM - `left`/`width` don't need correcting, since width
+  // is always the fixed CARD_WIDTH the estimate already used. Runs after
+  // every render, not just on mount, so it also re-settles if the card's own
+  // content height changes while it's open (e.g. a poster image finishing
+  // its layout). useLayoutEffect fires before the browser paints, so this
+  // correction is never visible as a jump.
+  useLayoutEffect(() => {
+    if (compact) return;
+    const el = cardRef.current;
+    if (!el) return;
+    const height = el.getBoundingClientRect().height;
+    const top = Math.max(EDGE, Math.min(clientY - 40, window.innerHeight - height - EDGE));
+    setStyle((prev) => (prev.top === top ? prev : { ...prev, top }));
+  });
 
   const photo = photoUrl(actor, 64);
   const count = sharedMovies.length;
@@ -76,7 +101,13 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   return (
     <>
       <div className="sdo-card-backdrop" onClick={onClose} />
-      <div className={`sdo-card${compact ? " sdo-card-sheet" : ""}`} style={style} role="dialog" aria-label={actor.name}>
+      <div
+        ref={cardRef}
+        className={`sdo-card${compact ? " sdo-card-sheet" : ""}`}
+        style={style}
+        role="dialog"
+        aria-label={actor.name}
+      >
         <button className="sdo-card-close" onClick={onClose} aria-label="Close">
           ×
         </button>
