@@ -432,22 +432,23 @@ export default function App() {
       <header className="tus-header">
         <h1>The Usual Suspects</h1>
         <p className="tus-subtitle">
-          {/* Leads with the finding rather than the mechanic: the long column
-              on the left is the boring part, and the point of the title is the
-              short columns on the right. Also quietly rules out the two things
-              the title could otherwise be taken for - the 1995 film, and the
-              Bacon-number path game - by stating in the first breath that this
-              is one actor's own costars, one hop out. */}
-          Most costars are a one-film fling. This is every real costar a given
-          actor has, stacked by how many films they actually made together -
-          nothing curated or capped, so the handful they keep coming back to
-          pile up on the right. Type a name
+          {/* Four name-drops before any explanation: the pairs do the work of
+              defining what this is, and they double as the answer to "what
+              would I even type in". All four are verified against the shipped
+              pool - Depp/Bonham Carter 7 films, Johnson/Hart 4, Gosling/Stone
+              and Reeves/Ryder 3 each - so clicking any of them lands on a
+              chart that backs the claim rather than contradicting it. Re-check
+              them if the pool is ever regenerated or swapped to Pool B. */}
+          Johnny Depp and Helena Bonham Carter. Ryan Gosling and Emma Stone.
+          Dwayne "The Rock" Johnson and Kevin Hart. Keanu Reeves and Winona
+          Ryder. Some actors share the silver screen more than others. Type a
+          name
           {/* Gated on `data` (the full pool), not `activeData` - the bundled
               default slice's count (1,389) is real but wrong for this claim
               until the full pool (2,465) lands, so the figure is omitted
               rather than shown wrong for the first ~2s of every load. */}
-          {data && <> from this pool of {data.actors.length.toLocaleString()} actors</>} and{" "}
-          {compact ? "tap" : "click"} anyone to see the films they share.
+          {data && <> from this pool of {data.actors.length.toLocaleString()} actors</>} to see
+          their costars, and {compact ? "tap" : "click"} on anyone to see the films they share.
         </p>
         <div className="tus-search-row">
           <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
