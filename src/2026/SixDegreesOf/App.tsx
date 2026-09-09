@@ -111,6 +111,10 @@ export default function App() {
   // was in the default slice the result is identical (that slice is that
   // actor's real, complete ego-network), so the swap is invisible.
   const activeData: GraphData = data ?? defaultActors;
+  // Drives SearchBox's empty-state message - "ready" is the only state where
+  // a non-match actually means "not in this pool" rather than "hasn't
+  // loaded yet" or "never going to load this session".
+  const searchStatus: "loading" | "error" | "ready" = data ? "ready" : error ? "error" : "loading";
 
   const adjacency = useMemo(() => buildAdjacency(activeData), [activeData]);
 
@@ -224,7 +228,7 @@ export default function App() {
           by how many films they've actually made together - nothing curated or capped. Tap
           anyone to see the films they share.
         </p>
-        <SearchBox actors={activeData.actors} onSelect={(actor) => recenter(actor)} />
+        <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
         {error && !data && (
           <p className="sdo-error-note">
             Showing a small sample - the full pool didn't load ({error.message}), so search only

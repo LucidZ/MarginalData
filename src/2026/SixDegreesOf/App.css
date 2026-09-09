@@ -99,6 +99,21 @@
   background: var(--gridline);
 }
 
+/* Arrow-key highlight (SearchBox.tsx) - same treatment as hover/focus above
+   so keyboard and pointer navigation read as the same kind of "selected". */
+.sdo-search-results button.sdo-search-option-active {
+  background: var(--gridline);
+}
+
+/* Loading/no-match/error message (SearchBox.tsx) - not a button, so it
+   doesn't take the hover/focus/active treatment above; muted and
+   non-interactive since there's nothing to click. */
+.sdo-search-status {
+  padding: 0.5rem 0.6rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .sdo-error-note {
   color: var(--muted);
   font-size: 0.8rem;
