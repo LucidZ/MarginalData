@@ -292,6 +292,17 @@
   outline: none;
 }
 
+/* The sitewide :focus-visible rule (src/index.css) draws a square outline
+   around any focusable element, including this one (App.tsx's roving
+   tabindex calls real .focus() on a node's own <g>) - stacked on top of the
+   ring above, a box around a circular avatar reads as two competing
+   indicators. The ring alone (already accent-colored on focus, same as
+   hover) is the purpose-built one, so the generic outline is redundant here,
+   not additive. */
+.sdo-node:focus-visible {
+  outline: none;
+}
+
 /* Keeps the tapped node visibly tied to the open card - on touch there's no
    hover state to carry that association. */
 .sdo-node-selected .sdo-node-ring {

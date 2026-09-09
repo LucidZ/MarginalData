@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ActorNode from "./ActorNode";
-import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm } from "./beeswarm";
+import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm, type Column } from "./beeswarm";
 // A small pre-baked slice of the full pool - a handful of well-connected
 // actors' complete real ego-networks (same GraphData shape as the fetched
 // file). Bundled into this route's own JS chunk, so the default view can
@@ -54,6 +54,65 @@ function pickRandomDefaultActorId(): number {
 function filmLabel(n: number, compact: boolean): string {
   if (compact) return `${n}`;
   return `${n} film${n === 1 ? "" : "s"} together`;
+}
+
+/** One entry per rendered node, in the order roving-tabindex keyboard nav
+ * should walk them: column-major (left to right), then top to bottom within
+ * a column - each column's entries land contiguously, which moveWithinColumn
+ * relies on to know it hasn't spilled into the next column. */
+interface FlatNode {
+  id: number;
+  columnIndex: number;
+  y: number;
+  sharedMovies: Movie[];
+}
+
+function buildFlatNodes(columns: Column[]): FlatNode[] {
+  const result: FlatNode[] = [];
+  columns.forEach((col, columnIndex) => {
+    const sorted = [...col.actors].sort((a, b) => a.y - b.y);
+    for (const p of sorted) {
+      result.push({ id: p.id, columnIndex, y: p.y, sharedMovies: p.sharedMovies });
+    }
+  });
+  return result;
+}
+
+/** Up/Down: step to the adjacent entry, but only if it's still in the same
+ * column - a column's entries are contiguous in `flatNodes` (see
+ * buildFlatNodes), so stepping past either end of that block would
+ * otherwise silently spill into the neighboring column instead of stopping. */
+function moveWithinColumn(flatNodes: FlatNode[], index: number, delta: number): number {
+  const current = flatNodes[index];
+  if (!current) return index;
+  const next = index + delta;
+  if (next < 0 || next >= flatNodes.length || flatNodes[next].columnIndex !== current.columnIndex) {
+    return index;
+  }
+  return next;
+}
+
+/** Left/Right: skip past any empty (gap) columns in that direction, then
+ * land on whichever node in the first non-empty one sits closest in y to the
+ * node being left - not just that column's first node - so horizontal
+ * movement feels spatial rather than resetting to the top every time. */
+function moveToAdjacentColumn(flatNodes: FlatNode[], columns: Column[], index: number, direction: 1 | -1): number {
+  const current = flatNodes[index];
+  if (!current) return index;
+  let col = current.columnIndex + direction;
+  while (col >= 0 && col < columns.length && columns[col].actors.length === 0) col += direction;
+  if (col < 0 || col >= columns.length) return index;
+  let bestIndex = index;
+  let bestDist = Infinity;
+  flatNodes.forEach((n, i) => {
+    if (n.columnIndex !== col) return;
+    const dist = Math.abs(n.y - current.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIndex = i;
+    }
+  });
+  return bestIndex;
 }
 
 function useViewportWidth(): number {
@@ -136,6 +195,101 @@ export default function App() {
   );
 
   const columns = useMemo(() => layoutBeeswarm(buckets, layout), [buckets, layout]);
+
+  // Roving tabindex: the <svg> itself is the one tab stop (see its tabIndex
+  // below), and arrow keys move real DOM focus between nodes, which is what
+  // lets Tab skip the whole chart in one hop instead of stopping at each of
+  // 200+ nodes individually the way giving every node tabIndex=0 used to.
+  const flatNodes = useMemo(() => buildFlatNodes(columns), [columns]);
+  const nodeRefs = useRef(new Map<number, SVGGElement>());
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  // Only a genuine recenter (a different actor) resets this - a background
+  // full-pool data swap or a viewport-driven layout change can also change
+  // `flatNodes` without this firing, and shouldn't yank focus away from
+  // wherever the user currently is. safeFocusedIndex below covers the
+  // (normally momentary) gap where `flatNodes` has already updated for
+  // those reasons but this hasn't reset, so it never reads out of bounds.
+  useLayoutEffect(() => {
+    setFocusedIndex(0);
+  }, [rootId]);
+  const safeFocusedIndex = flatNodes.length === 0 ? 0 : Math.min(focusedIndex, flatNodes.length - 1);
+
+  const focusNodeAt = (index: number) => {
+    const node = flatNodes[index];
+    if (!node) return;
+    setFocusedIndex(index);
+    const el = nodeRefs.current.get(node.id);
+    el?.focus();
+    el?.scrollIntoView({ inline: "nearest", block: "nearest" });
+  };
+
+  // Enter/Space on the focused node - mirrors a click's onSelect, but there's
+  // no MouseEvent to read coordinates from, so the card anchors off the
+  // focused node's own real position instead (its center, via
+  // getBoundingClientRect) rather than defaulting to the viewport corner.
+  const activateFocusedNode = () => {
+    const node = flatNodes[safeFocusedIndex];
+    if (!node) return;
+    const actor = actorById.get(node.id);
+    if (!actor) return;
+    const rect = nodeRefs.current.get(node.id)?.getBoundingClientRect();
+    setSelection({
+      actor,
+      sharedMovies: node.sharedMovies,
+      clientX: rect ? rect.left + rect.width / 2 : 0,
+      clientY: rect ? rect.top + rect.height / 2 : 0,
+    });
+  };
+
+  const onGraphKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    if (flatNodes.length === 0) return;
+    switch (e.key) {
+      case "ArrowRight":
+        e.preventDefault();
+        focusNodeAt(moveToAdjacentColumn(flatNodes, columns, safeFocusedIndex, 1));
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        focusNodeAt(moveToAdjacentColumn(flatNodes, columns, safeFocusedIndex, -1));
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        focusNodeAt(moveWithinColumn(flatNodes, safeFocusedIndex, 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        focusNodeAt(moveWithinColumn(flatNodes, safeFocusedIndex, -1));
+        break;
+      case "Home":
+        e.preventDefault();
+        focusNodeAt(0);
+        break;
+      case "End":
+        e.preventDefault();
+        focusNodeAt(flatNodes.length - 1);
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        activateFocusedNode();
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Tab lands on the <svg> itself (that's the one tab stop), which on its
+  // own has no visible indication of *which* node is "current" - this hands
+  // real DOM focus down to that node the instant the svg is targeted, so the
+  // node's own :focus ring (App.css) shows immediately. Guarded to the
+  // svg being the actual target (not a bubbled focus event from the node
+  // this just focused) so it can't recurse.
+  const onGraphFocus = (e: React.FocusEvent<SVGSVGElement>) => {
+    if (e.target !== e.currentTarget) return;
+    const node = flatNodes[safeFocusedIndex];
+    if (!node) return;
+    nodeRefs.current.get(node.id)?.focus();
+  };
 
   // Signals whether the chart scrolls sideways past what's currently in
   // view, so the edge gradients (see .sdo-graph-frame in App.css) only show
@@ -280,8 +434,19 @@ export default function App() {
                 viewBox={viewBox}
                 width={frameWidth * scale}
                 height={frameHeight * scale}
-                role="img"
+                // role="img" (the original role here) hides all of its
+                // children from assistive tech, which would make every
+                // node's role="button" invisible to it - "group" exposes
+                // the nodes while this aria-label still describes the whole
+                // chart.
+                role="group"
                 aria-label={`Costars of ${root.name}, grouped by shared film count`}
+                // The one tab stop for the whole chart - see the flatNodes/
+                // focusedIndex roving-tabindex machinery above. Individual
+                // nodes are tabIndex={-1} (ActorNode.tsx).
+                tabIndex={0}
+                onKeyDown={onGraphKeyDown}
+                onFocus={onGraphFocus}
               >
                 <line className="sdo-baseline" x1={viewLeft} x2={viewRight} y1={0} y2={0} />
                 {columns.map((col) => (
@@ -318,6 +483,10 @@ export default function App() {
                           onSelect={(a, movies, e) =>
                             setSelection({ actor: a, sharedMovies: movies, clientX: e.clientX, clientY: e.clientY })
                           }
+                          domRef={(el) => {
+                            if (el) nodeRefs.current.set(p.id, el);
+                            else nodeRefs.current.delete(p.id);
+                          }}
                         />
                       );
                     })}

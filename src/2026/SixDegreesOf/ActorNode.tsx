@@ -10,6 +10,12 @@ interface Props {
   isSelected: boolean;
   /** Click/tap opens the detail card - re-centering is a deliberate button inside that card, not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
   onSelect: (actor: Actor, sharedMovies: Movie[], e: React.MouseEvent) => void;
+  /** Registers/unregisters this node's real DOM element with App.tsx's
+   * roving-tabindex machinery - it needs to call .focus() and
+   * getBoundingClientRect() on whichever node is currently "the" focused
+   * one, which means holding a live element reference per actor id rather
+   * than going through React state. */
+  domRef: (el: SVGGElement | null) => void;
 }
 
 function initials(name: string): string {
@@ -22,22 +28,22 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-export default function ActorNode({ actor, x, y, size, sharedMovies, isSelected, onSelect }: Props) {
+export default function ActorNode({ actor, x, y, size, sharedMovies, isSelected, onSelect, domRef }: Props) {
   const url = photoUrl(actor, size);
   const r = size / 2;
   return (
     <g
+      ref={domRef}
       className={`sdo-node${isSelected ? " sdo-node-selected" : ""}`}
       transform={`translate(${x}, ${y})`}
       onClick={(e) => onSelect(actor, sharedMovies, e)}
       role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect(actor, sharedMovies, e as unknown as React.MouseEvent);
-        }
-      }}
+      // -1, not 0: this node is only ever reachable via the roving
+      // tabindex App.tsx drives off the <svg> itself (arrow keys move
+      // real DOM focus between nodes with .focus() calls) - if every node
+      // kept tabIndex 0, Tab would stop at each of the 200+ of them
+      // individually instead of once for the whole chart.
+      tabIndex={-1}
       aria-label={`${actor.name} - open details`}
     >
       {/* Native tooltip kept as a cheap desktop hover hint. The real detail
