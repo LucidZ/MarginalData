@@ -59,9 +59,20 @@ const MIN_SCALE = 0.65;
 // after the uniform SVG scale-down, not in viewBox units.
 const MIN_HIT_RADIUS = 22;
 
-function pickRandomDefaultActorId(): number {
+/** Shape of a valid ?actor= value - an IMDb person id, e.g. "nm0000158". */
+const NCONST_PATTERN = /^nm\d+$/;
+
+/** Sentinel rootId for "the URL names an actor we haven't loaded yet". Nothing
+ * resolves it: actorById.get() misses, so no chart renders, and bucketCostars
+ * returns [] for an unknown root (adj.get(rootId) ?? []). */
+const ROOT_PENDING = -1;
+
+function pickRandomDefaultActor(): Actor {
   const ids = defaultActors.defaultActorIds;
-  return ids[Math.floor(Math.random() * ids.length)];
+  const id = ids[Math.floor(Math.random() * ids.length)];
+  // defaultActorIds and actors are written by the same script from the same
+  // pool file, so this lookup can't miss - the ?? is to avoid asserting.
+  return defaultActors.actors.find((a) => a.id === id) ?? defaultActors.actors[0];
 }
 
 function filmLabel(n: number, compact: boolean): string {
@@ -141,11 +152,14 @@ function useViewportWidth(): number {
 export default function App() {
   const { data, error } = useData();
   const [searchParams, setSearchParams] = useSearchParams();
-  // Only ever used when there's no usable ?actor= id (see rootId below) -
+  // Only ever used when there's no usable ?actor= (see rootId below) -
   // memoized so it's picked once per mount, from the bundled default slice,
   // before the full pool has even started downloading (see the
   // defaultActors.json import above), and doesn't reroll on every render.
-  const fallbackId = useMemo(pickRandomDefaultActorId, []);
+  // Its numeric id is safe to use directly: the slice is generated from the
+  // same pool file in the same build, so their ids always agree. That's only
+  // true *within* a build, which is exactly why the URL below can't use ids.
+  const fallbackActor = useMemo(pickRandomDefaultActor, []);
   const [selection, setSelection] = useState<Selection | null>(null);
   const viewportWidth = useViewportWidth();
   const compact = viewportWidth < COMPACT_BREAKPOINT;
@@ -205,31 +219,47 @@ export default function App() {
     return map;
   }, [activeData]);
 
-  // The root actor comes from ?actor=<id> when there's a usable one,
-  // otherwise the memoized random fallback. "Usable" has three outcomes,
-  // not two, because of the same bundled-slice/full-pool swap SearchBox's
-  // status prop deals with:
-  //  - known: the id is already in actorById (bundled slice or full pool) -
-  //    honor it.
+  // The URL keys on IMDb nconst, so resolving a link needs this index rather
+  // than actorById. Every actor in the pool has one and they're unique
+  // (verified across all 2,839), so this is total, not best-effort.
+  const actorByNconst = useMemo(() => {
+    const map = new Map<string, Actor>();
+    activeData.actors.forEach((a) => map.set(a.nconst, a));
+    return map;
+  }, [activeData]);
+
+  // The root actor comes from ?actor=<nconst> when there's a usable one,
+  // otherwise the memoized random fallback.
+  //
+  // This param is an IMDb person id ("nm0000158"), NOT the actor's numeric
+  // id in the pool. Pool ids are positional - the generator sorts actors by
+  // co-star degree and indexes from there - so they are only meaningful
+  // within one generated file. Regenerating the pool on 2026-09-09 (a fame
+  // filter fix, 2,465 -> 2,839 actors) shifted them wholesale: id 98 went
+  // from Ethan Hawke to Adam Sandler. Every link anyone had shared would
+  // have silently pointed at a different actor - not broken, which someone
+  // might report, just wrong. nconst comes from IMDb and never moves.
+  //
+  // "Usable" has three outcomes, not two, because of the same
+  // bundled-slice/full-pool swap SearchBox's status prop deals with:
+  //  - known: the nconst is already in actorByNconst (bundled slice or full
+  //    pool) - honor it.
   //  - pending: not found yet, but the full pool is still loading, so it
   //    might resolve once that lands - a shared link must never flash the
-  //    fallback actor before settling on the right one. rootId stays the
-  //    param id (actorById.get(rootId) below then resolves to null, so the
-  //    chart itself doesn't render) rather than falling back, and a
-  //    loading message renders in its place.
-  //  - invalid: the pool has settled (loaded or errored) and the id still
-  //    isn't in it - genuinely bad. Falls back to random, and a separate
-  //    effect scrubs it from the URL so a reload doesn't repeat the same
-  //    dead end.
-  const paramId = useMemo(() => {
-    const raw = searchParams.get("actor");
-    const parsed = raw ? Number(raw) : NaN;
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }, [searchParams]);
-  const paramKnown = paramId != null && actorById.has(paramId);
-  const paramPending = paramId != null && !paramKnown && searchStatus === "loading";
-  const paramInvalid = paramId != null && !paramKnown && !paramPending;
-  const rootId = paramId != null && !paramInvalid ? paramId : fallbackId;
+  //    fallback actor before settling on the right one. rootId holds
+  //    ROOT_PENDING (so no chart renders) and a loading message shows in
+  //    its place.
+  //  - invalid: either malformed (anything that isn't nm-digits, which
+  //    includes the old numeric-id links) or well-formed but absent from a
+  //    pool that has settled. Falls back to random, and a separate effect
+  //    scrubs it from the URL so a reload doesn't repeat the same dead end.
+  const rawParam = searchParams.get("actor");
+  const paramNconst = rawParam != null && NCONST_PATTERN.test(rawParam) ? rawParam : null;
+  const paramMalformed = rawParam != null && paramNconst == null;
+  const paramActor = paramNconst != null ? actorByNconst.get(paramNconst) : undefined;
+  const paramPending = paramNconst != null && !paramActor && searchStatus === "loading";
+  const paramInvalid = paramMalformed || (paramNconst != null && !paramActor && !paramPending);
+  const rootId = paramActor ? paramActor.id : paramPending ? ROOT_PENDING : fallbackActor.id;
 
   useEffect(() => {
     if (paramInvalid) setSearchParams({}, { replace: true });
@@ -374,15 +404,15 @@ export default function App() {
   // replace - so Back walks through recenter history the same way it would
   // any other navigation, undoing one recenter per press.
   const recenter = (actor: Actor) => {
-    setSearchParams({ actor: String(actor.id) });
+    setSearchParams({ actor: actor.nconst });
     setSelection(null);
   };
 
   // Preserves the old random-on-load discovery affordance now that loading
   // no longer rerolls it on every visit - picks fresh each press rather than
-  // reusing `fallbackId`, so repeated shuffles don't get stuck on one actor.
+  // reusing `fallbackActor`, so repeated shuffles don't get stuck on one actor.
   const shuffle = () => {
-    setSearchParams({ actor: String(pickRandomDefaultActorId()) });
+    setSearchParams({ actor: pickRandomDefaultActor().nconst });
     setSelection(null);
   };
 

@@ -1,12 +1,17 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// Actor ids confirmed present in the bundled default slice
+// Actors confirmed present in the bundled default slice
 // (src/2026/UsualSuspects/defaultActors.json) at spec-writing time, so these
 // tests resolve on the first paint and don't need to wait for the ~3MB full
 // pool to load in the background. If a future regeneration of that file
 // drops one of these actors, re-pick a replacement from the current slice
 // rather than waiting out the full-pool fetch in every run.
-const TOM_HANKS_ID = 49;
+//
+// Deep links key on IMDb nconst, not the pool's numeric ids - those are
+// positional and get reshuffled by any regeneration (see App.tsx). This
+// constant used to be `= 49` and had to be re-pinned every time the pool
+// was rebuilt; nm0000158 is Tom Hanks permanently.
+const TOM_HANKS_NCONST = "nm0000158";
 const MICHAEL_CAINE = "Michael Caine";
 const ANUPAM_KHER = "Anupam Kher";
 const BRUCE_WILLIS = "Bruce Willis";
@@ -121,9 +126,9 @@ test.describe("The Usual Suspects", () => {
     await expect(page.locator(".tus-root-name")).toHaveText(BRUCE_WILLIS);
   });
 
-  test("deep link ?actor=<id> renders that actor and survives a reload", async ({ browser }) => {
+  test("deep link ?actor=<nconst> renders that actor and survives a reload", async ({ browser }) => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
-    await page.goto(`/2026/UsualSuspects?actor=${TOM_HANKS_ID}`);
+    await page.goto(`/2026/UsualSuspects?actor=${TOM_HANKS_NCONST}`);
     await page.waitForSelector(".tus-node");
     await expect(page.locator(".tus-root-name")).toHaveText("Tom Hanks");
 
@@ -132,6 +137,25 @@ test.describe("The Usual Suspects", () => {
     await expect(page.locator(".tus-root-name")).toHaveText("Tom Hanks");
     await page.close();
   });
+
+  // Covers both ways a link can be unusable, since the fix that moved this
+  // param from numeric ids to nconst turned every previously-shared link into
+  // the first case.
+  for (const [label, value] of [
+    ["a legacy numeric id", "39"],
+    ["an unknown nconst", "nm9999999"],
+  ] as const) {
+    test(`?actor= with ${label} falls back to a real actor and scrubs the URL`, async ({ browser }) => {
+      const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
+      await page.goto(`/2026/UsualSuspects?actor=${value}`);
+      await page.waitForSelector(".tus-node");
+      // Fell back to somebody real rather than rendering an empty chart...
+      await expect(page.locator(".tus-root-name")).not.toHaveText("");
+      // ...and the dead param is gone, so a reload doesn't repeat the dead end.
+      await expect.poll(() => new URL(page.url()).searchParams.get("actor")).toBeNull();
+      await page.close();
+    });
+  }
 
   test("Back walks through recenter history", async ({ browser }) => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
