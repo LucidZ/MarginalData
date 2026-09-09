@@ -237,6 +237,7 @@ export const ROUTES: RouteEntry[] = [
       "Some actors share the silver screen more than others. Type an actor's name to see every real costar they have, stacked by how many films they made together.",
     component: () => import("./2026/UsualSuspects"),
     group: "Explorers & Simulators",
+    image: "/og/usual-suspects.jpg",
     date: "2026-09-02",
     note: "Everyone knows the Kevin Bacon game, but I'd never actually looked at one actor's full costar list at once. Turns out most of it is one-film flings - it's the handful of people someone's made 5, 10, 20 films with that the pile-of-faces view actually reveals. Those are the usual suspects.",
   },

@@ -23,6 +23,55 @@ async function scrollFraction(page, fraction) {
 }
 
 export const RECIPES = {
+  "/2026/UsualSuspects": {
+    // Chart only, no root banner. Including the banner made the clip taller
+    // (ar 1.72 vs the card's 1.90), and object-fit:cover then trimmed the
+    // height difference straight off the top - decapitating the actor's name
+    // and leaving a half-cropped "256 costars across this pool". The frame on
+    // its own measures ~1.94, so it lands on the card essentially uncropped,
+    // and the column labels ("1 film together", "2 films together", ...)
+    // carry the meaning that the banner would have.
+    clip: ".tus-graph-frame",
+
+    // Tuned so the capture is already card-shaped. The frame is always
+    // viewport-width with the chart scrolling inside it, so the clip's aspect
+    // ratio is set by the viewport, not by which actor is shown. At the
+    // 1400x900 default it's 2.55, and cover then eats ~22% off each side -
+    // precisely the col-1 pile and the far-right column, i.e. the whole point
+    // of the chart.
+    //
+    // Careful re-tuning: chart width grows with viewport *height* (a taller
+    // budget lets sizeForBucket use bigger avatars, which packs wider), so
+    // raising height to fix the ratio eventually overflows the frame and
+    // silently crops the right-hand columns instead. Both constraints have to
+    // hold at once.
+    viewport: { width: 1200, height: 1050 },
+
+    pose: async (page) => {
+      // Picks the cover actor by NAME, not by `?actor=<id>`. Actor ids are
+      // positional in the generated pool (sorted by degree), so they are not
+      // stable across regenerations - a regen on 2026-09-09 moved id 98 from
+      // Ethan Hawke to Adam Sandler, which silently captured the wrong actor
+      // before this was switched to a name lookup. A name survives that.
+      //
+      // De Niro is the best-carding shape in the pool: 203 / 37 / 12 / 2 / 2
+      // is a clean descending staircase that fills the frame, which is exactly
+      // the claim the page makes. Wide-tail actors look better in principle
+      // (Christopher Lee reaches 18 films with Peter Cushing) but card badly -
+      // columns grow upward off a bottom baseline, so a lone far-right node
+      // sits at the bottom of the frame, under the card's gradient band, with
+      // a screenful of empty columns leading to it.
+      await page.waitForLoadState("networkidle"); // full pool, not the bundled slice
+      await page.fill(".tus-search-input", "Robert De Niro");
+      await page.locator('.tus-search-results button', { hasText: /^Robert De Niro$/ }).first().click();
+      await page.waitForSelector(".tus-node");
+      // Avatars hotlink TMDB (see graph.ts) - without this the card can
+      // capture a grid of empty circles mid-fetch.
+      await page.waitForLoadState("networkidle");
+      await page.waitForTimeout(300);
+    },
+  },
+
   "/2026/PassingCompass": {
     // The svg only, not .pc-chart-area — that also includes the legend
     // row, which just eats into the card's bottom gradient band.
