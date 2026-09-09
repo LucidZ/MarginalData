@@ -7,6 +7,12 @@
 > recording *why* a past decision was made — notably §"Disown the path
 > framing", whose whole argument is what led to this rename. Copy quoted from
 > that section no longer matches the page verbatim.
+>
+> **Pool baselines below are also stale.** The measurements in this doc were
+> taken against the 2,465-actor pool; a fame-filter fix on 2026-09-09
+> (`--min-votes-sum5`) grew it to 2,839 actors / 15,985 movies / 82,812
+> edges, and grew the tallest columns with it (Jackson 227 -> 278, Dafoe
+> 227 -> 268). Re-measure before trusting any number in the table below.
 
 Handoff spec. Branch `6-degrees-of`, last commit `c4ca17d`. Everything below is
 scoped to `src/2026/UsualSuspects/` plus two lines in `src/routes.ts`.

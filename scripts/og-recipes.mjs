@@ -45,7 +45,7 @@ export const RECIPES = {
     // raising height to fix the ratio eventually overflows the frame and
     // silently crops the right-hand columns instead. Both constraints have to
     // hold at once.
-    viewport: { width: 1200, height: 1050 },
+    viewport: { width: 1300, height: 1100 },
 
     pose: async (page) => {
       // Picks the cover actor by NAME, not by `?actor=<id>`. Actor ids are
@@ -54,7 +54,7 @@ export const RECIPES = {
       // Ethan Hawke to Adam Sandler, which silently captured the wrong actor
       // before this was switched to a name lookup. A name survives that.
       //
-      // De Niro is the best-carding shape in the pool: 203 / 37 / 12 / 2 / 2
+      // De Niro is the best-carding shape in the pool: 247 / 42 / 14 / 2 / 2
       // is a clean descending staircase that fills the frame, which is exactly
       // the claim the page makes. Wide-tail actors look better in principle
       // (Christopher Lee reaches 18 films with Peter Cushing) but card badly -
@@ -65,10 +65,32 @@ export const RECIPES = {
       await page.fill(".tus-search-input", "Robert De Niro");
       await page.locator('.tus-search-results button', { hasText: /^Robert De Niro$/ }).first().click();
       await page.waitForSelector(".tus-node");
-      // Avatars hotlink TMDB (see graph.ts) - without this the card can
-      // capture a grid of empty circles mid-fetch.
+      // Avatars hotlink TMDB (see graph.ts) and render as SVG <image>, which
+      // paints *nothing* until its href resolves - so a half-loaded chart
+      // isn't visibly half-loaded, it's a column with a "42" label and three
+      // faces under it. networkidle alone was not enough here (it fired while
+      // columns 2 and 3 were still empty), so this explicitly waits for every
+      // avatar URL to settle: re-requesting them as Image() objects resolves
+      // instantly from cache for the ones already in, and blocks on the rest.
+      // Layout itself needs no wait - the force simulation runs 220 ticks
+      // synchronously during render (beeswarm.ts), so positions are final.
       await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(300);
+      await page.evaluate(async () => {
+        const hrefs = [...document.querySelectorAll(".tus-node image")]
+          .map((el) => el.getAttribute("href"))
+          .filter(Boolean);
+        await Promise.all(
+          hrefs.map(
+            (src) =>
+              new Promise((resolve) => {
+                const img = new Image();
+                img.onload = img.onerror = () => resolve();
+                img.src = src;
+              })
+          )
+        );
+      });
+      await page.waitForTimeout(500);
     },
   },
 

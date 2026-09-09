@@ -42,9 +42,17 @@ const VIEWPORT_GUTTER = 24;
 // pushes sizeForBucket's computed diameter below minNodeSize (beeswarm.ts),
 // avatar size clamps to that floor and stops shrinking with the target, so
 // the pack's real height stops responding to how much we compress the
-// layout - only the tallest two actors in the whole pool (Samuel L. Jackson
-// and Willem Dafoe, both ~227-person singleton buckets) land here, needing
-// ~0.66; 0.7 left exactly those two overflowing the viewport by a hair.
+// layout - only the very tallest actors in the pool land here.
+//
+// Re-measured 2026-09-09 after the pool grew to 2,839 actors (the
+// --min-votes-sum5 fame fix), which pushed the biggest singleton buckets
+// from ~227 to 278 (Samuel L. Jackson) and 268 (Willem Dafoe). The floor no
+// longer guarantees a fit at 1440x900: Dafoe pins 0.65 but needs 0.626, and
+// De Niro pins it needing 0.643, so both overflow the bottom by 5-19px and
+// fall back to the vertical scroll this floor exists to allow. Jackson,
+// oddly, is no longer one of them (he settles at 0.692, inside the floor).
+// Dropping the floor to ~0.62 would restore the fit at the cost of the
+// legibility this constant is protecting - deliberately not done here.
 const MIN_SCALE = 0.65;
 // Real minimum touch-target radius, in CSS px - half of the ~44px guideline.
 // Divided by `scale` below wherever it's used, since this needs to hold
@@ -444,8 +452,8 @@ export default function App() {
           Ryder. Some actors share the silver screen more than others. Type a
           name
           {/* Gated on `data` (the full pool), not `activeData` - the bundled
-              default slice's count (1,389) is real but wrong for this claim
-              until the full pool (2,465) lands, so the figure is omitted
+              default slice's count (1,612) is real but wrong for this claim
+              until the full pool (2,839) lands, so the figure is omitted
               rather than shown wrong for the first ~2s of every load. */}
           {data && <> from this pool of {data.actors.length.toLocaleString()} actors</>} to see
           their costars, and {compact ? "tap" : "click"} on anyone to see the films they share.
