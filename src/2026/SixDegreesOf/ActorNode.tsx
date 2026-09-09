@@ -6,6 +6,11 @@ interface Props {
   x: number;
   y: number;
   size: number;
+  /** Radius of an invisible circle centered on this node, tappable/clickable
+   * even where it extends past the visible avatar - see App.tsx for how
+   * this is sized up to a real touch-target minimum for a small avatar
+   * (some are drawn well under 44 CSS px - see beeswarm.ts's minNodeSize). */
+  hitRadius: number;
   sharedMovies: Movie[];
   isSelected: boolean;
   /** Click/tap opens the detail card - re-centering is a deliberate button inside that card, not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
@@ -28,7 +33,7 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-export default function ActorNode({ actor, x, y, size, sharedMovies, isSelected, onSelect, domRef }: Props) {
+export default function ActorNode({ actor, x, y, size, hitRadius, sharedMovies, isSelected, onSelect, domRef }: Props) {
   const url = photoUrl(actor, size);
   const r = size / 2;
   return (
@@ -50,6 +55,17 @@ export default function ActorNode({ actor, x, y, size, sharedMovies, isSelected,
           (films, links, re-center) lives in the click-opened card, since touch
           devices never fire hover at all. */}
       <title>{actor.name}</title>
+      {/* Invisible, only for hit-testing - extends the tappable area past the
+          visible avatar for anything drawn under a real touch-target size
+          (fill="transparent" still hit-tests with pointerEvents="all", it
+          just paints nothing). Placed first/behind, not last/on top, so it
+          can't visually sit over the avatar - it doesn't need to, since a
+          click anywhere inside this <g> already bubbles to the onClick
+          above regardless of which child was actually hit. Deliberately not
+          trying to keep overlapping nodes' hit areas from overlapping each
+          other - that would mean moving the avatars, which breaks the
+          chart; the detail card that opens tells you who you got. */}
+      <circle r={hitRadius} fill="transparent" pointerEvents="all" />
       <clipPath id={`sdo-clip-${actor.id}`}>
         <circle r={r} />
       </clipPath>

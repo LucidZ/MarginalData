@@ -45,6 +45,10 @@ const VIEWPORT_GUTTER = 24;
 // and Willem Dafoe, both ~227-person singleton buckets) land here, needing
 // ~0.66; 0.7 left exactly those two overflowing the viewport by a hair.
 const MIN_SCALE = 0.65;
+// Real minimum touch-target radius, in CSS px - half of the ~44px guideline.
+// Divided by `scale` below wherever it's used, since this needs to hold
+// after the uniform SVG scale-down, not in viewBox units.
+const MIN_HIT_RADIUS = 22;
 
 function pickRandomDefaultActorId(): number {
   const ids = defaultActors.defaultActorIds;
@@ -478,6 +482,7 @@ export default function App() {
                           x={col.x + p.x}
                           y={p.y}
                           size={p.size}
+                          hitRadius={Math.max(p.size / 2, MIN_HIT_RADIUS / scale)}
                           sharedMovies={p.sharedMovies}
                           isSelected={selection?.actor.id === actor.id}
                           onSelect={(a, movies, e) =>

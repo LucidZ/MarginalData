@@ -224,19 +224,29 @@
   opacity: 1;
 }
 
-/* flex + justify-content:center (not width: fit-content) is what centers a
-   chart narrower than the frame: fit-content looked like the obvious tool,
-   but the svg inside is a replaced element with a fixed intrinsic width (see
-   App.tsx), so fit-content's own min-content floor equals that full width -
-   it refuses to shrink the box on a narrow viewport where the chart
-   genuinely needs to scroll, so the box overflows its own parent instead of
-   containing the overflow. Centering via flex has no such floor: a chart
-   smaller than the frame centers, one larger than the frame still fills it
-   and scrolls (the flex item overflows the flex container exactly like it
-   would overflow a block one). */
+/* flex + justify-content:safe center (not width: fit-content) is what
+   centers a chart narrower than the frame: fit-content looked like the
+   obvious tool, but the svg inside is a replaced element with a fixed
+   intrinsic width (see App.tsx), so fit-content's own min-content floor
+   equals that full width - it refuses to shrink the box on a narrow
+   viewport where the chart genuinely needs to scroll, so the box overflows
+   its own parent instead of containing the overflow. Centering via flex has
+   no such floor: a chart smaller than the frame centers, one larger fills
+   it and scrolls.
+
+   `safe` is not optional here, and its absence was a real, shipped bug: bare
+   `justify-content: center` centers even when the item overflows, which
+   means half the overflow lands *before* the container's own start edge -
+   unreachable, since scrollLeft can't go negative. Measured on Robert Downey
+   Jr.'s mobile chart (665px svg in a 342px container, 323px overflow): the
+   svg's own rendered box started at x=-137.5 relative to the viewport - 161px
+   of it, the entire first column, permanently offscreen with no scroll
+   position that could reach it. `safe` falls back to start alignment
+   specifically when centering would cause that overflow, which is exactly
+   the "safe centering" CSS Box Alignment defines the keyword for. */
 .sdo-graph-scroll {
   display: flex;
-  justify-content: center;
+  justify-content: safe center;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
