@@ -421,15 +421,29 @@ export default function App() {
   const scale = Math.max(MIN_SCALE, Math.min(1, maxFrameHeight / frameHeight));
 
   const rootPhoto = root ? photoUrl(root, 56) : null;
+  // The bold number above each column has no unit of its own ("175" reads as
+  // a bare value) - giving just the first (leftmost, always non-empty for
+  // anyone with real costars) column's count a unit establishes what every
+  // column's number means without repeating it down the whole row.
+  const firstLabeledColumnFilms = columns.find((c) => c.actors.length > 0)?.sharedFilms;
 
   return (
     <div className="sdo-root">
       <header className="sdo-header">
         <h1>Six Degrees Of...</h1>
         <p className="sdo-subtitle">
-          Type an actor's name. Every real costar of theirs (within this pool) shows up, grouped
-          by how many films they've actually made together - nothing curated or capped. Tap
-          anyone to see the films they share.
+          {/* First clause corrects the expectation "Six Degrees Of..." sets: this
+              is a one-hop collaboration histogram, not the Bacon-number path
+              game the title otherwise implies. */}
+          Not the Bacon-number game - this is every real costar a given actor
+          has, stacked by how many films they actually made together, nothing
+          curated or capped. Type a name
+          {/* Gated on `data` (the full pool), not `activeData` - the bundled
+              default slice's count (1,389) is real but wrong for this claim
+              until the full pool (2,465) lands, so the figure is omitted
+              rather than shown wrong for the first ~2s of every load. */}
+          {data && <> from this pool of {data.actors.length.toLocaleString()} actors</>} and{" "}
+          {compact ? "tap" : "click"} anyone to see the films they share.
         </p>
         <div className="sdo-search-row">
           <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
@@ -509,7 +523,9 @@ export default function App() {
                   <g key={col.sharedFilms}>
                     {col.actors.length > 0 && (
                       <text className="sdo-count-label" x={col.x} y={col.top - COUNT_LABEL_GAP} textAnchor="middle">
-                        {col.actors.length}
+                        {col.sharedFilms === firstLabeledColumnFilms
+                          ? `${col.actors.length} costars`
+                          : col.actors.length}
                       </text>
                     )}
                     <text

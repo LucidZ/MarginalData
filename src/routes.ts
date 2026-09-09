@@ -234,10 +234,10 @@ export const ROUTES: RouteEntry[] = [
     path: "/2026/SixDegreesOf",
     title: "Six Degrees Of... — Marginal Data",
     description:
-      "Type an actor's name and watch rings of their real-life costars expand outward, built from actual IMDb co-star data.",
+      "Type an actor's name and see every real costar they've shared a film with, stacked by how many films they actually made together, built from actual IMDb co-star data.",
     component: () => import("./2026/SixDegreesOf"),
     group: "Explorers & Simulators",
     date: "2026-09-02",
-    note: "Everyone knows the Kevin Bacon game, but I'd never seen it as an actual expanding network you could explore. Turns out the real co-star graph is so densely connected that most searches reach half of Hollywood within two rings.",
+    note: "Everyone knows the Kevin Bacon game, but I'd never actually looked at one actor's full costar list at once. Turns out most of it is one-film flings - it's the handful of people someone's made 5, 10, 20 films with that the pile-of-faces view actually reveals.",
   },
 ];
