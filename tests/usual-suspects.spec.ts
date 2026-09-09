@@ -6,7 +6,7 @@ import { test, expect, type Page } from "@playwright/test";
 // pool to load in the background. If a future regeneration of that file
 // drops one of these actors, re-pick a replacement from the current slice
 // rather than waiting out the full-pool fetch in every run.
-const TOM_HANKS_ID = 39;
+const TOM_HANKS_ID = 49;
 const MICHAEL_CAINE = "Michael Caine";
 const ANUPAM_KHER = "Anupam Kher";
 const BRUCE_WILLIS = "Bruce Willis";

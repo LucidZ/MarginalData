@@ -12,14 +12,21 @@ explode past legibility within 2-3 hops for any well-connected actor.
 So this script bounds the actor pool by fame *before* building edges:
   1. Filter IMDb to theatrical movies only (titleType=="movie", non-adult,
      runtime>=40min) - drops tvEpisode/short/video/tvMovie noise.
-  2. For each actor, compute (a) the highest numVotes of any single movie
-     they're credited in - a "was this person ever in something widely
-     watched" proxy - and (b) their theatrical credit count.
-  3. Keep only actors clearing --min-votes AND --min-movies. Votes-alone
-     over-includes bit-players from one blockbuster ensemble (e.g. minor
-     Shawshank Redemption cast); movies-alone over-includes prolific
-     unknown character actors. The AND of both is a much better
-     "would someone actually type this name" filter than either alone.
+  2. For each actor, compute (a) their TOP_N_TRACKED highest single-movie
+     numVotes counts and (b) their theatrical credit count.
+  3. Keep only actors clearing (--min-votes on a single movie OR
+     --min-votes-sum5 summed across their best TOP_N_TRACKED movies) AND
+     --min-movies. The single-movie max alone over-includes bit-players
+     from one blockbuster ensemble (e.g. minor Shawshank Redemption cast)
+     but under-includes prolific stars whose movies are each merely
+     well-watched, never a 500K+-vote outlier (e.g. Adam Sandler - 54
+     theatrical credits, all in the 150K-420K range, none clearing a
+     500K single-movie bar); movies-alone over-includes prolific unknown
+     character actors. --min-votes-sum5 fixes the under-inclusion without
+     reopening the bit-player hole: a one-credit actor still needs that
+     one movie to clear the *sum* threshold on its own. It's optional -
+     omit it to fall back to the original single-max-votes AND
+     movie-count filter, e.g. for pool-b's lower, movies-heavy bar.
   4. Build the actor-actor co-star graph *within that pool only* -
      IMDb caps title.principals at ~10 credited actors/title, so this
      stays a small combinatorial problem even for ensemble films.
@@ -29,7 +36,7 @@ So this script bounds the actor pool by fame *before* building edges:
      downloaded/stored here - see project_usual_suspects.md for why.
 
 Usage:
-    python scripts/generate_usual_suspects_data.py --min-votes 500000 --min-movies 1 --out pool-a
+    python scripts/generate_usual_suspects_data.py --min-votes 500000 --min-votes-sum5 1000000 --min-movies 1 --out pool-a
     python scripts/generate_usual_suspects_data.py --min-votes 25000 --min-movies 3 --out pool-b
 
 Requires TMDB_READ_ACCESS_TOKEN in .env.local (v4 bearer token).
@@ -145,11 +152,18 @@ def load_votes():
     return votes
 
 
+TOP_N_TRACKED = 5  # how many of an actor's highest-voted movies we keep for the sum_top5 fame proxy
+
+
 def load_cast(movie_ids, votes):
-    """Returns cast[tconst] -> [nconst, ...] and per-actor (max_votes, movie_count)."""
+    """Returns cast[tconst] -> [nconst, ...] and per-actor (top_votes, movie_count).
+    top_votes[nconst] is that actor's TOP_N_TRACKED highest single-movie vote
+    counts (unsorted, capped list) - enough to derive both a "single-outlier"
+    proxy (max) and a "sustained career" proxy (sum of the top few) without
+    storing every credit's vote count for all ~1.1M actors."""
     print("Scanning title.principals for actor credits (this is the big one, ~745MB)...")
     cast = defaultdict(list)
-    max_votes = defaultdict(int)
+    top_votes = defaultdict(list)
     movie_count = defaultdict(int)
     n = 0
     for row, idx in raw_tsv_lines(TITLE_PRINCIPALS):
@@ -164,20 +178,44 @@ def load_cast(movie_ids, votes):
         nconst = row[idx["nconst"]]
         cast[tconst].append(nconst)
         v = votes.get(tconst, 0)
-        if v > max_votes[nconst]:
-            max_votes[nconst] = v
+        lst = top_votes[nconst]
+        if len(lst) < TOP_N_TRACKED:
+            lst.append(v)
+        else:
+            m = min(lst)
+            if v > m:
+                lst[lst.index(m)] = v
         movie_count[nconst] += 1
     print(f"  scanned {n:,} rows -> {len(movie_count):,} unique actors across {len(cast):,} movies")
-    return cast, max_votes, movie_count
+    return cast, top_votes, movie_count
 
 
-def build_pool(max_votes, movie_count, min_votes, min_movies):
-    pool = {
-        nconst
-        for nconst in movie_count
-        if max_votes[nconst] >= min_votes and movie_count[nconst] >= min_movies
-    }
-    print(f"Pool: {len(pool):,} actors (max_votes>={min_votes:,} AND movie_count>={min_movies})")
+def build_pool(top_votes, movie_count, min_votes, min_votes_sum5, min_movies):
+    """An actor clears the bar via EITHER a single outlier-huge movie
+    (max single-movie votes >= min_votes - catches one-hit blockbuster
+    ensembles) OR sustained, broadly-attended fame across several movies
+    (sum of their top TOP_N_TRACKED movies' votes >= min_votes_sum5 - catches
+    prolific stars like Adam Sandler whose movies are each well short of a
+    500K-vote outlier but who's clearly a "would someone type this name"
+    actor). min_votes_sum5 is optional: omitting it collapses this back to
+    the original single max_votes>=min_votes AND movie_count>=min_movies
+    filter, e.g. for pool-b's lower, movies-heavy bar."""
+    pool = set()
+    for nconst, count in movie_count.items():
+        if count < min_movies:
+            continue
+        votes_list = top_votes[nconst]
+        if not votes_list:
+            continue
+        if max(votes_list) >= min_votes:
+            pool.add(nconst)
+        elif min_votes_sum5 is not None and sum(votes_list) >= min_votes_sum5:
+            pool.add(nconst)
+    if min_votes_sum5 is not None:
+        print(f"Pool: {len(pool):,} actors (sum_top{TOP_N_TRACKED}>={min_votes_sum5:,} "
+              f"OR max_votes>={min_votes:,}, AND movie_count>={min_movies})")
+    else:
+        print(f"Pool: {len(pool):,} actors (max_votes>={min_votes:,} AND movie_count>={min_movies})")
     return pool
 
 
@@ -350,6 +388,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--min-votes", type=int, required=True,
                          help="Min numVotes of the actor's single most-watched movie")
+    parser.add_argument("--min-votes-sum5", type=int, default=None,
+                         help=f"Alternate qualifying path: min summed numVotes across the actor's "
+                              f"top {TOP_N_TRACKED} most-watched movies (OR'd with --min-votes). "
+                              f"Omit to require --min-votes alone")
     parser.add_argument("--min-movies", type=int, default=1,
                          help="Min theatrical movie credit count")
     parser.add_argument("--out", required=True, help="Output name, e.g. 'pool-a'")
@@ -368,8 +410,8 @@ def main():
 
     movie_ids, movie_titles = load_theatrical_movie_ids()
     votes = load_votes()
-    cast, max_votes, movie_count = load_cast(movie_ids, votes)
-    pool = build_pool(max_votes, movie_count, args.min_votes, args.min_movies)
+    cast, top_votes, movie_count = load_cast(movie_ids, votes)
+    pool = build_pool(top_votes, movie_count, args.min_votes, args.min_votes_sum5, args.min_movies)
     shared_movies = build_edges(cast, pool)
     names = load_names(pool)
 
