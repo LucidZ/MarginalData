@@ -27,6 +27,30 @@ async function selectActor(page: Page, name: string) {
   await page.waitForTimeout(600); // beeswarm re-layout (d3-force settles synchronously, but give React a paint)
 }
 
+// Beeswarm-packed nodes deliberately overlap (their hit-radius is padded up
+// to a real touch-target minimum even when the visible avatar is smaller -
+// see ActorNode.tsx), so a plain leftmost/rightmost pick can land on a node
+// whose *own* bounding-box center is actually covered by a different,
+// later-painted node's hit circle - clicking there opens that other node's
+// card, not the one the test thinks it clicked. This confirms each
+// candidate's own center point via elementFromPoint before trusting it, so
+// tests that need two specific, distinct, reliably-clickable actors don't
+// flake on an overlap coin-flip.
+async function leftmostAndRightmostClickable(page: Page) {
+  const clickable = await page.locator(".tus-node").evaluateAll((nodes) =>
+    nodes
+      .map((n, i) => {
+        const r = n.getBoundingClientRect();
+        const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return { i, x: r.x, ownsCenter: !!top && (top === n || n.contains(top)) };
+      })
+      .filter((n) => n.ownsCenter),
+  );
+  const left = clickable.reduce((best, n) => (n.x < best.x ? n : best));
+  const right = clickable.reduce((best, n) => (n.x > best.x ? n : best));
+  return { left: page.locator(".tus-node").nth(left.i), right: page.locator(".tus-node").nth(right.i) };
+}
+
 test.describe("The Usual Suspects", () => {
   test("axis header is visible above the fold on load, desktop and mobile", async ({ browser }) => {
     for (const viewport of [DESKTOP, MOBILE]) {
@@ -108,6 +132,52 @@ test.describe("The Usual Suspects", () => {
       await page.locator(".tus-card-close").click();
       await page.waitForTimeout(200);
     }
+    await page.close();
+  });
+
+  // Regression for the old full-viewport backdrop <div>: it sat above the
+  // chart to catch outside clicks, so a click on a *different* node hit the
+  // backdrop first and only closed the open card - opening the new one took
+  // a second click. Now a capture-phase document listener (DetailCard.tsx)
+  // lets that same click keep going to the node underneath, so one click on
+  // a different actor should swap the card directly.
+  test("clicking a different node swaps the open card in one click", async ({ browser }) => {
+    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
+    await page.goto("/2026/UsualSuspects");
+    await selectActor(page, MICHAEL_CAINE);
+
+    const { left: node0, right: node1 } = await leftmostAndRightmostClickable(page);
+    await node0.click({ force: true });
+    await page.waitForTimeout(300);
+    const firstName = await page.locator(".tus-card-name").textContent();
+
+    await node1.click({ force: true });
+    await page.waitForTimeout(300);
+    const secondName = await page.locator(".tus-card-name").textContent();
+    const node1Label = await node1.getAttribute("aria-label");
+
+    expect(secondName).not.toBe(firstName);
+    expect(node1Label).toContain(secondName!);
+    await expect(page.locator(".tus-card")).toHaveCount(1); // never fully closed in between
+    await page.close();
+  });
+
+  // Fast path for confident exploration: double-click skips the card and
+  // jumps straight to centering. Single click's meaning is untouched (still
+  // just opens the card) - see ActorNode.tsx.
+  test("double-clicking a node recenters on them directly", async ({ browser }) => {
+    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
+    await page.goto("/2026/UsualSuspects");
+    await selectActor(page, MICHAEL_CAINE);
+
+    const { left: node } = await leftmostAndRightmostClickable(page);
+    const label = await node.getAttribute("aria-label");
+    const name = label!.replace(" - open details", "");
+
+    await node.dblclick({ force: true });
+    await page.waitForTimeout(600);
+    await expect(page.locator(".tus-root-name")).toHaveText(name);
+    await expect(page.locator(".tus-card")).toHaveCount(0);
     await page.close();
   });
 

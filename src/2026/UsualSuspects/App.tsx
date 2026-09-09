@@ -631,6 +631,7 @@ export default function App() {
                           onSelect={(a, movies, e) =>
                             setSelection({ actor: a, sharedMovies: movies, clientX: e.clientX, clientY: e.clientY })
                           }
+                          onCenter={recenter}
                           domRef={(el) => {
                             if (el) nodeRefs.current.set(p.id, el);
                             else nodeRefs.current.delete(p.id);

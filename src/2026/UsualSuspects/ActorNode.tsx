@@ -15,6 +15,14 @@ interface Props {
   isSelected: boolean;
   /** Click/tap opens the detail card - re-centering is a deliberate button inside that card, not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
   onSelect: (actor: Actor, sharedMovies: Movie[], e: React.MouseEvent) => void;
+  /** Desktop-only fast path: double-click jumps straight to centering on this
+   * actor, skipping the intermediate card. Doesn't touch what a single
+   * click means (still just opens the card), so there's no new state to
+   * learn - it's an accelerator for people who already recognize the
+   * thumbnail, not a replacement gesture. Left off touch: mobile's default
+   * double-tap-to-zoom would fight it, and the bottom-sheet card's own
+   * "Center on" button is already one tap away there. */
+  onCenter: (actor: Actor) => void;
   /** Registers/unregisters this node's real DOM element with App.tsx's
    * roving-tabindex machinery - it needs to call .focus() and
    * getBoundingClientRect() on whichever node is currently "the" focused
@@ -33,7 +41,18 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-export default function ActorNode({ actor, x, y, size, hitRadius, sharedMovies, isSelected, onSelect, domRef }: Props) {
+export default function ActorNode({
+  actor,
+  x,
+  y,
+  size,
+  hitRadius,
+  sharedMovies,
+  isSelected,
+  onSelect,
+  onCenter,
+  domRef,
+}: Props) {
   const url = photoUrl(actor, size);
   const r = size / 2;
   return (
@@ -42,6 +61,7 @@ export default function ActorNode({ actor, x, y, size, hitRadius, sharedMovies, 
       className={`tus-node${isSelected ? " tus-node-selected" : ""}`}
       transform={`translate(${x}, ${y})`}
       onClick={(e) => onSelect(actor, sharedMovies, e)}
+      onDoubleClick={() => onCenter(actor)}
       role="button"
       // -1, not 0: this node is only ever reachable via the roving
       // tabindex App.tsx drives off the <svg> itself (arrow keys move

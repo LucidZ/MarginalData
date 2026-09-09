@@ -63,6 +63,25 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Close-on-outside-click, replacing the old full-viewport backdrop <div>.
+  // That backdrop sat above the chart to catch outside clicks, which meant
+  // every click - including one landing on a *different* actor node - hit
+  // the backdrop first and only closed this card; opening the new one took
+  // a second click. A capture-phase document listener instead lets the
+  // click keep going to whatever it actually landed on: this fires first
+  // and clears the selection, then the click still bubbles to the node
+  // underneath and opens its card, so switching actors is one click again.
+  // Capture (not bubble) is what makes the ordering work - it runs before
+  // React's own bubble-phase onClick, so onClose() is always the first of
+  // the two setSelection calls in that click's batch, not the last.
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("click", onDocClick, true);
+    return () => document.removeEventListener("click", onDocClick, true);
+  }, [onClose]);
+
   // Corrects `top` against the card's real rendered height once it's
   // actually in the DOM - `left`/`width` don't need correcting, since width
   // is always the fixed CARD_WIDTH the estimate already used. Runs after
@@ -100,7 +119,6 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
 
   return (
     <>
-      <div className="tus-card-backdrop" onClick={onClose} />
       <div
         ref={cardRef}
         className={`tus-card${compact ? " tus-card-sheet" : ""}`}

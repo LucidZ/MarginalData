@@ -385,13 +385,6 @@
    tap that revealed it also re-centered the chart underneath. Click-to-open
    with an explicit "Center on" button makes one gesture do one thing on both
    platforms. */
-.tus-card-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  background: transparent;
-}
-
 .tus-card {
   position: fixed;
   z-index: 100;
