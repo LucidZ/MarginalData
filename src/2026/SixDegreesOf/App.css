@@ -99,9 +99,10 @@
   background: var(--gridline);
 }
 
-.sdo-empty {
+.sdo-error-note {
   color: var(--muted);
-  margin-top: 2rem;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
 }
 
 .sdo-root-banner {
@@ -126,6 +127,29 @@
 .sdo-root-name {
   font-size: 1.15rem;
   font-weight: 600;
+}
+
+/* Shared by the root banner name and the detail card head - both link out to
+   the actor's TMDB person page when we have a tmdbId. */
+.sdo-person-link {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sdo-person-link:hover {
+  text-decoration: underline;
+}
+
+/* The card-head link wraps photo + name + meta as one block (like a movie
+   row) - underline just the name on hover, not the whole thing, so the meta
+   line and photo don't read as separately clickable text. */
+.sdo-card-head.sdo-person-link:hover {
+  text-decoration: none;
+}
+
+.sdo-card-head.sdo-person-link:hover .sdo-card-name {
+  text-decoration: underline;
 }
 
 .sdo-root-meta {
@@ -395,8 +419,4 @@ span.sdo-movie-row .sdo-movie-title {
 
 .sdo-card-sheet .sdo-card-movies {
   max-height: 40vh;
-}
-
-.sdo-error {
-  color: var(--text-primary);
 }

@@ -57,6 +57,22 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   const photo = photoUrl(actor, 64);
   const count = sharedMovies.length;
 
+  const head = (
+    <>
+      {photo ? (
+        <img className="sdo-card-photo" src={photo} alt="" width={56} height={56} />
+      ) : (
+        <div className="sdo-card-photo sdo-card-photo-fallback" />
+      )}
+      <div>
+        <div className="sdo-card-name">{actor.name}</div>
+        <div className="sdo-card-meta">
+          {count} film{count === 1 ? "" : "s"} with {rootActor.name}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
       <div className="sdo-card-backdrop" onClick={onClose} />
@@ -65,19 +81,18 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
           ×
         </button>
 
-        <div className="sdo-card-head">
-          {photo ? (
-            <img className="sdo-card-photo" src={photo} alt="" width={56} height={56} />
-          ) : (
-            <div className="sdo-card-photo sdo-card-photo-fallback" />
-          )}
-          <div>
-            <div className="sdo-card-name">{actor.name}</div>
-            <div className="sdo-card-meta">
-              {count} film{count === 1 ? "" : "s"} with {rootActor.name}
-            </div>
-          </div>
-        </div>
+        {actor.tmdbId ? (
+          <a
+            className="sdo-card-head sdo-person-link"
+            href={`https://www.themoviedb.org/person/${actor.tmdbId}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {head}
+          </a>
+        ) : (
+          <div className="sdo-card-head">{head}</div>
+        )}
 
         <ul className="sdo-card-movies">
           {sharedMovies.map((movie) => {
