@@ -133,6 +133,39 @@ export default function App() {
 
   const columns = useMemo(() => layoutBeeswarm(buckets, layout), [buckets, layout]);
 
+  // Signals whether the chart scrolls sideways past what's currently in
+  // view, so the edge gradients (see .sdo-graph-frame in App.css) only show
+  // up when there's actually more to see - otherwise a chart that already
+  // fits the frame (most actors, after phases 2-3) would render a
+  // permanent, meaningless hint.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState({ left: false, right: false });
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      // A couple px of tolerance so subpixel layout rounding at either end
+      // doesn't flicker the gradient on and off.
+      const EDGE_THRESHOLD = 2;
+      setOverflow({
+        left: el.scrollLeft > EDGE_THRESHOLD,
+        right: el.scrollLeft + el.clientWidth < el.scrollWidth - EDGE_THRESHOLD,
+      });
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+    // columns captures every reason the rendered chart's width could change
+    // (recenter, the background data swap, a layout/compact change) - re-run
+    // whenever it does, since scrollWidth only reflects the latest render
+    // once this effect fires after it.
+  }, [columns]);
+  const overflowTokens = [overflow.left && "left", overflow.right && "right"].filter(Boolean).join(" ") || undefined;
+
   const recenter = (actor: Actor) => {
     setRootId(actor.id);
     setSelection(null);
@@ -236,8 +269,8 @@ export default function App() {
             // can't collide with a column's own number label.
             <p className="sdo-axis-unit-note">Columns: films together</p>
           )}
-          <div className="sdo-graph-frame" ref={frameRef}>
-            <div className="sdo-graph-scroll">
+          <div className="sdo-graph-frame" ref={frameRef} data-overflow={overflowTokens}>
+            <div className="sdo-graph-scroll" ref={scrollRef}>
               <svg
                 className="sdo-graph"
                 viewBox={viewBox}
