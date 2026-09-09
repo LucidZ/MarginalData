@@ -51,9 +51,45 @@
   margin-bottom: 1rem;
 }
 
+.sdo-search-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
 .sdo-search {
   position: relative;
+  flex: 1;
   max-width: 420px;
+}
+
+.sdo-shuffle {
+  flex: 0 0 auto;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.sdo-shuffle:hover,
+.sdo-shuffle:focus-visible {
+  background: var(--gridline);
+}
+
+/* Shown only while a ?actor= id in the URL hasn't resolved yet - see rootId
+   in App.tsx. Deliberately not styled like .sdo-error-note (a permanent,
+   muted footnote) - this is the main content area still catching up, not a
+   secondary caveat, so it gets a bit more visual weight. */
+.sdo-root-loading {
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 .sdo-search-input {

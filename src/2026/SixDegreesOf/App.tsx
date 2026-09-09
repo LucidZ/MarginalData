@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ActorNode from "./ActorNode";
 import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm, type Column } from "./beeswarm";
 // A small pre-baked slice of the full pool - a handful of well-connected
@@ -131,9 +132,12 @@ function useViewportWidth(): number {
 
 export default function App() {
   const { data, error } = useData();
-  // Picked once, from the bundled default slice, before the full pool has
-  // even started downloading - see the defaultActors.json import above.
-  const [rootId, setRootId] = useState<number>(pickRandomDefaultActorId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Only ever used when there's no usable ?actor= id (see rootId below) -
+  // memoized so it's picked once per mount, from the bundled default slice,
+  // before the full pool has even started downloading (see the
+  // defaultActors.json import above), and doesn't reroll on every render.
+  const fallbackId = useMemo(pickRandomDefaultActorId, []);
   const [selection, setSelection] = useState<Selection | null>(null);
   const viewportWidth = useViewportWidth();
   const compact = viewportWidth < COMPACT_BREAKPOINT;
@@ -192,6 +196,36 @@ export default function App() {
     activeData.movies.forEach((m) => map.set(m.id, m));
     return map;
   }, [activeData]);
+
+  // The root actor comes from ?actor=<id> when there's a usable one,
+  // otherwise the memoized random fallback. "Usable" has three outcomes,
+  // not two, because of the same bundled-slice/full-pool swap SearchBox's
+  // status prop deals with:
+  //  - known: the id is already in actorById (bundled slice or full pool) -
+  //    honor it.
+  //  - pending: not found yet, but the full pool is still loading, so it
+  //    might resolve once that lands - a shared link must never flash the
+  //    fallback actor before settling on the right one. rootId stays the
+  //    param id (actorById.get(rootId) below then resolves to null, so the
+  //    chart itself doesn't render) rather than falling back, and a
+  //    loading message renders in its place.
+  //  - invalid: the pool has settled (loaded or errored) and the id still
+  //    isn't in it - genuinely bad. Falls back to random, and a separate
+  //    effect scrubs it from the URL so a reload doesn't repeat the same
+  //    dead end.
+  const paramId = useMemo(() => {
+    const raw = searchParams.get("actor");
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [searchParams]);
+  const paramKnown = paramId != null && actorById.has(paramId);
+  const paramPending = paramId != null && !paramKnown && searchStatus === "loading";
+  const paramInvalid = paramId != null && !paramKnown && !paramPending;
+  const rootId = paramId != null && !paramInvalid ? paramId : fallbackId;
+
+  useEffect(() => {
+    if (paramInvalid) setSearchParams({}, { replace: true });
+  }, [paramInvalid, setSearchParams]);
 
   const buckets = useMemo(
     () => bucketCostars(adjacency, actorById, movieById, rootId),
@@ -328,8 +362,19 @@ export default function App() {
   }, [columns]);
   const overflowTokens = [overflow.left && "left", overflow.right && "right"].filter(Boolean).join(" ") || undefined;
 
+  // Pushes a new URL entry (default setSearchParams behavior), not a
+  // replace - so Back walks through recenter history the same way it would
+  // any other navigation, undoing one recenter per press.
   const recenter = (actor: Actor) => {
-    setRootId(actor.id);
+    setSearchParams({ actor: String(actor.id) });
+    setSelection(null);
+  };
+
+  // Preserves the old random-on-load discovery affordance now that loading
+  // no longer rerolls it on every visit - picks fresh each press rather than
+  // reusing `fallbackId`, so repeated shuffles don't get stuck on one actor.
+  const shuffle = () => {
+    setSearchParams({ actor: String(pickRandomDefaultActorId()) });
     setSelection(null);
   };
 
@@ -386,7 +431,12 @@ export default function App() {
           by how many films they've actually made together - nothing curated or capped. Tap
           anyone to see the films they share.
         </p>
-        <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
+        <div className="sdo-search-row">
+          <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
+          <button type="button" className="sdo-shuffle" onClick={shuffle}>
+            Shuffle
+          </button>
+        </div>
         {error && !data && (
           <p className="sdo-error-note">
             Showing a small sample - the full pool didn't load ({error.message}), so search only
@@ -394,6 +444,8 @@ export default function App() {
           </p>
         )}
       </header>
+
+      {paramPending && <p className="sdo-root-loading">Loading this actor…</p>}
 
       {root && (
         <>
