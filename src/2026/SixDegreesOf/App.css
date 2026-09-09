@@ -157,15 +157,37 @@
   font-size: 0.85rem;
 }
 
-/* The graph is a fixed pixel size (see App.tsx) - it runs only as wide as the
-   current actor's own highest film-count column, so most actors now fit or
-   very nearly fit the page and only outliers scroll. Squashing it to
-   width:100% instead is not an option: that crams every column's text into
-   the container and makes it unreadable at any font-size. */
+/* Breaks the chart out of .sdo-root's 1100px reading-width column so a chart
+   wider than that (Michael Caine is 1228px, see App.tsx) doesn't scroll on a
+   1440px screen with hundreds of idle px on either side - the header prose
+   above keeps its narrower measure since this only wraps the chart. The
+   calc(50% - 50vw) breakout is computed off .sdo-root's own content box (its
+   nearest positioned/containing ancestor), so it pulls flush with the real
+   viewport edge; padding-inline puts a little air back so avatars near the
+   left/right edge don't touch it. This is also the positioned ancestor the
+   phase-4 scroll-edge gradients anchor to, and 1b's frameRef in App.tsx
+   measures its top (not the inner scroll div's) to size the chart's height
+   budget - neither changes when the chart's own width does. */
+.sdo-graph-frame {
+  position: relative;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: 1.5rem;
+}
+
+/* flex + justify-content:center (not width: fit-content) is what centers a
+   chart narrower than the frame: fit-content looked like the obvious tool,
+   but the svg inside is a replaced element with a fixed intrinsic width (see
+   App.tsx), so fit-content's own min-content floor equals that full width -
+   it refuses to shrink the box on a narrow viewport where the chart
+   genuinely needs to scroll, so the box overflows its own parent instead of
+   containing the overflow. Centering via flex has no such floor: a chart
+   smaller than the frame centers, one larger than the frame still fills it
+   and scrolls (the flex item overflows the flex container exactly like it
+   would overflow a block one). */
 .sdo-graph-scroll {
+  display: flex;
+  justify-content: center;
   overflow-x: auto;
-  margin: 0 -1rem;
-  padding: 0 1rem;
   -webkit-overflow-scrolling: touch;
 }
 

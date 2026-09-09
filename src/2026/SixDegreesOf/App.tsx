@@ -236,56 +236,58 @@ export default function App() {
             // can't collide with a column's own number label.
             <p className="sdo-axis-unit-note">Columns: films together</p>
           )}
-          <div className="sdo-graph-scroll" ref={frameRef}>
-            <svg
-              className="sdo-graph"
-              viewBox={viewBox}
-              width={frameWidth * scale}
-              height={frameHeight * scale}
-              role="img"
-              aria-label={`Costars of ${root.name}, grouped by shared film count`}
-            >
-              <line className="sdo-baseline" x1={viewLeft} x2={viewRight} y1={0} y2={0} />
-              {columns.map((col) => (
-                <g key={col.sharedFilms}>
-                  {col.actors.length > 0 && (
-                    <text className="sdo-count-label" x={col.x} y={col.top - COUNT_LABEL_GAP} textAnchor="middle">
-                      {col.actors.length}
+          <div className="sdo-graph-frame" ref={frameRef}>
+            <div className="sdo-graph-scroll">
+              <svg
+                className="sdo-graph"
+                viewBox={viewBox}
+                width={frameWidth * scale}
+                height={frameHeight * scale}
+                role="img"
+                aria-label={`Costars of ${root.name}, grouped by shared film count`}
+              >
+                <line className="sdo-baseline" x1={viewLeft} x2={viewRight} y1={0} y2={0} />
+                {columns.map((col) => (
+                  <g key={col.sharedFilms}>
+                    {col.actors.length > 0 && (
+                      <text className="sdo-count-label" x={col.x} y={col.top - COUNT_LABEL_GAP} textAnchor="middle">
+                        {col.actors.length}
+                      </text>
+                    )}
+                    <text
+                      className={col.isEmpty ? "sdo-axis-label sdo-axis-label-empty" : "sdo-axis-label"}
+                      x={col.x}
+                      y={axisLabelY}
+                      textAnchor="middle"
+                    >
+                      {/* An empty (gap) column is only EMPTY_COLUMN_HALF_WIDTH*2
+                          wide (beeswarm.ts) - "13 films together" doesn't fit
+                          there, so it falls back to the bare number regardless
+                          of compact. */}
+                      {col.isEmpty ? col.sharedFilms : filmLabel(col.sharedFilms, compact)}
                     </text>
-                  )}
-                  <text
-                    className={col.isEmpty ? "sdo-axis-label sdo-axis-label-empty" : "sdo-axis-label"}
-                    x={col.x}
-                    y={axisLabelY}
-                    textAnchor="middle"
-                  >
-                    {/* An empty (gap) column is only EMPTY_COLUMN_HALF_WIDTH*2
-                        wide (beeswarm.ts) - "13 films together" doesn't fit
-                        there, so it falls back to the bare number regardless
-                        of compact. */}
-                    {col.isEmpty ? col.sharedFilms : filmLabel(col.sharedFilms, compact)}
-                  </text>
-                  {col.actors.map((p) => {
-                    const actor = actorById.get(p.id);
-                    if (!actor) return null;
-                    return (
-                      <ActorNode
-                        key={p.id}
-                        actor={actor}
-                        x={col.x + p.x}
-                        y={p.y}
-                        size={p.size}
-                        sharedMovies={p.sharedMovies}
-                        isSelected={selection?.actor.id === actor.id}
-                        onSelect={(a, movies, e) =>
-                          setSelection({ actor: a, sharedMovies: movies, clientX: e.clientX, clientY: e.clientY })
-                        }
-                      />
-                    );
-                  })}
-                </g>
-              ))}
-            </svg>
+                    {col.actors.map((p) => {
+                      const actor = actorById.get(p.id);
+                      if (!actor) return null;
+                      return (
+                        <ActorNode
+                          key={p.id}
+                          actor={actor}
+                          x={col.x + p.x}
+                          y={p.y}
+                          size={p.size}
+                          sharedMovies={p.sharedMovies}
+                          isSelected={selection?.actor.id === actor.id}
+                          onSelect={(a, movies, e) =>
+                            setSelection({ actor: a, sharedMovies: movies, clientX: e.clientX, clientY: e.clientY })
+                          }
+                        />
+                      );
+                    })}
+                  </g>
+                ))}
+              </svg>
+            </div>
           </div>
 
           {selection && (
