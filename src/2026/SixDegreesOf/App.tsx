@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ActorNode from "./ActorNode";
 import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm } from "./beeswarm";
 // A small pre-baked slice of the full pool - a handful of well-connected
@@ -18,10 +18,33 @@ import "./App.css";
 
 const defaultActors = defaultActorsRaw as unknown as GraphData & { defaultActorIds: number[] };
 
-const AXIS_LABEL_HEIGHT = 28;
+// Reserved strip at the very top of the frame for the axis label row - it's
+// the same y for every column (see axisLabelY below) so the row reads as a
+// header rather than a per-column caption.
+const HEADER_HEIGHT = 22;
+// How far each column's count label sits above that column's own swarm top -
+// stays ragged (unlike the header) so it reads as attached to its pile.
 const COUNT_LABEL_GAP = 20;
-const TOP_MARGIN = 40;
+// Clear air between the header row and the tallest column's count label.
+const HEADER_GAP = 24;
+const BOTTOM_PAD = 12;
 const COMPACT_BREAKPOINT = 640;
+// Floor under the height budget 1b derives from the viewport - below this a
+// column has nowhere left to shrink avatars into.
+const MIN_CHART_HEIGHT = 360;
+// Air left below the viewport-derived chart height so the frame doesn't
+// press flush against the bottom edge of the screen.
+const VIEWPORT_GUTTER = 24;
+// Floor on the uniform SVG scale (see `scale` below) - past this text stops
+// being legible, so a chart that would need more shrinking just scrolls
+// vertically instead. 0.65 rather than a rounder 0.7: once a bucket's count
+// pushes sizeForBucket's computed diameter below minNodeSize (beeswarm.ts),
+// avatar size clamps to that floor and stops shrinking with the target, so
+// the pack's real height stops responding to how much we compress the
+// layout - only the tallest two actors in the whole pool (Samuel L. Jackson
+// and Willem Dafoe, both ~227-person singleton buckets) land here, needing
+// ~0.66; 0.7 left exactly those two overflowing the viewport by a hair.
+const MIN_SCALE = 0.65;
 
 function pickRandomDefaultActorId(): number {
   const ids = defaultActors.defaultActorIds;
@@ -51,7 +74,35 @@ export default function App() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const viewportWidth = useViewportWidth();
   const compact = viewportWidth < COMPACT_BREAKPOINT;
-  const layout = compact ? COMPACT_LAYOUT : DESKTOP_LAYOUT;
+
+  // How much vertical room is actually left for the chart, measured from
+  // wherever it starts down to the bottom of the viewport - lets the layout
+  // shrink to fit instead of running off the bottom of the screen.
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [available, setAvailable] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = frameRef.current;
+      if (!el) return;
+      // Document-space top of the chart region. Depends only on the header
+      // and banner above it, never on the chart's own height, so feeding
+      // this back into the layout below cannot oscillate.
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      setAvailable(Math.max(MIN_CHART_HEIGHT, window.innerHeight - top - VIEWPORT_GUTTER));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [compact]);
+
+  const layout = useMemo(() => {
+    const base = compact ? COMPACT_LAYOUT : DESKTOP_LAYOUT;
+    if (available == null) return base;
+    // Leave room inside the budget for the header row and the tallest
+    // column's count label, which sit above the swarm itself.
+    const columnBudget = available - HEADER_HEIGHT - HEADER_GAP - COUNT_LABEL_GAP - BOTTOM_PAD;
+    return { ...base, targetColumnHeight: Math.max(240, columnBudget) };
+  }, [compact, available]);
 
   // Render from the small bundled slice until the full pool finishes
   // loading in the background, then switch over. Same rootId, same shape of
@@ -110,9 +161,24 @@ export default function App() {
   const viewRight = lastColumn ? lastColumn.x + Math.max(layout.sideMargin, lastColumn.halfWidth) : layout.sideMargin;
   const frameWidth = viewRight - viewLeft;
   const tallestTop = columns.length ? Math.min(...columns.map((c) => c.top)) : -layout.targetColumnHeight;
-  const frameMinY = tallestTop - TOP_MARGIN - COUNT_LABEL_GAP;
-  const frameHeight = -frameMinY + AXIS_LABEL_HEIGHT + 10;
+  // The axis label row sits at a uniform y (frameMinY + HEADER_HEIGHT) for
+  // every column - unlike the count labels, which stay ragged above each
+  // column's own top - so the row reads as one header rather than a
+  // per-column caption.
+  const frameMinY = tallestTop - COUNT_LABEL_GAP - HEADER_GAP - HEADER_HEIGHT;
+  const axisLabelY = frameMinY + HEADER_HEIGHT - 6;
+  const frameHeight = -frameMinY + BOTTOM_PAD;
   const viewBox = `${viewLeft} ${frameMinY} ${frameWidth} ${frameHeight}`;
+
+  // Packing undershoots targetColumnHeight by a variable amount (see
+  // sizeForBucket/packColumn in beeswarm.ts), so the viewport-derived target
+  // above narrows things most of the way but doesn't guarantee a fit. This
+  // uniform scale on the rendered SVG is the guarantee: it only ever needs
+  // to close a small remaining gap, so in practice it should sit close to 1
+  // - if it's routinely near MIN_SCALE, the budget math above is off, not
+  // this floor.
+  const maxFrameHeight = available ?? frameHeight;
+  const scale = Math.max(MIN_SCALE, Math.min(1, maxFrameHeight / frameHeight));
 
   const rootPhoto = root ? photoUrl(root, 56) : null;
 
@@ -161,12 +227,21 @@ export default function App() {
             </div>
           </div>
 
-          <div className="sdo-graph-scroll">
+          {compact && (
+            // On mobile the per-column labels are bare numbers (see
+            // filmLabel) - this is the one place the unit they're counting
+            // gets spelled out. It sits directly above the chart rather than
+            // below (where its predecessor, .sdo-axis-note, used to live)
+            // so it's visible without scrolling, and outside the svg so it
+            // can't collide with a column's own number label.
+            <p className="sdo-axis-unit-note">Columns: films together</p>
+          )}
+          <div className="sdo-graph-scroll" ref={frameRef}>
             <svg
               className="sdo-graph"
               viewBox={viewBox}
-              width={frameWidth}
-              height={frameHeight}
+              width={frameWidth * scale}
+              height={frameHeight * scale}
               role="img"
               aria-label={`Costars of ${root.name}, grouped by shared film count`}
             >
@@ -178,7 +253,7 @@ export default function App() {
                       {col.actors.length}
                     </text>
                   )}
-                  <text className="sdo-axis-label" x={col.x} y={AXIS_LABEL_HEIGHT - 6} textAnchor="middle">
+                  <text className="sdo-axis-label" x={col.x} y={axisLabelY} textAnchor="middle">
                     {filmLabel(col.sharedFilms, compact)}
                   </text>
                   {col.actors.map((p) => {
@@ -203,7 +278,6 @@ export default function App() {
               ))}
             </svg>
           </div>
-          {compact && <p className="sdo-axis-note">Columns: films made together</p>}
 
           {selection && (
             <DetailCard

@@ -229,8 +229,12 @@
   pointer-events: none;
 }
 
-.sdo-axis-note {
-  margin: 0.35rem 0 0;
+/* Mobile-only stand-in for the unit ("films together") that desktop's fuller
+   axis labels spell out per column - compact labels are bare numbers (see
+   filmLabel in App.tsx), so this says the unit once, above the chart rather
+   than below it, so it's visible without scrolling. */
+.sdo-axis-unit-note {
+  margin: 0 0 0.35rem;
   text-align: center;
   font-size: 0.75rem;
   color: var(--muted);
