@@ -75,6 +75,33 @@ function pickRandomDefaultActor(): Actor {
   return defaultActors.actors.find((a) => a.id === id) ?? defaultActors.actors[0];
 }
 
+// The eight actors named in the subtitle copy above, keyed by IMDb nconst
+// (stable across pool regens - see the rootId comment below for why numeric
+// ids aren't safe here even though this file's ids happen to agree with the
+// current pool). Landing page opens centered on one of them at random, so
+// the sentence someone just read is also the chart they see, instead of
+// naming eight actors and then dropping them on someone else entirely.
+const SUBTITLE_ACTOR_NCONSTS = [
+  "nm0331516", // Ryan Gosling
+  "nm1297015", // Emma Stone
+  "nm0425005", // Dwayne Johnson
+  "nm0366389", // Kevin Hart
+  "nm0000206", // Keanu Reeves
+  "nm0000213", // Winona Ryder
+  "nm0001191", // Adam Sandler
+  "nm0184445", // Allen Covert
+];
+
+function pickRandomSubtitleActor(): Actor {
+  const nconst = SUBTITLE_ACTOR_NCONSTS[Math.floor(Math.random() * SUBTITLE_ACTOR_NCONSTS.length)];
+  // All eight are costars of the bundled slice's own default actors (that's
+  // how they ended up in the subtitle's shared-film claims in the first
+  // place), so they're already present in defaultActors.actors - no need to
+  // wait on the full pool fetch to land on one of them.
+  const match = defaultActors.actors.find((a) => a.nconst === nconst);
+  return match ?? pickRandomDefaultActor();
+}
+
 function filmLabel(n: number, compact: boolean): string {
   if (compact) return `${n}`;
   return `${n} film${n === 1 ? "" : "s"} together`;
@@ -159,7 +186,9 @@ export default function App() {
   // Its numeric id is safe to use directly: the slice is generated from the
   // same pool file in the same build, so their ids always agree. That's only
   // true *within* a build, which is exactly why the URL below can't use ids.
-  const fallbackActor = useMemo(pickRandomDefaultActor, []);
+  // Picks from the subtitle's eight named actors specifically (not the wider
+  // defaultActorIds pool that Shuffle draws from) - see pickRandomSubtitleActor.
+  const fallbackActor = useMemo(pickRandomSubtitleActor, []);
   const [selection, setSelection] = useState<Selection | null>(null);
   const viewportWidth = useViewportWidth();
   const compact = viewportWidth < COMPACT_BREAKPOINT;
@@ -470,23 +499,26 @@ export default function App() {
       <header className="tus-header">
         <h1>The Usual Suspects</h1>
         <p className="tus-subtitle">
-          {/* Four name-drops before any explanation: the pairs do the work of
-              defining what this is, and they double as the answer to "what
-              would I even type in". All four are verified against the shipped
-              pool - Depp/Bonham Carter 7 films, Johnson/Hart 4, Gosling/Stone
-              and Reeves/Ryder 3 each - so clicking any of them lands on a
-              chart that backs the claim rather than contradicting it. Re-check
-              them if the pool is ever regenerated or swapped to Pool B. */}
-          Johnny Depp and Helena Bonham Carter. Ryan Gosling and Emma Stone.
-          Dwayne "The Rock" Johnson and Kevin Hart. Keanu Reeves and Winona
-          Ryder. Some actors share the silver screen more than others. Type a
-          name
+          {/* Three known duos (Gosling/Stone 3 shared films, Johnson/Hart 4,
+              Reeves/Ryder 3) plus one that's the actual hook: Adam Sandler
+              and Allen Covert share TEN - tied for the second-highest count
+              in the whole pool - and Covert isn't a name most people would
+              place, hence the trailing "?" instead of a period. All four
+              counts re-verified against the shipped pool; re-check them if
+              it's ever regenerated or swapped to Pool B. SUBTITLE_ACTOR_NCONSTS
+              below must list exactly these eight so the page opens centered
+              on one of them rather than the sentence naming actors nobody
+              lands on. */}
+          Ryan Gosling and Emma Stone. Dwayne "The Rock" Johnson and Kevin
+          Hart. Keanu Reeves and Winona Ryder. Adam Sandler and Allen
+          Covert? Some actors share the silver screen more than others.
+          Explore this pool
           {/* Gated on `data` (the full pool), not `activeData` - the bundled
               default slice's count (1,612) is real but wrong for this claim
               until the full pool (2,839) lands, so the figure is omitted
               rather than shown wrong for the first ~2s of every load. */}
-          {data && <> from this pool of {data.actors.length.toLocaleString()} actors</>} to see
-          their costars, and {compact ? "tap" : "click"} on anyone to see the films they share.
+          {data && <> of {data.actors.length.toLocaleString()} actors</>} to see their costars,
+          and {compact ? "tap" : "click"} on anyone to see the films they share.
         </p>
         <div className="tus-search-row">
           <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
