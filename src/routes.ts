@@ -234,7 +234,7 @@ export const ROUTES: RouteEntry[] = [
     path: "/2026/UsualSuspects",
     title: "The Usual Suspects — Marginal Data",
     description:
-      "Every actor has a pile of one-film costars and a few they keep coming back to. Type a name to see all of them, stacked by how many films they actually made together.",
+      "Some actors share the silver screen more than others. Type an actor's name to see every real costar they have, stacked by how many films they made together.",
     component: () => import("./2026/UsualSuspects"),
     group: "Explorers & Simulators",
     date: "2026-09-02",
