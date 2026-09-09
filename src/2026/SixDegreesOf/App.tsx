@@ -253,8 +253,17 @@ export default function App() {
                       {col.actors.length}
                     </text>
                   )}
-                  <text className="sdo-axis-label" x={col.x} y={axisLabelY} textAnchor="middle">
-                    {filmLabel(col.sharedFilms, compact)}
+                  <text
+                    className={col.isEmpty ? "sdo-axis-label sdo-axis-label-empty" : "sdo-axis-label"}
+                    x={col.x}
+                    y={axisLabelY}
+                    textAnchor="middle"
+                  >
+                    {/* An empty (gap) column is only EMPTY_COLUMN_HALF_WIDTH*2
+                        wide (beeswarm.ts) - "13 films together" doesn't fit
+                        there, so it falls back to the bare number regardless
+                        of compact. */}
+                    {col.isEmpty ? col.sharedFilms : filmLabel(col.sharedFilms, compact)}
                   </text>
                   {col.actors.map((p) => {
                     const actor = actorById.get(p.id);

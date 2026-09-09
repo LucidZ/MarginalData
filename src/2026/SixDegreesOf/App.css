@@ -188,6 +188,15 @@
   fill: var(--text-secondary);
 }
 
+/* An interior gap column (see layoutBeeswarm in beeswarm.ts) - real
+   information worth keeping, but only EMPTY_COLUMN_HALF_WIDTH*2 wide, so it
+   gets the bare number rather than the full label, styled down further to
+   read as a spacer rather than a real data column. */
+.sdo-axis-label-empty {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
 .sdo-count-label {
   font-size: 16px;
   font-weight: 600;

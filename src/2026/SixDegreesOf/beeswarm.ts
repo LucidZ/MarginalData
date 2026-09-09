@@ -19,10 +19,16 @@ export interface Column {
   top: number;
   /** How far this column's own content reaches from its center x - lets the
    * caller size the SVG viewport (and space the next column) to the swarm's
-   * real width instead of a guessed constant. Never smaller than half the
-   * configured column pitch, even for an empty column, so the axis label
-   * underneath it still has room to breathe. */
+   * real width instead of a guessed constant. Floored at half the configured
+   * column pitch for a non-empty column so its axis label has room to
+   * breathe, or at the much narrower EMPTY_COLUMN_HALF_WIDTH for an empty
+   * one - see layoutBeeswarm for why those get a different floor. */
   halfWidth: number;
+  /** True for an interior gap - a shared-film count nobody in this bucket
+   * actually has. Real information (see layoutBeeswarm), so it's kept as a
+   * real column rather than skipped, but the caller renders it narrower and
+   * with just a bare number - see App.tsx. */
+  isEmpty: boolean;
 }
 
 /** Layout dimensions, picked from viewport width by the caller - a 220px column
@@ -56,6 +62,11 @@ const PACKING_EFFICIENCY = 0.72; // real beeswarms aren't perfect hex-packing
 // Minimum clear air between two columns' swarms, even when both are packed
 // wide enough to otherwise butt up against each other.
 const COLUMN_GAP = 16;
+// How much width an empty (gap) column reserves - just enough for its own
+// bare-number label, not a full column's worth of spacing. See
+// layoutBeeswarm for why a run of gaps would otherwise still cost a full
+// columnWidth each.
+const EMPTY_COLUMN_HALF_WIDTH = 18;
 
 /** Bigger buckets get smaller avatars, so a 227-person "1 shared film" column
  * stays navigable instead of running thousands of px tall - nobody's dropped,
@@ -140,12 +151,22 @@ function packColumn(bucket: Bucket, size: number): PackedColumn {
  * actor's maximum is trimmed: rendering all the way to the dataset-wide max
  * of 20 made every chart 4,692px wide, ~75% of it dead scroll for anyone
  * who isn't Anupam Kher.
+ *
+ * An interior gap still reserves real width (EMPTY_COLUMN_HALF_WIDTH), just
+ * much less than a populated column's minHalfWidth - Anupam Kher has 18 of
+ * them between his 1-4 films and his 6/13/14/18/20-film outliers, and at the
+ * full columnWidth pitch each one costs as much as a real column, which is
+ * what made his chart 4,692px wide even after the dataset-wide-max trim
+ * above. The columnWidth *pitch floor* (a full column's worth of spacing
+ * even when both swarms are individually narrower) only applies between two
+ * non-empty columns, too - it exists so two populated swarms never crowd
+ * each other, which isn't a concern when one side is a bare number.
  */
 export function layoutBeeswarm(buckets: Bucket[], cfg: LayoutConfig): Column[] {
   const actorMax = buckets.reduce((max, b) => Math.max(max, b.sharedFilms), 0);
   const bucketByWeight = new Map(buckets.map((b) => [b.sharedFilms, b]));
-  // Half the old fixed pitch - what an empty (or narrow) column reserves for
-  // its axis label even with no swarm to size it against.
+  // Half the old fixed pitch - what a populated column reserves for its
+  // axis label even when its swarm itself is narrower.
   const minHalfWidth = (cfg.columnWidth - COLUMN_GAP) / 2;
 
   const packed: PackedColumn[] = Array.from({ length: actorMax }, (_, i) => {
@@ -155,13 +176,18 @@ export function layoutBeeswarm(buckets: Bucket[], cfg: LayoutConfig): Column[] {
     return packColumn(bucket, sizeForBucket(bucket.entries.length, cfg));
   });
 
+  const halfWidthFor = (col: PackedColumn) =>
+    col.actors.length === 0 ? EMPTY_COLUMN_HALF_WIDTH : Math.max(minHalfWidth, col.halfWidth);
+
   let x = 0;
   return packed.map((col, i) => {
-    const halfWidth = Math.max(minHalfWidth, col.halfWidth);
+    const isEmpty = col.actors.length === 0;
+    const halfWidth = halfWidthFor(col);
     if (i > 0) {
-      const prevHalfWidth = Math.max(minHalfWidth, packed[i - 1].halfWidth);
-      x += Math.max(cfg.columnWidth, prevHalfWidth + COLUMN_GAP + halfWidth);
+      const prev = packed[i - 1];
+      const gap = halfWidthFor(prev) + COLUMN_GAP + halfWidth;
+      x += isEmpty || prev.actors.length === 0 ? gap : Math.max(cfg.columnWidth, gap);
     }
-    return { sharedFilms: col.sharedFilms, x, actors: col.actors, top: col.top, halfWidth };
+    return { sharedFilms: col.sharedFilms, x, actors: col.actors, top: col.top, halfWidth, isEmpty };
   });
 }
