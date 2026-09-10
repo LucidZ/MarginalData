@@ -28,6 +28,22 @@
     --gridline: #2c2c2a;
     --accent: #3987e5;
   }
+  /* h1 otherwise falls through to the sitewide `h1 { color: var(--color-heading) }`
+     rule (src/index.css) - #1e3a5f, a navy tuned for that rule's own
+     permanently-light background (the site shell never goes dark itself;
+     confirmed body stays #ffffff under prefers-color-scheme: dark - dark
+     mode here is purely a per-story opt-in via .tus-root's own tokens
+     above). Against *this* page's own dark --page (#0d0d0d), that navy
+     measures 1.69:1 - nowhere near the 3:1 floor for large text. Overriding
+     locally with --accent (already dark-mode-correct one block up, ~5.3:1
+     here) rather than touching --color-heading itself, which is shared by
+     every other page on the site and would need its own light-mode value
+     preserved for pages that never asked to go dark - see the dark-mode
+     audit note in project_usual_suspects.md for why this couldn't be a
+     sitewide fix. */
+  :root:where(:not([data-theme="light"])) .tus-header h1 {
+    color: var(--accent);
+  }
 }
 
 :root[data-theme="dark"] .tus-root {
@@ -39,6 +55,10 @@
   --muted: #898781;
   --gridline: #2c2c2a;
   --accent: #3987e5;
+}
+
+:root[data-theme="dark"] .tus-header h1 {
+  color: var(--accent);
 }
 
 .tus-header h1 {
@@ -118,7 +138,9 @@
 }
 
 .tus-search-results button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   width: 100%;
   text-align: left;
   padding: 0.5rem 0.6rem;
@@ -128,6 +150,21 @@
   font-size: 0.95rem;
   cursor: pointer;
   border-radius: 4px;
+}
+
+/* The whole page is otherwise faces - this is the one spot someone's asked
+   to recognize a bare name instead, so results carry a thumbnail too. */
+.tus-search-option-photo {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--gridline);
+}
+
+.tus-search-option-photo-fallback {
+  display: inline-block;
 }
 
 .tus-search-results button:hover,
@@ -324,6 +361,22 @@
 
 .tus-node {
   cursor: pointer;
+}
+
+/* Hover readout (App.tsx) - a fast, non-interactive way to read a name
+   while sweeping across a dense column, without the ~1s delay of the
+   native <title> tooltip it sits alongside. Surface-color fill + gridline
+   border, matching the detail card's own surface rather than inventing a
+   third visual language for "floating text on the chart". */
+.tus-hover-label-bg {
+  fill: var(--surface-1);
+  stroke: var(--gridline);
+  stroke-width: 1;
+}
+
+.tus-hover-label-text {
+  fill: var(--text-primary);
+  font-weight: 500;
 }
 
 .tus-node-ring {

@@ -54,10 +54,19 @@ const VIEWPORT_GUTTER = 24;
 // Dropping the floor to ~0.62 would restore the fit at the cost of the
 // legibility this constant is protecting - deliberately not done here.
 const MIN_SCALE = 0.65;
-// Real minimum touch-target radius, in CSS px - half of the ~44px guideline.
-// Divided by `scale` below wherever it's used, since this needs to hold
-// after the uniform SVG scale-down, not in viewBox units.
-const MIN_HIT_RADIUS = 22;
+// Floor on how close a click/tap needs to land to a node's center to still
+// resolve to it via the nearest-center overlay below, in viewBox units - a
+// generous minimum for tiny avatars, growing with the avatar itself for
+// bigger ones. Without a floor, a click in a large stretch of empty
+// right-hand whitespace would still resolve to whatever node happens to be
+// nearest, however far away.
+const MIN_MATCH_RADIUS = 24;
+// How many of a selected actor's own costars to prefetch photos for in the
+// background (see the effect below) - the first N by shared-film weight
+// (adjacency's own sort order), not all of them, so this can never
+// meaningfully compete with the current view's own image requests for
+// bandwidth even for someone with 300+ costars.
+const PREFETCH_COUNT = 60;
 
 /** Shape of a valid ?actor= value - an IMDb person id, e.g. "nm0000158". */
 const NCONST_PATTERN = /^nm\d+$/;
@@ -110,11 +119,16 @@ function filmLabel(n: number, compact: boolean): string {
 /** One entry per rendered node, in the order roving-tabindex keyboard nav
  * should walk them: column-major (left to right), then top to bottom within
  * a column - each column's entries land contiguously, which moveWithinColumn
- * relies on to know it hasn't spilled into the next column. */
+ * relies on to know it hasn't spilled into the next column. Also doubles as
+ * the index the nearest-center click overlay searches (see
+ * resolveNearestNode below) - x/size are absolute viewBox coordinates for
+ * that, not present on PositionedActor itself (which is column-local). */
 interface FlatNode {
   id: number;
   columnIndex: number;
+  x: number;
   y: number;
+  size: number;
   sharedMovies: Movie[];
 }
 
@@ -123,10 +137,52 @@ function buildFlatNodes(columns: Column[]): FlatNode[] {
   columns.forEach((col, columnIndex) => {
     const sorted = [...col.actors].sort((a, b) => a.y - b.y);
     for (const p of sorted) {
-      result.push({ id: p.id, columnIndex, y: p.y, sharedMovies: p.sharedMovies });
+      result.push({ id: p.id, columnIndex, x: col.x + p.x, y: p.y, size: p.size, sharedMovies: p.sharedMovies });
     }
   });
   return result;
+}
+
+/** Converts a client-space (viewport) point into the SVG's own viewBox
+ * coordinates via its screen CTM - shared by the click overlay and the
+ * hover readout below, both of which need to know where the pointer
+ * actually is in the same coordinate space `flatNodes` positions live in.
+ * Deliberately not hand-rolled off getBoundingClientRect: the chart carries
+ * a uniform render-time `scale` (see App.tsx's own `scale` further down),
+ * and the CTM already accounts for that plus any scroll offset within
+ * `.tus-graph-scroll`. */
+function clientToViewBox(svg: SVGSVGElement, clientX: number, clientY: number): DOMPoint | null {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const pt = svg.createSVGPoint();
+  pt.x = clientX;
+  pt.y = clientY;
+  return pt.matrixTransform(ctm.inverse());
+}
+
+/** Finds whichever rendered node's own center sits nearest a point in
+ * viewBox coordinates - the resolution behind the nearest-center overlay
+ * <rect> (see its own comment further down). A node with sub-44px avatars
+ * packed closer than that used to rely on an inflated same-node hit circle
+ * to stay reachable, which blanketed neighboring nodes' true centers
+ * instead (see ActorNode.tsx); this searches every node's real position and
+ * picks the closest one, so a click anywhere in the gaps between avatars
+ * resolves to whichever face is actually nearest rather than whichever
+ * happened to paint last. Linear scan is deliberate: even Samuel L.
+ * Jackson's chart (the pool's largest, 351 nodes) is cheap enough per click
+ * that a spatial index would be solving a problem that doesn't exist here. */
+function resolveNearestNode(flatNodes: FlatNode[], x: number, y: number): FlatNode | null {
+  let best: FlatNode | null = null;
+  let bestDist = Infinity;
+  for (const n of flatNodes) {
+    const d = Math.hypot(n.x - x, n.y - y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = n;
+    }
+  }
+  if (!best) return null;
+  return bestDist <= Math.max(best.size / 2, MIN_MATCH_RADIUS) ? best : null;
 }
 
 /** Up/Down: step to the adjacent entry, but only if it's still in the same
@@ -190,6 +246,16 @@ export default function App() {
   // defaultActorIds pool that Shuffle draws from) - see pickRandomSubtitleActor.
   const fallbackActor = useMemo(pickRandomSubtitleActor, []);
   const [selection, setSelection] = useState<Selection | null>(null);
+  // Shared by both ways a node gets picked - a direct click on its own <g>
+  // (ActorNode.tsx's onSelect) and a click that lands in the gap between
+  // avatars, resolved by the nearest-center overlay below - so both paths
+  // produce the exact same selection shape and the capture-phase
+  // outside-click swap in DetailCard.tsx (which relies on a click always
+  // landing outside `.tus-card` to close-then-reopen in one gesture) sees
+  // no difference between them.
+  const selectNode = (actor: Actor, sharedMovies: Movie[], clientX: number, clientY: number) => {
+    setSelection({ actor, sharedMovies, clientX, clientY });
+  };
   const viewportWidth = useViewportWidth();
   const compact = viewportWidth < COMPACT_BREAKPOINT;
 
@@ -247,6 +313,38 @@ export default function App() {
     activeData.movies.forEach((m) => map.set(m.id, m));
     return map;
   }, [activeData]);
+
+  // Opening a detail card telegraphs the likely next action - its own
+  // "Center on X" button - so warm that actor's own costar photos while the
+  // card is still open, rather than waiting for the recenter click to
+  // start ~200 fresh image requests from zero on whatever connection the
+  // browser happens to have that moment. requestIdleCallback (main-thread
+  // idle time only, so it can't compete with rendering the card that just
+  // opened) with a setTimeout fallback for Safari, which has never shipped
+  // it. Skipped entirely under Data Saver - prefetching what someone might
+  // click next is exactly the kind of speculative transfer that setting
+  // exists to suppress.
+  useEffect(() => {
+    const actor = selection?.actor;
+    if (!actor) return;
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (connection?.saveData) return;
+
+    const neighborIds = (adjacency.get(actor.id) ?? []).slice(0, PREFETCH_COUNT).map((n) => n.id);
+    const warm = () => {
+      for (const id of neighborIds) {
+        const neighbor = actorById.get(id);
+        const url = neighbor && photoUrl(neighbor, 24);
+        if (url) new Image().src = url;
+      }
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const handle = window.requestIdleCallback(warm);
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(warm, 200);
+    return () => window.clearTimeout(timer);
+  }, [selection?.actor.id, adjacency, actorById]);
 
   // The URL keys on IMDb nconst, so resolving a link needs this index rather
   // than actorById. Every actor in the pool has one and they're unique
@@ -318,6 +416,18 @@ export default function App() {
     setFocusedIndex(0);
   }, [rootId]);
   const safeFocusedIndex = flatNodes.length === 0 ? 0 : Math.min(focusedIndex, flatNodes.length - 1);
+
+  // Hover readout (desktop): the SVG <title> a click-opened card replaced
+  // was already the only way to read a name without clicking, and it's a
+  // ~1s-delayed native OS tooltip - too slow to sweep across a dense column
+  // reading faces. Stores just the id, not the whole FlatNode, so a stale
+  // value from before a recenter can't paint a label at coordinates that no
+  // longer mean anything - see the rootId-keyed reset below and the
+  // re-lookup against the *current* flatNodes at render time.
+  const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    setHoveredNodeId(null);
+  }, [rootId]);
 
   const focusNodeAt = (index: number) => {
     const node = flatNodes[index];
@@ -395,6 +505,50 @@ export default function App() {
     if (!node) return;
     nodeRefs.current.get(node.id)?.focus();
   };
+
+  // Backstop for clicks that land in the gap between avatars rather than on
+  // any one node's own hit circle - see the transparent <rect> this handles,
+  // rendered behind every node. Hands the resolved viewBox point off to
+  // resolveNearestNode. A miss (nothing within MIN_MATCH_RADIUS) clears any
+  // open selection instead of doing nothing - that's what lets a click in
+  // empty whitespace close a card the same way clicking any other non-card
+  // element already does.
+  const onGraphBackgroundClick = (e: React.MouseEvent<SVGRectElement>) => {
+    const svg = e.currentTarget.ownerSVGElement;
+    const loc = svg && clientToViewBox(svg, e.clientX, e.clientY);
+    if (!loc) return;
+    const node = resolveNearestNode(flatNodes, loc.x, loc.y);
+    if (!node) {
+      setSelection(null);
+      return;
+    }
+    const actor = actorById.get(node.id);
+    if (!actor) return;
+    selectNode(actor, node.sharedMovies, e.clientX, e.clientY);
+  };
+
+  // Hover readout: mirrors the click overlay's own nearest-center
+  // resolution (same coordinate conversion, same MIN_MATCH_RADIUS cap), but
+  // driven off pointer movement and only stored, not acted on - painting
+  // the label itself is delegated to the render below (hoveredNode/
+  // hoveredActor), so this only ever needs to track *which* node, not
+  // compute anything about its position. Gated on the media query, not
+  // `compact`: a tablet can be wide enough to render the non-compact layout
+  // while still having no real hover state, and pointer events there arrive
+  // as a single move-then-tap on touch, which would otherwise flash a label
+  // right before every tap. Skips the setState entirely when the resolved
+  // id hasn't changed, so dragging the mouse across one avatar's many
+  // interior pixels doesn't re-render on every pixel of movement.
+  const onGraphPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!window.matchMedia("(hover: hover)").matches) return;
+    const loc = clientToViewBox(e.currentTarget, e.clientX, e.clientY);
+    if (!loc) return;
+    const node = resolveNearestNode(flatNodes, loc.x, loc.y);
+    const nextId = node?.id ?? null;
+    setHoveredNodeId((prev) => (prev === nextId ? prev : nextId));
+  };
+
+  const onGraphPointerLeave = () => setHoveredNodeId(null);
 
   // Signals whether the chart scrolls sideways past what's currently in
   // view, so the edge gradients (see .tus-graph-frame in App.css) only show
@@ -494,6 +648,37 @@ export default function App() {
   // column's number means without repeating it down the whole row.
   const firstLabeledColumnFilms = columns.find((c) => c.actors.length > 0)?.sharedFilms;
 
+  // Hover label geometry - everything here lives in viewBox units, like
+  // everything else drawn inside the <svg>. Sizes are divided by `scale`:
+  // the whole chart is uniformly scaled down on tall charts (MIN_SCALE
+  // above), so a fixed viewBox size would render visibly smaller there than
+  // on a chart that didn't need to shrink.
+  const hoveredNode = hoveredNodeId != null ? (flatNodes.find((n) => n.id === hoveredNodeId) ?? null) : null;
+  const hoveredActor = hoveredNode ? (actorById.get(hoveredNode.id) ?? null) : null;
+  const HOVER_LABEL_FONT_SIZE = 13 / scale;
+  const HOVER_LABEL_PAD_X = 8 / scale;
+  const HOVER_LABEL_PAD_Y = 5 / scale;
+  const HOVER_LABEL_GAP = 10 / scale;
+  let hoverLabel: { x: number; y: number; width: number; height: number; text: string } | null = null;
+  if (hoveredNode && hoveredActor) {
+    const filmCount = hoveredNode.sharedMovies.length;
+    const text = `${hoveredActor.name} · ${filmCount} film${filmCount === 1 ? "" : "s"}`;
+    // Estimated off character count, not getComputedTextLength - the latter
+    // forces a synchronous layout on every pointermove, and "close enough
+    // not to clip" is all a backdrop rectangle needs.
+    const width = text.length * HOVER_LABEL_FONT_SIZE * 0.55 + HOVER_LABEL_PAD_X * 2;
+    const height = HOVER_LABEL_FONT_SIZE + HOVER_LABEL_PAD_Y * 2;
+    const nodeTop = hoveredNode.y - hoveredNode.size / 2;
+    const nodeBottom = hoveredNode.y + hoveredNode.size / 2;
+    const above = nodeTop - HOVER_LABEL_GAP - height;
+    // Default above the node; flip below when that would climb past the
+    // header row - frameMinY is the very top of the chart's own reserved
+    // space, above which nothing else is ever drawn.
+    const y = above >= frameMinY ? above : nodeBottom + HOVER_LABEL_GAP;
+    const x = Math.min(Math.max(hoveredNode.x - width / 2, viewLeft), viewRight - width);
+    hoverLabel = { x, y, width, height, text };
+  }
+
   return (
     <div className="tus-root">
       <header className="tus-header">
@@ -517,8 +702,13 @@ export default function App() {
               default slice's count (1,612) is real but wrong for this claim
               until the full pool (2,839) lands, so the figure is omitted
               rather than shown wrong for the first ~2s of every load. */}
-          {data && <> of {data.actors.length.toLocaleString()} actors</>} to see their costars,
-          and {compact ? "tap" : "click"} on anyone to see the films they share.
+          {data && <> of {data.actors.length.toLocaleString()} actors</>} to see their costars.{" "}
+          {compact ? "Tap" : "Click"} on anyone to see the films they share.
+          {/* Desktop-only accelerator (see ActorNode.tsx's onDoubleClick) -
+              left out on touch, where double-tap means zoom and the
+              bottom-sheet card's own "Center on" button is already one
+              tap away. */}
+          {!compact && " Double-click to recenter on that actor."}
         </p>
         <div className="tus-search-row">
           <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
@@ -540,7 +730,16 @@ export default function App() {
         <>
           <div className="tus-root-banner">
             {rootPhoto ? (
-              <img className="tus-root-photo" src={rootPhoto} alt="" />
+              // Keyed by its own src so a recenter remounts this <img>
+              // instead of reusing the old element - browsers keep painting
+              // the previous bitmap through a bare src swap until the new
+              // one finishes decoding, which on a slow connection meant the
+              // banner showed the *previous* actor's face next to the new
+              // actor's name for as long as several seconds. A fresh mount
+              // has nothing to paint until the new photo decodes, so it
+              // goes blank instead - blank reads as loading; the wrong
+              // person reads as broken.
+              <img key={rootPhoto} className="tus-root-photo" src={rootPhoto} alt="" />
             ) : (
               <div className="tus-root-photo tus-root-photo-fallback" />
             )}
@@ -592,8 +791,29 @@ export default function App() {
                 tabIndex={0}
                 onKeyDown={onGraphKeyDown}
                 onFocus={onGraphFocus}
+                onPointerMove={onGraphPointerMove}
+                onPointerLeave={onGraphPointerLeave}
               >
                 <line className="tus-baseline" x1={viewLeft} x2={viewRight} y1={0} y2={0} />
+                {/* Nearest-center click backstop, behind every node (rendered
+                    before them, so a click directly on an avatar still hits
+                    the avatar's own circle first - this only catches the
+                    gaps between densely packed faces, where the old inflated
+                    per-node hit circle used to blanket whichever neighbor
+                    painted on top. aria-hidden: it's a pointer/touch-only
+                    convenience, not a distinct interactive element - every
+                    node it can resolve to already has its own role="button"
+                    reachable via the roving tabindex. */}
+                <rect
+                  x={viewLeft}
+                  y={frameMinY}
+                  width={frameWidth}
+                  height={frameHeight}
+                  fill="transparent"
+                  pointerEvents="all"
+                  aria-hidden="true"
+                  onClick={onGraphBackgroundClick}
+                />
                 {columns.map((col) => (
                   <g key={col.sharedFilms}>
                     {col.actors.length > 0 && (
@@ -625,12 +845,9 @@ export default function App() {
                           x={col.x + p.x}
                           y={p.y}
                           size={p.size}
-                          hitRadius={Math.max(p.size / 2, MIN_HIT_RADIUS / scale)}
                           sharedMovies={p.sharedMovies}
                           isSelected={selection?.actor.id === actor.id}
-                          onSelect={(a, movies, e) =>
-                            setSelection({ actor: a, sharedMovies: movies, clientX: e.clientX, clientY: e.clientY })
-                          }
+                          onSelect={(a, movies, e) => selectNode(a, movies, e.clientX, e.clientY)}
                           onCenter={recenter}
                           domRef={(el) => {
                             if (el) nodeRefs.current.set(p.id, el);
@@ -641,6 +858,35 @@ export default function App() {
                     })}
                   </g>
                 ))}
+                {/* Hover readout - last child so it paints on top of every
+                    node, anchored to the hovered node's own position (not
+                    the cursor, which is what made the old hover tooltip
+                    unreadable - see its removal note on .tus-node-ring's
+                    sibling comment in App.css). pointerEvents="none" on the
+                    whole group: it's a read-only label, not a second
+                    interactive surface - every real interaction (links,
+                    "Center on") still lives in the click-opened card. */}
+                {hoverLabel && (
+                  <g pointerEvents="none">
+                    <rect
+                      className="tus-hover-label-bg"
+                      x={hoverLabel.x}
+                      y={hoverLabel.y}
+                      width={hoverLabel.width}
+                      height={hoverLabel.height}
+                      rx={4 / scale}
+                    />
+                    <text
+                      className="tus-hover-label-text"
+                      x={hoverLabel.x + HOVER_LABEL_PAD_X}
+                      y={hoverLabel.y + hoverLabel.height / 2}
+                      dominantBaseline="central"
+                      style={{ fontSize: HOVER_LABEL_FONT_SIZE }}
+                    >
+                      {hoverLabel.text}
+                    </text>
+                  </g>
+                )}
               </svg>
             </div>
           </div>

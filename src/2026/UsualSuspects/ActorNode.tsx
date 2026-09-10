@@ -6,11 +6,6 @@ interface Props {
   x: number;
   y: number;
   size: number;
-  /** Radius of an invisible circle centered on this node, tappable/clickable
-   * even where it extends past the visible avatar - see App.tsx for how
-   * this is sized up to a real touch-target minimum for a small avatar
-   * (some are drawn well under 44 CSS px - see beeswarm.ts's minNodeSize). */
-  hitRadius: number;
   sharedMovies: Movie[];
   isSelected: boolean;
   /** Click/tap opens the detail card - re-centering is a deliberate button inside that card, not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
@@ -46,7 +41,6 @@ export default function ActorNode({
   x,
   y,
   size,
-  hitRadius,
   sharedMovies,
   isSelected,
   onSelect,
@@ -75,17 +69,23 @@ export default function ActorNode({
           (films, links, re-center) lives in the click-opened card, since touch
           devices never fire hover at all. */}
       <title>{actor.name}</title>
-      {/* Invisible, only for hit-testing - extends the tappable area past the
-          visible avatar for anything drawn under a real touch-target size
-          (fill="transparent" still hit-tests with pointerEvents="all", it
-          just paints nothing). Placed first/behind, not last/on top, so it
-          can't visually sit over the avatar - it doesn't need to, since a
-          click anywhere inside this <g> already bubbles to the onClick
-          above regardless of which child was actually hit. Deliberately not
-          trying to keep overlapping nodes' hit areas from overlapping each
-          other - that would mean moving the avatars, which breaks the
-          chart; the detail card that opens tells you who you got. */}
-      <circle r={hitRadius} fill="transparent" pointerEvents="all" />
+      {/* The ONLY hit-testable element in this node - matches the visible
+          avatar's own radius exactly (not inflated to a touch-target
+          minimum the way this used to be). packColumn's forceCollide keeps
+          every pair of node centers >= 2r+2 apart, so a same-radius disc
+          can never reach past its own center into a neighbor's - unlike the
+          old inflated version, which blanketed neighboring nodes and made
+          most of a dense column's faces unclickable at their own center
+          (measured: 71-89% across desktop/mobile). Small avatars still get
+          a forgiving miss-click target, just not from their own disc - see
+          the nearest-center overlay behind the whole chart in App.tsx,
+          which is what actually makes sub-44px avatars reachable now.
+          Explicit fill="transparent" + pointerEvents="all" rather than
+          relying on the clipped <image>'s own raster hit-testing, which is
+          browser-dependent past the clip boundary. Every other child below
+          is explicitly pointerEvents="none" - see the ring's own comment
+          for why that's load-bearing, not decoration. */}
+      <circle r={r} fill="transparent" pointerEvents="all" />
       <clipPath id={`tus-clip-${actor.id}`}>
         <circle r={r} />
       </clipPath>
@@ -93,9 +93,25 @@ export default function ActorNode({
           routinely touch/overlap, and a ring in the page's own background color
           is what keeps adjacent circles visually separated (see dataviz skill's
           "surface ring" spec) rather than drawing a border that adds data-weight
-          ink that isn't data. */}
-      <circle className="tus-node-ring" r={r + 1.5} />
-      {url ? (
+          ink that isn't data. pointerEvents="none" is load-bearing, not
+          cosmetic: this is stroked (not fill:none), and SVG's default
+          pointer-events value hit-tests painted strokes same as fills - a
+          stroke reaching to r+3 on a node whose neighbors can be packed as
+          close as ~r+1 apart (forceCollide's +1px-per-node margin) was
+          swallowing clicks aimed at the gap between two avatars, resolving
+          to whichever ring painted there instead of the geometrically
+          nearest node the overlay in App.tsx was supposed to catch. */}
+      <circle className="tus-node-ring" r={r + 1.5} pointerEvents="none" />
+      {/* Always rendered, even when a photo is coming - not just the
+          no-photo fallback it started as. A node whose photo *exists* but
+          hasn't decoded yet used to paint nothing at all until it did,
+          which on a slow connection (a fresh recenter fetches ~200 new
+          avatars at once) left a freshly recentered chart looking broken
+          rather than loading - a throttled test found one column still
+          33/34 empty three seconds in. Sits behind the <image> below, so it
+          only shows through for as long as that image hasn't painted. */}
+      <circle className="tus-node-fallback" r={r} clipPath={`url(#tus-clip-${actor.id})`} pointerEvents="none" />
+      {url && (
         <image
           href={url}
           x={-r}
@@ -104,16 +120,13 @@ export default function ActorNode({
           height={size}
           clipPath={`url(#tus-clip-${actor.id})`}
           preserveAspectRatio="xMidYMid slice"
+          pointerEvents="none"
         />
-      ) : (
-        <>
-          <circle className="tus-node-fallback" r={r} clipPath={`url(#tus-clip-${actor.id})`} />
-          {size >= 20 && (
-            <text className="tus-node-initials" textAnchor="middle" dominantBaseline="central">
-              {initials(actor.name)}
-            </text>
-          )}
-        </>
+      )}
+      {!url && size >= 20 && (
+        <text className="tus-node-initials" textAnchor="middle" dominantBaseline="central" pointerEvents="none">
+          {initials(actor.name)}
+        </text>
       )}
     </g>
   );
