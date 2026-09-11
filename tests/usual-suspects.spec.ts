@@ -32,6 +32,48 @@ async function selectActor(page: Page, name: string) {
   await page.waitForTimeout(600); // beeswarm re-layout (d3-force settles synchronously, but give React a paint)
 }
 
+/** Waits out the background full-pool fetch (App.tsx: `data ?? defaultActors`).
+ * networkidle alone isn't enough - it only tracks the HTTP request finishing,
+ * not the JSON parse + React re-render + d3-force re-layout that follows it -
+ * so poll the context line's own costar figure, which only reflects the full
+ * pool's real total, until it stops changing.
+ *
+ * Any test that captures coordinates and then clicks them needs this: the
+ * swap re-buckets and re-packs the chart, invalidating every position taken
+ * before it. That matters more since the axis flipped to descending, because
+ * the column that grows most between the bundled slice and the full pool is
+ * the 1-film crowd - which descending puts at the *right* edge, so the
+ * chart's right-hand geometry is now the part that moves furthest when the
+ * pool lands. */
+async function waitForFullPool(page: Page) {
+  await page.waitForLoadState("networkidle");
+  let previous = await page.locator(".tus-context-meta").textContent();
+  for (let i = 0; i < 10; i++) {
+    await page.waitForTimeout(200);
+    const current = await page.locator(".tus-context-meta").textContent();
+    if (current === previous) break;
+    previous = current;
+  }
+}
+
+/** Scrolls the chart to its densest end, which since the axis flipped to
+ * descending (graph.ts) is the far right: the 1-film column, hundreds of
+ * costars packed at minNodeSize. The click-accuracy tests below need a
+ * genuinely dense sample on screen - that used to be true at rest, because
+ * ascending order put that same column leftmost and it was the first thing
+ * in the viewport. Under descending the chart opens on one- and two-person
+ * columns instead, so at 390px only a handful of nodes are in view and the
+ * tests were sampling almost nothing. Scrolling here keeps them asserting
+ * what they were written to assert (hit-testing inside tight packing)
+ * rather than quietly asserting it against five large avatars. */
+async function scrollToDensestColumn(page: Page) {
+  await page.evaluate(() => {
+    const el = document.querySelector(".tus-graph-scroll");
+    if (el) el.scrollLeft = el.scrollWidth;
+  });
+  await page.waitForTimeout(200);
+}
+
 // Every node now owns its own hit-testing center (App.tsx's nearest-center
 // overlay + ActorNode.tsx's own-radius hit circle replaced the old inflated
 // touch-target circle that used to blanket neighboring nodes), so a plain
@@ -72,6 +114,7 @@ test.describe("The Usual Suspects", () => {
       const page = await (await browser.newContext({ viewport })).newPage();
       await page.goto("/2026/UsualSuspects");
       await selectActor(page, name);
+      await scrollToDensestColumn(page);
 
       const result = await page.evaluate((vp) => {
         const nodes = [...document.querySelectorAll(".tus-node")];
@@ -109,23 +152,8 @@ test.describe("The Usual Suspects", () => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, KEANU_REEVES); // densest column in the pool - plenty of narrow gaps to sample
-    // Wait out the background full-pool fetch (App.tsx: `data ?? defaultActors`)
-    // before snapshotting node positions below - if it lands mid-test, the
-    // swap re-buckets/re-packs the chart and every position captured before
-    // it would go stale under the clicks issued after it. networkidle alone
-    // isn't quite enough - it only tracks the HTTP request finishing, not
-    // the JSON parse + React re-render + d3-force re-layout that follows it
-    // - so poll for the root's own "N costars" figure (which only reflects
-    // the full pool's real total, not the bundled slice's) to stop changing
-    // before treating the layout as settled.
-    await page.waitForLoadState("networkidle");
-    let previousMeta = await page.locator(".tus-root-meta").textContent();
-    for (let i = 0; i < 10; i++) {
-      await page.waitForTimeout(200);
-      const currentMeta = await page.locator(".tus-root-meta").textContent();
-      if (currentMeta === previousMeta) break;
-      previousMeta = currentMeta;
-    }
+    await waitForFullPool(page);
+    await scrollToDensestColumn(page);
 
     const { nodes, minMatchRadiusPx } = await page.evaluate(() => {
       const svg = document.querySelector(".tus-graph") as SVGSVGElement;
@@ -153,8 +181,25 @@ test.describe("The Usual Suspects", () => {
     // dispatches a real (integer-pixel) mouse event, so predicting off
     // fractional coordinates and then clicking the rounded version can
     // silently target a different pixel than the one just evaluated.
+    // Smallest avatars first, not DOM order. DOM order used to be good
+    // enough because the axis ran ascending, so the 1-film column - hundreds
+    // of nodes at minNodeSize, the tightest packing in the chart - came
+    // first and the 15-candidate slice below landed squarely in it. Under
+    // the descending axis (graph.ts) DOM order starts at the one- and
+    // two-person columns instead, whose avatars are at maxNodeSize: a point
+    // 3px outside a 32px-radius avatar is further from its center than both
+    // that radius and MIN_MATCH_RADIUS, so every sampled point was skipped
+    // as "outside the overlay's catch radius" and the test checked nothing.
+    // Sorting by radius targets dense packing directly, which is what this
+    // test is actually about, and is indifferent to which end of the axis
+    // that packing sits at. Offscreen nodes are dropped first - after
+    // scrollToDensestColumn the dense column is in view, but the sparse end
+    // has scrolled out, and page.mouse.click can't reach a point outside
+    // the viewport.
+    const vp = page.viewportSize()!;
+    const onScreen = nodes.filter((n) => n.cx > 0 && n.cy > 0 && n.cx < vp.width && n.cy < vp.height);
     const candidates: { x: number; y: number }[] = [];
-    for (const n of nodes) {
+    for (const n of [...onScreen].sort((a, b) => a.r - b.r)) {
       for (const [dx, dy] of [
         [n.r + 3, 0],
         [-(n.r + 3), 0],
@@ -202,15 +247,24 @@ test.describe("The Usual Suspects", () => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, MICHAEL_CAINE);
+    // Must settle before the boundingBox() below: this test measures the
+    // svg's right edge and then clicks it, and the full-pool swap moves that
+    // edge. Without this the test is flaky rather than wrong - it passed and
+    // failed on consecutive runs of the same code.
+    await waitForFullPool(page);
 
     await page.locator(".tus-node").first().click();
     await expect(page.locator(".tus-card")).toHaveCount(1);
 
     const svgBox = await page.locator(".tus-graph").boundingBox();
     // 20px in from the svg's own right edge - inside the chart's reserved
-    // sideMargin buffer (>=78px even at the lowest allowed render scale),
-    // so this lands well past every column's real content while still
-    // being a click *on* the chart's nearest-center overlay, not off it.
+    // sideMargin buffer, which App.tsx now adds *beyond* the end column's own
+    // halfWidth (64 viewBox units, >=41px even at the lowest allowed render
+    // scale), so this lands well past every column's real content while still
+    // being a click *on* the chart's nearest-center overlay, not off it. The
+    // buffer used to be the larger of sideMargin and the end column's
+    // halfWidth, which collapsed to zero margin once the axis flipped to
+    // descending and put the 200-plus-person 1-film crowd at that end.
     await page.mouse.click(svgBox!.x + svgBox!.width - 20, svgBox!.y + svgBox!.height / 2);
     await page.waitForTimeout(200);
 

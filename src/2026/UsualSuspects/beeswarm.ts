@@ -19,54 +19,83 @@ export interface Column {
   top: number;
   /** How far this column's own content reaches from its center x - lets the
    * caller size the SVG viewport (and space the next column) to the swarm's
-   * real width instead of a guessed constant. Floored at half the configured
-   * column pitch for a non-empty column so its axis label has room to
-   * breathe, or at the much narrower EMPTY_COLUMN_HALF_WIDTH for an empty
-   * one - see layoutBeeswarm for why those get a different floor. */
+   * real width instead of a guessed constant. Floored at cfg.labelHalfWidth
+   * for a populated column so its two number labels have room, or at the
+   * narrower BREAK_HALF_WIDTH for a break - see layoutBeeswarm. */
   halfWidth: number;
-  /** True for an interior gap - a shared-film count nobody in this bucket
-   * actually has. Real information (see layoutBeeswarm), so it's kept as a
-   * real column rather than skipped, but the caller renders it narrower and
-   * with just a bare number - see App.tsx. */
-  isEmpty: boolean;
+  /** Non-null for a collapsed run of shared-film counts nobody in this
+   * bucket has - [highest, lowest] in render (descending) order, e.g.
+   * [11, 8] for Adam Sandler's gap between his 12-film and 7-film costars.
+   * The gap is real information, so it stays visible as an axis break
+   * rather than being silently closed up; the caller draws it as a narrow
+   * break marker, not a column. */
+  missing: [number, number] | null;
 }
 
 /** Layout dimensions, picked from viewport width by the caller - a 220px column
  * that reads fine on a desktop makes the chart ~12x the screen width on a
  * 390px phone, so the whole geometry scales rather than just being scrolled. */
 export interface LayoutConfig {
+  /** Only feeds sizeForBucket's area budget now - it is NOT a pitch. Columns
+   * are spaced by their own packed width (see layoutBeeswarm); this is just
+   * "how wide a column is allowed to think it is" when deciding how big its
+   * avatars can be. */
   columnWidth: number;
   targetColumnHeight: number;
   sideMargin: number;
   minNodeSize: number;
   maxNodeSize: number;
+  /** Floor on a populated column's halfWidth - room for its two stacked
+   * number labels (the bold costar count above the swarm, the shared-film
+   * count in the header row). Both are bare numbers at every viewport now,
+   * so this is small: a 3-digit count at 16px measures ~29px, half of that
+   * plus air. It replaces the old `(columnWidth - COLUMN_GAP) / 2`, which
+   * reserved 92px per column to fit the words "12 films together". */
+  labelHalfWidth: number;
 }
 
 export const DESKTOP_LAYOUT: LayoutConfig = {
   columnWidth: 200,
   targetColumnHeight: 900,
-  sideMargin: 120,
+  // 120 before, and now genuinely additive - App.tsx adds it beyond each end
+  // column's own halfWidth rather than taking the larger of the two, so this
+  // is real clear space at both ends rather than a floor the widest column
+  // swallows. Not cut further than 64 despite bare-number labels needing
+  // less edge room: this margin doubles as the dead zone that lets a click
+  // past the end column dismiss an open card instead of resolving to the
+  // nearest face. That needs to stay wider than MIN_MATCH_RADIUS (24 units)
+  // plus however far in from the edge someone clicks, at the lowest render
+  // scale the chart uses - 64 clears it with room to spare.
+  sideMargin: 64,
   minNodeSize: 24,
-  maxNodeSize: 88,
+  // 88 before. Ten of Adam Sandler's thirteen columns hold one or two people
+  // each, and at 88 they cost 910 units - 48% of his whole chart - to show
+  // 10 faces. 64 is still large and plainly recognizable, and because the
+  // chart no longer renders at the 0.65 MIN_SCALE clamp (see .tus-root in
+  // App.css), those faces come out *bigger* on screen than they were:
+  // 88 x 0.65 = 57px before, 64 x 1.0 = 64px now.
+  maxNodeSize: 64,
+  labelHalfWidth: 20,
 };
 
 export const COMPACT_LAYOUT: LayoutConfig = {
   columnWidth: 128,
   targetColumnHeight: 560,
-  sideMargin: 56,
+  sideMargin: 32,
   minNodeSize: 17,
-  maxNodeSize: 62,
+  maxNodeSize: 56,
+  labelHalfWidth: 16,
 };
 
 const PACKING_EFFICIENCY = 0.72; // real beeswarms aren't perfect hex-packing
 // Minimum clear air between two columns' swarms, even when both are packed
 // wide enough to otherwise butt up against each other.
 const COLUMN_GAP = 16;
-// How much width an empty (gap) column reserves - just enough for its own
-// bare-number label, not a full column's worth of spacing. See
-// layoutBeeswarm for why a run of gaps would otherwise still cost a full
-// columnWidth each.
-const EMPTY_COLUMN_HALF_WIDTH = 18;
+// How much width a break marker reserves - just its own glyph, nothing
+// more. A whole run of missing counts collapses into one of these (see
+// layoutBeeswarm), so this is paid once per gap rather than once per
+// missing number.
+const BREAK_HALF_WIDTH = 10;
 
 /** Bigger buckets get smaller avatars, so a 227-person "1 shared film" column
  * stays navigable instead of running thousands of px tall - nobody's dropped,
@@ -143,51 +172,63 @@ function packColumn(bucket: Bucket, size: number): PackedColumn {
  * its neighbor, since nothing kept two columns' independently-centered
  * swarms from spreading into the same x range.
  *
- * Columns run 1..(this actor's own highest shared-film count) in order, so a
- * given count is always to the right of a smaller one and stays comparable
- * between actors. Interior gaps are preserved as real blank columns (Anupam
- * Kher shares 4 films with someone and 6 with someone else, so "5 films"
- * renders empty - that gap is information). Only the empty tail past an
- * actor's maximum is trimmed: rendering all the way to the dataset-wide max
- * of 20 made every chart 4,692px wide, ~75% of it dead scroll for anyone
- * who isn't Anupam Kher.
+ * The axis is ORDINAL and DESCENDING: only counts this actor actually has
+ * get a column, highest first (bucketCostars already sorts that way; the
+ * re-sort below is so this function doesn't silently depend on it). A run of
+ * counts nobody has collapses into a single narrow break marker rather than
+ * one blank column per missing number.
  *
- * An interior gap still reserves real width (EMPTY_COLUMN_HALF_WIDTH), just
- * much less than a populated column's minHalfWidth - Anupam Kher has 18 of
- * them between his 1-4 films and his 6/13/14/18/20-film outliers, and at the
- * full columnWidth pitch each one costs as much as a real column, which is
- * what made his chart 4,692px wide even after the dataset-wide-max trim
- * above. The columnWidth *pitch floor* (a full column's worth of spacing
- * even when both swarms are individually narrower) only applies between two
- * non-empty columns, too - it exists so two populated swarms never crowd
- * each other, which isn't a concern when one side is a bare number.
+ * What that replaced: a linear 1..max axis with a blank column for every
+ * unrepresented count. It was defensible - the gaps are real information -
+ * but it priced them terribly. Adam Sandler has a costar at 26 films, so he
+ * got 26 columns for 13 populated ones, 3,351 viewBox units wide, which
+ * forced the whole chart down to the 0.65 MIN_SCALE floor and rendered his
+ * biggest column's faces at 18 CSS px. Anupam Kher was worse: 18 blank
+ * columns between his 1-4 films and his 6/13/14/18/20-film outliers.
+ * Collapsing each *run* to one marker keeps the "there's a gap here" signal
+ * and pays for it once instead of once per integer - and the numbers either
+ * side of the marker still say exactly how wide the gap is.
+ *
+ * The other half of the width saving is the labels: they're bare numbers at
+ * every viewport now (the units are spelled out once above the chart), so a
+ * populated column's floor is cfg.labelHalfWidth (~20) instead of the 92 it
+ * took to fit "12 films together". With that gone, the old `Math.max(
+ * cfg.columnWidth, gap)` pitch floor goes too - it existed so two populated
+ * swarms never crowded each other, but the halfWidth + COLUMN_GAP + halfWidth
+ * spacing below already guarantees that geometrically.
  */
 export function layoutBeeswarm(buckets: Bucket[], cfg: LayoutConfig): Column[] {
-  const actorMax = buckets.reduce((max, b) => Math.max(max, b.sharedFilms), 0);
-  const bucketByWeight = new Map(buckets.map((b) => [b.sharedFilms, b]));
-  // Half the old fixed pitch - what a populated column reserves for its
-  // axis label even when its swarm itself is narrower.
-  const minHalfWidth = (cfg.columnWidth - COLUMN_GAP) / 2;
+  // Descending, so the closest collaborators land on the left. Re-sorted
+  // here rather than trusting the caller: bucketCostars guarantees this
+  // order today, but the break-run detection below is silently wrong for
+  // any other ordering, and that would show up as a visual oddity rather
+  // than an error.
+  const ordered = [...buckets].sort((a, b) => b.sharedFilms - a.sharedFilms);
 
-  const packed: PackedColumn[] = Array.from({ length: actorMax }, (_, i) => {
-    const sharedFilms = i + 1;
-    const bucket = bucketByWeight.get(sharedFilms);
-    if (!bucket) return { sharedFilms, actors: [], top: 0, halfWidth: 0 };
-    return packColumn(bucket, sizeForBucket(bucket.entries.length, cfg));
+  // Populated columns interleaved with one break marker per run of missing
+  // counts. A break carries the run it stands for as [highest, lowest].
+  const slots: (PackedColumn | { missing: [number, number] })[] = [];
+  ordered.forEach((bucket, i) => {
+    slots.push(packColumn(bucket, sizeForBucket(bucket.entries.length, cfg)));
+    const next = ordered[i + 1];
+    if (next && bucket.sharedFilms - next.sharedFilms > 1) {
+      slots.push({ missing: [bucket.sharedFilms - 1, next.sharedFilms + 1] });
+    }
   });
 
-  const halfWidthFor = (col: PackedColumn) =>
-    col.actors.length === 0 ? EMPTY_COLUMN_HALF_WIDTH : Math.max(minHalfWidth, col.halfWidth);
+  const halfWidthFor = (slot: (typeof slots)[number]) =>
+    "missing" in slot ? BREAK_HALF_WIDTH : Math.max(cfg.labelHalfWidth, slot.halfWidth);
 
   let x = 0;
-  return packed.map((col, i) => {
-    const isEmpty = col.actors.length === 0;
-    const halfWidth = halfWidthFor(col);
-    if (i > 0) {
-      const prev = packed[i - 1];
-      const gap = halfWidthFor(prev) + COLUMN_GAP + halfWidth;
-      x += isEmpty || prev.actors.length === 0 ? gap : Math.max(cfg.columnWidth, gap);
+  return slots.map((slot, i) => {
+    const halfWidth = halfWidthFor(slot);
+    if (i > 0) x += halfWidthFor(slots[i - 1]) + COLUMN_GAP + halfWidth;
+    if ("missing" in slot) {
+      // sharedFilms doubles as this column's React key upstream; the top of
+      // the collapsed run can never collide with a populated column's own
+      // count, since by construction nobody has it.
+      return { sharedFilms: slot.missing[0], x, actors: [], top: 0, halfWidth, missing: slot.missing };
     }
-    return { sharedFilms: col.sharedFilms, x, actors: col.actors, top: col.top, halfWidth, isEmpty };
+    return { sharedFilms: slot.sharedFilms, x, actors: slot.actors, top: slot.top, halfWidth, missing: null };
   });
 }

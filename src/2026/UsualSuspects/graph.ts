@@ -56,8 +56,21 @@ export interface Bucket {
  * Buckets the root's real, complete costar list by how many films they share
  * with the root - nothing capped or curated, everyone the root has ever
  * shared a theatrical movie with (within the pool) is in some bucket.
- * Ascending by sharedFilms, so the axis reads left-to-right like a normal
- * chart (fewer shared films first, closest collaborators on the right).
+ *
+ * DESCENDING by sharedFilms: closest collaborators first, on the left. This
+ * used to be ascending, on the reasoning that a chart should grow
+ * left-to-right like a histogram, and it cost the page its whole payoff -
+ * Adam Sandler's 26-films-together costar (Allen Covert, the highest count
+ * in the pool, and the pair the page's own subtitle leads with) rendered as
+ * the rightmost column, 786px past the right edge of a 1440px screen,
+ * behind a horizontal scrollbar most visitors never touch. Everything past
+ * 7 films was invisible on load.
+ *
+ * The stronger reason isn't hook-first, though - it's that under descending
+ * order the only region that can ever fall off the right edge is the 1-film
+ * crowd (207 people for Sandler, rendered too small to recognize anyone
+ * anyway). The chart can be clipped by the viewport and still be complete,
+ * which is not true in either direction otherwise.
  */
 export function bucketCostars(
   adj: Adjacency,
@@ -75,6 +88,6 @@ export function bucketCostars(
     byWeight.get(weight)!.push({ actor, sharedMovies });
   }
   return [...byWeight.entries()]
-    .sort((a, b) => a[0] - b[0])
+    .sort((a, b) => b[0] - a[0])
     .map(([sharedFilms, entries]) => ({ sharedFilms, entries }));
 }

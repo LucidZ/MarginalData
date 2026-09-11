@@ -11,7 +11,7 @@ import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm, type Column } from "./b
 // scripts/generate-usual-suspects-defaults.mjs for how this file is derived.
 import defaultActorsRaw from "./defaultActors.json";
 import DetailCard, { type Selection } from "./DetailCard";
-import { buildAdjacency, bucketCostars, photoUrl } from "./graph";
+import { buildAdjacency, bucketCostars, photoUrl, type Bucket } from "./graph";
 import SearchBox from "./SearchBox";
 import { useData } from "./useData";
 import type { Actor, GraphData, Movie } from "./types";
@@ -111,9 +111,44 @@ function pickRandomSubtitleActor(): Actor {
   return match ?? pickRandomDefaultActor();
 }
 
-function filmLabel(n: number, compact: boolean): string {
-  if (compact) return `${n}`;
-  return `${n} film${n === 1 ? "" : "s"} together`;
+/** Everything after the root actor's own name in the one sentence a cold
+ * arrival needs, built from the chart in front of them. The name itself is
+ * rendered separately (and linked out to TMDB), so the line still reads as
+ * one sentence - "Adam Sandler" + "and Allen Covert made 26 films together."
+ * - while staying its own addressable element. A shared ?actor= link is exactly when someone shows up with no
+ * context, so this can't be gated on entry point the way a landing-page
+ * intro can - making it about the current actor is what earns it the space
+ * instead. It's also the caption for the leftmost column, now that the axis
+ * runs descending.
+ *
+ * 86.2% of the pool (2,446 of 2,839, measured) has a top collaborator at 2+
+ * shared films, so the main sentence lands for almost everyone. The other
+ * 393 are obscure, low-degree actors that Shuffle can't reach (it draws from
+ * defaultActorIds) and only search finds - "made 1 films together" would be
+ * both ungrammatical and a non-fact, so they get the count instead.
+ *
+ * Ties are broken on the lower pool id, which is free accuracy rather than
+ * an arbitrary pick: ids are assigned in descending costar-degree order (see
+ * the rootId comment below), so the lower id is the better-known name. Adam
+ * Sandler's 23-film tie resolves to Rob Schneider, not Jonathan Loughran.
+ */
+function headlineFor(buckets: Bucket[], totalCostars: number): string | null {
+  const top = buckets[0];
+  if (!top || top.entries.length === 0) return null;
+  if (top.sharedFilms < 2) {
+    return `appears here with ${totalCostars.toLocaleString()} costars — one film each.`;
+  }
+  const best = top.entries.reduce((a, b) => (b.actor.id < a.actor.id ? b : a));
+  return `and ${best.actor.name} made ${top.sharedFilms} films together.`;
+}
+
+/** Every column label is a bare number at every viewport now - the units are
+ * spelled out once in the axis legend above the chart instead. Repeating
+ * "films together" under each column measured 93-111px wide, which forced a
+ * 184px minimum footprint per column whether it held 207 people or one; that
+ * was roughly half of why Adam Sandler's chart was 3,351 units wide. */
+function filmLabel(n: number): string {
+  return `${n}`;
 }
 
 /** One entry per rendered node, in the order roving-tabindex keyboard nav
@@ -262,22 +297,33 @@ export default function App() {
   // How much vertical room is actually left for the chart, measured from
   // wherever it starts down to the bottom of the viewport - lets the layout
   // shrink to fit instead of running off the bottom of the screen.
-  const frameRef = useRef<HTMLDivElement>(null);
+  //
+  // Held as state rather than a ref, and depended on below, because the
+  // frame is rendered inside `{root && ...}` and so does not exist on every
+  // mount. With a plain ref + `[compact]` deps this effect ran once, found
+  // frameRef.current null, and bailed - permanently, since nothing ever
+  // re-ran it - leaving `available` null and the chart with no height budget
+  // at all. That hit every actor the bundled default slice doesn't cover
+  // (720 of 2,839) and every fallback from an invalid ?actor=, because those
+  // render the "Loading this actor…" message on first commit and the frame
+  // only on a later one. Measured on that path: a 941px-tall chart on a
+  // 900px viewport, running below the fold, while charts for slice actors
+  // sized correctly - the kind of bug that looks like a data difference.
+  const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null);
   const [available, setAvailable] = useState<number | null>(null);
   useLayoutEffect(() => {
+    if (!frameEl) return;
     const measure = () => {
-      const el = frameRef.current;
-      if (!el) return;
       // Document-space top of the chart region. Depends only on the header
       // and banner above it, never on the chart's own height, so feeding
       // this back into the layout below cannot oscillate.
-      const top = el.getBoundingClientRect().top + window.scrollY;
+      const top = frameEl.getBoundingClientRect().top + window.scrollY;
       setAvailable(Math.max(MIN_CHART_HEIGHT, window.innerHeight - top - VIEWPORT_GUTTER));
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [compact]);
+  }, [frameEl, compact]);
 
   const layout = useMemo(() => {
     const base = compact ? COMPACT_LAYOUT : DESKTOP_LAYOUT;
@@ -601,6 +647,7 @@ export default function App() {
 
   const root = actorById.get(rootId) ?? null;
   const totalCostars = buckets.reduce((sum, b) => sum + b.entries.length, 0);
+  const headline = headlineFor(buckets, totalCostars);
 
   // Frame runs 1..(this actor's own highest shared-film count) - see
   // layoutBeeswarm for why the empty tail out to the dataset-wide max of 20
@@ -615,11 +662,21 @@ export default function App() {
   // recenter, so a height change alongside them isn't a new kind of jump.
   const firstColumn = columns[0];
   const lastColumn = columns[columns.length - 1];
-  // Left/right edges follow each end column's own halfWidth rather than a
-  // flat sideMargin - a first or last column packed wider than sideMargin
-  // (a small bucket of large avatars, e.g.) would otherwise clip.
-  const viewLeft = firstColumn ? -Math.max(layout.sideMargin, firstColumn.halfWidth) : -layout.sideMargin;
-  const viewRight = lastColumn ? lastColumn.x + Math.max(layout.sideMargin, lastColumn.halfWidth) : layout.sideMargin;
+  // Each end column's own halfWidth PLUS the side margin, not the larger of
+  // the two. The old Math.max() form guaranteed only that an end column
+  // couldn't clip; whenever its swarm was wider than sideMargin it left no
+  // margin at all. That was invisible under the old ascending axis, where
+  // the end columns were the high-shared-film buckets - one or two large
+  // avatars, halfWidth ~32, comfortably under sideMargin - and became a real
+  // bug the moment the axis flipped: descending puts the 200-plus-person
+  // 1-film crowd at the right end, halfWidth ~141, so the margin collapsed
+  // to zero and a click in what looks like empty space past the chart
+  // resolved to whichever face was nearest instead of dismissing the open
+  // card (caught by the "clicking in empty space past the last column"
+  // test). Additive keeps both properties: never clips, always leaves a
+  // real dead zone wider than MIN_MATCH_RADIUS at every render scale.
+  const viewLeft = firstColumn ? -(firstColumn.halfWidth + layout.sideMargin) : -layout.sideMargin;
+  const viewRight = lastColumn ? lastColumn.x + lastColumn.halfWidth + layout.sideMargin : layout.sideMargin;
   const frameWidth = viewRight - viewLeft;
   const tallestTop = columns.length ? Math.min(...columns.map((c) => c.top)) : -layout.targetColumnHeight;
   // The axis label row sits at a uniform y (frameMinY + HEADER_HEIGHT) for
@@ -641,12 +698,12 @@ export default function App() {
   const maxFrameHeight = available ?? frameHeight;
   const scale = Math.max(MIN_SCALE, Math.min(1, maxFrameHeight / frameHeight));
 
-  const rootPhoto = root ? photoUrl(root, 56) : null;
-  // The bold number above each column has no unit of its own ("175" reads as
-  // a bare value) - giving just the first (leftmost, always non-empty for
-  // anyone with real costars) column's count a unit establishes what every
-  // column's number means without repeating it down the whole row.
-  const firstLabeledColumnFilms = columns.find((c) => c.actors.length > 0)?.sharedFilms;
+  const rootPhoto = root ? photoUrl(root, 48) : null;
+  // The leftmost column used to carry its count as "207 costars" so the bare
+  // numbers below it had a unit. That worked under the old ascending axis,
+  // where leftmost meant the 1-film pile and 207 was a real number; under
+  // descending it's the closest-collaborator column, so it read "1 costars".
+  // Both units are named once in .tus-axis-unit-note above the chart now.
 
   // Hover label geometry - everything here lives in viewBox units, like
   // everything else drawn inside the <svg>. Sizes are divided by `scale`:
@@ -681,48 +738,38 @@ export default function App() {
 
   return (
     <div className="tus-root">
-      <header className="tus-header">
-        <h1>The Usual Suspects</h1>
-        <p className="tus-subtitle">
-          {/* Three known duos (Gosling/Stone 3 shared films, Johnson/Hart 4,
-              Reeves/Ryder 3) plus one that's the actual hook: Adam Sandler
-              and Allen Covert share TEN - tied for the second-highest count
-              in the whole pool - and Covert isn't a name most people would
-              place, hence the trailing "?" instead of a period. All four
-              counts re-verified against the shipped pool; re-check them if
-              it's ever regenerated or swapped to Pool B. SUBTITLE_ACTOR_NCONSTS
-              below must list exactly these eight so the page opens centered
-              on one of them rather than the sentence naming actors nobody
-              lands on. */}
-          Ryan Gosling and Emma Stone. Dwayne "The Rock" Johnson and Kevin
-          Hart. Keanu Reeves and Winona Ryder. Adam Sandler and Allen
-          Covert? Some actors share the silver screen more than others.
-          Explore this pool
-          {/* Gated on `data` (the full pool), not `activeData` - the bundled
-              default slice's count (1,612) is real but wrong for this claim
-              until the full pool (2,839) lands, so the figure is omitted
-              rather than shown wrong for the first ~2s of every load. */}
-          {data && <> of {data.actors.length.toLocaleString()} actors</>} to see their costars.{" "}
-          {compact ? "Tap" : "Click"} on anyone to see the films they share.
-          {/* Desktop-only accelerator (see ActorNode.tsx's onDoubleClick) -
-              left out on touch, where double-tap means zoom and the
-              bottom-sheet card's own "Center on" button is already one
-              tap away. */}
-          {!compact && " Double-click to recenter on that actor."}
-        </p>
-        <div className="tus-search-row">
-          <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
-          <button type="button" className="tus-shuffle" onClick={shuffle}>
-            Shuffle
-          </button>
-        </div>
+      <div className="tus-chrome">
+        <header className="tus-toolbar">
+          <h1 className="tus-title">The Usual Suspects</h1>
+          <div className="tus-search-row">
+            <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
+            <button type="button" className="tus-shuffle" onClick={shuffle}>
+              Shuffle
+            </button>
+          </div>
+        </header>
         {error && !data && (
           <p className="tus-error-note">
             Showing a small sample - the full pool didn't load ({error.message}), so search only
             covers the actors already on screen.
           </p>
         )}
-      </header>
+        {/* The five-line paragraph that used to live here is gone, replaced
+            by the per-actor headline in the context row below (headlineFor).
+            It cost 340px of chrome on desktop and 489px on a 390px phone -
+            58% of the screen before a single face appeared - and on a deep
+            link, which is the URL people actually share, three of its four
+            name-drops weren't the chart you'd just landed on.
+
+            Its four-pair cold open is still worth having on the bare landing
+            state (no ?actor=), where it does real work; that's phase 4 in
+            .claude/usual-suspects-ux-spec.md, which carries the copy. Do not
+            restore it verbatim: every one of its counts is stale. Commit
+            4bc930f moved all four - Gosling/Stone 3 -> 4, Johnson/Hart
+            4 -> 5, Reeves/Ryder 3 -> 4, and Sandler/Covert 10 -> 26.
+            SUBTITLE_ACTOR_NCONSTS above still lists exactly those eight, so
+            the landing page keeps opening on one of them. */}
+      </div>
 
       {paramPending && <p className="tus-root-loading">Loading this actor…</p>}
 
@@ -744,34 +791,50 @@ export default function App() {
               <div className="tus-root-photo tus-root-photo-fallback" />
             )}
             <div>
-              {root.tmdbId ? (
-                <a
-                  className="tus-root-name tus-person-link"
-                  href={`https://www.themoviedb.org/person/${root.tmdbId}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {root.name}
-                </a>
-              ) : (
-                <div className="tus-root-name">{root.name}</div>
-              )}
-              <div className="tus-root-meta">
-                {totalCostars.toLocaleString()} costars across this pool
-              </div>
+              <p className="tus-headline">
+                {root.tmdbId ? (
+                  <a
+                    className="tus-root-name tus-person-link"
+                    href={`https://www.themoviedb.org/person/${root.tmdbId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {root.name}
+                  </a>
+                ) : (
+                  <span className="tus-root-name">{root.name}</span>
+                )}
+                {headline && ` ${headline}`}
+              </p>
+              <p className="tus-context-meta">
+                Some actors share the silver screen far more than others.{" "}
+                {totalCostars.toLocaleString()} costars here
+                {/* Gated on `data` (the full pool), not `activeData` - the
+                    bundled default slice's count (1,612) is real but wrong
+                    for this claim until the full pool (2,839) lands, so the
+                    figure is omitted rather than shown wrong for the first
+                    ~2s of every load. */}
+                {data && <>, out of {data.actors.length.toLocaleString()} actors</>}.{" "}
+                {compact ? "Tap" : "Click"} anyone to see the films they share.
+                {/* Desktop-only accelerator (see ActorNode.tsx's
+                    onDoubleClick) - left out on touch, where double-tap
+                    means zoom and the bottom-sheet card's own "Center on"
+                    button is already one tap away. */}
+                {!compact && " Double-click to recenter."}
+              </p>
             </div>
           </div>
 
-          {compact && (
-            // On mobile the per-column labels are bare numbers (see
-            // filmLabel) - this is the one place the unit they're counting
-            // gets spelled out. It sits directly above the chart rather than
-            // below (where its predecessor, .tus-axis-note, used to live)
-            // so it's visible without scrolling, and outside the svg so it
-            // can't collide with a column's own number label.
-            <p className="tus-axis-unit-note">Columns: films together</p>
-          )}
-          <div className="tus-graph-frame" ref={frameRef} data-overflow={overflowTokens}>
+          {/* Every column label is a bare number at every viewport now (see
+              filmLabel), so this is where both units get named - once,
+              rather than under all 13 of Adam Sandler's columns. Above the
+              chart rather than below (where its predecessor, .tus-axis-note,
+              used to live) so it's readable without scrolling, and outside
+              the svg so it can't collide with a column's own number. */}
+          <p className="tus-axis-unit-note">
+            Columns are films made together, most at left. Bold numbers count the costars in each.
+          </p>
+          <div className="tus-graph-frame" ref={setFrameEl} data-overflow={overflowTokens}>
             <div className="tus-graph-scroll" ref={scrollRef}>
               <svg
                 className="tus-graph"
@@ -818,23 +881,36 @@ export default function App() {
                   <g key={col.sharedFilms}>
                     {col.actors.length > 0 && (
                       <text className="tus-count-label" x={col.x} y={col.top - COUNT_LABEL_GAP} textAnchor="middle">
-                        {col.sharedFilms === firstLabeledColumnFilms
-                          ? `${col.actors.length} costars`
-                          : col.actors.length}
+                        {col.actors.length}
                       </text>
                     )}
-                    <text
-                      className={col.isEmpty ? "tus-axis-label tus-axis-label-empty" : "tus-axis-label"}
-                      x={col.x}
-                      y={axisLabelY}
-                      textAnchor="middle"
-                    >
-                      {/* An empty (gap) column is only EMPTY_COLUMN_HALF_WIDTH*2
-                          wide (beeswarm.ts) - "13 films together" doesn't fit
-                          there, so it falls back to the bare number regardless
-                          of compact. */}
-                      {col.isEmpty ? col.sharedFilms : filmLabel(col.sharedFilms, compact)}
-                    </text>
+                    {col.missing ? (
+                      // A collapsed run of shared-film counts nobody has -
+                      // the print convention for a broken axis, drawn once
+                      // per gap rather than once per missing number. The
+                      // numbers either side already say how wide the gap is
+                      // (Sandler's 12 and 7 bracket a missing 11-8), so the
+                      // marker itself only has to say "something is skipped
+                      // here" - hence a glyph rather than a label, which
+                      // also keeps it BREAK_HALF_WIDTH narrow.
+                      <text
+                        className="tus-axis-break"
+                        x={col.x}
+                        y={axisLabelY}
+                        textAnchor="middle"
+                        aria-label={
+                          col.missing[0] === col.missing[1]
+                            ? `no costars at ${col.missing[0]} films`
+                            : `no costars between ${col.missing[1]} and ${col.missing[0]} films`
+                        }
+                      >
+                        ⋯
+                      </text>
+                    ) : (
+                      <text className="tus-axis-label" x={col.x} y={axisLabelY} textAnchor="middle">
+                        {filmLabel(col.sharedFilms)}
+                      </text>
+                    )}
                     {col.actors.map((p) => {
                       const actor = actorById.get(p.id);
                       if (!actor) return null;

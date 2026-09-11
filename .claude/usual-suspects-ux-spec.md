@@ -14,6 +14,12 @@
 > edges, and grew the tallest columns with it (Jackson 227 -> 278, Dafoe
 > 227 -> 268). Re-measure before trusting any number in the table below.
 
+> **Superseded for current work, 2026-09-11.** Every phase below shipped. A second
+> UX pass — full-bleed app shell, descending ordinal axis, generated headline, and the
+> mobile rotation still outstanding — is specced separately in
+> `.claude/usual-suspects-refit-spec.md`. This document stays as the record of why the
+> earlier decisions were made; do not measure against its numbers.
+
 Handoff spec. Branch `6-degrees-of`, last commit `c4ca17d`. Everything below is
 scoped to `src/2026/UsualSuspects/` plus two lines in `src/routes.ts`.
 

@@ -9,12 +9,32 @@
   /* Validated sequential/accent blue from the dataviz skill's reference palette (slot 1). */
   --accent: #2a78d6;
 
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2rem 1rem 4rem;
+  /* Full-bleed, not the site's 1100px article column. This page is an app -
+     a search field, a canvas, a detail card - and the reading measure it
+     used to inherit was actively harmful: the chart broke out of it to
+     100vw (see .tus-graph-frame), so everything past 1100px sat on the site
+     `body`, which stays #ffffff even under prefers-color-scheme: dark (the
+     site shell never goes dark; this story's dark mode is a per-route
+     opt-in via the tokens above). At 1440px that put 340px of chart on a
+     white background with the dark surface stopping mid-column, and made
+     the scroll-edge gradients - painted in var(--page) - fade dark-to-dark
+     against white, i.e. invisible. Now the surface IS the viewport.
+     min-height rather than height: the site Footer still sits below and
+     stays reachable by scrolling; the chart itself is sized to fit the
+     first screenful by App.tsx's own height budget. */
+  width: 100%;
+  min-height: 100dvh;
+  padding: 0 0 2rem;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text-primary);
   background: var(--page);
+}
+
+/* Everything above the chart. Holds the reading-width padding the chart
+   itself no longer wants, so prose stays off the viewport edge while the
+   canvas below runs edge to edge. */
+.tus-chrome {
+  padding: 0.9rem 1.5rem 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -41,7 +61,7 @@
      preserved for pages that never asked to go dark - see the dark-mode
      audit note in project_usual_suspects.md for why this couldn't be a
      sitewide fix. */
-  :root:where(:not([data-theme="light"])) .tus-header h1 {
+  :root:where(:not([data-theme="light"])) .tus-title {
     color: var(--accent);
   }
 }
@@ -57,24 +77,38 @@
   --accent: #3987e5;
 }
 
-:root[data-theme="dark"] .tus-header h1 {
+:root[data-theme="dark"] .tus-title {
   color: var(--accent);
 }
 
-.tus-header h1 {
-  margin-bottom: 0.25rem;
+/* Toolbar, not a masthead. The title used to be a full <h1> block with a
+   five-line paragraph under it and the search row under that - 340px of
+   chrome on desktop, 489px (58% of the screen) on a 390px phone, before a
+   single face appeared. Sitting the title inline with the controls is most
+   of that space back, and the height it frees goes straight into the
+   chart's own budget (see `available` in App.tsx), which is what releases
+   the MIN_SCALE clamp the chart used to render at. */
+.tus-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.tus-subtitle {
-  color: var(--text-secondary);
-  max-width: 640px;
-  margin-bottom: 1rem;
+.tus-title {
+  margin: 0;
+  font-size: 1.15rem;
+  white-space: nowrap;
 }
 
 .tus-search-row {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
+  /* Takes the rest of the toolbar row, but wraps to its own line before the
+     title is squeezed - on a 390px phone "The Usual Suspects" and a usable
+     search field genuinely don't share a line. */
+  flex: 1 1 300px;
 }
 
 .tus-search {
@@ -197,12 +231,35 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin: 1.5rem 0 0.5rem;
+  margin: 0.6rem 0 0.5rem;
+  padding-inline: 1.5rem;
+}
+
+/* The one sentence a cold arrival needs, generated from the chart in front
+   of them rather than written once for the landing page - see
+   headlineFor() in App.tsx. A shared ?actor= link is exactly when someone
+   shows up with no context, so this can't be gated on entry point; making
+   it about the current actor is what earns it the space instead. It also
+   captions the leftmost column, since the axis now runs descending. */
+.tus-headline {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.tus-context-meta {
+  margin: 0.15rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .tus-root-photo {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
+  flex: none;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--accent);
@@ -212,9 +269,14 @@
   background: var(--gridline);
 }
 
+/* The root actor's own name, inside the headline line. Carries no size or
+   weight of its own any more - .tus-headline sets those, and this reads as
+   part of that one sentence rather than as a separate title. Kept as its own
+   element (rather than interpolated into the generated string) so it can be
+   linked out to TMDB, and because it's the handle the Playwright suite uses
+   to assert which actor the chart is centered on. */
 .tus-root-name {
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-weight: inherit;
 }
 
 /* Shared by the root banner name and the detail card head - both link out to
@@ -245,20 +307,16 @@
   font-size: 0.85rem;
 }
 
-/* Breaks the chart out of .tus-root's 1100px reading-width column so a chart
-   wider than that (Michael Caine is 1228px, see App.tsx) doesn't scroll on a
-   1440px screen with hundreds of idle px on either side - the header prose
-   above keeps its narrower measure since this only wraps the chart. The
-   calc(50% - 50vw) breakout is computed off .tus-root's own content box (its
-   nearest positioned/containing ancestor), so it pulls flush with the real
-   viewport edge; padding-inline puts a little air back so avatars near the
-   left/right edge don't touch it. This is also the positioned ancestor the
-   phase-4 scroll-edge gradients anchor to, and 1b's frameRef in App.tsx
-   measures its top (not the inner scroll div's) to size the chart's height
-   budget - neither changes when the chart's own width does. */
+/* The chart's own frame. No longer needs the `margin-inline: calc(50% - 50vw)`
+   breakout it used to carry: .tus-root is the full viewport now, so this is
+   already edge to edge, and the breakout's whole purpose - escaping a
+   1100px reading column the chart was never meant to live in - is gone with
+   the column itself. Still the positioned ancestor the scroll-edge
+   gradients anchor to, and still the element App.tsx's frameRef measures
+   the top of (not the inner scroll div's) to size the chart's height
+   budget - neither of those depends on the breakout. */
 .tus-graph-frame {
   position: relative;
-  margin-inline: calc(50% - 50vw);
   padding-inline: 1.5rem;
 }
 
@@ -343,13 +401,14 @@
   fill: var(--text-secondary);
 }
 
-/* An interior gap column (see layoutBeeswarm in beeswarm.ts) - real
-   information worth keeping, but only EMPTY_COLUMN_HALF_WIDTH*2 wide, so it
-   gets the bare number rather than the full label, styled down further to
-   read as a spacer rather than a real data column. */
-.tus-axis-label-empty {
-  font-size: 11px;
+/* The broken-axis marker standing in for a run of shared-film counts nobody
+   has (see layoutBeeswarm in beeswarm.ts). Muted and smaller than a real
+   axis number so it reads as "something is skipped here" rather than as a
+   column of its own - the numbers either side say how wide the gap is. */
+.tus-axis-break {
+  font-size: 13px;
   fill: var(--muted);
+  letter-spacing: 0.05em;
 }
 
 .tus-count-label {
@@ -420,13 +479,17 @@
   pointer-events: none;
 }
 
-/* Mobile-only stand-in for the unit ("films together") that desktop's fuller
-   axis labels spell out per column - compact labels are bare numbers (see
-   filmLabel in App.tsx), so this says the unit once, above the chart rather
-   than below it, so it's visible without scrolling. */
+/* The axis legend, now shown at every viewport rather than only on mobile.
+   Every column label is a bare number at every size (see filmLabel in
+   App.tsx) - spelling the units out once here instead of repeating "films
+   together" under all 13 of Adam Sandler's columns is what let each column
+   shrink to its own swarm's width: that repeated text measured 93-111px,
+   which forced a 184px minimum footprint per column whether it held 207
+   people or one. Above the chart, not below, so it's readable without
+   scrolling. */
 .tus-axis-unit-note {
   margin: 0 0 0.35rem;
-  text-align: center;
+  padding-inline: 1.5rem;
   font-size: 0.75rem;
   color: var(--muted);
 }
