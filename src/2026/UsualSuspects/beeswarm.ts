@@ -5,230 +5,311 @@ import type { Movie } from "./types";
 
 export interface PositionedActor {
   id: number;
+  /** Center, relative to its own row's origin (left edge of the face area, top of the row). */
   x: number;
   y: number;
   size: number;
   sharedMovies: Movie[];
+  /** Set only on a named row (see NAMED_ROW_MAX) - the sparse top rows have
+   * horizontal room to spare, so the people who actually carry the story get
+   * their names on screen without a hover or a click. */
+  name?: string;
+  /** Width of this node's clickable area, for named rows only: the face and
+   * its name read as one unit, so they have to behave as one. Bounded to the
+   * chip's own cell minus a gap, which keeps the guarantee every hit target
+   * here depends on - that a node's hit area can never reach into a
+   * neighbour's (see ActorNode.tsx). */
+  hitWidth?: number;
 }
 
-export interface Column {
+export interface Row {
+  /** Shared-film count this row represents. For a break row, the highest
+   * count inside the collapsed run - unique by construction (nobody has it),
+   * so it doubles as a stable React key. */
   sharedFilms: number;
-  x: number;
+  /** Top of this row within the chart, growing downward from 0. */
+  y: number;
+  height: number;
   actors: PositionedActor[];
-  /** Topmost y reached by this column's swarm - lets the caller size the SVG viewport. 0 for an empty column (nothing to draw above the baseline). */
-  top: number;
-  /** How far this column's own content reaches from its center x - lets the
-   * caller size the SVG viewport (and space the next column) to the swarm's
-   * real width instead of a guessed constant. Floored at cfg.labelHalfWidth
-   * for a populated column so its two number labels have room, or at the
-   * narrower BREAK_HALF_WIDTH for a break - see layoutBeeswarm. */
-  halfWidth: number;
-  /** Non-null for a collapsed run of shared-film counts nobody in this
-   * bucket has - [highest, lowest] in render (descending) order, e.g.
-   * [11, 8] for Adam Sandler's gap between his 12-film and 7-film costars.
-   * The gap is real information, so it stays visible as an axis break
-   * rather than being silently closed up; the caller draws it as a narrow
-   * break marker, not a column. */
+  /** Non-null for a collapsed run of shared-film counts nobody has -
+   * [highest, lowest]. Drawn as a narrow axis break, not a row of faces. */
   missing: [number, number] | null;
+  /** True when this row's actors carry `name` and are laid out as labelled
+   * chips rather than packed into a blob. */
+  named: boolean;
 }
 
-/** Layout dimensions, picked from viewport width by the caller - a 220px column
- * that reads fine on a desktop makes the chart ~12x the screen width on a
- * 390px phone, so the whole geometry scales rather than just being scrolled. */
-export interface LayoutConfig {
-  /** Only feeds sizeForBucket's area budget now - it is NOT a pitch. Columns
-   * are spaced by their own packed width (see layoutBeeswarm); this is just
-   * "how wide a column is allowed to think it is" when deciding how big its
-   * avatars can be. */
-  columnWidth: number;
-  targetColumnHeight: number;
-  sideMargin: number;
+/**
+ * Layout dimensions. `contentWidth` is measured from the DOM rather than
+ * guessed, because the whole point of the vertical arrangement is that the
+ * faces fill whatever width the viewport actually has - there is no
+ * horizontal scroll to escape into any more.
+ */
+export interface RowLayoutConfig {
+  /** Width available to faces, after the label gutter is subtracted. */
+  contentWidth: number;
   minNodeSize: number;
   maxNodeSize: number;
-  /** Floor on a populated column's halfWidth - room for its two stacked
-   * number labels (the bold costar count above the swarm, the shared-film
-   * count in the header row). Both are bare numbers at every viewport now,
-   * so this is small: a 3-digit count at 16px measures ~29px, half of that
-   * plus air. It replaces the old `(columnWidth - COLUMN_GAP) / 2`, which
-   * reserved 92px per column to fit the words "12 films together". */
-  labelHalfWidth: number;
+  /** Clear air below each row. */
+  rowGap: number;
+  /** Height a break row reserves for its own glyph. */
+  breakHeight: number;
 }
 
-export const DESKTOP_LAYOUT: LayoutConfig = {
-  columnWidth: 200,
-  targetColumnHeight: 900,
-  // 120 before, and now genuinely additive - App.tsx adds it beyond each end
-  // column's own halfWidth rather than taking the larger of the two, so this
-  // is real clear space at both ends rather than a floor the widest column
-  // swallows. Not cut further than 64 despite bare-number labels needing
-  // less edge room: this margin doubles as the dead zone that lets a click
-  // past the end column dismiss an open card instead of resolving to the
-  // nearest face. That needs to stay wider than MIN_MATCH_RADIUS (24 units)
-  // plus however far in from the edge someone clicks, at the lowest render
-  // scale the chart uses - 64 clears it with room to spare.
-  sideMargin: 64,
-  minNodeSize: 24,
-  // 88 before. Ten of Adam Sandler's thirteen columns hold one or two people
-  // each, and at 88 they cost 910 units - 48% of his whole chart - to show
-  // 10 faces. 64 is still large and plainly recognizable, and because the
-  // chart no longer renders at the 0.65 MIN_SCALE clamp (see .tus-root in
-  // App.css), those faces come out *bigger* on screen than they were:
-  // 88 x 0.65 = 57px before, 64 x 1.0 = 64px now.
+export const DESKTOP_ROWS = {
+  minNodeSize: 26,
   maxNodeSize: 64,
-  labelHalfWidth: 20,
-};
+  rowGap: 14,
+  breakHeight: 26,
+} as const;
 
-export const COMPACT_LAYOUT: LayoutConfig = {
-  columnWidth: 128,
-  targetColumnHeight: 560,
-  sideMargin: 32,
-  minNodeSize: 17,
+export const COMPACT_ROWS = {
+  minNodeSize: 22,
   maxNodeSize: 56,
-  labelHalfWidth: 16,
-};
+  rowGap: 10,
+  breakHeight: 22,
+} as const;
 
-const PACKING_EFFICIENCY = 0.72; // real beeswarms aren't perfect hex-packing
-// Minimum clear air between two columns' swarms, even when both are packed
-// wide enough to otherwise butt up against each other.
-const COLUMN_GAP = 16;
-// How much width a break marker reserves - just its own glyph, nothing
-// more. A whole run of missing counts collapses into one of these (see
-// layoutBeeswarm), so this is paid once per gap rather than once per
-// missing number.
-const BREAK_HALF_WIDTH = 10;
+/** A row holding at most this many people is laid out as labelled chips -
+ * face plus name - instead of a packed blob. Chosen from what the data
+ * actually looks like rather than picked round: a third of a typical actor's
+ * rows hold just one or two people (median across the pool), and 84% of
+ * actors' rows widen monotonically from the top, so the sparse end is
+ * reliably the top of the chart - the part that arrives above the fold and
+ * the part whose names someone would recognize. */
+const NAMED_ROW_MAX = 8;
 
-/** Bigger buckets get smaller avatars, so a 227-person "1 shared film" column
- * stays navigable instead of running thousands of px tall - nobody's dropped,
- * everyone's still a real clickable node, they're just drawn smaller. A
- * singleton bucket (someone's single most-frequent collaborator) gets the
- * largest size instead, since being the only entry in that bucket is itself
- * the point. */
-function sizeForBucket(count: number, cfg: LayoutConfig): number {
-  const areaPerNode = (cfg.targetColumnHeight * cfg.columnWidth * PACKING_EFFICIENCY) / count;
-  const diameter = 2 * Math.sqrt(areaPerNode / Math.PI);
-  return Math.max(cfg.minNodeSize, Math.min(cfg.maxNodeSize, diameter));
+/** Width a named chip reserves: avatar, gap, and room for a name. Wraps to
+ * another line when the viewport can't fit them side by side, which on a
+ * 390px phone means one per line - still the right call there, since a
+ * 2-person row is then 2 lines and the names are the whole point of it.
+ *
+ * 240 rather than a tighter 210: at 210 the text column is 136px, which fits
+ * about 17 characters at the label's own size, and real names overrun that
+ * routinely enough to matter - "Christopher McDonald" (20) painted straight
+ * through Carl Weathers' face in the row below it. 240 leaves 166px, about
+ * 21 characters, which covers the overwhelming majority; NAME_MAX_CHARS
+ * below is the backstop for the rest. */
+const CHIP_WIDTH = 240;
+const CHIP_HEIGHT = 64;
+/** Clear space kept at the right of each chip's hit area - see hitWidth. */
+const CHIP_GAP = 24;
+
+/** Hard cap on a rendered name, with an ellipsis past it. SVG text has no
+ * equivalent of text-overflow, and measuring every name with
+ * getComputedTextLength would force a synchronous layout per node during
+ * packing, so this is a character budget derived from CHIP_WIDTH's text
+ * column at the label's font size rather than a real measurement. Erring
+ * long: a name that slightly overruns its chip is far less bad than one
+ * truncated when it didn't need to be. */
+const NAME_MAX_CHARS = 22;
+
+function fitName(name: string): string {
+  return name.length <= NAME_MAX_CHARS ? name : `${name.slice(0, NAME_MAX_CHARS - 1).trimEnd()}…`;
 }
+
+/** Beeswarms don't hex-pack perfectly; this is the share of a row's box the
+ * faces really occupy once collision has settled them. Used to turn a head
+ * count into a block height. */
+const PACKING_EFFICIENCY = 0.74;
 
 interface SimNode extends SimulationNodeDatum {
   id: number;
   r: number;
+  /** Grid slot this node was seeded at - also the anchor the positioning
+   * forces pull it back toward, which is what keeps the blob inside its box
+   * instead of drifting out of the row. */
+  seedX: number;
+  seedY: number;
 }
 
-interface PackedColumn {
-  sharedFilms: number;
-  actors: PositionedActor[];
-  top: number;
-  /** How far this column's swarm actually reached from its center x=0, the
-   * larger of its left and right extents. 0 for an empty column - the
-   * caller floors this to a minimum before using it for spacing. */
-  halfWidth: number;
+/**
+ * Picks an avatar diameter for a row of `count` people that keeps the row's
+ * own block a sensible height for the width it has.
+ *
+ * The column version of this sized avatars against a fixed target column
+ * height, which is what used to drive Adam Sandler's chart to the MIN_SCALE
+ * floor: once a big bucket's computed diameter hit minNodeSize, the column
+ * stopped responding to that target at all and simply overflowed. Rows have
+ * no such target - a row is as tall as it needs to be and the page scrolls -
+ * so this only has to keep the biggest rows from becoming absurd, which
+ * means a gentler curve and no uniform down-scaling of the whole chart.
+ */
+function sizeForRow(count: number, cfg: RowLayoutConfig): number {
+  if (count <= NAMED_ROW_MAX) return cfg.maxNodeSize;
+  // Aim each blob at roughly a 4:1 width:height block, so even Samuel L.
+  // Jackson's 491-person row stays a readable band rather than a full page
+  // of faces - then let the min/max clamp have the final say.
+  const targetHeight = cfg.contentWidth / 4;
+  const areaPerNode = (cfg.contentWidth * targetHeight * PACKING_EFFICIENCY) / count;
+  const diameter = 2 * Math.sqrt(areaPerNode / Math.PI);
+  return Math.max(cfg.minNodeSize, Math.min(cfg.maxNodeSize, diameter));
 }
 
-/** Packs one bucket into its own vertical swarm via d3-force, centered on
- * local x=0: mutual repulsion (collision) does the actual "beeswarm"
- * spreading, a weak pull back toward the center line keeps it a cohesive
- * cluster instead of drifting into a diffuse mess, and a strong pull toward
- * x=0 keeps it centered on its axis label. Each bucket gets its own isolated
- * simulation rather than sharing one global one across every column - see
- * layoutBeeswarm for why that used to let a wide swarm overlap its
- * neighbor. */
-function packColumn(bucket: Bucket, size: number): PackedColumn {
-  const nodes: SimNode[] = bucket.entries.map(({ actor }, j) => ({
-    id: actor.id,
-    r: size / 2,
-    x: (j % 2 === 0 ? 1 : -1) * (j * 2), // slight seeded jitter so the sim doesn't start perfectly stacked
-    y: (j % 7) * 6,
-  }));
+/**
+ * Packs one row's people into a horizontal blob of the given width via
+ * d3-force. Seeds them on a jittered hex-ish grid covering the box, then
+ * lets collision push them apart while weak positional forces pull each node
+ * back toward its own seed. That pairing is what keeps the result organic -
+ * nobody lands on a visible lattice - while still bounded by the row's box.
+ * A single centering force can't do the job here the way it did for columns:
+ * the box is wide and short, so one pull toward its center would pile
+ * everyone into the middle and leave both ends bare.
+ */
+function packRow(bucket: Bucket, size: number, width: number): { actors: PositionedActor[]; height: number } {
+  const count = bucket.entries.length;
+  const r = size / 2;
+  // Slightly tighter than the nominal diameter - beeswarm packing beats a
+  // square lattice, and collision below settles the difference.
+  const pitch = size * 0.94;
+  const perLine = Math.max(1, Math.floor(width / pitch));
+  const lines = Math.ceil(count / perLine);
+  // Rows of circles nest, so each line after the first costs less than a
+  // full diameter.
+  const linePitch = size * 0.9;
+
+  const nodes: SimNode[] = bucket.entries.map(({ actor }, i) => {
+    const line = Math.floor(i / perLine);
+    const col = i % perLine;
+    // Half-pitch offset on alternate lines makes the seed grid hex-like
+    // before collision even runs; the small deterministic jitter keeps the
+    // settled result from reading as a grid.
+    const seedX = r + col * pitch + (line % 2 ? pitch / 2 : 0) + ((i * 37) % 7) - 3;
+    const seedY = r + line * linePitch + ((i * 53) % 5) - 2;
+    return { id: actor.id, r, seedX, seedY, x: seedX, y: seedY };
+  });
 
   const simulation = forceSimulation(nodes)
-    .force("x", forceX<SimNode>(0).strength(0.85))
-    .force("y", forceY<SimNode>(0).strength(0.06))
+    .force("x", forceX<SimNode>((d) => d.seedX).strength(0.35))
+    .force("y", forceY<SimNode>((d) => d.seedY).strength(0.45))
     .force("collide", forceCollide<SimNode>((d) => d.r + 1))
     .stop();
 
-  for (let i = 0; i < 220; i++) simulation.tick();
+  // Clamp inside the tick loop, not after it. Clamping once at the end looks
+  // equivalent and isn't: forceCollide guarantees every pair of centers stays
+  // at least 2r+2 apart, which is the whole reason a node can own its own
+  // center for hit-testing (see resolveNearestNode in App.tsx and
+  // ActorNode.tsx's hit circle). A post-hoc clamp breaks that guarantee
+  // silently - two nodes pushed to the same edge x end up overlapping, and
+  // whichever paints second covers the other's center. Measured at 71/80 and
+  // 55/69 in-view nodes owning their own center, against the 95% floor the
+  // suite enforces. Clamping each tick instead lets collision see the
+  // clamped positions and resolve them in y on the following pass.
+  for (let i = 0; i < 90; i++) {
+    simulation.tick();
+    for (const n of nodes) {
+      n.x = Math.min(Math.max(n.x!, r), width - r);
+      n.y = Math.max(n.y!, r);
+    }
+  }
 
-  // Baseline-align: shift so this column's lowest point sits on y=0, growing upward (negative y).
-  const maxY = Math.max(...nodes.map((n) => n.y! + n.r));
   const moviesById = new Map(bucket.entries.map((e) => [e.actor.id, e.sharedMovies]));
   const actors: PositionedActor[] = nodes.map((n) => ({
     id: n.id,
     x: n.x!,
-    y: n.y! - maxY,
+    y: n.y!,
     size,
     sharedMovies: moviesById.get(n.id) ?? [],
   }));
-  const top = Math.min(...actors.map((p) => p.y - p.size / 2));
-  const halfWidth = Math.max(...nodes.map((n) => Math.abs(n.x!) + n.r));
-  return { sharedFilms: bucket.sharedFilms, actors, top, halfWidth };
+
+  const nominalHeight = (lines - 1) * linePitch + size;
+  return { actors, height: Math.max(nominalHeight, ...actors.map((a) => a.y + a.size / 2)) };
+}
+
+/** Lays a sparse row out as labelled chips - face then name - wrapping when
+ * the width runs out. No simulation: with eight or fewer people there is
+ * nothing to pack around, and a predictable left-to-right reading order is
+ * worth more here than organic placement. */
+function packNamedRow(
+  bucket: Bucket,
+  size: number,
+  width: number,
+  nameOf: (id: number) => string,
+): { actors: PositionedActor[]; height: number } {
+  const perLine = Math.max(1, Math.floor(width / CHIP_WIDTH));
+  const actors: PositionedActor[] = bucket.entries.map(({ actor, sharedMovies }, i) => ({
+    id: actor.id,
+    x: (i % perLine) * CHIP_WIDTH + size / 2,
+    y: Math.floor(i / perLine) * CHIP_HEIGHT + size / 2,
+    size,
+    sharedMovies,
+    name: fitName(nameOf(actor.id)),
+    // The cell minus a gap, so the next chip's own face is never inside this
+    // one's hit area. Chips are CHIP_WIDTH apart and the face is centred at
+    // size/2 from the cell's left edge, so leaving CHIP_GAP clear at the
+    // right keeps the two comfortably separate.
+    hitWidth: CHIP_WIDTH - CHIP_GAP,
+  }));
+  const lines = Math.ceil(bucket.entries.length / perLine);
+  return { actors, height: (lines - 1) * CHIP_HEIGHT + size };
 }
 
 /**
- * Packs every bucket into its own vertical swarm via d3-force (see
- * packColumn) and lays the columns out left to right, spacing each pair by
- * however much room their actual swarms need rather than a fixed pitch - a
- * fixed pitch is what used to let a wide swarm (many large avatars, since
- * sizeForBucket grows avatars for smaller buckets) overlap and hide part of
- * its neighbor, since nothing kept two columns' independently-centered
- * swarms from spreading into the same x range.
+ * Stacks every bucket into its own full-width row, closest collaborators at
+ * the top, with a break row standing in for each run of shared-film counts
+ * nobody has.
  *
- * The axis is ORDINAL and DESCENDING: only counts this actor actually has
- * get a column, highest first (bucketCostars already sorts that way; the
- * re-sort below is so this function doesn't silently depend on it). A run of
- * counts nobody has collapses into a single narrow break marker rather than
- * one blank column per missing number.
+ * This replaced a horizontal arrangement - one vertical beeswarm column per
+ * count, laid out left to right - and the reason is scroll direction. Even
+ * after the ordinal axis and bare-number labels had cut it down, that
+ * version still put 155px of Adam Sandler's chart past the right edge on a
+ * 1440px desktop and 945px past it on a 390px phone, behind a horizontal
+ * scrollbar most people never touch, and it needed a second rotated layout
+ * for mobile on top of that. Rows scroll vertically, which is free on every
+ * device: nothing is hidden at any viewport, and there is one layout instead
+ * of two. Modelled against the real pool before the rewrite, the tallest
+ * chart in the sample is Samuel L. Jackson's at ~1250px on desktop and
+ * ~2700px on a phone - three screenfuls of ordinary scrolling.
  *
- * What that replaced: a linear 1..max axis with a blank column for every
- * unrepresented count. It was defensible - the gaps are real information -
- * but it priced them terribly. Adam Sandler has a costar at 26 films, so he
- * got 26 columns for 13 populated ones, 3,351 viewBox units wide, which
- * forced the whole chart down to the 0.65 MIN_SCALE floor and rendered his
- * biggest column's faces at 18 CSS px. Anupam Kher was worse: 18 blank
- * columns between his 1-4 films and his 6/13/14/18/20-film outliers.
- * Collapsing each *run* to one marker keeps the "there's a gap here" signal
- * and pays for it once instead of once per integer - and the numbers either
- * side of the marker still say exactly how wide the gap is.
+ * Two things fall out of the rotation that were unreachable before. The
+ * sparse rows have horizontal room to spare, so the people worth recognizing
+ * get their names rendered beside their faces (packNamedRow) instead of
+ * needing a hover. And the row labels can be words again - "26 films
+ * together" in a left gutter costs no vertical space at all, whereas the
+ * column version had to cut that same label to a bare number because its
+ * 108px width forced a 184px minimum footprint on every column.
  *
- * The other half of the width saving is the labels: they're bare numbers at
- * every viewport now (the units are spelled out once above the chart), so a
- * populated column's floor is cfg.labelHalfWidth (~20) instead of the 92 it
- * took to fit "12 films together". With that gone, the old `Math.max(
- * cfg.columnWidth, gap)` pitch floor goes too - it existed so two populated
- * swarms never crowded each other, but the halfWidth + COLUMN_GAP + halfWidth
- * spacing below already guarantees that geometrically.
+ * Buckets arrive descending from bucketCostars; re-sorted here anyway so the
+ * break-run detection can't be silently wrong under another ordering.
  */
-export function layoutBeeswarm(buckets: Bucket[], cfg: LayoutConfig): Column[] {
-  // Descending, so the closest collaborators land on the left. Re-sorted
-  // here rather than trusting the caller: bucketCostars guarantees this
-  // order today, but the break-run detection below is silently wrong for
-  // any other ordering, and that would show up as a visual oddity rather
-  // than an error.
+export function layoutRows(
+  buckets: Bucket[],
+  cfg: RowLayoutConfig,
+  nameOf: (id: number) => string,
+): { rows: Row[]; height: number } {
   const ordered = [...buckets].sort((a, b) => b.sharedFilms - a.sharedFilms);
+  const rows: Row[] = [];
+  let y = 0;
 
-  // Populated columns interleaved with one break marker per run of missing
-  // counts. A break carries the run it stands for as [highest, lowest].
-  const slots: (PackedColumn | { missing: [number, number] })[] = [];
   ordered.forEach((bucket, i) => {
-    slots.push(packColumn(bucket, sizeForBucket(bucket.entries.length, cfg)));
+    const named = bucket.entries.length <= NAMED_ROW_MAX;
+    const size = sizeForRow(bucket.entries.length, cfg);
+    const packed = named
+      ? packNamedRow(bucket, size, cfg.contentWidth, nameOf)
+      : packRow(bucket, size, cfg.contentWidth);
+    rows.push({
+      sharedFilms: bucket.sharedFilms,
+      y,
+      height: packed.height,
+      actors: packed.actors,
+      missing: null,
+      named,
+    });
+    y += packed.height + cfg.rowGap;
+
     const next = ordered[i + 1];
     if (next && bucket.sharedFilms - next.sharedFilms > 1) {
-      slots.push({ missing: [bucket.sharedFilms - 1, next.sharedFilms + 1] });
+      rows.push({
+        sharedFilms: bucket.sharedFilms - 1,
+        y,
+        height: cfg.breakHeight,
+        actors: [],
+        missing: [bucket.sharedFilms - 1, next.sharedFilms + 1],
+        named: false,
+      });
+      y += cfg.breakHeight + cfg.rowGap;
     }
   });
 
-  const halfWidthFor = (slot: (typeof slots)[number]) =>
-    "missing" in slot ? BREAK_HALF_WIDTH : Math.max(cfg.labelHalfWidth, slot.halfWidth);
-
-  let x = 0;
-  return slots.map((slot, i) => {
-    const halfWidth = halfWidthFor(slot);
-    if (i > 0) x += halfWidthFor(slots[i - 1]) + COLUMN_GAP + halfWidth;
-    if ("missing" in slot) {
-      // sharedFilms doubles as this column's React key upstream; the top of
-      // the collapsed run can never collide with a populated column's own
-      // count, since by construction nobody has it.
-      return { sharedFilms: slot.missing[0], x, actors: [], top: 0, halfWidth, missing: slot.missing };
-    }
-    return { sharedFilms: slot.sharedFilms, x, actors: slot.actors, top: slot.top, halfWidth, missing: null };
-  });
+  return { rows, height: Math.max(0, y - cfg.rowGap) };
 }

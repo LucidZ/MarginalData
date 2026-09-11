@@ -56,22 +56,39 @@ async function waitForFullPool(page: Page) {
   }
 }
 
-/** Scrolls the chart to its densest end, which since the axis flipped to
- * descending (graph.ts) is the far right: the 1-film column, hundreds of
- * costars packed at minNodeSize. The click-accuracy tests below need a
- * genuinely dense sample on screen - that used to be true at rest, because
- * ascending order put that same column leftmost and it was the first thing
- * in the viewport. Under descending the chart opens on one- and two-person
- * columns instead, so at 390px only a handful of nodes are in view and the
- * tests were sampling almost nothing. Scrolling here keeps them asserting
- * what they were written to assert (hit-testing inside tight packing)
- * rather than quietly asserting it against five large avatars. */
-async function scrollToDensestColumn(page: Page) {
-  await page.evaluate(() => {
-    const el = document.querySelector(".tus-graph-scroll");
-    if (el) el.scrollLeft = el.scrollWidth;
-  });
-  await page.waitForTimeout(200);
+/** Scrolls to the chart's densest end. The layout stacks rows with the
+ * closest collaborators at the top, so density is at the *bottom* - the
+ * 1-film row, hundreds of costars packed at minNodeSize - and it's the page
+ * that scrolls, not a container. The click-accuracy tests below need a
+ * genuinely dense sample on screen; at rest the viewport holds only the
+ * sparse named rows, which are a handful of large avatars and prove nothing
+ * about packing. */
+async function scrollToDensestRows(page: Page) {
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(250);
+}
+
+/** Every node's own avatar center in viewport coordinates, taken from its hit
+ * circle rather than the <g>'s bounding box. Those used to be the same point
+ * and no longer are: on the sparse rows a node also contains its name label,
+ * which extends well to the right of the face and drags the bbox center out
+ * into empty space beside it. Measuring the bbox there reported nine of
+ * Keanu Reeves' eighty in-view nodes as "not owning their own center" when
+ * every one of them was in fact clickable - the point being probed simply
+ * wasn't on the avatar. The hit circle is the first <circle> in the node and
+ * is the only hit-testable element in it (see ActorNode.tsx). */
+async function nodeCenters(page: Page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll(".tus-node")].map((n) => {
+      const circle = n.querySelector("circle")!.getBoundingClientRect();
+      return {
+        label: n.getAttribute("aria-label")!.replace(" - open details", ""),
+        cx: circle.x + circle.width / 2,
+        cy: circle.y + circle.height / 2,
+        r: circle.width / 2,
+      };
+    }),
+  );
 }
 
 // Every node now owns its own hit-testing center (App.tsx's nearest-center
@@ -114,14 +131,16 @@ test.describe("The Usual Suspects", () => {
       const page = await (await browser.newContext({ viewport })).newPage();
       await page.goto("/2026/UsualSuspects");
       await selectActor(page, name);
-      await scrollToDensestColumn(page);
+      await scrollToDensestRows(page);
 
       const result = await page.evaluate((vp) => {
         const nodes = [...document.querySelectorAll(".tus-node")];
         let inView = 0;
         let owned = 0;
         for (const n of nodes) {
-          const r = n.getBoundingClientRect();
+          // The hit circle, not the <g> - see nodeCenters above for why
+          // those differ now and why the bbox is the wrong point to probe.
+          const r = n.querySelector("circle")!.getBoundingClientRect();
           const cx = r.x + r.width / 2;
           const cy = r.y + r.height / 2;
           if (cx < 0 || cy < 0 || cx > vp.width || cy > vp.height) continue;
@@ -153,26 +172,14 @@ test.describe("The Usual Suspects", () => {
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, KEANU_REEVES); // densest column in the pool - plenty of narrow gaps to sample
     await waitForFullPool(page);
-    await scrollToDensestColumn(page);
+    await scrollToDensestRows(page);
 
-    const { nodes, minMatchRadiusPx } = await page.evaluate(() => {
-      const svg = document.querySelector(".tus-graph") as SVGSVGElement;
-      const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
-      // Mirrors App.tsx's MIN_MATCH_RADIUS (viewBox units) - converted to
-      // CSS px via the svg's own uniform scale, same as the app does.
-      const MIN_MATCH_RADIUS_VIEWBOX_UNITS = 24;
-      const nodeEls = [...document.querySelectorAll(".tus-node")];
-      const nodeList = nodeEls.map((n) => {
-        const r = n.getBoundingClientRect();
-        return {
-          label: n.getAttribute("aria-label")!.replace(" - open details", ""),
-          cx: r.x + r.width / 2,
-          cy: r.y + r.height / 2,
-          r: r.width / 2,
-        };
-      });
-      return { nodes: nodeList, minMatchRadiusPx: MIN_MATCH_RADIUS_VIEWBOX_UNITS * scale };
-    });
+    const nodes = await nodeCenters(page);
+    // Mirrors App.tsx's MIN_MATCH_RADIUS. The chart renders 1:1 with its
+    // viewBox now - the vertical arrangement has no uniform scale to fit
+    // itself into a height budget - so viewBox units and CSS px are the
+    // same thing and there's no conversion left to do.
+    const minMatchRadiusPx = 24;
 
     // Sample points just outside each node's own hit circle in each of the
     // four cardinal directions - genuine "gap" clicks, filtered to ones that
@@ -236,36 +243,51 @@ test.describe("The Usual Suspects", () => {
       await page.waitForTimeout(150);
       await expect(page.locator(".tus-card-name"), `click at (${x}, ${y})`).toHaveText(nearest.n.label);
       checked++;
+      // Close between samples. The card is anchored near whatever was just
+      // clicked, and with the dense rows packed edge to edge the next
+      // candidate point regularly lands underneath it - which dismisses the
+      // card via the outside-click handler instead of opening a new one, so
+      // the following assertion finds no card at all.
+      await page.locator(".tus-card-close").click();
+      await page.waitForTimeout(100);
     }
     expect(checked, "none of the sampled gap points fell within the overlay's catch radius").toBeGreaterThan(0);
     await page.close();
   });
 
-  test("clicking in empty space past the last column closes an open card without opening a new one", async ({
+  // "Past the last column" used to mean the chart's right-hand side margin.
+  // Stacked rows have no such margin - the blob fills the width - but they
+  // have something better: the sparse top rows are a couple of faces on an
+  // otherwise empty full-width line, so the empty space to the right of the
+  // first row is the clearest "obviously nothing here" target on the page,
+  // and the furthest any point gets from a node center.
+  test("clicking in empty space beside a sparse row closes an open card without opening a new one", async ({
     browser,
   }) => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, MICHAEL_CAINE);
-    // Must settle before the boundingBox() below: this test measures the
-    // svg's right edge and then clicks it, and the full-pool swap moves that
-    // edge. Without this the test is flaky rather than wrong - it passed and
-    // failed on consecutive runs of the same code.
+    // Must settle before the measurements below: the full-pool swap
+    // re-buckets the chart and moves everything. Without this the test is
+    // flaky rather than wrong - it passed and failed on consecutive runs of
+    // identical code.
     await waitForFullPool(page);
 
     await page.locator(".tus-node").first().click();
     await expect(page.locator(".tus-card")).toHaveCount(1);
 
-    const svgBox = await page.locator(".tus-graph").boundingBox();
-    // 20px in from the svg's own right edge - inside the chart's reserved
-    // sideMargin buffer, which App.tsx now adds *beyond* the end column's own
-    // halfWidth (64 viewBox units, >=41px even at the lowest allowed render
-    // scale), so this lands well past every column's real content while still
-    // being a click *on* the chart's nearest-center overlay, not off it. The
-    // buffer used to be the larger of sideMargin and the end column's
-    // halfWidth, which collapsed to zero margin once the axis flipped to
-    // descending and put the 200-plus-person 1-film crowd at that end.
-    await page.mouse.click(svgBox!.x + svgBox!.width - 20, svgBox!.y + svgBox!.height / 2);
+    const svgBox = (await page.locator(".tus-graph").boundingBox())!;
+    const nodes = await nodeCenters(page);
+    // 24px in from the chart's right edge, on the vertical line of the top
+    // row. Asserted rather than assumed: if a future layout ever packs that
+    // row full width, this stops being an empty-space click and the test
+    // should fail loudly instead of quietly testing nothing.
+    const x = svgBox.x + svgBox.width - 24;
+    const y = nodes[0].cy;
+    const nearest = Math.min(...nodes.map((n) => Math.hypot(n.cx - x, n.cy - y)));
+    expect(nearest, "expected the click point to be genuine empty space").toBeGreaterThan(48);
+
+    await page.mouse.click(x, y);
     await page.waitForTimeout(200);
 
     await expect(page.locator(".tus-card")).toHaveCount(0);
@@ -284,7 +306,13 @@ test.describe("The Usual Suspects", () => {
 
     await expect(page.locator(".tus-hover-label-text")).toHaveCount(0);
 
-    const node = page.locator(".tus-node").first();
+    // Deliberately NOT .tus-node first(): the sparse top rows render each
+    // face with its name already beside it, and App.tsx suppresses the hover
+    // readout there rather than painting the same name twice. The readout
+    // exists for the dense rows, where there's no room for a name - so the
+    // test has to hover one of those.
+    const node = page.locator(".tus-node").filter({ hasNot: page.locator(".tus-node-label") }).first();
+    await node.scrollIntoViewIfNeeded();
     const box = await node.boundingBox();
     const label = (await node.getAttribute("aria-label"))!.replace(" - open details", "");
     await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -311,7 +339,9 @@ test.describe("The Usual Suspects", () => {
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, MICHAEL_CAINE);
 
-    const node = page.locator(".tus-node").first();
+    // A dense-row node, for the same reason as the test above.
+    const node = page.locator(".tus-node").filter({ hasNot: page.locator(".tus-node-label") }).first();
+    await node.scrollIntoViewIfNeeded();
     const box = await node.boundingBox();
     await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
     await expect(page.locator(".tus-hover-label-text")).toHaveCount(1);
@@ -356,26 +386,43 @@ test.describe("The Usual Suspects", () => {
     await page.close();
   });
 
-  test("axis header is visible above the fold on load, desktop and mobile", async ({ browser }) => {
+  // The chart's own labels moved from a shared axis header row into a
+  // per-row left gutter when the layout went vertical, so this checks the
+  // first row's label rather than an axis header that no longer exists.
+  test("the closest-collaborator row is above the fold on load, desktop and mobile", async ({ browser }) => {
     for (const viewport of [DESKTOP, MOBILE]) {
       const page = await (await browser.newContext({ viewport })).newPage();
       await page.goto("/2026/UsualSuspects");
       await page.waitForSelector(".tus-node");
-      const axisLabel = page.locator(".tus-axis-label").first();
-      await expect(axisLabel).toBeInViewport();
-      await page.screenshot({ path: `tests/screenshots/usual-suspects-axis-${viewport.width}.png` });
+      // Both the row's label and its first face: the whole point of leading
+      // with the closest collaborators is that they arrive without scrolling,
+      // and a visible label over an off-screen face would not be that.
+      await expect(page.locator(".tus-row-label").first()).toBeInViewport();
+      await expect(page.locator(".tus-node").first()).toBeInViewport();
+      await page.screenshot({ path: `tests/screenshots/usual-suspects-top-${viewport.width}.png` });
       await page.close();
     }
   });
 
-  test("chart bottom stays within the viewport on desktop", async ({ browser }) => {
-    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
-    await page.goto("/2026/UsualSuspects");
-    await selectActor(page, MICHAEL_CAINE);
-    const box = await page.locator(".tus-graph").boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.y + box!.height).toBeLessThanOrEqual(DESKTOP.height);
-    await page.close();
+  // Replaces "chart bottom stays within the viewport on desktop", which was
+  // the right assertion for a horizontal chart squeezed into the space below
+  // the header and is the wrong one now: rows stack downward and the page
+  // scrolls, by design. What still has to hold is that the *payoff* is on
+  // screen at rest (covered above) and that the chart never demands more
+  // width than it has - so this pins the width instead.
+  test("the chart never exceeds its own frame's width", async ({ browser }) => {
+    for (const viewport of [DESKTOP, MOBILE]) {
+      const page = await (await browser.newContext({ viewport })).newPage();
+      await page.goto("/2026/UsualSuspects");
+      await selectActor(page, MICHAEL_CAINE);
+      const fits = await page.evaluate(() => {
+        const svg = document.querySelector(".tus-graph")!.getBoundingClientRect();
+        const frame = document.querySelector(".tus-graph-frame")!.getBoundingClientRect();
+        return { svg: Math.round(svg.width), frame: Math.round(frame.width) };
+      });
+      expect(fits.svg, `chart overflowed its frame at ${viewport.width}px`).toBeLessThanOrEqual(fits.frame);
+      await page.close();
+    }
   });
 
   test("page never scrolls horizontally, across breakpoints", async ({ browser }) => {
@@ -390,14 +437,26 @@ test.describe("The Usual Suspects", () => {
     }
   });
 
-  test("empty columns collapse - Anupam Kher's chart stays narrow despite 11 empty gaps", async ({ browser }) => {
+  // Anupam Kher is the pool's gap champion - his costars jump from 8 shared
+  // films to 15, 21 and 25 - and under the old linear 1..max axis that cost
+  // him a blank column per missing integer and a 4094px-wide chart. Rows
+  // make width a non-issue, so what this now guards is the collapse itself:
+  // each *run* of missing counts must cost one break marker, not one row per
+  // number, or his chart grows a screenful of empty rows instead.
+  test("gap runs collapse to one break marker each - Anupam Kher's chart stays short", async ({ browser }) => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, ANUPAM_KHER);
-    const scrollWidth = await page.evaluate(() => document.querySelector(".tus-graph-scroll")!.scrollWidth);
-    // Pre-collapse this was 4094px; verifying it stays well under that rather
-    // than pinning an exact number, since the pool can regenerate.
-    expect(scrollWidth).toBeLessThan(2500);
+    await waitForFullPool(page);
+    const shape = await page.evaluate(() => ({
+      rows: document.querySelectorAll(".tus-row-label").length,
+      breaks: document.querySelectorAll(".tus-axis-break").length,
+      height: Math.round(document.querySelector(".tus-graph")!.getBoundingClientRect().height),
+    }));
+    // One marker per run, and never more markers than populated rows - the
+    // failure mode being guarded against is a marker per missing integer.
+    expect(shape.breaks).toBeLessThanOrEqual(shape.rows);
+    expect(shape.height, "chart grew a screenful of empty rows").toBeLessThan(2000);
     await page.close();
   });
 

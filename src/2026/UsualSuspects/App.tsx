@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ActorNode from "./ActorNode";
-import { COMPACT_LAYOUT, DESKTOP_LAYOUT, layoutBeeswarm, type Column } from "./beeswarm";
+import { COMPACT_ROWS, DESKTOP_ROWS, layoutRows, type Row } from "./beeswarm";
 // A small pre-baked slice of the full pool - a handful of well-connected
 // actors' complete real ego-networks (same GraphData shape as the fetched
 // file). Bundled into this route's own JS chunk, so the default view can
@@ -19,41 +19,16 @@ import "./App.css";
 
 const defaultActors = defaultActorsRaw as unknown as GraphData & { defaultActorIds: number[] };
 
-// Reserved strip at the very top of the frame for the axis label row - it's
-// the same y for every column (see axisLabelY below) so the row reads as a
-// header rather than a per-column caption.
-const HEADER_HEIGHT = 22;
-// How far each column's count label sits above that column's own swarm top -
-// stays ragged (unlike the header) so it reads as attached to its pile.
-const COUNT_LABEL_GAP = 20;
-// Clear air between the header row and the tallest column's count label.
-const HEADER_GAP = 24;
-const BOTTOM_PAD = 12;
+// Width reserved at the left of the chart for each row's own label ("26 films
+// together"). A left gutter costs nothing vertically, which is the whole
+// reason the labels could go back to being words: the previous horizontal
+// arrangement had to cut the same text to a bare number because its 108px
+// width forced a 184px minimum footprint onto every column.
+const LABEL_GUTTER = 132;
+const COMPACT_LABEL_GUTTER = 92;
+// Air below the last row so the chart doesn't end flush against the footer.
+const BOTTOM_PAD = 24;
 const COMPACT_BREAKPOINT = 640;
-// Floor under the height budget 1b derives from the viewport - below this a
-// column has nowhere left to shrink avatars into.
-const MIN_CHART_HEIGHT = 360;
-// Air left below the viewport-derived chart height so the frame doesn't
-// press flush against the bottom edge of the screen.
-const VIEWPORT_GUTTER = 24;
-// Floor on the uniform SVG scale (see `scale` below) - past this text stops
-// being legible, so a chart that would need more shrinking just scrolls
-// vertically instead. 0.65 rather than a rounder 0.7: once a bucket's count
-// pushes sizeForBucket's computed diameter below minNodeSize (beeswarm.ts),
-// avatar size clamps to that floor and stops shrinking with the target, so
-// the pack's real height stops responding to how much we compress the
-// layout - only the very tallest actors in the pool land here.
-//
-// Re-measured 2026-09-09 after the pool grew to 2,839 actors (the
-// --min-votes-sum5 fame fix), which pushed the biggest singleton buckets
-// from ~227 to 278 (Samuel L. Jackson) and 268 (Willem Dafoe). The floor no
-// longer guarantees a fit at 1440x900: Dafoe pins 0.65 but needs 0.626, and
-// De Niro pins it needing 0.643, so both overflow the bottom by 5-19px and
-// fall back to the vertical scroll this floor exists to allow. Jackson,
-// oddly, is no longer one of them (he settles at 0.692, inside the floor).
-// Dropping the floor to ~0.62 would restore the fit at the cost of the
-// legibility this constant is protecting - deliberately not done here.
-const MIN_SCALE = 0.65;
 // Floor on how close a click/tap needs to land to a node's center to still
 // resolve to it via the nearest-center overlay below, in viewBox units - a
 // generous minimum for tiny avatars, growing with the avatar itself for
@@ -142,37 +117,48 @@ function headlineFor(buckets: Bucket[], totalCostars: number): string | null {
   return `and ${best.actor.name} made ${top.sharedFilms} films together.`;
 }
 
-/** Every column label is a bare number at every viewport now - the units are
- * spelled out once in the axis legend above the chart instead. Repeating
- * "films together" under each column measured 93-111px wide, which forced a
- * 184px minimum footprint per column whether it held 207 people or one; that
- * was roughly half of why Adam Sandler's chart was 3,351 units wide. */
-function filmLabel(n: number): string {
-  return `${n}`;
+/** Row labels are words again. Under the previous horizontal arrangement
+ * this had to be a bare number: "12 films together" measured 108px, which
+ * forced a 184px minimum footprint onto every column whether it held 207
+ * people or one. Stacking rows puts the label in a left gutter instead,
+ * where its width costs no vertical space at all, so the only constraint
+ * left is the gutter itself - hence the shorter form on compact. */
+function filmLabel(n: number, compact: boolean): string {
+  if (compact) return `${n} film${n === 1 ? "" : "s"}`;
+  return `${n} film${n === 1 ? "" : "s"} together`;
 }
 
 /** One entry per rendered node, in the order roving-tabindex keyboard nav
- * should walk them: column-major (left to right), then top to bottom within
- * a column - each column's entries land contiguously, which moveWithinColumn
- * relies on to know it hasn't spilled into the next column. Also doubles as
- * the index the nearest-center click overlay searches (see
- * resolveNearestNode below) - x/size are absolute viewBox coordinates for
- * that, not present on PositionedActor itself (which is column-local). */
+ * should walk them: top row first, then left to right within a row - each
+ * row's entries land contiguously, which moveWithinRow relies on to know it
+ * hasn't spilled into the next row. Also doubles as the index the
+ * nearest-center click overlay searches (see resolveNearestNode below).
+ * x/y are absolute chart coordinates for that, not the row-local ones
+ * PositionedActor carries. */
 interface FlatNode {
   id: number;
-  columnIndex: number;
+  rowIndex: number;
   x: number;
   y: number;
   size: number;
   sharedMovies: Movie[];
+  name?: string;
 }
 
-function buildFlatNodes(columns: Column[]): FlatNode[] {
+function buildFlatNodes(rows: Row[], gutter: number): FlatNode[] {
   const result: FlatNode[] = [];
-  columns.forEach((col, columnIndex) => {
-    const sorted = [...col.actors].sort((a, b) => a.y - b.y);
+  rows.forEach((row, rowIndex) => {
+    const sorted = [...row.actors].sort((a, b) => a.x - b.x);
     for (const p of sorted) {
-      result.push({ id: p.id, columnIndex, x: col.x + p.x, y: p.y, size: p.size, sharedMovies: p.sharedMovies });
+      result.push({
+        id: p.id,
+        rowIndex,
+        x: gutter + p.x,
+        y: row.y + p.y,
+        size: p.size,
+        sharedMovies: p.sharedMovies,
+        name: p.name,
+      });
     }
   });
   return result;
@@ -182,10 +168,9 @@ function buildFlatNodes(columns: Column[]): FlatNode[] {
  * coordinates via its screen CTM - shared by the click overlay and the
  * hover readout below, both of which need to know where the pointer
  * actually is in the same coordinate space `flatNodes` positions live in.
- * Deliberately not hand-rolled off getBoundingClientRect: the chart carries
- * a uniform render-time `scale` (see App.tsx's own `scale` further down),
- * and the CTM already accounts for that plus any scroll offset within
- * `.tus-graph-scroll`. */
+ * Deliberately not hand-rolled off getBoundingClientRect: the CTM already
+ * accounts for the page's own scroll offset, and for any difference between
+ * the svg's rendered width and its viewBox width. */
 function clientToViewBox(svg: SVGSVGElement, clientX: number, clientY: number): DOMPoint | null {
   const ctm = svg.getScreenCTM();
   if (!ctm) return null;
@@ -203,9 +188,9 @@ function clientToViewBox(svg: SVGSVGElement, clientX: number, clientY: number): 
  * instead (see ActorNode.tsx); this searches every node's real position and
  * picks the closest one, so a click anywhere in the gaps between avatars
  * resolves to whichever face is actually nearest rather than whichever
- * happened to paint last. Linear scan is deliberate: even Samuel L.
- * Jackson's chart (the pool's largest, 351 nodes) is cheap enough per click
- * that a spatial index would be solving a problem that doesn't exist here. */
+ * happened to paint last. Linear scan is deliberate: even the pool's
+ * largest chart is cheap enough per click that a spatial index would be
+ * solving a problem that doesn't exist here. */
 function resolveNearestNode(flatNodes: FlatNode[], x: number, y: number): FlatNode | null {
   let best: FlatNode | null = null;
   let bestDist = Infinity;
@@ -220,35 +205,35 @@ function resolveNearestNode(flatNodes: FlatNode[], x: number, y: number): FlatNo
   return bestDist <= Math.max(best.size / 2, MIN_MATCH_RADIUS) ? best : null;
 }
 
-/** Up/Down: step to the adjacent entry, but only if it's still in the same
- * column - a column's entries are contiguous in `flatNodes` (see
+/** Left/Right: step to the adjacent entry, but only if it's still in the
+ * same row - a row's entries are contiguous in `flatNodes` (see
  * buildFlatNodes), so stepping past either end of that block would
- * otherwise silently spill into the neighboring column instead of stopping. */
-function moveWithinColumn(flatNodes: FlatNode[], index: number, delta: number): number {
+ * otherwise silently spill into the neighbouring row instead of stopping. */
+function moveWithinRow(flatNodes: FlatNode[], index: number, delta: number): number {
   const current = flatNodes[index];
   if (!current) return index;
   const next = index + delta;
-  if (next < 0 || next >= flatNodes.length || flatNodes[next].columnIndex !== current.columnIndex) {
+  if (next < 0 || next >= flatNodes.length || flatNodes[next].rowIndex !== current.rowIndex) {
     return index;
   }
   return next;
 }
 
-/** Left/Right: skip past any empty (gap) columns in that direction, then
- * land on whichever node in the first non-empty one sits closest in y to the
- * node being left - not just that column's first node - so horizontal
- * movement feels spatial rather than resetting to the top every time. */
-function moveToAdjacentColumn(flatNodes: FlatNode[], columns: Column[], index: number, direction: 1 | -1): number {
+/** Up/Down: skip past any empty (break) rows in that direction, then land on
+ * whichever node in the first populated one sits closest in x to the node
+ * being left - not just that row's first node - so vertical movement feels
+ * spatial rather than resetting to the left edge every time. */
+function moveToAdjacentRow(flatNodes: FlatNode[], rows: Row[], index: number, direction: 1 | -1): number {
   const current = flatNodes[index];
   if (!current) return index;
-  let col = current.columnIndex + direction;
-  while (col >= 0 && col < columns.length && columns[col].actors.length === 0) col += direction;
-  if (col < 0 || col >= columns.length) return index;
+  let row = current.rowIndex + direction;
+  while (row >= 0 && row < rows.length && rows[row].actors.length === 0) row += direction;
+  if (row < 0 || row >= rows.length) return index;
   let bestIndex = index;
   let bestDist = Infinity;
   flatNodes.forEach((n, i) => {
-    if (n.columnIndex !== col) return;
-    const dist = Math.abs(n.y - current.y);
+    if (n.rowIndex !== row) return;
+    const dist = Math.abs(n.x - current.x);
     if (dist < bestDist) {
       bestDist = dist;
       bestIndex = i;
@@ -294,45 +279,51 @@ export default function App() {
   const viewportWidth = useViewportWidth();
   const compact = viewportWidth < COMPACT_BREAKPOINT;
 
-  // How much vertical room is actually left for the chart, measured from
-  // wherever it starts down to the bottom of the viewport - lets the layout
-  // shrink to fit instead of running off the bottom of the screen.
+  // How wide the chart's own container actually is. The vertical
+  // arrangement fills whatever width the viewport gives it and grows
+  // downward, so width is the only dimension that has to be measured -
+  // there is no height budget any more, and no uniform down-scaling of the
+  // whole chart to make it fit one.
   //
   // Held as state rather than a ref, and depended on below, because the
   // frame is rendered inside `{root && ...}` and so does not exist on every
-  // mount. With a plain ref + `[compact]` deps this effect ran once, found
-  // frameRef.current null, and bailed - permanently, since nothing ever
-  // re-ran it - leaving `available` null and the chart with no height budget
-  // at all. That hit every actor the bundled default slice doesn't cover
-  // (720 of 2,839) and every fallback from an invalid ?actor=, because those
-  // render the "Loading this actor…" message on first commit and the frame
-  // only on a later one. Measured on that path: a 941px-tall chart on a
-  // 900px viewport, running below the fold, while charts for slice actors
-  // sized correctly - the kind of bug that looks like a data difference.
+  // mount. With a plain ref this effect ran once, found the ref null, and
+  // bailed - permanently, since nothing ever re-ran it. That used to leave
+  // every actor outside the bundled default slice (720 of 2,839) and every
+  // fallback from an invalid ?actor= with no layout budget at all, because
+  // those render the "Loading this actor…" message on first commit and the
+  // frame only on a later one.
   const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null);
-  const [available, setAvailable] = useState<number | null>(null);
+  const [frameWidth, setFrameWidth] = useState<number | null>(null);
   useLayoutEffect(() => {
     if (!frameEl) return;
     const measure = () => {
-      // Document-space top of the chart region. Depends only on the header
-      // and banner above it, never on the chart's own height, so feeding
-      // this back into the layout below cannot oscillate.
-      const top = frameEl.getBoundingClientRect().top + window.scrollY;
-      setAvailable(Math.max(MIN_CHART_HEIGHT, window.innerHeight - top - VIEWPORT_GUTTER));
+      // Content box, not clientWidth: clientWidth includes the frame's own
+      // horizontal padding, and feeding that in made the viewBox wider than
+      // the svg's rendered width. preserveAspectRatio then scaled the whole
+      // chart down to fit and centred it vertically inside the height we had
+      // asked for - 133px of dead space above the first row on a 390px
+      // phone, 26px on desktop, both of which read as a layout bug rather
+      // than as breathing room.
+      const style = getComputedStyle(frameEl);
+      const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      setFrameWidth(frameEl.clientWidth - padding);
     };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [frameEl, compact]);
+    const observer = new ResizeObserver(measure);
+    observer.observe(frameEl);
+    return () => observer.disconnect();
+  }, [frameEl]);
 
+  const gutter = compact ? COMPACT_LABEL_GUTTER : LABEL_GUTTER;
   const layout = useMemo(() => {
-    const base = compact ? COMPACT_LAYOUT : DESKTOP_LAYOUT;
-    if (available == null) return base;
-    // Leave room inside the budget for the header row and the tallest
-    // column's count label, which sit above the swarm itself.
-    const columnBudget = available - HEADER_HEIGHT - HEADER_GAP - COUNT_LABEL_GAP - BOTTOM_PAD;
-    return { ...base, targetColumnHeight: Math.max(240, columnBudget) };
-  }, [compact, available]);
+    const base = compact ? COMPACT_ROWS : DESKTOP_ROWS;
+    // Falls back to a sensible first-paint width so the chart renders
+    // something real before the ResizeObserver has reported - it re-lays out
+    // on the very next frame either way.
+    const width = frameWidth ?? (compact ? 358 : 1200);
+    return { ...base, contentWidth: Math.max(160, width - gutter) };
+  }, [compact, frameWidth, gutter]);
 
   // Render from the small bundled slice until the full pool finishes
   // loading in the background, then switch over. Same rootId, same shape of
@@ -443,13 +434,16 @@ export default function App() {
     [adjacency, actorById, movieById, rootId],
   );
 
-  const columns = useMemo(() => layoutBeeswarm(buckets, layout), [buckets, layout]);
+  const { rows, height: rowsHeight } = useMemo(
+    () => layoutRows(buckets, layout, (id) => actorById.get(id)?.name ?? ""),
+    [buckets, layout, actorById],
+  );
 
   // Roving tabindex: the <svg> itself is the one tab stop (see its tabIndex
   // below), and arrow keys move real DOM focus between nodes, which is what
   // lets Tab skip the whole chart in one hop instead of stopping at each of
   // 200+ nodes individually the way giving every node tabIndex=0 used to.
-  const flatNodes = useMemo(() => buildFlatNodes(columns), [columns]);
+  const flatNodes = useMemo(() => buildFlatNodes(rows, gutter), [rows, gutter]);
   const nodeRefs = useRef(new Map<number, SVGGElement>());
   const [focusedIndex, setFocusedIndex] = useState(0);
   // Only a genuine recenter (a different actor) resets this - a background
@@ -480,7 +474,11 @@ export default function App() {
     if (!node) return;
     setFocusedIndex(index);
     const el = nodeRefs.current.get(node.id);
-    el?.focus();
+    // preventScroll, then an explicit scrollIntoView: .focus()'s own default
+    // scrolling centres the element, which on a chart taller than the
+    // viewport means every arrow-key step jumps the page around. "nearest"
+    // moves only as far as it has to.
+    el?.focus({ preventScroll: true });
     el?.scrollIntoView({ inline: "nearest", block: "nearest" });
   };
 
@@ -507,19 +505,19 @@ export default function App() {
     switch (e.key) {
       case "ArrowRight":
         e.preventDefault();
-        focusNodeAt(moveToAdjacentColumn(flatNodes, columns, safeFocusedIndex, 1));
+        focusNodeAt(moveWithinRow(flatNodes, safeFocusedIndex, 1));
         break;
       case "ArrowLeft":
         e.preventDefault();
-        focusNodeAt(moveToAdjacentColumn(flatNodes, columns, safeFocusedIndex, -1));
+        focusNodeAt(moveWithinRow(flatNodes, safeFocusedIndex, -1));
         break;
       case "ArrowDown":
         e.preventDefault();
-        focusNodeAt(moveWithinColumn(flatNodes, safeFocusedIndex, 1));
+        focusNodeAt(moveToAdjacentRow(flatNodes, rows, safeFocusedIndex, 1));
         break;
       case "ArrowUp":
         e.preventDefault();
-        focusNodeAt(moveWithinColumn(flatNodes, safeFocusedIndex, -1));
+        focusNodeAt(moveToAdjacentRow(flatNodes, rows, safeFocusedIndex, -1));
         break;
       case "Home":
         e.preventDefault();
@@ -549,7 +547,15 @@ export default function App() {
     if (e.target !== e.currentTarget) return;
     const node = flatNodes[safeFocusedIndex];
     if (!node) return;
-    nodeRefs.current.get(node.id)?.focus();
+    // preventScroll is load-bearing here, not a nicety. Clicking anywhere on
+    // the chart focuses the <svg>, which lands here and hands focus down to
+    // whichever node is current - index 0 by default, i.e. the very top row.
+    // A bare .focus() scrolls that node into view, so every single click
+    // anywhere in the chart snapped the page back to the top. It went
+    // unnoticed while the chart fitted one screenful and there was nothing
+    // to scroll; stacking rows made the page taller than the viewport and
+    // turned it into the most obvious bug on the page.
+    nodeRefs.current.get(node.id)?.focus({ preventScroll: true });
   };
 
   // Backstop for clicks that land in the gap between avatars rather than on
@@ -596,38 +602,10 @@ export default function App() {
 
   const onGraphPointerLeave = () => setHoveredNodeId(null);
 
-  // Signals whether the chart scrolls sideways past what's currently in
-  // view, so the edge gradients (see .tus-graph-frame in App.css) only show
-  // up when there's actually more to see - otherwise a chart that already
-  // fits the frame (most actors, after phases 2-3) would render a
-  // permanent, meaningless hint.
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [overflow, setOverflow] = useState({ left: false, right: false });
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const update = () => {
-      // A couple px of tolerance so subpixel layout rounding at either end
-      // doesn't flicker the gradient on and off.
-      const EDGE_THRESHOLD = 2;
-      setOverflow({
-        left: el.scrollLeft > EDGE_THRESHOLD,
-        right: el.scrollLeft + el.clientWidth < el.scrollWidth - EDGE_THRESHOLD,
-      });
-    };
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-    // columns captures every reason the rendered chart's width could change
-    // (recenter, the background data swap, a layout/compact change) - re-run
-    // whenever it does, since scrollWidth only reflects the latest render
-    // once this effect fires after it.
-  }, [columns]);
-  const overflowTokens = [overflow.left && "left", overflow.right && "right"].filter(Boolean).join(" ") || undefined;
+  // The scroll-edge gradient machinery that used to live here is gone with
+  // the horizontal scroll it existed to cue. Nothing is off to the side any
+  // more: the chart fills the frame's width and grows downward, so the only
+  // scroll is the page's own.
 
   // Pushes a new URL entry (default setSearchParams behavior), not a
   // replace - so Back walks through recenter history the same way it would
@@ -649,54 +627,15 @@ export default function App() {
   const totalCostars = buckets.reduce((sum, b) => sum + b.entries.length, 0);
   const headline = headlineFor(buckets, totalCostars);
 
-  // Frame runs 1..(this actor's own highest shared-film count) - see
-  // layoutBeeswarm for why the empty tail out to the dataset-wide max of 20
-  // is trimmed. Height is fit to this actor's tallest column rather than a
-  // fixed worst-case constant - a flat reservation sized for a column that
-  // fills targetColumnHeight left a dead band above the chart for anyone
-  // whose busiest bucket doesn't approach that (i.e. almost everyone: the
-  // packing math undershoots the target more the smaller a bucket is, and
-  // most actors' tallest bucket is a mid-size one, not the dataset-wide
-  // max). Trading the old "never jerks vertically on recenter" guarantee for
-  // that space back - the banner and column count already change on
-  // recenter, so a height change alongside them isn't a new kind of jump.
-  const firstColumn = columns[0];
-  const lastColumn = columns[columns.length - 1];
-  // Each end column's own halfWidth PLUS the side margin, not the larger of
-  // the two. The old Math.max() form guaranteed only that an end column
-  // couldn't clip; whenever its swarm was wider than sideMargin it left no
-  // margin at all. That was invisible under the old ascending axis, where
-  // the end columns were the high-shared-film buckets - one or two large
-  // avatars, halfWidth ~32, comfortably under sideMargin - and became a real
-  // bug the moment the axis flipped: descending puts the 200-plus-person
-  // 1-film crowd at the right end, halfWidth ~141, so the margin collapsed
-  // to zero and a click in what looks like empty space past the chart
-  // resolved to whichever face was nearest instead of dismissing the open
-  // card (caught by the "clicking in empty space past the last column"
-  // test). Additive keeps both properties: never clips, always leaves a
-  // real dead zone wider than MIN_MATCH_RADIUS at every render scale.
-  const viewLeft = firstColumn ? -(firstColumn.halfWidth + layout.sideMargin) : -layout.sideMargin;
-  const viewRight = lastColumn ? lastColumn.x + lastColumn.halfWidth + layout.sideMargin : layout.sideMargin;
-  const frameWidth = viewRight - viewLeft;
-  const tallestTop = columns.length ? Math.min(...columns.map((c) => c.top)) : -layout.targetColumnHeight;
-  // The axis label row sits at a uniform y (frameMinY + HEADER_HEIGHT) for
-  // every column - unlike the count labels, which stay ragged above each
-  // column's own top - so the row reads as one header rather than a
-  // per-column caption.
-  const frameMinY = tallestTop - COUNT_LABEL_GAP - HEADER_GAP - HEADER_HEIGHT;
-  const axisLabelY = frameMinY + HEADER_HEIGHT - 6;
-  const frameHeight = -frameMinY + BOTTOM_PAD;
-  const viewBox = `${viewLeft} ${frameMinY} ${frameWidth} ${frameHeight}`;
-
-  // Packing undershoots targetColumnHeight by a variable amount (see
-  // sizeForBucket/packColumn in beeswarm.ts), so the viewport-derived target
-  // above narrows things most of the way but doesn't guarantee a fit. This
-  // uniform scale on the rendered SVG is the guarantee: it only ever needs
-  // to close a small remaining gap, so in practice it should sit close to 1
-  // - if it's routinely near MIN_SCALE, the budget math above is off, not
-  // this floor.
-  const maxFrameHeight = available ?? frameHeight;
-  const scale = Math.max(MIN_SCALE, Math.min(1, maxFrameHeight / frameHeight));
+  // The chart is exactly as wide as its frame and as tall as its rows need,
+  // so there's no viewport fitting to do: no uniform scale, no height budget,
+  // no MIN_SCALE floor. All three existed to squeeze a horizontal chart into
+  // the space below the header, and all three are gone with it - which also
+  // means avatars now render at exactly the size the layout picked, rather
+  // than at 65-90% of it.
+  const chartWidth = gutter + layout.contentWidth;
+  const chartHeight = rowsHeight + BOTTOM_PAD;
+  const viewBox = `0 0 ${chartWidth} ${chartHeight}`;
 
   const rootPhoto = root ? photoUrl(root, 48) : null;
   // The leftmost column used to carry its count as "207 costars" so the bare
@@ -706,16 +645,19 @@ export default function App() {
   // Both units are named once in .tus-axis-unit-note above the chart now.
 
   // Hover label geometry - everything here lives in viewBox units, like
-  // everything else drawn inside the <svg>. Sizes are divided by `scale`:
-  // the whole chart is uniformly scaled down on tall charts (MIN_SCALE
-  // above), so a fixed viewBox size would render visibly smaller there than
-  // on a chart that didn't need to shrink.
-  const hoveredNode = hoveredNodeId != null ? (flatNodes.find((n) => n.id === hoveredNodeId) ?? null) : null;
+  // everything else drawn inside the <svg>. These used to be divided by the
+  // chart's uniform render scale to keep them a constant on-screen size;
+  // with the vertical arrangement the svg renders 1:1 with its viewBox, so
+  // viewBox units and CSS px are the same thing and the divisor is gone.
+  // Skipped on a named row: the name is already rendered beside the face
+  // there, so a hover label would only repeat it on top of itself.
+  const hoveredCandidate = hoveredNodeId != null ? (flatNodes.find((n) => n.id === hoveredNodeId) ?? null) : null;
+  const hoveredNode = hoveredCandidate?.name ? null : hoveredCandidate;
   const hoveredActor = hoveredNode ? (actorById.get(hoveredNode.id) ?? null) : null;
-  const HOVER_LABEL_FONT_SIZE = 13 / scale;
-  const HOVER_LABEL_PAD_X = 8 / scale;
-  const HOVER_LABEL_PAD_Y = 5 / scale;
-  const HOVER_LABEL_GAP = 10 / scale;
+  const HOVER_LABEL_FONT_SIZE = 13;
+  const HOVER_LABEL_PAD_X = 8;
+  const HOVER_LABEL_PAD_Y = 5;
+  const HOVER_LABEL_GAP = 10;
   let hoverLabel: { x: number; y: number; width: number; height: number; text: string } | null = null;
   if (hoveredNode && hoveredActor) {
     const filmCount = hoveredNode.sharedMovies.length;
@@ -728,11 +670,10 @@ export default function App() {
     const nodeTop = hoveredNode.y - hoveredNode.size / 2;
     const nodeBottom = hoveredNode.y + hoveredNode.size / 2;
     const above = nodeTop - HOVER_LABEL_GAP - height;
-    // Default above the node; flip below when that would climb past the
-    // header row - frameMinY is the very top of the chart's own reserved
-    // space, above which nothing else is ever drawn.
-    const y = above >= frameMinY ? above : nodeBottom + HOVER_LABEL_GAP;
-    const x = Math.min(Math.max(hoveredNode.x - width / 2, viewLeft), viewRight - width);
+    // Default above the node; flip below when that would climb off the top
+    // of the chart.
+    const y = above >= 0 ? above : nodeBottom + HOVER_LABEL_GAP;
+    const x = Math.min(Math.max(hoveredNode.x - width / 2, 0), chartWidth - width);
     hoverLabel = { x, y, width, height, text };
   }
 
@@ -825,146 +766,165 @@ export default function App() {
             </div>
           </div>
 
-          {/* Every column label is a bare number at every viewport now (see
-              filmLabel), so this is where both units get named - once,
-              rather than under all 13 of Adam Sandler's columns. Above the
-              chart rather than below (where its predecessor, .tus-axis-note,
-              used to live) so it's readable without scrolling, and outside
-              the svg so it can't collide with a column's own number. */}
+          {/* One legend line instead of a per-row unit. The row labels in
+              the gutter already say "N films together" in full - the
+              vertical arrangement makes horizontal room free, so unlike the
+              previous column layout there's no pressure to compress them to
+              bare numbers. This only has to explain the count on the right. */}
           <p className="tus-axis-unit-note">
-            Columns are films made together, most at left. Bold numbers count the costars in each.
+            Closest collaborators first. The number beside each row is how many people share
+            that many films with {root.name}.
           </p>
-          <div className="tus-graph-frame" ref={setFrameEl} data-overflow={overflowTokens}>
-            <div className="tus-graph-scroll" ref={scrollRef}>
-              <svg
-                className="tus-graph"
-                viewBox={viewBox}
-                width={frameWidth * scale}
-                height={frameHeight * scale}
-                // role="img" (the original role here) hides all of its
-                // children from assistive tech, which would make every
-                // node's role="button" invisible to it - "group" exposes
-                // the nodes while this aria-label still describes the whole
-                // chart.
-                role="group"
-                aria-label={`Costars of ${root.name}, grouped by shared film count`}
-                // The one tab stop for the whole chart - see the flatNodes/
-                // focusedIndex roving-tabindex machinery above. Individual
-                // nodes are tabIndex={-1} (ActorNode.tsx).
-                tabIndex={0}
-                onKeyDown={onGraphKeyDown}
-                onFocus={onGraphFocus}
-                onPointerMove={onGraphPointerMove}
-                onPointerLeave={onGraphPointerLeave}
-              >
-                <line className="tus-baseline" x1={viewLeft} x2={viewRight} y1={0} y2={0} />
-                {/* Nearest-center click backstop, behind every node (rendered
-                    before them, so a click directly on an avatar still hits
-                    the avatar's own circle first - this only catches the
-                    gaps between densely packed faces, where the old inflated
-                    per-node hit circle used to blanket whichever neighbor
-                    painted on top. aria-hidden: it's a pointer/touch-only
-                    convenience, not a distinct interactive element - every
-                    node it can resolve to already has its own role="button"
-                    reachable via the roving tabindex. */}
-                <rect
-                  x={viewLeft}
-                  y={frameMinY}
-                  width={frameWidth}
-                  height={frameHeight}
-                  fill="transparent"
-                  pointerEvents="all"
-                  aria-hidden="true"
-                  onClick={onGraphBackgroundClick}
-                />
-                {columns.map((col) => (
-                  <g key={col.sharedFilms}>
-                    {col.actors.length > 0 && (
-                      <text className="tus-count-label" x={col.x} y={col.top - COUNT_LABEL_GAP} textAnchor="middle">
-                        {col.actors.length}
-                      </text>
-                    )}
-                    {col.missing ? (
-                      // A collapsed run of shared-film counts nobody has -
-                      // the print convention for a broken axis, drawn once
-                      // per gap rather than once per missing number. The
-                      // numbers either side already say how wide the gap is
-                      // (Sandler's 12 and 7 bracket a missing 11-8), so the
-                      // marker itself only has to say "something is skipped
-                      // here" - hence a glyph rather than a label, which
-                      // also keeps it BREAK_HALF_WIDTH narrow.
-                      <text
-                        className="tus-axis-break"
-                        x={col.x}
-                        y={axisLabelY}
-                        textAnchor="middle"
-                        aria-label={
-                          col.missing[0] === col.missing[1]
-                            ? `no costars at ${col.missing[0]} films`
-                            : `no costars between ${col.missing[1]} and ${col.missing[0]} films`
-                        }
-                      >
-                        ⋯
-                      </text>
-                    ) : (
-                      <text className="tus-axis-label" x={col.x} y={axisLabelY} textAnchor="middle">
-                        {filmLabel(col.sharedFilms)}
-                      </text>
-                    )}
-                    {col.actors.map((p) => {
-                      const actor = actorById.get(p.id);
-                      if (!actor) return null;
-                      return (
-                        <ActorNode
-                          key={p.id}
-                          actor={actor}
-                          x={col.x + p.x}
-                          y={p.y}
-                          size={p.size}
-                          sharedMovies={p.sharedMovies}
-                          isSelected={selection?.actor.id === actor.id}
-                          onSelect={(a, movies, e) => selectNode(a, movies, e.clientX, e.clientY)}
-                          onCenter={recenter}
-                          domRef={(el) => {
-                            if (el) nodeRefs.current.set(p.id, el);
-                            else nodeRefs.current.delete(p.id);
-                          }}
-                        />
-                      );
-                    })}
-                  </g>
-                ))}
-                {/* Hover readout - last child so it paints on top of every
-                    node, anchored to the hovered node's own position (not
-                    the cursor, which is what made the old hover tooltip
-                    unreadable - see its removal note on .tus-node-ring's
-                    sibling comment in App.css). pointerEvents="none" on the
-                    whole group: it's a read-only label, not a second
-                    interactive surface - every real interaction (links,
-                    "Center on") still lives in the click-opened card. */}
-                {hoverLabel && (
-                  <g pointerEvents="none">
-                    <rect
-                      className="tus-hover-label-bg"
-                      x={hoverLabel.x}
-                      y={hoverLabel.y}
-                      width={hoverLabel.width}
-                      height={hoverLabel.height}
-                      rx={4 / scale}
-                    />
+          <div className="tus-graph-frame" ref={setFrameEl}>
+            <svg
+              className="tus-graph"
+              viewBox={viewBox}
+              width={chartWidth}
+              height={chartHeight}
+              // Belt and braces against the letterboxing described in the
+              // width measurement above: if the viewBox and the rendered
+              // width ever disagree again, pin the chart to the top-left
+              // rather than silently scaling and centring it.
+              preserveAspectRatio="xMinYMin meet"
+              // role="img" (the original role here) hides all of its
+              // children from assistive tech, which would make every
+              // node's role="button" invisible to it - "group" exposes
+              // the nodes while this aria-label still describes the whole
+              // chart.
+              role="group"
+              aria-label={`Costars of ${root.name}, grouped by shared film count`}
+              // The one tab stop for the whole chart - see the flatNodes/
+              // focusedIndex roving-tabindex machinery above. Individual
+              // nodes are tabIndex={-1} (ActorNode.tsx).
+              tabIndex={0}
+              onKeyDown={onGraphKeyDown}
+              onFocus={onGraphFocus}
+              onPointerMove={onGraphPointerMove}
+              onPointerLeave={onGraphPointerLeave}
+            >
+              {/* Nearest-center click backstop, behind every node (rendered
+                  before them, so a click directly on an avatar still hits
+                  the avatar's own circle first - this only catches the
+                  gaps between densely packed faces, where the old inflated
+                  per-node hit circle used to blanket whichever neighbor
+                  painted on top. aria-hidden: it's a pointer/touch-only
+                  convenience, not a distinct interactive element - every
+                  node it can resolve to already has its own role="button"
+                  reachable via the roving tabindex. */}
+              <rect
+                x={0}
+                y={0}
+                width={chartWidth}
+                height={chartHeight}
+                fill="transparent"
+                pointerEvents="all"
+                aria-hidden="true"
+                onClick={onGraphBackgroundClick}
+              />
+              {rows.map((row) => (
+                <g key={row.sharedFilms}>
+                  {row.missing ? (
+                    // A collapsed run of shared-film counts nobody has - the
+                    // print convention for a broken axis, drawn once per gap
+                    // rather than once per missing number. The row labels
+                    // either side already bracket the range, so this only
+                    // has to say that something is skipped here.
                     <text
-                      className="tus-hover-label-text"
-                      x={hoverLabel.x + HOVER_LABEL_PAD_X}
-                      y={hoverLabel.y + hoverLabel.height / 2}
+                      className="tus-axis-break"
+                      x={gutter - 12}
+                      y={row.y + row.height / 2}
+                      textAnchor="end"
                       dominantBaseline="central"
-                      style={{ fontSize: HOVER_LABEL_FONT_SIZE }}
+                      aria-label={
+                        row.missing[0] === row.missing[1]
+                          ? `no costars at ${row.missing[0]} films`
+                          : `no costars between ${row.missing[1]} and ${row.missing[0]} films`
+                      }
                     >
-                      {hoverLabel.text}
+                      ⋯
                     </text>
-                  </g>
-                )}
-              </svg>
-            </div>
+                  ) : (
+                    <>
+                      {/* Row label and head count, both in the left gutter.
+                          Anchored to the row's first line rather than its
+                          vertical middle: a 207-person block is five lines
+                          tall, and a label floating in the middle of it
+                          reads as belonging to the line it happens to sit
+                          beside rather than to the whole row. */}
+                      <text
+                        className="tus-row-label"
+                        x={gutter - 12}
+                        y={row.y + Math.min(row.height, 28)}
+                        textAnchor="end"
+                      >
+                        {filmLabel(row.sharedFilms, compact)}
+                      </text>
+                      <text
+                        className="tus-row-count"
+                        x={gutter - 12}
+                        y={row.y + Math.min(row.height, 28) + 17}
+                        textAnchor="end"
+                      >
+                        {row.actors.length}
+                      </text>
+                    </>
+                  )}
+                  {row.actors.map((p) => {
+                    const actor = actorById.get(p.id);
+                    if (!actor) return null;
+                    return (
+                      <ActorNode
+                        key={p.id}
+                        actor={actor}
+                        x={gutter + p.x}
+                        y={row.y + p.y}
+                        size={p.size}
+                        label={p.name}
+                        hitWidth={p.hitWidth}
+                        sharedMovies={p.sharedMovies}
+                        isSelected={selection?.actor.id === actor.id}
+                        onSelect={(a, movies, e) => selectNode(a, movies, e.clientX, e.clientY)}
+                        onCenter={recenter}
+                        domRef={(el) => {
+                          if (el) nodeRefs.current.set(p.id, el);
+                          else nodeRefs.current.delete(p.id);
+                        }}
+                      />
+                    );
+                  })}
+                </g>
+              ))}
+              {/* Hover readout - last child so it paints on top of every
+                  node, anchored to the hovered node's own position (not
+                  the cursor, which is what made the old hover tooltip
+                  unreadable). Only rendered for nodes that don't already
+                  carry a visible name - see hoveredNode above.
+                  pointerEvents="none" on the whole group: it's a read-only
+                  label, not a second interactive surface - every real
+                  interaction (links, "Center on") still lives in the
+                  click-opened card. */}
+              {hoverLabel && (
+                <g pointerEvents="none">
+                  <rect
+                    className="tus-hover-label-bg"
+                    x={hoverLabel.x}
+                    y={hoverLabel.y}
+                    width={hoverLabel.width}
+                    height={hoverLabel.height}
+                    rx={4}
+                  />
+                  <text
+                    className="tus-hover-label-text"
+                    x={hoverLabel.x + HOVER_LABEL_PAD_X}
+                    y={hoverLabel.y + hoverLabel.height / 2}
+                    dominantBaseline="central"
+                    style={{ fontSize: HOVER_LABEL_FONT_SIZE }}
+                  >
+                    {hoverLabel.text}
+                  </text>
+                </g>
+              )}
+            </svg>
           </div>
 
           {selection && (

@@ -355,7 +355,19 @@
   opacity: 1;
 }
 
-/* flex + justify-content:safe center (not width: fit-content) is what
+/* RETIRED NOTE, kept because it cost real debugging: this container used to
+   be `display: flex; justify-content: safe center; overflow-x: auto`, and the
+   `safe` keyword was load-bearing. Bare `center` centers even when the item
+   overflows, which put half the overflow before the container's own start
+   edge where scrollLeft can't reach - measured on Robert Downey Jr.'s mobile
+   chart as 161px, the entire first column, permanently offscreen. None of
+   that applies now: the chart fills the frame's width and grows downward, so
+   there is no horizontal overflow to center or to scroll. If a horizontal
+   scroller ever comes back here, `safe` is not optional.
+
+   The original note follows.
+
+   flex + justify-content:safe center (not width: fit-content) is what
    centers a chart narrower than the frame: fit-content looked like the
    obvious tool, but the svg inside is a replaced element with a fixed
    intrinsic width (see App.tsx), so fit-content's own min-content floor
@@ -376,19 +388,34 @@
    specifically when centering would cause that overflow, which is exactly
    the "safe centering" CSS Box Alignment defines the keyword for. */
 .tus-graph-scroll {
-  display: flex;
-  justify-content: safe center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  display: block;
 }
 
 .tus-graph {
-  /* Overrides the site-wide `svg { max-width: 100% }` reset (src/index.css)
-     - this chart needs its real fixed pixel width so a scroll happens
-     instead of every column being squashed down to fit the page. */
-  max-width: none;
   display: block;
   overflow: visible;
+}
+
+/* Row label in the left gutter - words again, not the bare number the
+   horizontal layout was forced to use. */
+.tus-row-label {
+  font-size: 13px;
+  fill: var(--text-secondary);
+}
+
+/* The head count for that row, under its label. */
+.tus-row-count {
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Name beside a face on the sparse rows (ActorNode.tsx's `label`). */
+.tus-node-label {
+  font-size: 13px;
+  fill: var(--text-primary);
+  font-weight: 500;
 }
 
 .tus-baseline {

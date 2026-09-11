@@ -290,18 +290,79 @@ That residual 518px is one specific thing: **ten tail columns holding one or two
 exactly what a peek + chevron handles gracefully. Christian Bale (600px today) and Tom Hanks
 (1182px) already fit outright — **Sandler is the pool's worst case, not the norm.**
 
-### Phases 3-6: NOT STARTED — handoff
+### Vertical rewrite: BUILT 2026-09-11 (supersedes phases 3 and 5)
+
+Lucas proposed rotating the whole thing — film count down the page, faces packed across
+each row, most-shared at the top — and it beat the horizontal version on every axis that
+mattered. Modelled against the pool before building, then built.
+
+**Zero horizontal scroll at any viewport, for any actor.** Measured after the rewrite:
+
+| Actor | desktop chart | mobile chart | names shown |
+|---|---|---|---|
+| Adam Sandler | 1392x1609 | 342x2244 | 25 |
+| Tom Hanks | 1392x1222 | 342x1402 | 4 |
+| Samuel L. Jackson | 1392x1601 | 342x2362 | 14 |
+| Christian Bale | 1392x716 | 342x740 | 1 |
+| Anupam Kher | 1392x1078 | 342x1175 | 14 |
+
+Worst case in the sample is ~2.7 screenfuls of ordinary vertical scrolling on a phone,
+against 945px of undiscoverable sideways travel before. The closest-collaborator row is
+above the fold at both viewports for every actor tested.
+
+**Why it's the right shape for this data.** Across the 1,823 actors with 3+ rows,
+**84.3% widen monotonically top to bottom** — the pyramid is real, not a metaphor being
+forced. The caveat to go in knowing: the median actor has **84% of their costars in the
+bottom (1-film) row** and **a third of their rows holding one or two people**, so it reads
+as a thin named stem over a thick anonymous slab rather than an even pyramid.
+
+**What the rotation bought that the horizontal version couldn't reach.** Rows with <=8
+people (`NAMED_ROW_MAX`) render as face-plus-name chips, so everyone worth recognizing is
+named on arrival with no hover and no click — Sandler shows 25 names above the crowd. And
+row labels are words again ("26 films together"), because a left gutter costs no vertical
+space; the column version had to cut that same label to a bare number because its 108px
+width forced a 184px minimum footprint per column.
+
+**It also collapsed two planned phases.** Phase 3 (a separate rotated mobile layout) is
+gone — this is one layout for both. Phase 5 (snap-peek, hover chevrons, scroll counter) is
+mostly moot, since nothing is offscreen horizontally to cue.
+
+Three bugs found during the rewrite, all of which the horizontal layout had been hiding:
+
+1. **Clicking anywhere on the chart snapped the page to the top.** A click focuses the
+   `<svg>`, whose focus handler hands focus down to the current node — index 0, the top row
+   — and a bare `.focus()` scrolls that node into view. Harmless while the chart fitted one
+   screenful with nothing to scroll; the single most obvious bug on the page once rows made
+   it taller than the viewport. Fixed with `focus({ preventScroll: true })` in both the
+   focus handler and `focusNodeAt` (which keeps its own explicit `scrollIntoView`).
+2. **133px of dead space above the first row on mobile, 26px on desktop.** The width
+   measurement used `clientWidth`, which includes the frame's padding, so the viewBox came
+   out wider than the svg's rendered width and `preserveAspectRatio` scaled the chart down
+   and centred it vertically inside the height we'd asked for. Fixed by measuring the
+   content box; `preserveAspectRatio="xMinYMin meet"` added as a backstop.
+3. **A named node's bounding-box centre wasn't clickable.** The name sits beside the face,
+   so the `<g>`'s centre falls in the gap between them, on the background overlay. Fixed in
+   the product rather than the test — the hit area now spans face and name, since they read
+   as one unit — bounded to the chip's cell minus a gap so it still can't reach a
+   neighbour's target (invariant 3).
+
+Tests: **22/22, stable across two consecutive full runs.** The suite needed real work,
+because several tests encoded assumptions the rotation reversed: probe the hit circle
+rather than the `<g>` bbox (see bug 3), scroll the *page* to reach the dense rows rather
+than a scroll container, hover tests must target an unnamed node (the readout is suppressed
+where a name is already shown), the axis-header test became a first-row test, and
+"chart bottom stays within the viewport" became "the chart never exceeds its frame's
+width" — the old assertion was correct for a chart squeezed below a header and is wrong by
+design now.
+
+---
+
+### Phases 4 and 6: NOT STARTED — handoff
 
 Phases 1-2 are done and verified; the rest is the handoff scope. Read §6 before touching
 `App.tsx` or `App.css`.
 
-**Phase 3 — mobile rotation.** Second layout mode per §3. This is now the single biggest
-remaining problem and the numbers got *worse* in one respect: Sandler's mobile chart is
-1287px in a 342px frame (**945px offscreen**), and because the tall columns are at the far
-right under descending, the columns actually on screen at rest are the one- and two-person
-ones — so most of a 390px phone screen is empty canvas above four small faces. Desktop
-chrome is down to 194px but mobile is still 322px. Rotating the axis fixes both: vertical
-scroll is free on a phone, and each row fills the width.
+**Phase 3 — superseded.** The vertical rewrite is the mobile layout, and the desktop one.
 
 **Phase 4 — copy per §4.**
 

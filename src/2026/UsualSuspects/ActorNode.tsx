@@ -6,6 +6,16 @@ interface Props {
   x: number;
   y: number;
   size: number;
+  /** Name to render beside the avatar. Set only on the sparse "named" rows
+   * (see NAMED_ROW_MAX in beeswarm.ts), where there's horizontal room to
+   * spare and these are the people someone would actually recognize -
+   * having the name on screen at rest is what the vertical arrangement buys
+   * that the horizontal one couldn't. Everyone else relies on the hover
+   * readout and the click-opened card, as before. */
+  label?: string;
+  /** Width of the clickable area when a `label` is shown - see the hit
+   * target below. */
+  hitWidth?: number;
   sharedMovies: Movie[];
   isSelected: boolean;
   /** Click/tap opens the detail card - re-centering is a deliberate button inside that card, not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
@@ -41,6 +51,8 @@ export default function ActorNode({
   x,
   y,
   size,
+  label,
+  hitWidth,
   sharedMovies,
   isSelected,
   onSelect,
@@ -85,6 +97,23 @@ export default function ActorNode({
           browser-dependent past the clip boundary. Every other child below
           is explicitly pointerEvents="none" - see the ring's own comment
           for why that's load-bearing, not decoration. */}
+      {/* On a named row the face and its name sit side by side and read as
+          one thing, so they have to behave as one: this extends the hit area
+          across the name rather than leaving it decorative. It also fixes a
+          real wart - without it, the node's own bounding-box centre falls in
+          the gap beside the face, on the background overlay, so anything
+          aiming at "the middle of this node" (including Playwright's own
+          click) missed it entirely.
+
+          Bounded to hitWidth, which beeswarm.ts sets to the chip's cell
+          minus a gap. That preserves the guarantee the whole hit-testing
+          design rests on - no node's target may reach into a neighbour's -
+          which is exactly what the old inflated 44px touch circle violated
+          and what made most of a dense column unclickable. Rendered before
+          the circle so the avatar still wins at its own centre. */}
+      {label && hitWidth != null && (
+        <rect x={-r} y={-r} width={hitWidth} height={size} fill="transparent" pointerEvents="all" />
+      )}
       <circle r={r} fill="transparent" pointerEvents="all" />
       <clipPath id={`tus-clip-${actor.id}`}>
         <circle r={r} />
@@ -126,6 +155,15 @@ export default function ActorNode({
       {!url && size >= 20 && (
         <text className="tus-node-initials" textAnchor="middle" dominantBaseline="central" pointerEvents="none">
           {initials(actor.name)}
+        </text>
+      )}
+      {/* pointerEvents="none" like every other painted child here: the
+          transparent circle above is the only hit-testable part of a node,
+          and a name extending well past the avatar's own radius would
+          otherwise swallow clicks aimed at whatever sits to its right. */}
+      {label && (
+        <text className="tus-node-label" x={r + 10} dominantBaseline="central" pointerEvents="none">
+          {label}
         </text>
       )}
     </g>
