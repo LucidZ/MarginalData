@@ -11,6 +11,7 @@ import { COMPACT_ROWS, DESKTOP_ROWS, layoutRows, type Row } from "./beeswarm";
 // scripts/generate-usual-suspects-defaults.mjs for how this file is derived.
 import defaultActorsRaw from "./defaultActors.json";
 import DetailCard, { type Selection } from "./DetailCard";
+import InfoPanel from "./InfoPanel";
 import { buildAdjacency, bucketCostars, photoUrl, type Bucket } from "./graph";
 import SearchBox from "./SearchBox";
 import { useData } from "./useData";
@@ -266,6 +267,7 @@ export default function App() {
   // defaultActorIds pool that Shuffle draws from) - see pickRandomSubtitleActor.
   const fallbackActor = useMemo(pickRandomSubtitleActor, []);
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
   // Shared by both ways a node gets picked - a direct click on its own <g>
   // (ActorNode.tsx's onSelect) and a click that lands in the gap between
   // avatars, resolved by the nearest-center overlay below - so both paths
@@ -423,6 +425,10 @@ export default function App() {
   const paramActor = paramNconst != null ? actorByNconst.get(paramNconst) : undefined;
   const paramPending = paramNconst != null && !paramActor && searchStatus === "loading";
   const paramInvalid = paramMalformed || (paramNconst != null && !paramActor && !paramPending);
+  // No ?actor= at all - someone arrived at the page itself rather than at a
+  // shared link to one actor. The only state where the cold-open copy earns
+  // its space; see the context line below.
+  const isLanding = rawParam == null;
   const rootId = paramActor ? paramActor.id : paramPending ? ROOT_PENDING : fallbackActor.id;
 
   useEffect(() => {
@@ -456,6 +462,61 @@ export default function App() {
     setFocusedIndex(0);
   }, [rootId]);
   const safeFocusedIndex = flatNodes.length === 0 ? 0 : Math.min(focusedIndex, flatNodes.length - 1);
+
+  // Recenter as navigation, not a page load. Without this a recenter is a
+  // hard cut: 200-plus faces vanish and 200-plus different ones appear in
+  // the same frame, and the overlap between the two charts - often dozens of
+  // people, since costars of costars are frequently costars - is invisible.
+  // A FLIP pass animates whoever is in both charts from where they were to
+  // where they now are, so the shared cast reads as moving between rows
+  // rather than as two unrelated screens.
+  //
+  // Keyed on flatNodes but gated on rootId actually having changed, because
+  // flatNodes also churns for reasons that must NOT animate: a viewport
+  // resize, and the background full-pool swap that re-buckets the chart a
+  // second or two into every visit. Animating those would make the chart
+  // twitch while someone is reading it.
+  //
+  // Positions are read from the layout rather than the DOM: the values are
+  // already exact (the svg renders 1:1 with its viewBox), so there's nothing
+  // to measure and no forced reflow to pay for.
+  const previousLayout = useRef<{ rootId: number; positions: Map<number, { x: number; y: number; size: number }> } | null>(
+    null,
+  );
+  useLayoutEffect(() => {
+    const positions = new Map(flatNodes.map((n) => [n.id, { x: n.x, y: n.y, size: n.size }]));
+    const previous = previousLayout.current;
+    previousLayout.current = { rootId, positions };
+    if (!previous || previous.rootId === rootId) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    for (const node of flatNodes) {
+      const el = nodeRefs.current.get(node.id);
+      if (!el) continue;
+      const before = previous.positions.get(node.id);
+      if (!before) {
+        // Newly arrived in this chart - nothing to move from, so fade in.
+        el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" });
+        continue;
+      }
+      const moved = Math.hypot(before.x - node.x, before.y - node.y);
+      const resized = Math.abs(before.size / node.size - 1);
+      if (moved < 1 && resized < 0.01) continue;
+      // ActorNode positions each node with a transform *attribute*; a CSS
+      // transform from the animation overrides it for the animation's
+      // duration and then hands back to the attribute when it finishes
+      // (fill defaults to none), which is exactly the FLIP handoff we want -
+      // no cleanup, and no risk of a stuck inline transform if a recenter
+      // interrupts another one mid-flight.
+      el.animate(
+        [
+          { transform: `translate(${before.x}px, ${before.y}px) scale(${before.size / node.size})` },
+          { transform: `translate(${node.x}px, ${node.y}px) scale(1)` },
+        ],
+        { duration: 420, easing: "cubic-bezier(0.2, 0.7, 0.3, 1)" },
+      );
+    }
+  }, [flatNodes, rootId]);
 
   // Hover readout (desktop): the SVG <title> a click-opened card replaced
   // was already the only way to read a name without clicking, and it's a
@@ -687,6 +748,16 @@ export default function App() {
             <button type="button" className="tus-shuffle" onClick={shuffle}>
               Shuffle
             </button>
+            <button
+              type="button"
+              className="tus-info-toggle"
+              onClick={() => setInfoOpen((open) => !open)}
+              aria-expanded={infoOpen}
+              aria-label="About this chart"
+              title="About this chart"
+            >
+              i
+            </button>
           </div>
         </header>
         {error && !data && (
@@ -748,7 +819,31 @@ export default function App() {
                 {headline && ` ${headline}`}
               </p>
               <p className="tus-context-meta">
-                Some actors share the silver screen far more than others.{" "}
+                {/* The four-pair cold open, shown only on the bare landing
+                    state. It's doing real work there - naming duos someone
+                    already has a feel for, then landing on one they don't -
+                    and it would be dead weight on a deep link, where the
+                    generated headline above already says something specific
+                    about the actor in front of them. The landing page opens
+                    centred on one of these eight at random
+                    (SUBTITLE_ACTOR_NCONSTS), so the sentence someone just
+                    read is also the chart they're looking at.
+
+                    No numbers in this copy, deliberately: the figures that
+                    used to be quoted for these pairs in a comment here went
+                    stale when commit 4bc930f supplemented the edges, and the
+                    prose never carried them in the first place. The exact
+                    counts live in .claude/usual-suspects-refit-spec.md and
+                    are re-derived from the data everywhere they're shown. */}
+                {isLanding ? (
+                  <>
+                    Ryan Gosling and Emma Stone. Dwayne "The Rock" Johnson and Kevin Hart. Keanu
+                    Reeves and Winona Ryder. Adam Sandler and Allen Covert? Some actors share the
+                    silver screen far more than others.{" "}
+                  </>
+                ) : (
+                  <>Some actors share the silver screen far more than others. </>
+                )}
                 {totalCostars.toLocaleString()} costars here
                 {/* Gated on `data` (the full pool), not `activeData` - the
                     bundled default slice's count (1,612) is real but wrong
@@ -926,6 +1021,14 @@ export default function App() {
               )}
             </svg>
           </div>
+
+          {infoOpen && (
+            <InfoPanel
+              actorCount={data?.actors.length ?? null}
+              movieCount={data?.movies.length ?? null}
+              onClose={() => setInfoOpen(false)}
+            />
+          )}
 
           {selection && (
             <DetailCard

@@ -460,6 +460,79 @@ test.describe("The Usual Suspects", () => {
     await page.close();
   });
 
+  test("the info panel opens, carries the required TMDB attribution, and closes on Escape", async ({
+    browser,
+  }) => {
+    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
+    await page.goto("/2026/UsualSuspects");
+    await page.waitForSelector(".tus-node");
+
+    await expect(page.locator(".tus-info")).toHaveCount(0);
+    await page.locator(".tus-info-toggle").click();
+    const panel = page.locator(".tus-info");
+    await expect(panel).toHaveCount(1);
+
+    // TMDB's API terms require this wording; the page hotlinks profile images
+    // off image.tmdb.org on every view and had no attribution anywhere
+    // before this panel existed.
+    await expect(panel).toContainText("not endorsed or certified by TMDB");
+    // The two caveats that make every count on the page a floor rather than
+    // a total. If either disappears the panel is no longer honest about what
+    // its numbers mean.
+    await expect(panel).toContainText("only counted inside the pool");
+    await expect(panel).toContainText("ten credited cast");
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".tus-info")).toHaveCount(0);
+    await page.close();
+  });
+
+  test("the cold-open copy shows on the landing page and not on a deep link", async ({ browser }) => {
+    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
+    const OPENER = "Keanu Reeves and Winona Ryder";
+
+    await page.goto("/2026/UsualSuspects");
+    await page.waitForSelector(".tus-node");
+    await expect(page.locator(".tus-context-meta")).toContainText(OPENER);
+
+    // A shared link goes straight to the chart: the generated headline
+    // already says something specific about the actor in front of you, so
+    // the four-pair pitch would just be in the way.
+    await page.goto(`/2026/UsualSuspects?actor=${TOM_HANKS_NCONST}`);
+    await page.waitForSelector(".tus-node");
+    await expect(page.locator(".tus-headline")).toContainText("Tom Hanks");
+    await expect(page.locator(".tus-context-meta")).not.toContainText(OPENER);
+    await page.close();
+  });
+
+  // The recenter FLIP animates nodes with the Web Animations API over a
+  // transform *attribute* set by ActorNode, relying on the animation not
+  // filling forwards so the attribute takes over again when it ends. If that
+  // ever changes, nodes would be left pinned at stale coordinates - a much
+  // worse failure than no animation at all, and an invisible one in a
+  // screenshot taken after things settle.
+  test("recentering leaves no node stuck at its pre-animation position", async ({ browser }) => {
+    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
+    await page.goto("/2026/UsualSuspects");
+    await selectActor(page, MICHAEL_CAINE);
+    await waitForFullPool(page);
+
+    await page.locator(".tus-node").first().dblclick();
+    await page.waitForTimeout(1200); // well past the 420ms transition
+
+    const stuck = await page.evaluate(() =>
+      [...document.querySelectorAll(".tus-node")].filter((n) => {
+        const inline = (n as SVGGElement).style.transform;
+        return inline !== "" && inline !== "none";
+      }).length,
+    );
+    expect(stuck, "nodes left with an inline transform after the FLIP settled").toBe(0);
+    // And the chart is still interactive afterwards.
+    await page.locator(".tus-node").first().click();
+    await expect(page.locator(".tus-card")).toHaveCount(1);
+    await page.close();
+  });
+
   test("detail card stays fully on screen for nodes at every extreme", async ({ browser }) => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");

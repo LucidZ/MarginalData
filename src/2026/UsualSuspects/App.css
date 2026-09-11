@@ -136,6 +136,97 @@
   background: var(--gridline);
 }
 
+/* The ⓘ toggle. Circular and quiet: it's the least-used control in the
+   toolbar and shouldn't compete with Shuffle, but it's the only route to the
+   method note, so it can't be hidden either. */
+.tus-info-toggle {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--gridline);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  align-self: center;
+}
+
+.tus-info-toggle:hover,
+.tus-info-toggle:focus-visible {
+  background: var(--gridline);
+  color: var(--text-primary);
+}
+
+/* Dims the chart behind the open panel. Also the reason the panel doesn't
+   need its own focus trap to feel modal - there's visibly nothing else to
+   interact with, and Escape or a click anywhere out here closes it. */
+.tus-info-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 1rem;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.tus-info {
+  position: relative;
+  max-width: 560px;
+  width: 100%;
+  padding: 1.4rem 1.5rem 1.5rem;
+  border: 1px solid var(--gridline);
+  border-radius: 12px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+}
+
+.tus-info h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  padding-right: 1.5rem;
+}
+
+.tus-info h3 {
+  margin: 1.1rem 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tus-info p {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.tus-info strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tus-info code {
+  font-size: 0.85em;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  background: var(--gridline);
+}
+
+.tus-info a {
+  color: var(--accent);
+}
+
 /* Shown only while a ?actor= id in the URL hasn't resolved yet - see rootId
    in App.tsx. Deliberately not styled like .tus-error-note (a permanent,
    muted footnote) - this is the main content area still catching up, not a

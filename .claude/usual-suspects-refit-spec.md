@@ -357,7 +357,43 @@ design now.
 
 ---
 
-### Phases 4 and 6: NOT STARTED — handoff
+### Phases 4 and 6: BUILT 2026-09-11
+
+**Phase 4 — the ⓘ panel and the landing-page cold open.**
+
+`InfoPanel.tsx`: what counts as a film (IMDb `movie`, non-adult, 40min+), who's in the pool
+(counts passed in from the loaded graph, never hardcoded), and the two limits that make
+every count on the page a floor rather than a total — costars are only counted *inside the
+pool*, and IMDb lists ~10 credited cast per title, so shared films are undercounted for
+exactly the crowded ensembles where you'd most expect a connection.
+
+It also carries **TMDB attribution, which the site had nowhere at all** despite hotlinking
+profile images off `image.tmdb.org` on every view. TMDB's API terms require it. A test
+asserts the wording so it can't be quietly dropped.
+
+The four-pair cold open is restored, but **only on the bare landing state** (no `?actor=`).
+On a deep link the generated headline already says something specific about the actor in
+front of you. The copy carries no numbers — it never did; only the stale comment did — so
+there was nothing to correct in the prose itself.
+
+**Phase 6 — recenter as navigation.** A FLIP pass over the Web Animations API: anyone in
+both the old and new chart animates from where they were to where they now are (420ms),
+newcomers fade in (260ms). Measured at 136 concurrent animations on a Sandler → Covert
+recenter, settling to 0. Gated three ways: on `rootId` actually changing (so a viewport
+resize and the background full-pool swap, which also churn `flatNodes`, don't make the
+chart twitch while someone is reading it); on `prefers-reduced-motion`; and on the
+animation not filling forwards, so the transform *attribute* ActorNode sets takes over
+again when it ends. A test asserts no node is left with an inline transform afterwards —
+a stuck node would be far worse than no animation, and invisible in a screenshot.
+
+**The right-side inspector is dropped, not deferred.** Its rationale was the horizontal
+layout's geometry: it would have deleted DetailCard's position maths and overlaid the
+1-film crowd, the region least worth covering. Neither argument survives the rotation —
+the page scrolls vertically, the card anchors fine, and there is no longer a dead region
+on the right to hide a panel in. Reinstating it would now cost ~320px of chart width to
+solve a problem that no longer exists.
+
+Tests: **25/25.**
 
 Phases 1-2 are done and verified; the rest is the handoff scope. Read §6 before touching
 `App.tsx` or `App.css`.
