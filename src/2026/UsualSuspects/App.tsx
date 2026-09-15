@@ -20,13 +20,11 @@ import "./App.css";
 
 const defaultActors = defaultActorsRaw as unknown as GraphData & { defaultActorIds: number[] };
 
-// Width reserved at the left of the chart for each row's own label ("26 films
-// together"). A left gutter costs nothing vertically, which is the whole
-// reason the labels could go back to being words: the previous horizontal
-// arrangement had to cut the same text to a bare number because its 108px
-// width forced a 184px minimum footprint onto every column.
-const LABEL_GUTTER = 132;
-const COMPACT_LABEL_GUTTER = 92;
+// Row labels sit centred above their own row rather than in a left gutter -
+// see ROW_LABEL_BAND in beeswarm.ts for why the gutter couldn't survive
+// centring the rows. Either way the label can be words rather than the bare
+// number the previous horizontal arrangement was forced into, since a label
+// above a row costs the same whatever it says.
 // Air below the last row so the chart doesn't end flush against the footer.
 const BOTTOM_PAD = 24;
 const COMPACT_BREAKPOINT = 640;
@@ -146,7 +144,7 @@ interface FlatNode {
   name?: string;
 }
 
-function buildFlatNodes(rows: Row[], gutter: number): FlatNode[] {
+function buildFlatNodes(rows: Row[]): FlatNode[] {
   const result: FlatNode[] = [];
   rows.forEach((row, rowIndex) => {
     const sorted = [...row.actors].sort((a, b) => a.x - b.x);
@@ -154,7 +152,7 @@ function buildFlatNodes(rows: Row[], gutter: number): FlatNode[] {
       result.push({
         id: p.id,
         rowIndex,
-        x: gutter + p.x,
+        x: p.x,
         y: row.y + p.y,
         size: p.size,
         sharedMovies: p.sharedMovies,
@@ -317,15 +315,14 @@ export default function App() {
     return () => observer.disconnect();
   }, [frameEl]);
 
-  const gutter = compact ? COMPACT_LABEL_GUTTER : LABEL_GUTTER;
   const layout = useMemo(() => {
     const base = compact ? COMPACT_ROWS : DESKTOP_ROWS;
     // Falls back to a sensible first-paint width so the chart renders
     // something real before the ResizeObserver has reported - it re-lays out
     // on the very next frame either way.
     const width = frameWidth ?? (compact ? 358 : 1200);
-    return { ...base, contentWidth: Math.max(160, width - gutter) };
-  }, [compact, frameWidth, gutter]);
+    return { ...base, contentWidth: Math.max(160, width) };
+  }, [compact, frameWidth]);
 
   // Render from the small bundled slice until the full pool finishes
   // loading in the background, then switch over. Same rootId, same shape of
@@ -449,7 +446,7 @@ export default function App() {
   // below), and arrow keys move real DOM focus between nodes, which is what
   // lets Tab skip the whole chart in one hop instead of stopping at each of
   // 200+ nodes individually the way giving every node tabIndex=0 used to.
-  const flatNodes = useMemo(() => buildFlatNodes(rows, gutter), [rows, gutter]);
+  const flatNodes = useMemo(() => buildFlatNodes(rows), [rows]);
   const nodeRefs = useRef(new Map<number, SVGGElement>());
   const [focusedIndex, setFocusedIndex] = useState(0);
   // Only a genuine recenter (a different actor) resets this - a background
@@ -694,7 +691,7 @@ export default function App() {
   // the space below the header, and all three are gone with it - which also
   // means avatars now render at exactly the size the layout picked, rather
   // than at 65-90% of it.
-  const chartWidth = gutter + layout.contentWidth;
+  const chartWidth = layout.contentWidth;
   const chartHeight = rowsHeight + BOTTOM_PAD;
   const viewBox = `0 0 ${chartWidth} ${chartHeight}`;
 
@@ -926,9 +923,9 @@ export default function App() {
                     // has to say that something is skipped here.
                     <text
                       className="tus-axis-break"
-                      x={gutter - 12}
+                      x={row.centerX}
                       y={row.y + row.height / 2}
-                      textAnchor="end"
+                      textAnchor="middle"
                       dominantBaseline="central"
                       aria-label={
                         row.missing[0] === row.missing[1]
@@ -940,27 +937,15 @@ export default function App() {
                     </text>
                   ) : (
                     <>
-                      {/* Row label and head count, both in the left gutter.
-                          Anchored to the row's first line rather than its
-                          vertical middle: a 207-person block is five lines
-                          tall, and a label floating in the middle of it
-                          reads as belonging to the line it happens to sit
-                          beside rather than to the whole row. */}
-                      <text
-                        className="tus-row-label"
-                        x={gutter - 12}
-                        y={row.y + Math.min(row.height, 28)}
-                        textAnchor="end"
-                      >
+                      {/* Label and head count on one centred line above the
+                          row's faces, in the band beeswarm.ts reserves for
+                          them. One line rather than the stacked pair the
+                          gutter version used: centred text stacked two deep
+                          reads as a heading over the whole chart rather than
+                          as this row's caption. */}
+                      <text className="tus-row-label" x={row.centerX} y={row.y + 15} textAnchor="middle">
                         {filmLabel(row.sharedFilms, compact)}
-                      </text>
-                      <text
-                        className="tus-row-count"
-                        x={gutter - 12}
-                        y={row.y + Math.min(row.height, 28) + 17}
-                        textAnchor="end"
-                      >
-                        {row.actors.length}
+                        <tspan className="tus-row-count"> · {row.actors.length}</tspan>
                       </text>
                     </>
                   )}
@@ -971,7 +956,7 @@ export default function App() {
                       <ActorNode
                         key={p.id}
                         actor={actor}
-                        x={gutter + p.x}
+                        x={p.x}
                         y={row.y + p.y}
                         size={p.size}
                         label={p.name}

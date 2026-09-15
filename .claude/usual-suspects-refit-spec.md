@@ -395,6 +395,64 @@ solve a problem that no longer exists.
 
 Tests: **25/25.**
 
+---
+
+### Centred rows: BUILT 2026-09-15
+
+Left-aligned rows drew a right triangle, which wasted the right half of the page at every
+width. Rows are now centred and each row's label sits centred above its own faces rather
+than in a left gutter — a gutter label is anchored to a fixed x while the content it
+describes floats, so on a one-person row the two ended up ~500px apart and the label read
+as belonging to nothing.
+
+Three centring details that each looked fine in the abstract and wrong on screen:
+
+1. **Centre on a uniform chip extent, chart-wide.** Centring each line on its own real
+   width is more precise and reads worse: every single-person row then centres on its own
+   name length, so the faces wander left and right down the page instead of forming a
+   column. Very obvious on a phone, where the sparse rows are one chip each and the faces
+   are the only thing the eye tracks.
+2. **Centre each line, not the block.** A wrapped row otherwise centres only its full line
+   and leaves the short last line hanging at the left.
+3. **Nominal cell width isn't the visual extent.** Centring a one-person row on the 240px
+   *cell* rather than the face-plus-name actually in it leaves the face visibly left of its
+   own label.
+
+The rotation also exposed two genuine packing bugs that the left-aligned version's slack
+had been absorbing:
+
+- **The seed grid was denser than collision could satisfy.** Seeds were laid at 0.94× the
+  diameter while `forceCollide` demanded `size + 2`. A wide row absorbed the difference by
+  spreading into slack at the ends; a narrow one could not, so on a 390px screen Keanu
+  Reeves' 1-film row left ~6% of nodes with a neighbour sitting on their centre — the
+  guarantee the whole hit-testing design rests on. Pitch now equals the collision
+  separation, with a 0.88 line pitch that keeps the staggered diagonal above it.
+- **`forceCollide` wasn't converging on the largest rows.** Samuel L. Jackson's 1-film row
+  is 491 faces, and at d3's default of one relaxation pass per tick ~11% of his nodes still
+  overlapped. Now `iterations(2)`, with ticks scaling as `90 + count/4` (capped at 220).
+
+Chart heights after centring: Sandler 1392×1965 desktop / 342×2512 mobile; Jackson
+1392×1956 / 342×2545; Bale 1392×827 / 342×791. Still zero horizontal overflow anywhere.
+
+**Test stability.** The page has two asynchronous settling processes — the ~3MB pool fetch,
+which re-buckets and re-packs every row when it lands, and the 420ms recenter transition —
+and almost every test measures geometry then acts on it. Any gap between those two steps
+that a re-layout can land in is a flake, and they surfaced as a rotating cast of
+unrelated-looking failures: a wrong name in a card, a null bounding box, an element
+detaching mid-call, 83% centre-ownership against a 95% floor. Closed at the source rather
+than per test:
+
+- `selectActor` now settles both before returning.
+- `waitForFullPool` waits for a **positive** signal ("out of N actors", which only renders
+  once the full pool is present) instead of polling until change *stops* — the old form
+  passed trivially when the swap simply hadn't started yet.
+- `settleTransition` requires several consecutive quiet samples, because a single check can
+  run before React has committed the recenter and read an empty animation list as "settled".
+- The gap-click test re-reads node positions before every click rather than trusting one
+  snapshot taken before the loop.
+
+Verified with **three consecutive full runs, 25/25 each.**
+
 Phases 1-2 are done and verified; the rest is the handoff scope. Read §6 before touching
 `App.tsx` or `App.css`.
 

@@ -487,16 +487,16 @@
   overflow: visible;
 }
 
-/* Row label in the left gutter - words again, not the bare number the
-   horizontal layout was forced to use. */
+/* Row caption, centred above its own row. Words rather than the bare number
+   the horizontal layout was forced into - a label above a row costs the same
+   whatever it says. */
 .tus-row-label {
   font-size: 13px;
   fill: var(--text-secondary);
 }
 
-/* The head count for that row, under its label. */
+/* The head count, inline after the label rather than stacked under it. */
 .tus-row-count {
-  font-size: 15px;
   font-weight: 600;
   fill: var(--text-primary);
   font-variant-numeric: tabular-nums;
@@ -608,6 +608,7 @@
 .tus-axis-unit-note {
   margin: 0 0 0.35rem;
   padding-inline: 1.5rem;
+  text-align: center;
   font-size: 0.75rem;
   color: var(--muted);
 }

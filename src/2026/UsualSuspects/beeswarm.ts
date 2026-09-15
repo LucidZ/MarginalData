@@ -22,6 +22,14 @@ export interface PositionedActor {
   hitWidth?: number;
 }
 
+/** Vertical band reserved above each row's faces for its own label. The
+ * label sits above the row rather than in a left gutter because the rows are
+ * centred: a gutter label is anchored to a fixed x while the content it
+ * describes floats, so on a one-person row the two ended up 500px apart and
+ * the label read as belonging to nothing. Above-and-centred keeps them tied
+ * together at every row width. */
+const ROW_LABEL_BAND = 24;
+
 export interface Row {
   /** Shared-film count this row represents. For a break row, the highest
    * count inside the collapsed run - unique by construction (nobody has it),
@@ -37,6 +45,10 @@ export interface Row {
   /** True when this row's actors carry `name` and are laid out as labelled
    * chips rather than packed into a blob. */
   named: boolean;
+  /** Centre x of this row's own content, for placing its label. Equal to the
+   * chart's midline for every row, since rows are centred - kept explicit so
+   * the caller doesn't have to re-derive it. */
+  centerX: number;
 }
 
 /**
@@ -104,6 +116,17 @@ const CHIP_GAP = 24;
  * truncated when it didn't need to be. */
 const NAME_MAX_CHARS = 22;
 
+/** Gap between a face and its name, matched to ActorNode's own label offset. */
+const NAME_GAP = 10;
+
+/** Rough width of a rendered name, from character count rather than
+ * getComputedTextLength - measuring would force a synchronous layout per
+ * node during packing, and "close enough to centre on" is all this is for.
+ * The 0.55 factor is the same one the hover label's backdrop uses. */
+function estimatedTextWidth(text: string): number {
+  return text.length * 13 * 0.55;
+}
+
 function fitName(name: string): string {
   return name.length <= NAME_MAX_CHARS ? name : `${name.slice(0, NAME_MAX_CHARS - 1).trimEnd()}…`;
 }
@@ -159,14 +182,22 @@ function sizeForRow(count: number, cfg: RowLayoutConfig): number {
 function packRow(bucket: Bucket, size: number, width: number): { actors: PositionedActor[]; height: number } {
   const count = bucket.entries.length;
   const r = size / 2;
-  // Slightly tighter than the nominal diameter - beeswarm packing beats a
-  // square lattice, and collision below settles the difference.
-  const pitch = size * 0.94;
+  // The seed grid has to be at least as loose as the collision force below
+  // will insist on, or the two are asking for incompatible things. It used
+  // to seed at 0.94x the diameter while forceCollide demanded r+1 each side
+  // (size + 2), which a wide row could absorb by spreading into slack at the
+  // ends - and a narrow one could not. On a 390px screen Keanu Reeves' 1-film
+  // row had no slack at all, so the simulation simply could not satisfy the
+  // constraint and ~6% of nodes ended up with a neighbour on their centre.
+  const minSeparation = size + 2;
+  const pitch = minSeparation;
   const perLine = Math.max(1, Math.floor(width / pitch));
   const lines = Math.ceil(count / perLine);
-  // Rows of circles nest, so each line after the first costs less than a
-  // full diameter.
-  const linePitch = size * 0.9;
+  // Circles nest between the line above, so a line costs less vertically
+  // than a full separation. 0.88 keeps the diagonal distance between
+  // staggered neighbours - sqrt(linePitch^2 + (pitch/2)^2) - above
+  // minSeparation, which is what collision actually checks.
+  const linePitch = minSeparation * 0.88;
 
   const nodes: SimNode[] = bucket.entries.map(({ actor }, i) => {
     const line = Math.floor(i / perLine);
@@ -182,7 +213,13 @@ function packRow(bucket: Bucket, size: number, width: number): { actors: Positio
   const simulation = forceSimulation(nodes)
     .force("x", forceX<SimNode>((d) => d.seedX).strength(0.35))
     .force("y", forceY<SimNode>((d) => d.seedY).strength(0.45))
-    .force("collide", forceCollide<SimNode>((d) => d.r + 1))
+    // iterations(2), not d3's default of 1. A single relaxation pass per
+    // tick doesn't fully resolve a box this crowded: Samuel L. Jackson's
+    // 1-film row is 491 faces, and at the default the settled result still
+    // held enough residual overlap that ~11% of his nodes had a neighbour
+    // sitting on their centre - which is exactly the guarantee the whole
+    // hit-testing design depends on (see ActorNode.tsx).
+    .force("collide", forceCollide<SimNode>((d) => d.r + 1).iterations(2))
     .stop();
 
   // Clamp inside the tick loop, not after it. Clamping once at the end looks
@@ -195,7 +232,12 @@ function packRow(bucket: Bucket, size: number, width: number): { actors: Positio
   // 55/69 in-view nodes owning their own center, against the 95% floor the
   // suite enforces. Clamping each tick instead lets collision see the
   // clamped positions and resolve them in y on the following pass.
-  for (let i = 0; i < 90; i++) {
+  // Ticks scale with the crowd. 90 is plenty for a 40-person row and not
+  // nearly enough for a 491-person one; the cap keeps the worst case bounded
+  // (d3-force's collide is quadtree-backed, so this stays in single-digit
+  // milliseconds even at the top end).
+  const ticks = Math.min(220, 90 + Math.floor(count / 4));
+  for (let i = 0; i < ticks; i++) {
     simulation.tick();
     for (const n of nodes) {
       n.x = Math.min(Math.max(n.x!, r), width - r);
@@ -212,6 +254,15 @@ function packRow(bucket: Bucket, size: number, width: number): { actors: Positio
     sharedMovies: moviesById.get(n.id) ?? [],
   }));
 
+  // Centre the settled blob in the row. Only visibly changes rows that
+  // don't fill a line - a 207-person row already spans the full width, so
+  // this is a no-op there, while a 12-person row would otherwise sit in the
+  // left third of an empty band.
+  const left = Math.min(...actors.map((a) => a.x - a.size / 2));
+  const right = Math.max(...actors.map((a) => a.x + a.size / 2));
+  const offset = (width - (right - left)) / 2 - left;
+  for (const a of actors) a.x += offset;
+
   const nominalHeight = (lines - 1) * linePitch + size;
   return { actors, height: Math.max(nominalHeight, ...actors.map((a) => a.y + a.size / 2)) };
 }
@@ -225,23 +276,51 @@ function packNamedRow(
   size: number,
   width: number,
   nameOf: (id: number) => string,
+  chipExtent: number,
 ): { actors: PositionedActor[]; height: number } {
   const perLine = Math.max(1, Math.floor(width / CHIP_WIDTH));
-  const actors: PositionedActor[] = bucket.entries.map(({ actor, sharedMovies }, i) => ({
-    id: actor.id,
-    x: (i % perLine) * CHIP_WIDTH + size / 2,
-    y: Math.floor(i / perLine) * CHIP_HEIGHT + size / 2,
-    size,
-    sharedMovies,
-    name: fitName(nameOf(actor.id)),
-    // The cell minus a gap, so the next chip's own face is never inside this
-    // one's hit area. Chips are CHIP_WIDTH apart and the face is centred at
-    // size/2 from the cell's left edge, so leaving CHIP_GAP clear at the
-    // right keeps the two comfortably separate.
-    hitWidth: CHIP_WIDTH - CHIP_GAP,
-  }));
-  const lines = Math.ceil(bucket.entries.length / perLine);
-  return { actors, height: (lines - 1) * CHIP_HEIGHT + size };
+  const named = bucket.entries.map((e) => ({ ...e, label: fitName(nameOf(e.actor.id)) }));
+
+  // Centre each line on its own real extent, not on a nominal grid. Two
+  // things go wrong with a single block offset computed from CHIP_WIDTH: a
+  // one-person row centres the 240px *cell* rather than the face-plus-name
+  // actually in it, so a short name leaves the face visibly left of the
+  // label above it; and a row that wraps centres only the full line, leaving
+  // the short last line hanging at the left. Per-line centring fixes both,
+  // and for the one-person rows at the top of every chart - the ones a
+  // reader looks at first - it's the difference between deliberate and
+  // slightly broken.
+  const actors: PositionedActor[] = [];
+  const lineCount = Math.ceil(named.length / perLine);
+  for (let line = 0; line < lineCount; line++) {
+    const slice = named.slice(line * perLine, (line + 1) * perLine);
+    // One uniform extent for every chip in the chart, not each line's own.
+    // Centring on the real per-line width looks more precise and reads
+    // worse: every single-person row then centres on its own name length, so
+    // the faces wander left and right down the page instead of forming a
+    // column - very obvious on a phone, where the sparse rows are one chip
+    // each and the faces are the only thing the eye tracks. A shared extent
+    // keeps all the one-chip rows on the same axis while still centring each
+    // row's whole block.
+    const lineWidth = (slice.length - 1) * CHIP_WIDTH + chipExtent;
+    const originX = Math.max(0, (width - lineWidth) / 2);
+    slice.forEach(({ actor, sharedMovies, label }, i) => {
+      actors.push({
+        id: actor.id,
+        x: originX + i * CHIP_WIDTH + size / 2,
+        y: line * CHIP_HEIGHT + size / 2,
+        size,
+        sharedMovies,
+        name: label,
+        // The cell minus a gap, so the next chip's own face is never inside
+        // this one's hit area. Chips are CHIP_WIDTH apart and the face is
+        // centred size/2 from the cell's left edge, so leaving CHIP_GAP
+        // clear at the right keeps the two comfortably separate.
+        hitWidth: CHIP_WIDTH - CHIP_GAP,
+      });
+    });
+  }
+  return { actors, height: (lineCount - 1) * CHIP_HEIGHT + size };
 }
 
 /**
@@ -272,12 +351,35 @@ function packNamedRow(
  * Buckets arrive descending from bucketCostars; re-sorted here anyway so the
  * break-run detection can't be silently wrong under another ordering.
  */
+/** Widest face-plus-name across every chip-rendered row - the uniform extent
+ * packNamedRow centres on. */
+function widestChipExtent(buckets: Bucket[], cfg: RowLayoutConfig, nameOf: (id: number) => string): number {
+  let widest = 0;
+  for (const bucket of buckets) {
+    if (bucket.entries.length > NAMED_ROW_MAX) continue;
+    for (const { actor } of bucket.entries) {
+      widest = Math.max(widest, estimatedTextWidth(fitName(nameOf(actor.id))));
+    }
+  }
+  return cfg.maxNodeSize + NAME_GAP + widest;
+}
+
 export function layoutRows(
   buckets: Bucket[],
   cfg: RowLayoutConfig,
   nameOf: (id: number) => string,
 ): { rows: Row[]; height: number } {
   const ordered = [...buckets].sort((a, b) => b.sharedFilms - a.sharedFilms);
+
+  // The widest face-plus-name in any row that will render as chips, measured
+  // once for the whole chart so every chip centres on the same extent (see
+  // packNamedRow). Clamped to the available width so a very long name on a
+  // narrow screen can't push the block off the left edge.
+  const chipExtent = Math.min(
+    widestChipExtent(ordered, cfg, nameOf),
+    cfg.contentWidth,
+  );
+
   const rows: Row[] = [];
   let y = 0;
 
@@ -285,17 +387,21 @@ export function layoutRows(
     const named = bucket.entries.length <= NAMED_ROW_MAX;
     const size = sizeForRow(bucket.entries.length, cfg);
     const packed = named
-      ? packNamedRow(bucket, size, cfg.contentWidth, nameOf)
+      ? packNamedRow(bucket, size, cfg.contentWidth, nameOf, chipExtent)
       : packRow(bucket, size, cfg.contentWidth);
+    // Push the faces down past the label band; the label itself is drawn in
+    // the space this clears (see ROW_LABEL_BAND).
+    for (const a of packed.actors) a.y += ROW_LABEL_BAND;
     rows.push({
       sharedFilms: bucket.sharedFilms,
       y,
-      height: packed.height,
+      height: packed.height + ROW_LABEL_BAND,
       actors: packed.actors,
       missing: null,
       named,
+      centerX: cfg.contentWidth / 2,
     });
-    y += packed.height + cfg.rowGap;
+    y += packed.height + ROW_LABEL_BAND + cfg.rowGap;
 
     const next = ordered[i + 1];
     if (next && bucket.sharedFilms - next.sharedFilms > 1) {
@@ -306,6 +412,7 @@ export function layoutRows(
         actors: [],
         missing: [bucket.sharedFilms - 1, next.sharedFilms + 1],
         named: false,
+        centerX: cfg.contentWidth / 2,
       });
       y += cfg.breakHeight + cfg.rowGap;
     }

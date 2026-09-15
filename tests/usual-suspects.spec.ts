@@ -29,31 +29,100 @@ async function selectActor(page: Page, name: string) {
   await page.fill(".tus-search-input", name);
   await page.waitForTimeout(400); // client-side substring filter, no network round trip to wait on
   await page.locator(`.tus-search-results button:has-text("${name}")`).first().click();
-  await page.waitForTimeout(600); // beeswarm re-layout (d3-force settles synchronously, but give React a paint)
+  await page.waitForTimeout(600); // row re-layout (d3-force settles synchronously, but give React a paint)
+  // Both settling processes, every time. This page has two of them - the
+  // ~3MB pool fetch, which re-buckets and re-packs every row when it lands,
+  // and the 420ms recenter transition - and almost every test here measures
+  // geometry and then acts on it. Any gap between those two steps that a
+  // re-layout can land in is a flake, and they surfaced as a rotating cast
+  // of unrelated-looking failures: a wrong name in a card, a null bounding
+  // box, an element detaching mid-call. Settling here rather than in each
+  // test is what actually closes the class.
+  await waitForFullPool(page);
+  await settleTransition(page);
+  // Both settling processes, every time. This page has two of them - the
+  // ~3MB pool fetch, which re-buckets and re-packs every row when it lands,
+  // and the 420ms recenter transition - and almost every test here measures
+  // geometry and then acts on it. Any gap between those two steps that a
+  // re-layout can land in is a flake, and they surfaced as a rotating cast
+  // of unrelated-looking failures: a wrong name in a card, a null bounding
+  // box, an element detaching mid-call. Settling here rather than in each
+  // test is what actually closes the class.
+  await settleTransition(page);
+}
+
+/** Picks a node from a *dense* row - one with no name rendered beside it -
+ * and returns a locator addressing it by aria-label rather than by position.
+ *
+ * Both parts matter. The hover readout is deliberately suppressed on the
+ * sparse rows, where the name is already on screen beside the face, so a
+ * test of the readout has to hover a node from the crowd. And a positional
+ * locator (`.first()` over a filtered set) goes stale: the chart re-lays out
+ * when the frame's width changes, which scrolling can trigger by bringing a
+ * scrollbar in, and the handle detaches between resolving it and using it.
+ * An aria-label survives any re-render that keeps the same actor on screen. */
+async function denseRowNode(page: Page) {
+  const label = await page.evaluate(() => {
+    const node = [...document.querySelectorAll(".tus-node")].find((n) => !n.querySelector(".tus-node-label"));
+    return node!.getAttribute("aria-label")!;
+  });
+  return { locator: page.locator(`.tus-node[aria-label="${label}"]`), name: label.replace(" - open details", "") };
+}
+
+/** Waits out the recenter FLIP (App.tsx). Selecting an actor is a recenter,
+ * and for 420ms afterwards every node that exists in both charts is in
+ * flight - overlapping neighbours it will not overlap once it lands. Any
+ * test that measures positions or probes what's under a point has to wait
+ * for that, or it samples a transient state and reports it as a defect:
+ * this showed up as 344/383 nodes "not owning their own centre" against a
+ * 95% floor, which settled to 383/383 about a second later.
+ *
+ * Latent until the chart grew taller than the viewport - before that, few
+ * enough nodes were in view after scrolling that the sample rarely caught
+ * one mid-flight. */
+async function settleTransition(page: Page) {
+  // A quiet *period*, not a single quiet sample. Checking once is racy in
+  // both directions: the transition may not have started yet when the check
+  // runs (React hasn't committed the recenter), in which case an empty
+  // animation list reads as "already settled" and the test goes on to
+  // measure a chart that is about to start moving. Requiring several
+  // consecutive quiet samples costs a few hundred ms and removes the race.
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __tusQuiet?: number };
+      const running = document.getAnimations().some((a) => a.playState === "running");
+      w.__tusQuiet = running ? 0 : (w.__tusQuiet ?? 0) + 1;
+      return w.__tusQuiet >= 3;
+    },
+    undefined,
+    { polling: 120 },
+  );
 }
 
 /** Waits out the background full-pool fetch (App.tsx: `data ?? defaultActors`).
- * networkidle alone isn't enough - it only tracks the HTTP request finishing,
- * not the JSON parse + React re-render + d3-force re-layout that follows it -
- * so poll the context line's own costar figure, which only reflects the full
- * pool's real total, until it stops changing.
  *
- * Any test that captures coordinates and then clicks them needs this: the
- * swap re-buckets and re-packs the chart, invalidating every position taken
- * before it. That matters more since the axis flipped to descending, because
- * the column that grows most between the bundled slice and the full pool is
- * the 1-film crowd - which descending puts at the *right* edge, so the
- * chart's right-hand geometry is now the part that moves furthest when the
- * pool lands. */
+ * Waits for a *positive* signal, not for change to stop. The earlier version
+ * polled the context line until two consecutive reads matched, which passes
+ * trivially when the swap simply hasn't started yet - so it would return
+ * early and let the re-layout land in the middle of the test, detaching
+ * whatever element had just been located. That produced an intermittent
+ * "Element is not attached to the DOM" that survived being addressed by
+ * aria-label, because the node really was being unmounted: the full pool
+ * gives an actor different costars, so people move between rows and React
+ * remounts them under a different row group.
+ *
+ * "out of N actors" renders only when the full pool is present (App.tsx
+ * gates that clause on `data`, not `activeData`, so the bundled slice's own
+ * smaller count is never shown as the pool's). Matching the phrase rather
+ * than the number keeps this from needing a re-pin every time the pool is
+ * regenerated.
+ */
 async function waitForFullPool(page: Page) {
   await page.waitForLoadState("networkidle");
-  let previous = await page.locator(".tus-context-meta").textContent();
-  for (let i = 0; i < 10; i++) {
-    await page.waitForTimeout(200);
-    const current = await page.locator(".tus-context-meta").textContent();
-    if (current === previous) break;
-    previous = current;
-  }
+  await expect(page.locator(".tus-context-meta")).toContainText("out of", { timeout: 15_000 });
+  // The clause appears as soon as `data` lands; give React and the row
+  // re-layout that follows it a paint before anything is measured.
+  await page.waitForTimeout(300);
 }
 
 /** Scrolls to the chart's densest end. The layout stacks rows with the
@@ -171,10 +240,9 @@ test.describe("The Usual Suspects", () => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, KEANU_REEVES); // densest column in the pool - plenty of narrow gaps to sample
-    await waitForFullPool(page);
     await scrollToDensestRows(page);
 
-    const nodes = await nodeCenters(page);
+    const sampled = await nodeCenters(page);
     // Mirrors App.tsx's MIN_MATCH_RADIUS. The chart renders 1:1 with its
     // viewBox now - the vertical arrangement has no uniform scale to fit
     // itself into a height budget - so viewBox units and CSS px are the
@@ -204,7 +272,7 @@ test.describe("The Usual Suspects", () => {
     // has scrolled out, and page.mouse.click can't reach a point outside
     // the viewport.
     const vp = page.viewportSize()!;
-    const onScreen = nodes.filter((n) => n.cx > 0 && n.cy > 0 && n.cx < vp.width && n.cy < vp.height);
+    const onScreen = sampled.filter((n) => n.cx > 0 && n.cy > 0 && n.cx < vp.width && n.cy < vp.height);
     const candidates: { x: number; y: number }[] = [];
     for (const n of [...onScreen].sort((a, b) => a.r - b.r)) {
       for (const [dx, dy] of [
@@ -215,13 +283,22 @@ test.describe("The Usual Suspects", () => {
       ]) {
         const x = Math.round(n.cx + dx);
         const y = Math.round(n.cy + dy);
-        if (nodes.every((m) => Math.hypot(m.cx - x, m.cy - y) > m.r)) candidates.push({ x, y });
+        if (sampled.every((m) => Math.hypot(m.cx - x, m.cy - y) > m.r)) candidates.push({ x, y });
       }
     }
     expect(candidates.length, "expected genuine gap points in this dense column").toBeGreaterThan(3);
 
     let checked = 0;
     for (const { x, y } of candidates.slice(0, 15)) {
+      // Re-read positions for every candidate rather than trusting the
+      // snapshot taken before the loop. Anything that re-lays the chart out
+      // between the snapshot and a click - a scrollbar appearing and
+      // changing the frame's width, the full-pool swap landing late - shifts
+      // every node, and the test then asserts a nearest-neighbour answer
+      // computed against coordinates that no longer exist. That surfaced as
+      // an intermittent wrong-name failure (expected Sean Young, got John
+      // Hurt) which is indistinguishable from a real hit-testing bug.
+      const nodes = await nodeCenters(page);
       // Full sorted distances, not just the minimum - a point can be a
       // legitimate "gap" (outside every node's own circle) while still
       // sitting almost exactly between two nodes. Densely packed avatars
@@ -271,7 +348,6 @@ test.describe("The Usual Suspects", () => {
     // re-buckets the chart and moves everything. Without this the test is
     // flaky rather than wrong - it passed and failed on consecutive runs of
     // identical code.
-    await waitForFullPool(page);
 
     await page.locator(".tus-node").first().click();
     await expect(page.locator(".tus-card")).toHaveCount(1);
@@ -311,10 +387,9 @@ test.describe("The Usual Suspects", () => {
     // readout there rather than painting the same name twice. The readout
     // exists for the dense rows, where there's no room for a name - so the
     // test has to hover one of those.
-    const node = page.locator(".tus-node").filter({ hasNot: page.locator(".tus-node-label") }).first();
+    const { locator: node, name: label } = await denseRowNode(page);
     await node.scrollIntoViewIfNeeded();
     const box = await node.boundingBox();
-    const label = (await node.getAttribute("aria-label"))!.replace(" - open details", "");
     await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
 
     await expect(page.locator(".tus-hover-label-text")).toContainText(label);
@@ -340,7 +415,7 @@ test.describe("The Usual Suspects", () => {
     await selectActor(page, MICHAEL_CAINE);
 
     // A dense-row node, for the same reason as the test above.
-    const node = page.locator(".tus-node").filter({ hasNot: page.locator(".tus-node-label") }).first();
+    const { locator: node } = await denseRowNode(page);
     await node.scrollIntoViewIfNeeded();
     const box = await node.boundingBox();
     await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -447,7 +522,6 @@ test.describe("The Usual Suspects", () => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, ANUPAM_KHER);
-    await waitForFullPool(page);
     const shape = await page.evaluate(() => ({
       rows: document.querySelectorAll(".tus-row-label").length,
       breaks: document.querySelectorAll(".tus-axis-break").length,
@@ -515,7 +589,6 @@ test.describe("The Usual Suspects", () => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
     await selectActor(page, MICHAEL_CAINE);
-    await waitForFullPool(page);
 
     await page.locator(".tus-node").first().dblclick();
     await page.waitForTimeout(1200); // well past the 420ms transition
