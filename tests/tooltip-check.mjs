@@ -3,19 +3,28 @@ import { mkdirSync } from "node:fs";
 const OUT = "tests/screenshots";
 mkdirSync(OUT, { recursive: true });
 
+// Returns the ElementHandle for the beat <section>, scrolled so step
+// stepIndex (of stepCount) is centered. All four beats stay mounted at
+// once (the scrolly pattern doesn't unmount off-screen beats), so a
+// page-wide `page.$(...)` grabs the first match in DOM order - usually
+// an off-screen Beat1 element - rather than the one actually on screen.
+// Every hit-target query below goes through this section handle instead.
 async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
-  const box = await page.evaluate((t) => {
+  const sectionHandle = await page.evaluateHandle((t) => {
     const titles = [...document.querySelectorAll(".voa-beat-title")];
     const title = titles.find((el) => el.textContent.includes(t));
-    const section = title.closest(".voa-beat");
+    return title.closest(".voa-beat");
+  }, titleIncludes);
+  const box = await sectionHandle.evaluate((section) => {
     const rect = section.getBoundingClientRect();
     return { top: rect.top + window.scrollY, height: section.scrollHeight };
-  }, titleIncludes);
+  });
   const viewportH = 900;
   const scrollable = box.height - viewportH;
   const frac = (stepIndex + 0.5) / stepCount;
   await page.evaluate((y) => window.scrollTo(0, y), box.top + scrollable * frac);
   await page.waitForTimeout(500);
+  return sectionHandle;
 }
 
 // ---- Mouse hover test (desktop) ----
@@ -25,16 +34,16 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   await page.goto("http://localhost:4321/2026/VoterAge/", { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
-  // Beat1 step 6 (full reveal, gap mode) - hover a dot
-  await scrollBeatToStep(page, "Turnout by age", 6, 8);
-  const hit = await page.$(".voa-dot-hit");
+  // Beat1 step 4 (full reveal, count callout) - hover an age bar
+  let section = await scrollBeatToStep(page, "shape of the electorate", 4, 5);
+  const hit = await section.$("rect.pb-hit");
   const box = await hit.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(200);
   await page.mouse.move(box.x + box.width / 2 + 1, box.y + box.height / 2 + 1); // ensure move fires
   await page.waitForTimeout(200);
   const tooltipVisible = await page.$(".voa-tooltip");
-  console.log("Beat1 hover tooltip appeared:", !!tooltipVisible);
+  console.log("Beat1 (age bars) hover tooltip appeared:", !!tooltipVisible);
   if (tooltipVisible) await page.screenshot({ path: `${OUT}/tooltip-beat1-hover.png` });
 
   // move mouse away, tooltip should disappear (non-touch clears on leave)
@@ -43,28 +52,28 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   const goneAfterLeave = await page.$(".voa-tooltip");
   console.log("Beat1 tooltip cleared after mouse leave:", !goneAfterLeave);
 
-  // Beat3 state grid tile hover
-  await scrollBeatToStep(page, "varies by state", 0, 3);
-  const tile = await page.$(".voa-tile");
-  const tbox = await tile.boundingBox();
-  await page.mouse.move(tbox.x + tbox.width / 2, tbox.y + tbox.height / 2);
+  // Beat3 category bar hover (education panel, step 1)
+  section = await scrollBeatToStep(page, "isn't only about age", 1, 4);
+  const catHit = await section.$("rect.pb-hit");
+  const cbox = await catHit.boundingBox();
+  await page.mouse.move(cbox.x + cbox.width / 2, cbox.y + cbox.height / 2);
   await page.waitForTimeout(200);
-  const gridTooltip = await page.$(".voa-tooltip");
-  console.log("StateGrid hover tooltip appeared:", !!gridTooltip);
-  if (gridTooltip) await page.screenshot({ path: `${OUT}/tooltip-stategrid-hover.png` });
+  const catTooltip = await page.$(".voa-tooltip");
+  console.log("Beat3 (category bars) hover tooltip appeared:", !!catTooltip);
+  if (catTooltip) await page.screenshot({ path: `${OUT}/tooltip-beat3-hover.png` });
 
-  // MailTrend dot hover
-  await scrollBeatToStep(page, "switched on, then off", 3, 4);
-  const trendHit = await page.$(".voa-trend-hit-group .voa-dot-hit");
-  if (trendHit) {
-    const hbox = await trendHit.boundingBox();
-    await page.mouse.move(hbox.x + hbox.width / 2, hbox.y + hbox.height / 2);
+  // Beat4 ColoradoDots hover
+  section = await scrollBeatToStep(page, "Does anything change", 0, 5);
+  const dotHit = await section.$("rect.cd-hit");
+  if (dotHit) {
+    const dbox = await dotHit.boundingBox();
+    await page.mouse.move(dbox.x + dbox.width / 2, dbox.y + dbox.height / 2);
     await page.waitForTimeout(200);
-    const trendTooltip = await page.$(".voa-tooltip");
-    console.log("MailTrend hover tooltip appeared:", !!trendTooltip);
-    if (trendTooltip) await page.screenshot({ path: `${OUT}/tooltip-mailtrend-hover.png` });
+    const dotTooltip = await page.$(".voa-tooltip");
+    console.log("Beat4 (ColoradoDots) hover tooltip appeared:", !!dotTooltip);
+    if (dotTooltip) await page.screenshot({ path: `${OUT}/tooltip-beat4-hover.png` });
   } else {
-    console.log("MailTrend hit target NOT FOUND");
+    console.log("ColoradoDots hit target NOT FOUND");
   }
 
   await browser.close();
@@ -77,8 +86,8 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   await page.goto("http://localhost:4321/2026/VoterAge/", { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
-  await scrollBeatToStep(page, "Turnout by age", 6, 8);
-  const hit = await page.$(".voa-dot-hit");
+  const section = await scrollBeatToStep(page, "shape of the electorate", 4, 5);
+  const hit = await section.$("rect.pb-hit");
   const box = await hit.boundingBox();
   await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(300);
@@ -86,15 +95,18 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   console.log("Beat1 TAP tooltip appeared:", !!tapTooltip);
   if (tapTooltip) await page.screenshot({ path: `${OUT}/tooltip-beat1-tap.png` });
 
-  // tap elsewhere (not on a dot) - per convention, touch tooltip persists
-  // until the next tap on a mark; verify it doesn't vanish from a generic
-  // page tap (only from tapping a different mark) - tap the chart surface background
-  const surface = await page.$(".voa-chart-surface");
+  // Tap elsewhere on the chart surface (the legend row, not a bar).
+  // Chromium synthesizes a compatibility mousemove at the new tap point,
+  // which fires a real mouseleave on the previously-hovered bar - so the
+  // tooltip is expected to clear here, same as a mouse pointer moving off
+  // a hovered mark. This is a legitimate "tap away to dismiss" pattern,
+  // not a bug.
+  const surface = await section.$(".voa-chart-surface");
   const sbox = await surface.boundingBox();
   await page.touchscreen.tap(sbox.x + 5, sbox.y + 5);
   await page.waitForTimeout(300);
-  const stillThereOrGone = await page.$(".voa-tooltip");
-  console.log("Beat1 tooltip after tapping chart background (expected: still present, no dot under tap):", !!stillThereOrGone);
+  const clearedOnBackgroundTap = !(await page.$(".voa-tooltip"));
+  console.log("Beat1 tooltip cleared after tapping chart background (expected: true):", clearedOnBackgroundTap);
 
   await browser.close();
 }

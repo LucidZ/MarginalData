@@ -1,34 +1,41 @@
 #!/usr/bin/env python3
 """
-Generate voter-age.json for the "Electorate Is Older Than the Country" story.
+Generate voter-age.json for "The Shape of the Electorate" story.
 
-Pulls two Census Bureau CPS November Voting and Registration Supplement
-tables across five election cycles (2016/2018/2020/2022/2024):
+See .claude/voter-age-spec-v2.md for the full derivation, story beats and
+integrity guardrails this pipeline exists to serve. Supersedes the v1
+pipeline (age-only, share-vs-share scatter, state cartogram, NJ/Montana
+natural experiment) - all of that is gone; see spec v2 S9 for why.
 
-  Table 1  - national, reported voting/registration by SINGLE YEAR OF AGE
-             (18-79, plus 80-84 and 85+ tail buckets - the former split into
-             5 per-year-average rows, the latter kept as one pooled "85+"
-             row, see OLD_AGE_* below). Only 2016, 2020, 2022 and 2024 are
-             usable - see NOTE below on 2018.
-  Table 4c - reported voting/registration by 5 age bins (18-24, 25-34,
-             35-44, 45-64, 65+), broken out by state (+ US total, + DC).
-             All 5 years are clean.
+Two kinds of source, used for what each measures well (spec v2 S5.1):
 
-NOTE on 2018 Table 1: the file Census serves at
-p20/583/table01.xlsx is mislabeled at the source - its link text on the
-census.gov landing page says "Table 1. Reported Voting and Registration,
-by Sex and Single Years of Age", but the workbook's actual title cell reads
-"Table 1a. Margins of Error for Estimates of Voting and Registration...".
-Verified 2026-09-03: 2016/2020/2022/2024's table01/vote01 files are all
-correctly Table 1; only 2018's is swapped, and there's no alternate
-filename in that directory. This script skips single-year-of-age for 2018
-rather than silently parsing the wrong table. It doesn't block anything:
-Table 4c (used for every cross-year comparison in the story) is unaffected,
-and single-year granularity is only surfaced for 2024 in the current spec
-(see .claude/voter-age-spec.md S5-S6).
+  Census Population Estimates Program (PEP) - real single-year-of-age
+  POPULATION LEVELS, to age 100. Administrative estimate, low noise.
+
+  Census CPS November Voting and Registration Supplement - self-reported
+  survey RATES (citizen share, turnout). High noise on levels, low noise
+  on ratios - see the wobble comparison in spec v2 S5.1.
+
+Construction (spec v2 S5):
+    citizen_pop(age, year) = PEP_pop(age, year) x CPS_citizen_share(age, year)
+    votes(age, year)       = citizen_pop(age, year) x CPS_turnout(age, year)
+
+This also dissolves the tail-bucket bug fixed 2026-09-08 (CPS pools ages
+80-84 and 85+; plotting either as a single "age" on a counts-on-y chart
+spikes badly). PEP has genuine single-year population to 100, so nothing
+above 79 needs to be invented - only the *rates* stay pooled within each
+CPS tail bucket, because that's all CPS reports.
+
+Sources used:
+  CPS Table 1  - national, single year of age (18-79 + 80-84/85+ pooled),
+                 2022 and 2024 only (both cycles used in beats 1-2).
+  CPS Table 2  - national, race/Hispanic origin (2024 only, beat 3).
+  CPS Table 5  - national, educational attainment (2024 only, beat 3).
+  CPS Table 7  - national, family income (2024 only, beat 3).
+  PEP          - national, single year of age x sex, 2022 and 2024.
 
 Requirements:
-- openpyxl (no API key / auth needed - these are public XLSX downloads)
+    openpyxl (no API key / auth needed - all public downloads)
 
 Usage:
     python scripts/generate_voter_age_data.py
@@ -40,7 +47,6 @@ Output:
 
 import argparse
 import json
-import math
 import re
 import urllib.request
 import warnings
@@ -52,89 +58,56 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "voter_age"
 OUT_PATH = ROOT / "public" / "data" / "voter-age.json"
 
-BASE = "https://www2.census.gov/programs-surveys/cps/tables/p20"
+CPS_BASE = "https://www2.census.gov/programs-surveys/cps/tables/p20"
+PEP_URL = (
+    "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/"
+    "national/asrh/nc-est2024-agesex-res.csv"
+)
 
-# (year, is_presidential, table1_filename_or_None, table4c_filename, p20_dir)
+# (year, p20_dir, table1_filename)
 CYCLES = [
-    (2016, True, "table01.xlsx", "table04c.xlsx", "580"),
-    (2018, False, None, "table04c.xlsx", "583"),  # table01.xlsx mislabeled, see NOTE
-    (2020, True, "table01.xlsx", "table04c.xlsx", "585"),
-    (2022, False, "vote01_2022.xlsx", "vote04c_2022.xlsx", "586"),
-    (2024, True, "vote01_2024.xlsx", "vote04c_2024.xlsx", "587"),
+    (2022, "586", "vote01_2022.xlsx"),
+    (2024, "587", "vote01_2024.xlsx"),
 ]
 
-# Ages 18-34 define "under-35" for the representation-gap metric used
-# throughout the story (beats 2-4).
-UNDER35_BINS = ("18-24", "25-34")
-ALL_BINS = ("18-24", "25-34", "35-44", "45-64", "65+")
-
-BIN_LABEL_MAP = {
-    "18 to 24": "18-24", "18 to 24 years": "18-24",
-    "25 to 34": "25-34", "25 to 34 years": "25-34",
-    "35 to 44": "35-44", "35 to 44 years": "35-44",
-    "45 to 64": "45-64", "45 to 64 years": "45-64",
-    "65+": "65+", "65 years and over": "65+",
+# Race/ethnicity variant files under the 2024 (587) directory - vote02_2024_N.xlsx.
+# N -> (json key, group label). Only the four spec v2 S4.1 groups plus "All Races"
+# (used to compute a residual "other/multiple races" row, S7.3) are fetched.
+RACE_VARIANTS = {
+    1: ("all", "All Races"),
+    3: ("whiteNonHispanic", "White alone, not Hispanic"),
+    4: ("black", "Black alone"),
+    5: ("asian", "Asian alone"),
+    6: ("hispanic", "Hispanic (any race)"),
 }
 
-# Mail-voting classification as of 2024 - see .claude/voter-age-spec.md S3/S8
-# for the sourcing (Ballotpedia + MIT Election Lab, verified 2026-09-03).
-MAIL_STATUS = {
-    "COLORADO": "permanent-pre2016",
-    "OREGON": "permanent-pre2016",
-    "WASHINGTON": "permanent-pre2016",
-    "CALIFORNIA": "permanent-post2020",
-    "NEVADA": "permanent-post2020",
-    "VERMONT": "permanent-post2020",
-    "HAWAII": "permanent-post2020",
-    "UTAH": "permanent-post2020",
-    "DISTRICT OF COLUMBIA": "permanent-post2020",
-    "NEW JERSEY": "covid-only",
-    "MONTANA": "covid-only",
-}
+EDUCATION_GROUPS = [
+    "Less than 9th grade",
+    "9th to 12th grade, no diploma",
+    "High school graduate",
+    "Some college or associate's degree",
+    "Bachelor's degree",
+    "Advanced degree",
+]
 
-# Recognized state/jurisdiction tokens in column A of Table 4c. Anything
-# else in column A is either blank (age-row continuation, forward-fill)
-# or a stray header label ("STATE", "Characteristics") to ignore.
-STATE_NAMES = {
-    "ALABAMA", "ALASKA", "ARIZONA", "ARKANSAS", "CALIFORNIA", "COLORADO",
-    "CONNECTICUT", "DELAWARE", "DISTRICT OF COLUMBIA", "FLORIDA", "GEORGIA",
-    "HAWAII", "IDAHO", "ILLINOIS", "INDIANA", "IOWA", "KANSAS", "KENTUCKY",
-    "LOUISIANA", "MAINE", "MARYLAND", "MASSACHUSETTS", "MICHIGAN",
-    "MINNESOTA", "MISSISSIPPI", "MISSOURI", "MONTANA", "NEBRASKA", "NEVADA",
-    "NEW HAMPSHIRE", "NEW JERSEY", "NEW MEXICO", "NEW YORK",
-    "NORTH CAROLINA", "NORTH DAKOTA", "OHIO", "OKLAHOMA", "OREGON",
-    "PENNSYLVANIA", "RHODE ISLAND", "SOUTH CAROLINA", "SOUTH DAKOTA",
-    "TENNESSEE", "TEXAS", "UTAH", "VERMONT", "VIRGINIA", "WASHINGTON",
-    "WEST VIRGINIA", "WISCONSIN", "WYOMING",
-}
-US_TOKENS = {"US", "UNITED STATES"}
-
-STATE_ABBR = {
-    "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR",
-    "CALIFORNIA": "CA", "COLORADO": "CO", "CONNECTICUT": "CT",
-    "DELAWARE": "DE", "DISTRICT OF COLUMBIA": "DC", "FLORIDA": "FL",
-    "GEORGIA": "GA", "HAWAII": "HI", "IDAHO": "ID", "ILLINOIS": "IL",
-    "INDIANA": "IN", "IOWA": "IA", "KANSAS": "KS", "KENTUCKY": "KY",
-    "LOUISIANA": "LA", "MAINE": "ME", "MARYLAND": "MD",
-    "MASSACHUSETTS": "MA", "MICHIGAN": "MI", "MINNESOTA": "MN",
-    "MISSISSIPPI": "MS", "MISSOURI": "MO", "MONTANA": "MT",
-    "NEBRASKA": "NE", "NEVADA": "NV", "NEW HAMPSHIRE": "NH",
-    "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY",
-    "NORTH CAROLINA": "NC", "NORTH DAKOTA": "ND", "OHIO": "OH",
-    "OKLAHOMA": "OK", "OREGON": "OR", "PENNSYLVANIA": "PA",
-    "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD",
-    "TENNESSEE": "TN", "TEXAS": "TX", "UTAH": "UT", "VERMONT": "VT",
-    "VIRGINIA": "VA", "WASHINGTON": "WA", "WEST VIRGINIA": "WV",
-    "WISCONSIN": "WI", "WYOMING": "WY",
-}
+INCOME_GROUPS = [
+    "Under $10,000",
+    "$10,000 to $14,999",
+    "$15,000 to $19,999",
+    "$20,000 to $29,999",
+    "$30,000 to $39,999",
+    "$40,000 to $49,999",
+    "$50,000 to $74,999",
+    "$75,000 to $99,999",
+    "$100,000 to $149,999",
+    "$150,000 and over",
+]
 
 
-def download(year, filename, p20_dir):
-    """Cache raw workbooks under data/voter_age/ - safe to re-run."""
-    dest = RAW_DIR / f"{year}_{filename}"
+def download(dest_name, url):
+    dest = RAW_DIR / dest_name
     if dest.exists():
         return dest
-    url = f"{BASE}/{p20_dir}/{filename}"
     print(f"  downloading {url}")
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req) as resp, open(dest, "wb") as f:
@@ -149,428 +122,472 @@ def load_sheet(path):
     return wb.active
 
 
-def parse_table4c(path):
-    """
-    Returns { "US": {bin: {cvap, voted, moeVoted}, ...}, "OKLAHOMA": {...}, ... }
-    Scans by content rather than a fixed row offset - the header height
-    varies by year (2018 has an extra blank row; 2022 doesn't).
-    """
-    ws = load_sheet(path)
-    out = {}
-    current = None
-    for row in ws.iter_rows(values_only=True):
-        col_a = str(row[0]).strip().upper() if row[0] else ""
-        col_b = str(row[1]).strip() if row[1] else ""
-        if col_a in US_TOKENS:
-            current = "US"
-            out[current] = {}
-            continue
-        if col_a in STATE_NAMES:
-            current = col_a
-            out[current] = {}
-            continue
-        if current is None:
-            continue
-        binname = BIN_LABEL_MAP.get(col_b)
-        if binname is None:
-            continue
-        try:
-            cvap = float(row[3])
-            voted = float(row[9])
-        except (TypeError, ValueError):
-            continue
-        # The MOE (and other percent) columns get suppressed by Census as
-        # "B" when a jurisdiction/bin's sample is too small to estimate
-        # reliably (e.g. Wyoming's 18-24 cohort) - but the raw counts are
-        # still published, so don't drop the whole bin over that. A missing
-        # MOE is itself informative (an even-less-reliable cell) and is
-        # surfaced as moeVoted: null rather than papered over.
-        try:
-            moe_voted = float(row[13])
-        except (TypeError, ValueError):
-            moe_voted = None
-        out[current][binname] = {"cvap": cvap, "voted": voted, "moeVoted": moe_voted}
-
-    # Assert every jurisdiction has all 5 bins - a silent label-map miss
-    # should fail the build, not quietly drop a state or a bin.
-    incomplete = {k: sorted(v.keys()) for k, v in out.items() if len(v) != 5}
-    if incomplete:
-        raise ValueError(
-            f"{path.name}: expected 5 age bins per jurisdiction, got incomplete "
-            f"sets: {incomplete}"
-        )
-    if "US" not in out:
-        raise ValueError(f"{path.name}: no US/UNITED STATES total row found")
-    if len(out) < 51:  # 50 states + DC
-        raise ValueError(
-            f"{path.name}: expected 51 states+DC, found {len(out) - 1}: "
-            f"missing {STATE_NAMES - (set(out) - {'US'})}"
-        )
-    return out
-
+# ---------------------------------------------------------------------------
+# CPS Table 1 - national, single year of age
+# ---------------------------------------------------------------------------
 
 SINGLE_YEAR_RE = re.compile(r"^(\d+) years$")
-
-# Census Table 1 stops reporting single years of age at 79 and pools
-# everyone older into two tail buckets: "80-84 years" and an open-ended
-# "85 years and over". shareElig/shareVote (add_shares, below) are each
-# row's count divided by the *national* total, so that only means the
-# same thing across rows if every row spans the same number of ages -
-# plotting either bucket as if it were a single age like the rest of the
-# curve inflates its share by the bucket's width, producing a spurious
-# spike.
-#
-# "80-84" has a known width (5 years), so it's split into 5 identical
-# rows (one per age) each holding the bucket's per-year average -
-# comparable in kind to the real single-year rows on either side of it,
-# at the cost of flattening whatever the true within-bucket age curve
-# looks like (unknowable from this source).
-#
-# "85 years and over" has no known width - there's no data-derived
-# number of years to divide by - so it's kept as a single pooled row
-# instead of guessing one. OLD_AGE_BAND gives it a plot width purely for
-# rendering it as a band/oval (a deliberate display approximation, not a
-# measurement); no arithmetic depends on it.
-OLD_AGE_BAND = (85, 90)  # (min, max) plot width for the "85+" oval
-OLD_AGE_REP = 87  # representative x-position for the "85+" row
+# The tail bucket label is hyphenated ("80-84 years"), unlike every other
+# bin in this table ("18 to 24 years") - spec v2 S5.4 gotcha #2.
+TAIL_80_84_RE = re.compile(r"^80-84 years$")
+TAIL_85_PLUS = "85 years and over"
 
 
 def parse_table1(path):
     """
-    Returns a list of { age, ageLabel, cvap, voted } for single years of
-    age 18-79, five rows for ages 80-84 each holding that bucket's
-    per-year average (approxFromBucket=True), and one pooled "85+" row
-    (see OLD_AGE_* above). Scans the BOTH SEXES block only (stops at
-    MALE/FEMALE).
+    Returns (single_years, tail_80_84, tail_85_plus) where single_years is
+    {age: (total_pop, citizen_pop, voted)} for ages 18-79, and the tail
+    tuples are each a single (total_pop, citizen_pop, voted).
+
+    Table 1 repeats all 62 single-year rows three times - once per
+    BOTH SEXES / MALE / FEMALE block (spec v2 S5.4 gotcha #1). An
+    unbounded scan overwrites the young ages with male-only counts and
+    fakes a structural break at age 52. Bound the scan to the BOTH SEXES
+    block by locating the next marker row, not a fixed row offset (the
+    header height is not stable across years).
     """
     ws = load_sheet(path)
-    rows = []
-    bucket_80_84 = None
-    bucket_85_plus = None
-    in_block = False
-    for row in ws.iter_rows(values_only=True):
-        col_a = str(row[0]).strip() if row[0] else ""
-        col_b = str(row[1]).strip() if row[1] else ""
-        if col_a == "BOTH SEXES":
-            in_block = True
-            continue
-        if col_a in ("MALE", "FEMALE") and in_block:
-            break
-        if not in_block:
-            continue
+    rows = list(ws.iter_rows(values_only=True))
+    markers = [i for i, r in enumerate(rows) if r[0] and str(r[0]).strip() in ("BOTH SEXES", "MALE", "FEMALE")]
+    if not markers:
+        raise ValueError(f"{path.name}: no BOTH SEXES/MALE/FEMALE marker rows found")
+    lo = markers[0]
+    hi = markers[1] if len(markers) > 1 else len(rows)
 
-        m = SINGLE_YEAR_RE.match(col_b)
-        if not m and col_b not in ("80-84 years", "85 years and over"):
-            continue
-
+    single_years = {}
+    tail_80_84 = None
+    tail_85_plus = None
+    for r in rows[lo:hi]:
+        label = str(r[1] or "").strip()
+        m = SINGLE_YEAR_RE.match(label)
         try:
-            cvap = float(row[3])
-            voted = float(row[10])
+            total_pop, cit_pop, voted = float(r[2]), float(r[3]), float(r[10])
         except (TypeError, ValueError):
             continue
-
         if m:
-            rows.append({"age": int(m.group(1)), "ageLabel": m.group(1), "cvap": cvap, "voted": voted})
-        elif col_b == "80-84 years":
-            bucket_80_84 = {"cvap": cvap, "voted": voted}
+            single_years[int(m.group(1))] = (total_pop, cit_pop, voted)
+        elif TAIL_80_84_RE.match(label):
+            tail_80_84 = (total_pop, cit_pop, voted)
+        elif label == TAIL_85_PLUS:
+            tail_85_plus = (total_pop, cit_pop, voted)
+
+    if len(single_years) != 62:  # ages 18-79
+        raise ValueError(f"{path.name}: expected 62 single-year rows (18-79), got {len(single_years)}")
+    if tail_80_84 is None or tail_85_plus is None:
+        raise ValueError(f"{path.name}: missing one or both tail bucket rows (80-84 / 85+)")
+
+    return single_years, tail_80_84, tail_85_plus
+
+
+# ---------------------------------------------------------------------------
+# PEP - national, single year of age, both sexes
+# ---------------------------------------------------------------------------
+
+def parse_pep(path, years):
+    """Returns {age: {year: population_thousands}} for ages 0-100 ("100"
+    means "100 and over"), both sexes (SEX == '0')."""
+    import csv
+
+    out = {}
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            if row["SEX"] != "0":
+                continue
+            age = int(row["AGE"])
+            if age == 999:  # the all-ages total row
+                continue
+            out[age] = {y: float(row[f"POPESTIMATE{y}"]) / 1000 for y in years}
+
+    missing = [a for a in range(18, 101) if a not in out]
+    if missing:
+        raise ValueError(f"{path.name}: missing PEP population for ages {missing}")
+    return out
+
+
+# ---------------------------------------------------------------------------
+# byAge construction: PEP levels x CPS rates (spec v2 S5)
+# ---------------------------------------------------------------------------
+
+def build_age_rows(single_years, tail_80_84, tail_85_plus, pep_by_age, year):
+    """One row per single year of age, 18-100. Ages 80+ use PEP's genuine
+    single-year population but a CPS turnout/citizen-share rate pooled
+    across the whole tail bucket, since that's all CPS reports there
+    (spec v2 S5.2) - flagged with ratesPooled: true."""
+    rows = []
+    for age in range(18, 101):
+        if age in single_years:
+            total_pop, cit_pop, voted = single_years[age]
+            rates_pooled = False
+        elif age < 85:
+            total_pop, cit_pop, voted = tail_80_84
+            rates_pooled = True
         else:
-            bucket_85_plus = {"cvap": cvap, "voted": voted}
+            total_pop, cit_pop, voted = tail_85_plus
+            rates_pooled = True
 
-    if bucket_80_84 is None or bucket_85_plus is None:
-        raise ValueError(f"{path.name}: expected both 80-84 and 85+ tail rows, found none")
-
-    for age in range(80, 85):
+        cit_share = cit_pop / total_pop
+        turnout = voted / cit_pop
+        pep_pop = pep_by_age[age][year]
+        cvap = pep_pop * cit_share
+        votes = cvap * turnout
         rows.append({
             "age": age,
-            "ageLabel": str(age),
-            "cvap": bucket_80_84["cvap"] / 5,
-            "voted": bucket_80_84["voted"] / 5,
-            "approxFromBucket": True,
+            "cvap": cvap,
+            "votes": votes,
+            "turnout": round(100 * turnout, 1),
+            "ratesPooled": rates_pooled,
         })
-    rows.append({
-        "age": OLD_AGE_REP,
-        "ageLabel": "85+",
-        "ageMin": OLD_AGE_BAND[0],
-        "ageMax": OLD_AGE_BAND[1],
-        "cvap": bucket_85_plus["cvap"],
-        "voted": bucket_85_plus["voted"],
-    })
-
-    if len(rows) != 68:  # single years 18-79 (62) + split 80-84 (5) + pooled 85+ (1)
-        raise ValueError(f"{path.name}: expected 68 rows (18-79 + split 80-84 + pooled 85+), got {len(rows)}")
-    return sorted(rows, key=lambda r: r["age"])
+    return rows
 
 
-def add_shares(rows, cvap_key="cvap", voted_key="voted"):
-    """Adds shareElig/shareVote/turnout (percentages) to a list of {cvap, voted} dicts, in place."""
-    total_cvap = sum(r[cvap_key] for r in rows)
-    total_voted = sum(r[voted_key] for r in rows)
+def finalize_age_cycle(rows):
+    total_cvap = sum(r["cvap"] for r in rows)
+    total_votes = sum(r["votes"] for r in rows)
+    avg_turnout = total_votes / total_cvap
     for r in rows:
-        r["shareElig"] = round(100 * r[cvap_key] / total_cvap, 3)
-        r["shareVote"] = round(100 * r[voted_key] / total_voted, 3)
-        r["turnout"] = round(100 * r[voted_key] / r[cvap_key], 1)
-    return total_cvap, total_voted
+        r["expected"] = round(r["cvap"] * avg_turnout, 1)
+        r["missing"] = round(r["votes"] - r["expected"], 1)
+        r["cvap"] = round(r["cvap"], 1)
+        r["votes"] = round(r["votes"], 1)
+
+    # Crossover: first age (ascending) whose own turnout reaches the
+    # cycle average. Deliberately unsmoothed - the chart draws the actual
+    # bars, not a derivative of them, so smoothing here would claim a
+    # precision the visible chart doesn't have. The ratio is not perfectly
+    # monotonic near the crossover (a few ages just above 40 dip back
+    # below average before settling above for good) - say "around age
+    # NN" in prose, never "exactly".
+    crossover = next((r["age"] for r in rows if r["votes"] >= r["expected"]), None)
+
+    return {
+        "avgTurnout": round(100 * avg_turnout, 2),
+        "totalCvap": round(total_cvap, 1),
+        "totalVotes": round(total_votes, 1),
+        "crossoverAge": crossover,
+        "rows": rows,
+    }
 
 
-def under35_gap(bins):
-    """shareVote(18-34) - shareElig(18-34), in percentage points."""
-    total_cvap = sum(bins[b]["cvap"] for b in ALL_BINS)
-    total_voted = sum(bins[b]["voted"] for b in ALL_BINS)
-    u_cvap = sum(bins[b]["cvap"] for b in UNDER35_BINS)
-    u_voted = sum(bins[b]["voted"] for b in UNDER35_BINS)
-    return round(100 * u_voted / total_voted - 100 * u_cvap / total_cvap, 3)
+def validate_age_reconstruction(cycle, cps_published_cvap, cps_published_votes, single_years, tail_80_84, tail_85_plus, pep_by_age, year):
+    """Spec v2 S5.3: total turnout within 0.5pp of CPS's published rate,
+    and each block within 12%. A larger divergence means a parsing error,
+    not a data finding - fail loudly."""
+    cps_turnout = 100 * cps_published_votes / cps_published_cvap
+    diff = abs(cycle["avgTurnout"] - cps_turnout)
+    if diff > 0.5:
+        raise ValueError(
+            f"{year}: reconstructed turnout {cycle['avgTurnout']}% is {diff:.2f}pp from "
+            f"CPS published {cps_turnout:.2f}% (tolerance 0.5pp) - likely a parsing bug"
+        )
+
+    def block_check(label, age_range, cps_cvap):
+        recon = sum(r["cvap"] for r in cycle["rows"] if r["age"] in age_range)
+        pct = 100 * (recon / cps_cvap - 1)
+        if abs(pct) > 12:
+            raise ValueError(f"{year} block {label}: reconstruction {pct:+.1f}% off CPS (tolerance 12%)")
+        return pct
+
+    block_check("18-79", range(18, 80), sum(v[1] for v in single_years.values()))
+    block_check("80-84", range(80, 85), tail_80_84[1])
+    block_check("85+", range(85, 101), tail_85_plus[1])
+
+    # Single-row join check (spec v2 S11): age 18 reconstruction should be
+    # in the neighborhood of the value verified by hand during planning.
+    row18 = next(r for r in cycle["rows"] if r["age"] == 18)
+    if year == 2024 and not (4200 <= row18["cvap"] <= 4350):
+        raise ValueError(f"age-18 2024 CVAP {row18['cvap']} outside expected range [4200, 4350]")
 
 
-def under35_turnout(bins):
-    u_cvap = sum(bins[b]["cvap"] for b in UNDER35_BINS)
-    u_voted = sum(bins[b]["voted"] for b in UNDER35_BINS)
-    return round(100 * u_voted / u_cvap, 1)
+# ---------------------------------------------------------------------------
+# byDimension: education / income / race, CPS levels only (2024)
+# ---------------------------------------------------------------------------
+
+def parse_grouped_table(path, group_labels, block_marker="BOTH SEXES", total_label="Total"):
+    """Generic parser for CPS Table 5 (education) and similar tables with a
+    BOTH SEXES block, a "Total" row, then one row per group label. Column
+    indices per spec v2 S5.4 #4: 2 = total pop, 3 = citizen pop, 10 = voted."""
+    ws = load_sheet(path)
+    rows = list(ws.iter_rows(values_only=True))
+    markers = [i for i, r in enumerate(rows) if r[0] and str(r[0]).strip() == block_marker]
+    if not markers:
+        raise ValueError(f"{path.name}: no {block_marker} marker row found")
+    lo = markers[0]
+    hi = lo + 1
+    while hi < len(rows) and not (rows[hi][0] and str(rows[hi][0]).strip() and str(rows[hi][0]).strip() != block_marker):
+        hi += 1
+
+    total = None
+    out = {}
+    for r in rows[lo:hi]:
+        label_a = str(r[0] or "").strip()
+        label_b = str(r[1] or "").strip()
+        try:
+            total_pop, cit_pop, voted = float(r[2]), float(r[3]), float(r[10])
+        except (TypeError, ValueError):
+            continue
+        if label_a == block_marker and label_b == total_label:
+            total = (total_pop, cit_pop, voted)
+        elif label_b in group_labels:
+            out[label_b] = (total_pop, cit_pop, voted)
+
+    missing = [g for g in group_labels if g not in out]
+    if missing:
+        raise ValueError(f"{path.name}: missing groups {missing}")
+    return total, out
 
 
-def over65_turnout(bins):
-    return round(100 * bins["65+"]["voted"] / bins["65+"]["cvap"], 1)
+def parse_income_table(path, group_labels):
+    """CPS Table 7 has no BOTH SEXES marker - its top-level block is
+    "TOTAL 18 YEARS AND OVER" directly (family income is reported once,
+    not split by sex). Universe is family members only (spec v2 S8.4)."""
+    return parse_grouped_table(path, group_labels, block_marker="TOTAL 18 YEARS AND OVER")
 
 
-def welch_t_test(a, b):
-    """Welch's t-test for unequal-variance two-sample comparison (no scipy dependency)."""
-    n_a, n_b = len(a), len(b)
-    mean_a, mean_b = sum(a) / n_a, sum(b) / n_b
-    var_a = sum((x - mean_a) ** 2 for x in a) / (n_a - 1)
-    var_b = sum((x - mean_b) ** 2 for x in b) / (n_b - 1)
-    se = math.sqrt(var_a / n_a + var_b / n_b)
-    t = (mean_a - mean_b) / se
-    df = (var_a / n_a + var_b / n_b) ** 2 / (
-        (var_a / n_a) ** 2 / (n_a - 1) + (var_b / n_b) ** 2 / (n_b - 1)
-    )
-    return {"t": t, "df": df}
+def dimension_from_groups(total, group_rows, group_labels, avg_turnout=None):
+    """Builds a byDimension entry. If avg_turnout is None, uses this
+    dimension's own total votes/cvap (education, race - full-population
+    tables). Pass an explicit rate for restricted-universe tables (income)."""
+    rows = []
+    for label in group_labels:
+        total_pop, cit_pop, voted = group_rows[label]
+        rows.append({"group": label, "cvap": round(cit_pop, 1), "votes": round(voted, 1), "turnout": round(100 * voted / cit_pop, 1)})
+
+    if avg_turnout is None:
+        total_cvap, total_votes = total[1], total[2]
+        avg_turnout = 100 * total_votes / total_cvap
+    else:
+        total_cvap = sum(r["cvap"] for r in rows)
+
+    for r in rows:
+        r["expected"] = round(r["cvap"] * avg_turnout / 100, 1)
+        r["missing"] = round(r["votes"] - r["expected"], 1)
+
+    return {"avgTurnout": round(avg_turnout, 2), "rows": rows}
 
 
-def mean_reversion(levels, changes):
-    """OLS slope/intercept/r of change ~ starting level, for the never-mail
-    mean-reversion check (spec S8): does a state's 2016 gap level predict
-    its 2016->2024 change, absent any policy switch?"""
-    n = len(levels)
-    mean_x, mean_y = sum(levels) / n, sum(changes) / n
-    cov = sum((x - mean_x) * (y - mean_y) for x, y in zip(levels, changes))
-    var_x = sum((x - mean_x) ** 2 for x in levels)
-    var_y = sum((y - mean_y) ** 2 for y in changes)
-    b = cov / var_x
-    a = mean_y - b * mean_x
-    r = cov / math.sqrt(var_x * var_y)
-    return {"a": a, "b": b, "r": r}
+# ---------------------------------------------------------------------------
+# Colorado (Bonica, Grumbach, Hill & Jefferson 2021) - hardcoded citations
+# ---------------------------------------------------------------------------
+# Point estimates extracted by hand from the paper's appendix tables
+# (A4 income, A7 education, A8 race) and Table 1 (overall), 2026-09-16.
+# NOT reproduced from their figures - see spec v2 S4.3 on licensing.
+# The age breakdown (Figure 1) has no tabulated point estimates by
+# bracket, only the youngest-cohort headline figure quoted in the text -
+# see spec v2 S7.4. Do not invent bracket numbers to fill that gap.
+
+COLORADO = {
+    "citation": (
+        "Bonica, A., Grumbach, J.M., Hill, C., & Jefferson, H. (2021). "
+        "All-mail voting in Colorado increases turnout and reduces turnout "
+        "inequality. Electoral Studies, 72, 102363."
+    ),
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9756790/",
+    "license": (
+        "© 2021 Elsevier Ltd. Figures are not reproduced here; point "
+        "estimates were read from the paper's appendix tables (A4, A7, A8) "
+        "and Table 1, then redrawn in this story's own chart system."
+    ),
+    "overall": {"effectPp": 8.06, "sePp": 0.57},
+    "byDimension": {
+        "education": [
+            {"group": "Less than HS diploma", "effectPp": 8.53, "sePp": 0.75},
+            {"group": "HS diploma", "effectPp": 8.01, "sePp": 0.53},
+            {"group": "Some college", "effectPp": 8.03, "sePp": 0.62},
+            {"group": "Bachelor's degree", "effectPp": 7.36, "sePp": 0.56},
+            {"group": "Graduate degree", "effectPp": 5.88, "sePp": 0.50},
+        ],
+        "income": [
+            {"group": "$0–30K", "effectPp": 8.39, "sePp": 0.55},
+            {"group": "$30–60K", "effectPp": 8.30, "sePp": 0.60},
+            {"group": "$60–100K", "effectPp": 8.16, "sePp": 0.60},
+            {"group": "$100–150K", "effectPp": 7.84, "sePp": 0.64},
+            {"group": "$150K+", "effectPp": 7.21, "sePp": 0.65},
+        ],
+        "race": [
+            {"group": "White", "effectPp": 7.64, "sePp": 0.47},
+            {"group": "Latino", "effectPp": 8.83, "sePp": 1.68},
+            {"group": "Black", "effectPp": 9.27, "sePp": 0.82},
+            {"group": "Asian", "effectPp": 10.04, "sePp": 0.91},
+            {"group": "Other", "effectPp": 8.57, "sePp": 0.95},
+        ],
+    },
+    "age": {
+        "youngestCohortEffectPp": 10.1,
+        "youngestCohortLabel": "born after 1980",
+        "relativeIncreasePct": 26,
+        "shapeNote": (
+            "The effect trends smoothly down from the youngest cohorts "
+            "(born after 1980) toward those born around 1945, then "
+            "rebounds slightly among the oldest cohorts. The source "
+            "reports this shape via a continuous by-birth-year figure, "
+            "not a table of bracket point estimates - only the "
+            "youngest-cohort headline figure is a precise quote."
+        ),
+    },
+    "confounds": [
+        "Colorado adopted same-day registration at the same time as all-mail voting in 2013. "
+        "The authors exclude voters registered after 2010 to remove the direct SDR channel, "
+        "but concede a residual indirect effect (e.g. social pressure around Election Day).",
+        "n = 1 state, with unusually high baseline civic engagement - external validity to other states is untested.",
+        "A uniform turnout boost mechanically compresses relative inequality between groups, since low-turnout "
+        "groups start lower. The relevant claim is the differential across groups, not the uniform headline.",
+    ],
+}
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--skip-download", action="store_true",
-        help="Reuse cached workbooks in data/voter_age/ without re-fetching",
-    )
+    parser.add_argument("--skip-download", action="store_true", help="Reuse cached files in data/voter_age/ without re-fetching")
     args = parser.parse_args()
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    print("Fetching workbooks...")
-    table4c_paths = {}
+    print("Fetching source files...")
     table1_paths = {}
-    for year, is_pres, t1_file, t4c_file, p20_dir in CYCLES:
+    for year, p20_dir, filename in CYCLES:
+        dest_name = f"{year}_{filename}"
         if not args.skip_download:
-            table4c_paths[year] = download(year, t4c_file, p20_dir)
-            if t1_file:
-                table1_paths[year] = download(year, t1_file, p20_dir)
+            table1_paths[year] = download(dest_name, f"{CPS_BASE}/{p20_dir}/{filename}")
         else:
-            table4c_paths[year] = RAW_DIR / f"{year}_{t4c_file}"
-            if t1_file:
-                table1_paths[year] = RAW_DIR / f"{year}_{t1_file}"
+            table1_paths[year] = RAW_DIR / dest_name
 
-    print("Parsing Table 4c (state x age-bin) for all 5 cycles...")
-    table4c = {}  # year -> { jurisdiction -> { bin -> {cvap, voted, moeVoted} } }
-    for year, _, _, _, _ in CYCLES:
-        table4c[year] = parse_table4c(table4c_paths[year])
-        print(f"  {year}: {len(table4c[year])} jurisdictions OK")
+    race_paths = {}
+    for n, (key, _label) in RACE_VARIANTS.items():
+        filename = f"vote02_2024_{n}.xlsx"
+        dest_name = f"2024_{filename}"
+        if not args.skip_download:
+            race_paths[key] = download(dest_name, f"{CPS_BASE}/587/{filename}")
+        else:
+            race_paths[key] = RAW_DIR / dest_name
 
-    print("Parsing Table 1 (national single-year-of-age)...")
-    table1 = {}  # year -> [rows]
-    for year in table1_paths:
+    if not args.skip_download:
+        edu_path = download("2024_vote05_2024_1.xlsx", f"{CPS_BASE}/587/vote05_2024_1.xlsx")
+        income_path = download("2024_vote07_2024.xlsx", f"{CPS_BASE}/587/vote07_2024.xlsx")
+        pep_path = download("nc-est2024-agesex-res.csv", PEP_URL)
+    else:
+        edu_path = RAW_DIR / "2024_vote05_2024_1.xlsx"
+        income_path = RAW_DIR / "2024_vote07_2024.xlsx"
+        pep_path = RAW_DIR / "nc-est2024-agesex-res.csv"
+
+    print("Parsing CPS Table 1 (national, single year of age) x 2 cycles...")
+    table1 = {}
+    for year, _, _ in CYCLES:
         table1[year] = parse_table1(table1_paths[year])
-        print(f"  {year}: {len(table1[year])} single-year rows OK")
+        print(f"  {year}: {len(table1[year][0])} single-year rows + 2 tail buckets OK")
 
-    # --- nationalByYearOfAge: single years of age, every cycle Table 1 is
-    #     available for (2016/2020/2022/2024 - not 2018, see NOTE above).
-    #     Beat 2 uses 2022 (midterm) alongside 2024 (presidential) to show
-    #     the same over/under-representation curve gets more extreme in a
-    #     midterm; keyed by year so any future beat can pull another cycle
-    #     without another pipeline change. ---
-    national_by_year_of_age = {}
-    for year in table1:
-        rows = [dict(r) for r in table1[year]]
-        add_shares(rows)
-        national_by_year_of_age[str(year)] = rows
+    print("Parsing PEP (national population, single year of age)...")
+    pep_by_age = parse_pep(pep_path, [y for y, _, _ in CYCLES])
+    print(f"  {len(pep_by_age)} ages (18-100) x {len(CYCLES)} years OK")
 
-    # --- nationalByBin: 5-bin national series across all 5 cycles ---
-    national_by_bin = []
-    for year, is_pres, _, _, _ in CYCLES:
-        bins = table4c[year]["US"]
-        entry = {
-            "year": year,
-            "isPresidential": is_pres,
-            "bins": {b: dict(bins[b]) for b in ALL_BINS},
-            "under35Gap": under35_gap(bins),
-            "under35Turnout": under35_turnout(bins),
-            "over65Turnout": over65_turnout(bins),
-        }
-        for b in ALL_BINS:
-            cvap_total = sum(bins[x]["cvap"] for x in ALL_BINS)
-            voted_total = sum(bins[x]["voted"] for x in ALL_BINS)
-            entry["bins"][b]["shareElig"] = round(100 * bins[b]["cvap"] / cvap_total, 3)
-            entry["bins"][b]["shareVote"] = round(100 * bins[b]["voted"] / voted_total, 3)
-            entry["bins"][b]["turnout"] = round(100 * bins[b]["voted"] / bins[b]["cvap"], 1)
-        national_by_bin.append(entry)
+    print("Building byAge (PEP levels x CPS rates)...")
+    by_age = {}
+    for year, _, _ in CYCLES:
+        single_years, tail_80_84, tail_85_plus = table1[year]
+        rows = build_age_rows(single_years, tail_80_84, tail_85_plus, pep_by_age, year)
+        cycle = finalize_age_cycle(rows)
+        cps_cvap = sum(v[1] for v in single_years.values()) + tail_80_84[1] + tail_85_plus[1]
+        cps_votes = sum(v[2] for v in single_years.values()) + tail_80_84[2] + tail_85_plus[2]
+        validate_age_reconstruction(cycle, cps_cvap, cps_votes, single_years, tail_80_84, tail_85_plus, pep_by_age, year)
+        by_age[str(year)] = cycle
+        print(
+            f"  {year}: CVAP {cycle['totalCvap']:,.0f}k  votes {cycle['totalVotes']:,.0f}k  "
+            f"avg turnout {cycle['avgTurnout']}%  crossover age {cycle['crossoverAge']}"
+        )
 
-    # --- states: per-jurisdiction bins + gap for 2016/2020/2024 (presidential cycles,
-    #     the years beat 3/4's pooling and beat 4's DiD both use) ---
-    pooled_years = [2016, 2020, 2024]
-    all_jurisdictions = sorted(set(table4c[2024]) - {"US"})
-    states_out = []
-    for state in all_jurisdictions:
-        years_data = {}
-        gaps = []
-        for year in pooled_years:
-            bins = table4c[year].get(state)
-            if bins is None:
-                continue
-            gap = under35_gap(bins)
-            years_data[str(year)] = {
-                "bins": bins,
-                "under35Gap": gap,
-            }
-            gaps.append(gap)
-        moe_1824 = table4c[2024][state]["18-24"]["moeVoted"]
-        states_out.append({
-            "state": state,
-            "abbr": STATE_ABBR.get(state, "??"),
-            "years": years_data,
-            "under35GapPooled": round(sum(gaps) / len(gaps), 3) if gaps else None,
-            "under35Gap2024": years_data.get("2024", {}).get("under35Gap"),
-            "moeVoted1824_2024": moe_1824,
-            "mailStatus": MAIL_STATUS.get(state, "never"),
-        })
+    print("Parsing CPS Table 5 (education, 2024)...")
+    edu_total, edu_groups = parse_grouped_table(edu_path, EDUCATION_GROUPS)
+    education = dimension_from_groups(edu_total, edu_groups, EDUCATION_GROUPS)
+    print(f"  avg turnout {education['avgTurnout']}%  ({len(education['rows'])} groups)")
 
-    # --- derived: the harder statistical claims (beat 4), computed once here
-    #     as build-time constants rather than hand-typed into prose or
-    #     re-derived with an ad hoc JS routine in the frontend. ---
-    mail_2024 = [s["under35Gap2024"] for s in states_out if s["mailStatus"] in ("permanent-pre2016", "permanent-post2020")]
-    never_2024 = [s["under35Gap2024"] for s in states_out if s["mailStatus"] == "never"]
-    welch = welch_t_test(mail_2024, never_2024)
+    print("Parsing CPS Table 7 (family income, 2024)...")
+    income_total, income_groups = parse_income_table(income_path, INCOME_GROUPS)
+    income_avg = 100 * sum(income_groups[g][2] for g in INCOME_GROUPS) / sum(income_groups[g][1] for g in INCOME_GROUPS)
+    income = dimension_from_groups(income_total, income_groups, INCOME_GROUPS, avg_turnout=income_avg)
+    income_coverage_pct = 100 * sum(income_groups[g][1] for g in INCOME_GROUPS) / edu_total[1]
+    print(f"  restricted-universe avg turnout {income['avgTurnout']}%  coverage {income_coverage_pct:.1f}% of national CVAP")
+    if not (55 <= income_coverage_pct <= 65):
+        raise ValueError(f"income coverage {income_coverage_pct:.1f}% outside expected [55, 65]% - spec v2 S8.4 expects ~59.6%")
 
-    never_states = [s for s in states_out if s["mailStatus"] == "never"]
-    reversion = mean_reversion(
-        [s["years"]["2016"]["under35Gap"] for s in never_states],
-        [s["years"]["2024"]["under35Gap"] - s["years"]["2016"]["under35Gap"] for s in never_states],
-    )
-    always_pre2016 = [s for s in states_out if s["mailStatus"] == "permanent-pre2016"]
-    placebo_change = sum(
-        s["years"]["2024"]["under35Gap"] - s["years"]["2016"]["under35Gap"] for s in always_pre2016
-    ) / len(always_pre2016)
-    never_change = sum(
-        s["years"]["2024"]["under35Gap"] - s["years"]["2016"]["under35Gap"] for s in never_states
-    ) / len(never_states)
+    print("Parsing CPS Table 2 (race/ethnicity variants, 2024)...")
+    race_data = {}
+    race_all_total = None
+    for n, (key, label) in RACE_VARIANTS.items():
+        ws = load_sheet(race_paths[key])
+        rows = list(ws.iter_rows(values_only=True))
+        total_row = next(r for r in rows if r[0] == "BOTH SEXES" and str(r[1]).strip() == "Total 18 years and over")
+        total_pop, cit_pop, voted = float(total_row[2]), float(total_row[3]), float(total_row[10])
+        if key == "all":
+            race_all_total = (total_pop, cit_pop, voted)
+        else:
+            race_data[label] = (total_pop, cit_pop, voted)
 
-    nj = next(s for s in states_out if s["state"] == "NEW JERSEY")
-    mt = next(s for s in states_out if s["state"] == "MONTANA")
-    never_mean_by_year = {
-        y: sum(s["years"][y]["under35Gap"] for s in never_states) / len(never_states)
-        for y in ("2016", "2020", "2024")
-    }
-    derived = {
-        "mailCrossSection2024": {
-            "mailMean": round(sum(mail_2024) / len(mail_2024), 3),
-            "neverMean": round(sum(never_2024) / len(never_2024), 3),
-            "nMail": len(mail_2024),
-            "nNever": len(never_2024),
-            "welchT": round(welch["t"], 3),
-            "welchDf": round(welch["df"], 1),
-            "significant": abs(welch["t"]) > 2,
-        },
-        "meanReversionNeverMail": {
-            "intercept": round(reversion["a"], 3),
-            "slope": round(reversion["b"], 4),
-            "r": round(reversion["r"], 3),
-            "predictedImprovementAtAdopterStartingLevel": round(
-                reversion["a"] + reversion["b"] * sum(
-                    s["years"]["2016"]["under35Gap"]
-                    for s in states_out
-                    if s["mailStatus"] in ("covid-only",)
-                ) / max(1, len([s for s in states_out if s["mailStatus"] == "covid-only"])),
-                3,
-            ),
-        },
-        "placeboAlwaysMailPre2016": {
-            "statesChecked": [s["state"] for s in always_pre2016],
-            "meanChange2016to2024": round(placebo_change, 3),
-            "neverMailMeanChange2016to2024": round(never_change, 3),
-        },
-        "naturalExperiment": {
-            "neverMailMeanByYear": {y: round(v, 3) for y, v in never_mean_by_year.items()},
-            "newJersey": {
-                "gapByYear": {y: round(nj["years"][y]["under35Gap"], 3) for y in ("2016", "2020", "2024")},
-                "didOnSwitch2020": round(
-                    (nj["years"]["2020"]["under35Gap"] - nj["years"]["2016"]["under35Gap"])
-                    - (never_mean_by_year["2020"] - never_mean_by_year["2016"]), 3,
-                ),
-                "didOffSwitch2024": round(
-                    (nj["years"]["2024"]["under35Gap"] - nj["years"]["2020"]["under35Gap"])
-                    - (never_mean_by_year["2024"] - never_mean_by_year["2020"]), 3,
-                ),
-            },
-            "montana": {
-                "gapByYear": {y: round(mt["years"][y]["under35Gap"], 3) for y in ("2016", "2020", "2024")},
-                "didOnSwitch2020": round(
-                    (mt["years"]["2020"]["under35Gap"] - mt["years"]["2016"]["under35Gap"])
-                    - (never_mean_by_year["2020"] - never_mean_by_year["2016"]), 3,
-                ),
-                "didOffSwitch2024": round(
-                    (mt["years"]["2024"]["under35Gap"] - mt["years"]["2020"]["under35Gap"])
-                    - (never_mean_by_year["2024"] - never_mean_by_year["2020"]), 3,
-                ),
-            },
-        },
-    }
+    race_group_labels = [RACE_VARIANTS[n][1] for n in (3, 4, 5, 6)]
+    race_cvap = sum(race_data[g][1] for g in race_group_labels)
+    race_votes = sum(race_data[g][2] for g in race_group_labels)
+    residual_cvap = race_all_total[1] - race_cvap
+    residual_votes = race_all_total[2] - race_votes
+    race_data["Other / multiple races"] = (float("nan"), residual_cvap, residual_votes)
+    race_group_labels_with_residual = race_group_labels + ["Other / multiple races"]
+    race = dimension_from_groups((None, race_all_total[1], race_all_total[2]), race_data, race_group_labels_with_residual)
+    coverage_pct = 100 * race_cvap / race_all_total[1]
+    print(f"  named groups cover {coverage_pct:.1f}% of CVAP, residual {residual_cvap:,.0f}k")
+    if not (96 <= coverage_pct <= 99):
+        raise ValueError(f"race named-group coverage {coverage_pct:.1f}% outside expected [96, 99]% - spec v2 S8's ~98% assumption")
 
     output = {
-        "derived": derived,
         "meta": {
-            "source": "US Census Bureau, CPS November Voting and Registration Supplement",
-            "sourceUrls": [
-                f"https://www2.census.gov/programs-surveys/cps/tables/p20/{d}/"
-                for _, _, _, _, d in CYCLES
+            "sources": [
+                "US Census Bureau, CPS November Voting and Registration Supplement, Tables 1/2/5/7 (2022, 2024)",
+                "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age estimates",
+                COLORADO["citation"],
             ],
-            "retrieved": "2026-09-03",
-            "units": "thousands (cvap, voted); percentage points (gap fields); percent (turnout, share fields)",
+            "sourceUrls": [
+                f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
+            ] + [PEP_URL, COLORADO["url"]],
+            "retrieved": "2026-09-16",
+            "units": "thousands of people (cvap, votes, expected, missing); percent (turnout, avgTurnout); percentage points (effectPp, sePp)",
+            "construction": (
+                "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
+                "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "
+                "See spec v2 S5 for why levels come from PEP and rates from CPS."
+            ),
             "notes": [
-                "2018 Table 1 (single-year-of-age) is mislabeled at the source "
-                "(serves Table 1a, margins of error) and is excluded; Table 4c "
-                "for 2018 is unaffected and included normally.",
-                "Eligible population = citizen voting-age population (CVAP), "
-                "not total voting-age population, to avoid confounding the "
-                "age gap with non-citizen population share.",
-                "under35Gap = shareOfVotesCast(18-34) - shareOfEligible(18-34), "
-                "in percentage points. Negative = underrepresented.",
+                "Eligible population = citizen voting-age population (CVAP), not total voting-age "
+                "population, to avoid confounding any gap with non-citizen population share.",
+                "CPS turnout is self-reported and runs higher than certified results; the "
+                "overstatement is not perfectly uniform across groups, so treat exact percentage "
+                "points as approximate rather than exact.",
+                "Ages 80+ (byAge) use real single-year PEP population but a CPS turnout/citizen-"
+                "share rate pooled across the whole 80-84 or 85+ bucket, since CPS does not report "
+                "single years of age above 79 - flagged per-row as ratesPooled.",
+                "income's avgTurnout/expected/missing use its own restricted-universe average "
+                "(family members with reported income only, ~60% of national CVAP), not the "
+                "national rate - see spec v2 S8.4.",
             ],
         },
-        "nationalByYearOfAge": national_by_year_of_age,
-        "nationalByBin": national_by_bin,
-        "states": states_out,
+        "byAge": by_age,
+        "byDimension": {
+            "education": {"label": "Educational attainment", **education},
+            "income": {
+                "label": "Family income",
+                "note": (
+                    "Covers family members with reported income only - about 60% of the citizen "
+                    "voting-age population. Excluded people (living alone, unrelated individuals, "
+                    "income not reported) skew younger, poorer and lower-turnout, so the true "
+                    "gradient by income is probably steeper than shown here."
+                ),
+                **income,
+            },
+            "race": {"label": "Race / Hispanic origin", **race},
+        },
+        "colorado": COLORADO,
     }
 
     with open(OUT_PATH, "w") as f:
-        json.dump(output, f, indent=2)
+        json.dump(output, f, indent=2, allow_nan=False)
 
     print(f"\nWrote {OUT_PATH} ({OUT_PATH.stat().st_size / 1024:.0f} KB)")
-    print(f"  nationalByYearOfAge: {list(national_by_year_of_age.keys())}")
-    print(f"  nationalByBin: {len(national_by_bin)} cycles")
-    print(f"  states: {len(states_out)} jurisdictions")
 
 
 if __name__ == "__main__":

@@ -1,284 +1,118 @@
 import { useMemo } from "react";
-import AgeScatter, { type ScatterPoint, type GapBracket } from "./AgeScatter";
+import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import { useActiveStep } from "./useActiveStep";
-import { fmtM, fmtPct, fmtPP, findCrossoverAge, formatAgeLabel } from "./format";
-import type { VoterAgeData, SingleYearRow } from "./types";
+import { fmtM, fmtMSigned, fmtPct } from "./format";
+import type { VoterAgeData, AgeRow } from "./types";
 
-const STEP_COUNT = 8;
-const EXAMPLE_OLD_AGE = 70;
-const EXAMPLE_YOUNG_AGE = 20;
-// Oldest x-position in the dataset - the pooled "85+" row's representative
-// age (see generate_voter_age_data.py's OLD_AGE_REP), used only to
-// normalize the sequential color ramp.
-const MAX_AGE_FOR_COLOR = 87;
+const STEP_COUNT = 5;
 
-function seqT(age: number) {
-  return (age - 18) / (MAX_AGE_FOR_COLOR - 18);
-}
-
-function toPoint(row: SingleYearRow): ScatterPoint {
-  return { key: `age-${row.age}`, x: row.shareElig, y: row.shareVote, seqT: seqT(row.age), r: 4 };
+function toBarRow(row: AgeRow): PopulationBarRow {
+  return {
+    key: `age-${row.age}`,
+    x: row.age,
+    label: row.age === 100 ? "100+" : String(row.age),
+    cvap: row.cvap,
+    votes: row.votes,
+    expected: row.expected,
+    missing: row.missing,
+    turnout: row.turnout,
+    ratesPooled: row.ratesPooled,
+  };
 }
 
 export default function Beat1({ data }: { data: VoterAgeData }) {
   const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
-  const rows2024 = data.nationalByYearOfAge["2024"];
+  const cycle = data.byAge["2024"];
+  const rows = useMemo(() => cycle.rows.map(toBarRow), [cycle]);
 
-  const cycle2024 = data.nationalByBin.find((c) => c.year === 2024)!;
-  const crossoverAge = useMemo(() => findCrossoverAge(rows2024), [rows2024]);
+  const under35 = cycle.rows.filter((r) => r.age < 35);
+  const over65 = cycle.rows.filter((r) => r.age >= 65);
+  const under35Missing = under35.reduce((s, r) => s + r.missing, 0);
+  const over65Missing = over65.reduce((s, r) => s + r.missing, 0);
 
-  const oldRow = rows2024.find((r) => r.age === EXAMPLE_OLD_AGE)!;
-  const youngRow = rows2024.find((r) => r.age === EXAMPLE_YOUNG_AGE)!;
-  const oldGap = oldRow.shareVote - oldRow.shareElig;
-  const youngGap = youngRow.shareVote - youngRow.shareElig;
+  const age25 = cycle.rows.find((r) => r.age === 25)!;
+  const age75 = cycle.rows.find((r) => r.age === 75)!;
 
-  // A domain that comfortably fits both example points - used from the
-  // very first (empty) frame onward, so the axes never jump when the
-  // first point appears; steps a-d then share this one frame instead of
-  // rescaling as the second point (and later the transform) appears.
-  const exampleDomain = useMemo((): [number, number] => {
-    const values = [oldRow.shareElig, oldRow.shareVote, youngRow.shareElig, youngRow.shareVote];
-    const lo = Math.min(...values);
-    const hi = Math.max(...values);
-    const pad = (hi - lo) * 0.3;
-    return [Math.max(0, lo - pad), hi + pad];
-  }, [oldRow, youngRow]);
-
-  // Full single-year gap dataset + a stable age/gap domain, computed once
-  // so the axes don't rescale again between the transform step and the
-  // full reveal - only the dots appear.
-  const allGapPoints = useMemo(
-    () =>
-      rows2024.map((row) => ({
-        key: `age-${row.age}`,
-        age: row.age,
-        gap: row.shareVote - row.shareElig,
-        ageMin: row.ageMin,
-        ageMax: row.ageMax,
-      })),
-    [rows2024]
+  const tooltipFor = (row: PopulationBarRow) => (
+    <>
+      <div className="voa-tooltip__head">Age {row.label}{row.ratesPooled ? " (rate shared across 80-84/85+)" : ""}</div>
+      {fmtM(row.cvap)} eligible · {fmtM(row.votes)} voted ({fmtPct(row.turnout)})
+      <br />
+      Expected at {fmtPct(cycle.avgTurnout)}: {fmtM(row.expected)}
+      <div className="voa-tooltip__note">{fmtMSigned(row.missing)} vs. proportional</div>
+    </>
   );
-  const gapXDomain = useMemo((): [number, number] => {
-    // Include band edges (not just the representative age) so the "85+"
-    // oval isn't clipped at the right edge of the chart.
-    const ages = allGapPoints.flatMap((p) =>
-      p.ageMax != null ? [p.age, p.ageMin!, p.ageMax] : [p.age]
-    );
-    return [Math.min(...ages) - 3, Math.max(...ages) + 3];
-  }, [allGapPoints]);
-  const gapYDomain = useMemo((): [number, number] => {
-    const gaps = allGapPoints.map((p) => p.gap);
-    const lo = Math.min(...gaps);
-    const hi = Math.max(...gaps);
-    const pad = (hi - lo) * 0.15;
-    return [lo - pad, hi + pad];
-  }, [allGapPoints]);
-
-  const oldGapPoint: ScatterPoint = { key: `age-${EXAMPLE_OLD_AGE}`, x: EXAMPLE_OLD_AGE, y: oldGap, seqT: seqT(EXAMPLE_OLD_AGE), r: 7 };
-  const youngGapPoint: ScatterPoint = { key: `age-${EXAMPLE_YOUNG_AGE}`, x: EXAMPLE_YOUNG_AGE, y: youngGap, seqT: seqT(EXAMPLE_YOUNG_AGE), r: 7 };
-  const allGapScatterPoints: ScatterPoint[] = allGapPoints.map((p) => ({
-    key: p.key,
-    x: p.age,
-    y: p.gap,
-    seqT: seqT(p.age),
-    r: 4,
-    band: p.ageMax != null ? ([p.ageMin!, p.ageMax] as [number, number]) : undefined,
-  }));
-
-  const oldPoint = toPoint(oldRow);
-  const youngPoint = toPoint(youngRow);
-
-  // ---- Per-step content ----
-  let points: ScatterPoint[] = [];
-  let gapBrackets: GapBracket[] | undefined;
-  let mode: "proportional" | "gap" = "proportional";
-
-  if (step === 0) {
-    points = [];
-  } else if (step === 1) {
-    points = [oldPoint];
-  } else if (step === 2) {
-    points = [oldPoint];
-    gapBrackets = [
-      { x: oldRow.shareElig, y: oldRow.shareVote, label: `+${oldGap.toFixed(2)}pp overrepresented` },
-    ];
-  } else if (step === 3) {
-    points = [oldPoint, youngPoint];
-    gapBrackets = [
-      { x: oldRow.shareElig, y: oldRow.shareVote, label: `+${oldGap.toFixed(2)}pp overrepresented` },
-    ];
-  } else if (step === 4) {
-    points = [oldPoint, youngPoint];
-    gapBrackets = [
-      { x: oldRow.shareElig, y: oldRow.shareVote, label: `+${oldGap.toFixed(2)}pp overrepresented` },
-      { x: youngRow.shareElig, y: youngRow.shareVote, label: `${youngGap.toFixed(2)}pp underrepresented` },
-    ];
-  } else if (step === 5) {
-    mode = "gap";
-    points = [oldGapPoint, youngGapPoint];
-  } else {
-    mode = "gap";
-    points = allGapScatterPoints;
-  }
-
-  const crossoverAnnotation =
-    step >= 6 && crossoverAge != null
-      ? {
-          x: crossoverAge,
-          y: allGapPoints.find((p) => p.age === crossoverAge)?.gap ?? 0,
-          text: `~age ${crossoverAge}: crossover`,
-          dx: 14,
-          dy: -18,
-        }
-      : null;
-
-  const under35 = cycle2024.bins["18-24"].voted + cycle2024.bins["25-34"].voted;
-  const over65 = cycle2024.bins["65+"].voted;
-
-  const rowForPoint = (p: ScatterPoint) => rows2024.find((r) => `age-${r.age}` === p.key);
-
-  const bucketNote = (row: SingleYearRow) =>
-    row.approxFromBucket ? (
-      <div className="voa-tooltip__note">Census pools ages 80–84; this is that bucket's average</div>
-    ) : null;
-
-  const tooltipProportional = (p: ScatterPoint) => {
-    const row = rowForPoint(p);
-    if (!row) return null;
-    return (
-      <>
-        <div className="voa-tooltip__head">{formatAgeLabel(row)}</div>
-        <div>Eligible: <strong>{fmtPct(row.shareElig)}</strong></div>
-        <div>Votes cast: <strong>{fmtPct(row.shareVote)}</strong></div>
-        <div>Gap: <strong>{fmtPP(row.shareVote - row.shareElig)}</strong></div>
-        {bucketNote(row)}
-      </>
-    );
-  };
-
-  const tooltipGap = (p: ScatterPoint) => {
-    const row = rowForPoint(p);
-    if (!row) return null;
-    return (
-      <>
-        <div className="voa-tooltip__head">{formatAgeLabel(row)}</div>
-        <div>Gap: <strong>{fmtPP(p.y)}</strong></div>
-        <div>Turnout: <strong>{fmtPct(row.turnout)}</strong></div>
-        {bucketNote(row)}
-      </>
-    );
-  };
 
   return (
     <section className="voa-beat">
-      <h2 className="voa-beat-title">Beat 1 — Turnout by age</h2>
+      <h2 className="voa-beat-title">1. The shape of the electorate</h2>
       <div className="voa-scrolly">
         <div className="voa-scrolly-viz">
-          {mode === "proportional" ? (
-            <AgeScatter
-              points={points}
-              fixedDomain={exampleDomain}
-              gapBrackets={gapBrackets}
-              tooltipFor={tooltipProportional}
-            />
-          ) : (
-            <AgeScatter
-              points={points}
-              xDomain={gapXDomain}
-              yDomain={gapYDomain}
-              xLabel="Age"
-              yLabel="Over/under representation (pp)"
-              xTickFormat={(d) => `${d}`}
-              yTickFormat={(d) => fmtPP(d, 1)}
-              annotation={crossoverAnnotation}
-              defaultRadius={4}
-              tooltipFor={tooltipGap}
-            />
-          )}
+          <PopulationBars
+            rows={rows}
+            xKind="age"
+            xLabel="Age"
+            yLabel="People (millions)"
+            showTrack
+            showVotes={step >= 1}
+            showExpected={step >= 2}
+            signColor={step >= 3}
+            tooltipFor={tooltipFor}
+          />
         </div>
         <div className="voa-scrolly-steps">
           <div className="voa-step" ref={setStepRef(0)}>
             <div className="voa-step-inner">
-              <h3>One person, one vote — but not one turnout rate</h3>
+              <h3>Every bar is one year of age</h3>
               <p>
-                If every age group voted at the same rate, its dot would land exactly on this
-                dashed line: its share of votes cast would match its share of eligible voters.
+                The light bar is how many citizens of that age were eligible to vote in 2024. There are more
+                25-year-olds ({fmtM(age25.cvap)} eligible) than 75-year-olds ({fmtM(age75.cvap)}) — the population
+                just gets thinner with age, the way it does in most rich countries.
               </p>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(1)}>
             <div className="voa-step-inner">
-              <h3>Start with one age</h3>
+              <h3>Now add who actually voted</h3>
               <p>
-                Here's a single point: {EXAMPLE_OLD_AGE}-year-olds in the 2024 election. They're{" "}
-                <strong>{fmtPct(oldRow.shareElig)}</strong> of eligible citizens, and cast{" "}
-                <strong>{fmtPct(oldRow.shareVote)}</strong> of votes.
+                The solid bar is votes cast. It's shorter than the light bar everywhere — turnout is never 100% — but
+                not by the same amount at every age. Watch how much of the light bar the solid one covers as you move
+                left to right.
               </p>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(2)}>
             <div className="voa-step-inner">
-              <h3>Above the line</h3>
+              <h3>The dotted line is what "fair" would look like</h3>
               <p>
-                That point sits above the dashed line. The gap between them —{" "}
-                <strong>{fmtPP(oldGap)}</strong> — is overrepresentation: {EXAMPLE_OLD_AGE}
-                -year-olds cast a slightly larger share of votes than their share of the
-                population.
+                It traces what each age's vote bar would reach if every age voted at the national average,{" "}
+                {fmtPct(cycle.avgTurnout)}. Since it's just each bar's population scaled by one number, the dotted
+                line has the same shape as the population curve itself.
               </p>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(3)}>
             <div className="voa-step-inner">
-              <h3>Now a younger age</h3>
+              <h3>Below the line, above the line</h3>
               <p>
-                Here's a {EXAMPLE_YOUNG_AGE}-year-old: <strong>{fmtPct(youngRow.shareElig)}</strong>{" "}
-                of eligible citizens, only <strong>{fmtPct(youngRow.shareVote)}</strong> of votes.
+                Color the bars by whether they clear that line. Red bars voted less than their share of the
+                population would predict; green bars voted more. The switch happens around age {cycle.crossoverAge}{" "}
+                — not a hard cutoff, turnout dips back under a few more times before settling above for good, but
+                that's roughly where the electorate stops skewing young and starts skewing old.
               </p>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(4)}>
             <div className="voa-step-inner">
-              <h3>Below the line</h3>
+              <h3>In votes, not percentages</h3>
               <p>
-                This point sits below the line: <strong>{fmtPP(youngGap)}</strong> of
-                underrepresentation. Same line, same units, opposite direction.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(5)}>
-            <div className="voa-step-inner">
-              <h3>Make the gap the whole chart</h3>
-              <p>
-                That vertical distance — how far above or below the line each point sits — is the
-                real story. Let's put it on its own axis: age across the bottom, over- or
-                underrepresentation in percentage points up and down.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(6)}>
-            <div className="voa-step-inner">
-              <h3>Every age, all at once</h3>
-              <p>
-                Here's every single year of age, 18 through 79, each one individually reported.
-                From 80 on, the Census data gets coarser: 80–84 shown at that bucket's average
-                (hover to see), 85+ pooled into one point. Somewhere around{" "}
-                <strong>age {crossoverAge ?? "40"}</strong>, the line crosses zero — below it
-                you're outnumbered relative to your share of the electorate; above it, you're
-                overrepresented.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(7)}>
-            <div className="voa-step-inner">
-              <h3>In raw votes</h3>
-              <p>
-                People 65 and older cast <strong>{fmtM(over65)}</strong> votes in 2024. Everyone
-                under 35, combined, cast <strong>{fmtM(under35)}</strong> — despite being the
-                larger group of eligible voters.
+                Sum the gaps on each side of that line. Everyone under 35 cast <strong>{fmtM(Math.abs(under35Missing))}
+                {" "}fewer</strong> votes than proportional turnout would have given them. Everyone 65 and older cast{" "}
+                <strong>{fmtM(over65Missing)} more</strong>.
               </p>
               <div className="voa-callout">
-                <strong>{fmtM(over65)}</strong> votes from 65+ vs. <strong>{fmtM(under35)}</strong>{" "}
-                from everyone 18–34.
+                <strong>{fmtMSigned(under35Missing)}</strong> under 35 · <strong>{fmtMSigned(over65Missing)}</strong>{" "}
+                age 65+, relative to a same-turnout-for-everyone electorate.
               </div>
             </div>
           </div>

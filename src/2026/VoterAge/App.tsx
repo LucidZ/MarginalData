@@ -28,13 +28,12 @@ export default function App() {
   return (
     <div className="voa-root">
       <header className="voa-header">
-        <h1>The Electorate Is Older Than the Country</h1>
+        <h1>The Shape of the Electorate</h1>
         <p className="voa-intro">
-          Voting is one person, one vote — but turnout isn't age-neutral, so the electorate that
-          actually shows up skews older than the population that's eligible to vote. Using five
-          election cycles of Census Bureau survey data, here's how large that gap is, where it
-          shows up, and whether the policy usually proposed to close it — mail-in voting —
-          actually does.
+          Voting is one person, one vote — but turnout isn't uniform, so the electorate that actually shows up isn't
+          a scale model of the country. Using Census Bureau survey data and real population counts, here's who's
+          missing, when it's worst, which traits it shows up on besides age, and the one place a policy change has
+          been shown to narrow it.
         </p>
       </header>
 
@@ -44,15 +43,20 @@ export default function App() {
       <Beat4 data={data} />
 
       <footer className="voa-sources">
-        <strong>Source:</strong> {data.meta.source}, 2016/2018/2020/2022/2024 cycles.{" "}
+        <strong>Sources:</strong>
+        <ul className="voa-source-list">
+          {data.meta.sources.map((s, i) => (
+            <li key={i}>{s}</li>
+          ))}
+        </ul>
+        Eligible population = citizen voting-age population, not total voting-age population, so the gaps here
+        aren't confounded with non-citizen population share.{" "}
         <a href="https://www.census.gov/topics/public-sector/voting.html" target="_blank" rel="noopener noreferrer">
           [Census methodology]
         </a>
-        . Eligible population = citizen voting-age population, not total voting-age population.
-        CPS turnout is self-reported and runs higher than certified results (the 2024 U.S. total
-        here is 65.3% vs. an actual ~63.9% VEP turnout) — this affects levels more than the
-        shares and gaps this story is built on, but overreporting isn't perfectly uniform across
-        age groups, so treat exact percentage points as approximate.{" "}
+        . CPS turnout is self-reported and runs higher than certified results — this affects levels more than the
+        gaps this story is built on, but overreporting isn't perfectly uniform across groups, so treat exact
+        percentage points as approximate.{" "}
         <a
           href="https://www.electproject.org/election-data/cps-vote-over-report-and-non-response-bias-correction"
           target="_blank"
@@ -61,13 +65,11 @@ export default function App() {
           [More on CPS overreporting]
         </a>
         <br />
-        Mail-in voting classification (all-mail states, adoption dates, and the 2020
-        COVID-era reversions) from Ballotpedia and the MIT Election Lab, verified 2026-09-03.
+        Population by single year of age is from the Census Population Estimates Program (PEP), combined with CPS
+        turnout and citizen-share rates — see {data.meta.construction}
         <br />
-        Retrieved {data.meta.retrieved}. Full derivation, guardrails, and known data quirks
-        (including a mislabeled 2018 Census file) documented in{" "}
-        <code>.claude/voter-age-spec.md</code> and{" "}
-        <code>scripts/generate_voter_age_data.py</code>.
+        Retrieved {data.meta.retrieved}. Full derivation, guardrails and known data quirks documented in{" "}
+        <code>.claude/voter-age-spec-v2.md</code> and <code>scripts/generate_voter_age_data.py</code>.
       </footer>
     </div>
   );

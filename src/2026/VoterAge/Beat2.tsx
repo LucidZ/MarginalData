@@ -1,179 +1,133 @@
 import { useMemo } from "react";
-import AgeScatter, { type ScatterPoint, type ScatterAnnotation } from "./AgeScatter";
+import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import { useActiveStep } from "./useActiveStep";
-import { fmtPct, fmtPP, formatAgeLabel } from "./format";
-import type { VoterAgeData, SingleYearRow } from "./types";
+import { fmtM, fmtMSigned, fmtPct } from "./format";
+import type { VoterAgeData, AgeRow } from "./types";
 
-const STEP_COUNT = 4;
-const MIDTERM_YEAR = "2022";
-const PRES_YEAR = "2024";
+const STEP_COUNT = 3;
+const COMPARE_AGES = [18, 22, 65, 79];
 
-function toGapPoints(rows: SingleYearRow[], year: string, colorClass: string): ScatterPoint[] {
-  return rows.map((row) => ({
-    key: `${year}-age-${row.age}`,
+function toBarRow(row: AgeRow): PopulationBarRow {
+  return {
+    key: `age-${row.age}`,
     x: row.age,
-    y: row.shareVote - row.shareElig,
-    seqT: 0,
-    r: 3,
-    colorClass,
-    band: row.ageMax != null ? ([row.ageMin!, row.ageMax] as [number, number]) : undefined,
-  }));
+    label: row.age === 100 ? "100+" : String(row.age),
+    cvap: row.cvap,
+    votes: row.votes,
+    expected: row.expected,
+    missing: row.missing,
+    turnout: row.turnout,
+    ratesPooled: row.ratesPooled,
+  };
+}
+
+function missingSum(rows: AgeRow[], test: (age: number) => boolean) {
+  return rows.filter((r) => test(r.age)).reduce((s, r) => s + r.missing, 0);
 }
 
 export default function Beat2({ data }: { data: VoterAgeData }) {
   const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
+  const cycle2024 = data.byAge["2024"];
+  const cycle2022 = data.byAge["2022"];
 
-  const rowsPres = data.nationalByYearOfAge[PRES_YEAR];
-  const rowsMid = data.nationalByYearOfAge[MIDTERM_YEAR];
+  const rows2024 = useMemo(() => cycle2024.rows.map(toBarRow), [cycle2024]);
+  const rows2022 = useMemo(() => cycle2022.rows.map(toBarRow), [cycle2022]);
+  const activeRows = step === 0 ? rows2024 : rows2022;
 
-  const presPoints = useMemo(() => toGapPoints(rowsPres, PRES_YEAR, "voa-cat-pres"), [rowsPres]);
-  const midPoints = useMemo(() => toGapPoints(rowsMid, MIDTERM_YEAR, "voa-cat-mid"), [rowsMid]);
-
-  // Stable domain from both years combined, so the axes don't rescale
-  // when the midterm curve is added in step 1 - only the second line
-  // appears. Includes band edges (not just the representative age) so
-  // the "85+" oval isn't clipped at the right edge of the chart.
-  const xDomain = useMemo((): [number, number] => {
-    const ages = [...rowsPres, ...rowsMid].flatMap((r) =>
-      r.ageMax != null ? [r.age, r.ageMin!, r.ageMax] : [r.age]
-    );
-    return [Math.min(...ages) - 3, Math.max(...ages) + 3];
-  }, [rowsPres, rowsMid]);
   const yDomain = useMemo((): [number, number] => {
-    const gaps = [...rowsPres, ...rowsMid].map((r) => r.shareVote - r.shareElig);
-    const lo = Math.min(...gaps);
-    const hi = Math.max(...gaps);
-    const pad = (hi - lo) * 0.15;
-    return [lo - pad, hi + pad];
-  }, [rowsPres, rowsMid]);
+    const maxCvap = Math.max(...cycle2024.rows.map((r) => r.cvap), ...cycle2022.rows.map((r) => r.cvap));
+    return [0, maxCvap * 1.08];
+  }, [cycle2024, cycle2022]);
 
-  const gapOf = (row: SingleYearRow) => row.shareVote - row.shareElig;
-  const youngestPres = rowsPres.find((r) => r.age === Math.min(...rowsPres.map((x) => x.age)))!;
-  const youngestMid = rowsMid.find((r) => r.age === Math.min(...rowsMid.map((x) => x.age)))!;
-  // The peak (max-gap) row - found by actual value rather than assumed,
-  // since it isn't the oldest age: the curve rises unevenly through the
-  // 40s-60s, peaks in the high 60s, then eases off toward the oldest ages
-  // (see Beat 1's full reveal).
-  const peakPres = rowsPres.reduce((a, b) => (gapOf(b) > gapOf(a) ? b : a));
-  const peakMid = rowsMid.reduce((a, b) => (gapOf(b) > gapOf(a) ? b : a));
+  const under35Missing2024 = missingSum(cycle2024.rows, (a) => a < 35);
+  const under35Missing2022 = missingSum(cycle2022.rows, (a) => a < 35);
 
-  const points = step === 0 ? presPoints : [...presPoints, ...midPoints];
+  const compareRows = COMPARE_AGES.map((age) => ({
+    age,
+    t2024: cycle2024.rows.find((r) => r.age === age)!.turnout,
+    t2022: cycle2022.rows.find((r) => r.age === age)!.turnout,
+  }));
 
-  const extremeAnnotations: ScatterAnnotation[] =
-    step >= 2
-      ? [
-          {
-            x: youngestMid.age,
-            y: gapOf(youngestMid),
-            text: `${formatAgeLabel(youngestMid).toLowerCase()}: ${fmtPP(gapOf(youngestMid))} in ${MIDTERM_YEAR}`,
-            dx: 16,
-            dy: -30,
-          },
-          {
-            x: peakMid.age,
-            y: gapOf(peakMid),
-            text: `${formatAgeLabel(peakMid).toLowerCase()}: ${fmtPP(gapOf(peakMid))} in ${MIDTERM_YEAR}`,
-            dx: -16,
-            dy: 24,
-          },
-        ]
-      : [];
-
-  const cyclePres = data.nationalByBin.find((c) => String(c.year) === PRES_YEAR)!;
-  const cycleMid = data.nationalByBin.find((c) => String(c.year) === MIDTERM_YEAR)!;
-
-  const rowForPoint = (p: ScatterPoint) => {
-    const [year, , ageStr] = p.key.split("-");
-    return data.nationalByYearOfAge[year].find((r) => r.age === Number(ageStr));
-  };
-  const tooltipFor = (p: ScatterPoint) => {
-    const row = rowForPoint(p);
-    if (!row) return null;
-    const year = p.key.split("-")[0];
-    return (
-      <>
-        <div className="voa-tooltip__head">{formatAgeLabel(row)} · {year}</div>
-        <div>Gap: <strong>{fmtPP(p.y)}</strong></div>
-        <div>Turnout: <strong>{fmtPct(row.turnout)}</strong></div>
-        {row.approxFromBucket && (
-          <div className="voa-tooltip__note">Census pools ages 80–84; this is that bucket's average</div>
-        )}
-      </>
-    );
-  };
+  const tooltipFor = (row: PopulationBarRow) => (
+    <>
+      <div className="voa-tooltip__head">Age {row.label}</div>
+      {fmtM(row.cvap)} eligible · {fmtM(row.votes)} voted ({fmtPct(row.turnout)})
+      <div className="voa-tooltip__note">{fmtMSigned(row.missing)} vs. proportional</div>
+    </>
+  );
 
   return (
     <section className="voa-beat">
-      <h2 className="voa-beat-title">Beat 2 — Midterms make it worse</h2>
+      <h2 className="voa-beat-title">2. Midterms make it worse</h2>
       <div className="voa-scrolly">
         <div className="voa-scrolly-viz">
-          <AgeScatter
-            points={points}
-            xDomain={xDomain}
-            yDomain={yDomain}
+          <PopulationBars
+            rows={activeRows}
+            xKind="age"
             xLabel="Age"
-            yLabel="Over/under representation (pp)"
-            xTickFormat={(d) => `${d}`}
-            yTickFormat={(d) => fmtPP(d, 1)}
-            connectLines
-            annotations={extremeAnnotations}
+            yLabel="People (millions)"
+            showTrack
+            showVotes
+            showExpected
+            signColor
+            yDomain={yDomain}
             tooltipFor={tooltipFor}
-            defaultRadius={3}
           />
-          <div className="voa-legend">
-            <span className="voa-legend-swatch voa-cat-pres" />
-            <span>2024 (presidential)</span>
-            <span className="voa-legend-swatch voa-cat-mid" />
-            <span>2022 (midterm)</span>
-          </div>
         </div>
         <div className="voa-scrolly-steps">
           <div className="voa-step" ref={setStepRef(0)}>
             <div className="voa-step-inner">
-              <h3>Here's 2024 again</h3>
+              <h3>No president on the ballot</h3>
               <p>
-                Same curve as before: over/under-representation by age, in the 2024 presidential
-                election. Now let's compare it to a midterm.
+                This is the same 2024 chart from beat one. In a midterm election — no presidential race — turnout
+                drops for everyone. The question is whether it drops evenly.
               </p>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(1)}>
             <div className="voa-step-inner">
-              <h3>Overlay 2022</h3>
+              <h3>2022: watch both quantities fall</h3>
               <p>
-                Here's the same curve for 2022 — a midterm, no presidential race on the ballot.
-                It follows the same shape, but swings further at both ends.
+                Both the bars and the dotted "fair" line drop, because the dotted line is set to <em>that year's</em>{" "}
+                average turnout ({fmtPct(cycle2022.avgTurnout)}, down from {fmtPct(cycle2024.avgTurnout)}). What
+                doesn't scale down evenly is how far short of the line the young bars fall.
               </p>
+              <div className="voa-callout">
+                Under-35 shortfall: <strong>{fmtMSigned(under35Missing2024)}</strong> in 2024 →{" "}
+                <strong>{fmtMSigned(under35Missing2022)}</strong> in 2022.
+              </div>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(2)}>
             <div className="voa-step-inner">
-              <h3>Both ends stretch</h3>
+              <h3>The young nearly stop showing up; the old barely notice</h3>
+              <p>Turnout by single year of age, presidential vs. midterm:</p>
+              <table className="voa-compare-table">
+                <thead>
+                  <tr>
+                    <th>Age</th>
+                    <th>2024</th>
+                    <th>2022</th>
+                    <th>Change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {compareRows.map((r) => (
+                    <tr key={r.age}>
+                      <td>{r.age}</td>
+                      <td>{fmtPct(r.t2024)}</td>
+                      <td>{fmtPct(r.t2022)}</td>
+                      <td className={r.t2022 - r.t2024 < -10 ? "voa-compare-big-drop" : ""}>
+                        {(r.t2022 - r.t2024).toFixed(1)}pp
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               <p>
-                At age {youngestMid.age}, the gap is <strong>{fmtPP(gapOf(youngestMid))}</strong> in
-                2022 versus <strong>{fmtPP(gapOf(youngestPres))}</strong> in 2024. It peaks in the
-                high 60s — age {peakMid.age} in 2022 (<strong>{fmtPP(gapOf(peakMid))}</strong>),
-                age {peakPres.age} in 2024 (<strong>{fmtPP(gapOf(peakPres))}</strong>) — before
-                easing off toward the oldest ages. Same direction, bigger swing in the midterm.
+                An 18-year-old's turnout is nearly cut in half. A 79-year-old's barely moves. Older voters show up
+                regardless of what's on the ballot; younger voters mostly show up for president.
               </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(3)}>
-            <div className="voa-step-inner">
-              <h3>Older voters barely notice</h3>
-              <p>
-                65+ turnout barely moved between these two elections:{" "}
-                <strong>{fmtPct(cyclePres.over65Turnout)}</strong> in 2024 vs.{" "}
-                <strong>{fmtPct(cycleMid.over65Turnout)}</strong> in 2022. Under-35 turnout
-                collapsed: <strong>{fmtPct(cyclePres.under35Turnout)}</strong> down to{" "}
-                <strong>{fmtPct(cycleMid.under35Turnout)}</strong>. Older voters show up
-                regardless; younger voters mostly show up for presidents.
-              </p>
-              <div className="voa-callout">
-                In 2022, 65+ turnout ({fmtPct(cycleMid.over65Turnout)}) was{" "}
-                <strong>{(cycleMid.over65Turnout / cycleMid.under35Turnout).toFixed(2)}x</strong>{" "}
-                under-35 turnout ({fmtPct(cycleMid.under35Turnout)}).
-              </div>
             </div>
           </div>
         </div>

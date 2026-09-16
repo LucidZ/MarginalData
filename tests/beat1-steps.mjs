@@ -14,7 +14,7 @@ const box = await page.evaluate(() => {
 });
 const viewportH = 900;
 const scrollable = box.height - viewportH;
-const STEPS = 8;
+const STEPS = 5; // Beat1.tsx STEP_COUNT
 for (let i = 0; i < STEPS; i++) {
   const frac = (i + 0.5) / STEPS;
   await page.evaluate((y) => window.scrollTo(0, y), box.top + scrollable * frac);

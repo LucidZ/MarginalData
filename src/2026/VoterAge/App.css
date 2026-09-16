@@ -13,14 +13,6 @@
   --diverge-bad: #e34948;
   --border: rgba(11, 11, 11, 0.1);
 
-  /* Sequential blue ramp, light->dark, 7 buckets (see colorScales.ts) */
-  --voa-seq-0: #cde2fb;
-  --voa-seq-1: #b0cff8;
-  --voa-seq-2: #8fbaf1;
-  --voa-seq-3: #6da7ec;
-  --voa-seq-4: #4a90e0;
-  --voa-seq-5: #2a78d6;
-  --voa-seq-6: #184f95;
 
   max-width: 900px;
   margin: 0 auto;
@@ -46,13 +38,6 @@
     --diverge-bad: #e66767;
     --border: rgba(255, 255, 255, 0.1);
 
-    --voa-seq-0: #cde2fb;
-    --voa-seq-1: #a8c8f5;
-    --voa-seq-2: #83aeee;
-    --voa-seq-3: #6da7ec;
-    --voa-seq-4: #5896e6;
-    --voa-seq-5: #3987e5;
-    --voa-seq-6: #256abf;
   }
 }
 
@@ -70,14 +55,6 @@
   --series-3: #199e70;
   --diverge-bad: #e66767;
   --border: rgba(255, 255, 255, 0.1);
-
-  --voa-seq-0: #cde2fb;
-  --voa-seq-1: #a8c8f5;
-  --voa-seq-2: #83aeee;
-  --voa-seq-3: #6da7ec;
-  --voa-seq-4: #5896e6;
-  --voa-seq-5: #3987e5;
-  --voa-seq-6: #256abf;
 }
 
 /* ---------- Header ---------- */
@@ -187,12 +164,12 @@
   }
 }
 
-/* ---------- AgeScatter ---------- */
+/* ---------- Shared chart surface / axes ---------- */
 .voa-chart-surface {
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0.5rem;
+  padding: 0.5rem 0.5rem 0.7rem;
 }
 .voa-axis path,
 .voa-axis line {
@@ -206,149 +183,207 @@
   fill: var(--text-secondary);
   font-size: 12px;
 }
-.voa-diagonal {
-  stroke: var(--baseline);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 3;
-  fill: none;
-}
-.voa-dot {
-  stroke: var(--surface-1);
-  stroke-width: 1;
-  pointer-events: none; /* the invisible .voa-dot-hit overlay owns interaction */
-}
-.voa-dot-hit {
-  fill: transparent;
-  pointer-events: all; /* explicit - don't rely on fill:transparent alone counting as "painted" */
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.voa-band {
-  stroke-width: 1.5;
-  stroke-dasharray: 3 2;
-  fill-opacity: 0.5;
-}
-.voa-dot-label {
-  fill: var(--text-secondary);
-  font-size: 10px;
-  pointer-events: none;
-}
-.voa-annotation {
-  fill: var(--text-primary);
-  font-size: 11px;
-  font-weight: 600;
-}
-.voa-annotation-line {
-  stroke: var(--text-secondary);
-  stroke-width: 1;
-  stroke-dasharray: 2 2;
-}
-.voa-bracket-line {
-  stroke: var(--text-primary);
-  stroke-width: 1.5;
-}
-.voa-bracket-label {
-  fill: var(--text-primary);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-/* Sequential fill buckets, driven by colorScales.ts. Used on both SVG
-   circles (AgeScatter, needs `fill`) and plain <div> tiles (StateGrid,
-   needs `background-color`) - each property is a no-op on the element
-   type that doesn't use it, so one rule safely serves both. */
-.voa-seq-0 { fill: var(--voa-seq-0); background-color: var(--voa-seq-0); }
-.voa-seq-1 { fill: var(--voa-seq-1); background-color: var(--voa-seq-1); }
-.voa-seq-2 { fill: var(--voa-seq-2); background-color: var(--voa-seq-2); }
-.voa-seq-3 { fill: var(--voa-seq-3); background-color: var(--voa-seq-3); }
-.voa-seq-4 { fill: var(--voa-seq-4); background-color: var(--voa-seq-4); }
-.voa-seq-5 { fill: var(--voa-seq-5); background-color: var(--voa-seq-5); }
-.voa-seq-6 { fill: var(--voa-seq-6); background-color: var(--voa-seq-6); }
-
-/* categorical (identity) fills, for beat 2's presidential-vs-midterm coloring */
-.voa-cat-pres { fill: var(--series-1); stroke: var(--series-1); }
-.voa-cat-mid { fill: var(--series-2); stroke: var(--series-2); }
-
-.voa-series-line {
-  fill: none;
-  stroke-width: 2;
-}
-
-/* ---------- StateGrid ---------- */
-.voa-grid-wrap {
-  overflow-x: auto;
-}
-.voa-grid {
-  display: grid;
-  gap: 3px;
-}
-.voa-tile {
-  aspect-ratio: 1;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--text-primary);
-  min-width: 22px;
-  position: relative;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.voa-tile--mail {
-  box-shadow: 0 0 0 2px var(--series-1) inset;
-}
-.voa-tile-label {
-  color: var(--text-primary);
-}
-/* Darker sequential buckets need light text for contrast - explicit
-   light/dark choice rather than mix-blend-mode, which reads illegibly
-   against the pale end of the ramp (buckets 0-3). */
-.voa-tile.voa-seq-4 .voa-tile-label,
-.voa-tile.voa-seq-5 .voa-tile-label,
-.voa-tile.voa-seq-6 .voa-tile-label {
-  color: #ffffff;
+.voa-axis-label-x {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
 }
 .voa-legend {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-top: 0.6rem;
+  margin: 0.1rem 0.3rem 0.4rem;
   flex-wrap: wrap;
 }
 .voa-legend-swatch {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 3px;
   display: inline-block;
-}
-.voa-legend-ring {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  display: inline-block;
-  box-shadow: 0 0 0 2px var(--series-1) inset;
-  background: var(--surface-1);
 }
 
-/* ---------- MailTrend (slope chart) ---------- */
-.voa-trend-line {
-  fill: none;
-  stroke-width: 2.5;
+/* ---------- PopulationBars ---------- */
+.pb-legend-track {
+  background: var(--gridline);
 }
-.voa-trend-dot {
+.pb-legend-votes {
+  background: var(--series-1);
+}
+.pb-legend-expected {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pb-track {
+  fill: var(--gridline);
+}
+.pb-track.pb-pooled {
+  opacity: 0.6;
+}
+.pb-votes {
+  fill: var(--series-1);
+}
+.pb-votes.pb-sign-neg {
+  fill: var(--diverge-bad);
+}
+.pb-votes.pb-sign-pos {
+  fill: var(--series-3);
+}
+.pb-votes.pb-pooled {
+  opacity: 0.75;
+}
+.pb-expected-line {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.pb-legend-line {
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.pb-expected-tick {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+  stroke-dasharray: 4 2;
+}
+.pb-missing-label {
+  font-size: 11px;
+  font-weight: 700;
+}
+.pb-missing-label.pb-sign-neg-text {
+  fill: var(--diverge-bad);
+}
+.pb-missing-label.pb-sign-pos-text {
+  fill: var(--series-3);
+}
+.pb-hit {
+  fill: transparent;
+  pointer-events: all;
+  touch-action: manipulation;
+}
+
+/* ---------- ColoradoDots (beat 4) ---------- */
+.cd-axis-zero {
+  stroke: var(--baseline);
+  stroke-width: 1;
+}
+.cd-overall-line {
+  stroke: var(--series-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.cd-overall-label {
+  fill: var(--series-2);
+  font-size: 10px;
+  font-weight: 600;
+}
+.cd-stem {
+  stroke: var(--gridline);
+  stroke-width: 1.5;
+}
+.cd-dot {
+  fill: var(--series-1);
   stroke: var(--surface-1);
   stroke-width: 1.5;
 }
-.voa-trend-label {
+.cd-dot.cd-dot-emph {
+  fill: var(--series-2);
+}
+.cd-err {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+.cd-label {
+  fill: var(--text-secondary);
+  font-size: 11px;
+}
+.cd-value {
+  fill: var(--text-primary);
   font-size: 11px;
   font-weight: 600;
 }
+.cd-hit {
+  fill: transparent;
+  pointer-events: all;
+  touch-action: manipulation;
+  cursor: pointer;
+}
 
-/* ---------- Tooltip (shared by AgeScatter, StateGrid, MailTrend) ---------- */
+/* ---------- Small helpers: compare table, dimension caption/note, Colorado age card, confound list ---------- */
+.voa-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 0.6rem 0;
+}
+.voa-compare-table th,
+.voa-compare-table td {
+  text-align: right;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--gridline);
+  color: var(--text-secondary);
+}
+.voa-compare-table th:first-child,
+.voa-compare-table td:first-child {
+  text-align: left;
+  color: var(--text-primary);
+}
+.voa-compare-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.voa-compare-big-drop {
+  color: var(--diverge-bad);
+  font-weight: 700;
+}
+.voa-dim-caption {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin: 0 0.3rem 0.4rem;
+  color: var(--text-primary);
+}
+.voa-dim-note {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0.5rem 0.3rem 0;
+}
+.voa-co-age-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: center;
+  align-items: center;
+  padding: 1.4rem 1rem;
+}
+.voa-co-age-figure {
+  font-size: clamp(2.2rem, 6vw, 3rem);
+  font-weight: 700;
+  color: var(--series-2);
+  line-height: 1;
+}
+.voa-confound-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+.voa-confound-list li {
+  margin-bottom: 0.5rem;
+}
+.voa-source-list {
+  margin: 0.3rem 0 0.6rem;
+  padding-left: 1.2rem;
+}
+.voa-source-list li {
+  margin-bottom: 0.2rem;
+}
+
+/* ---------- Tooltip (shared by every chart) ---------- */
 .voa-tooltip {
   position: fixed;
   z-index: 20;

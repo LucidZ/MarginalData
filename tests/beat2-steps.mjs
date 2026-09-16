@@ -8,13 +8,13 @@ await page.goto("http://localhost:4321/2026/VoterAge/", { waitUntil: "networkidl
 await page.waitForSelector(".voa-root h1");
 const box = await page.evaluate(() => {
   const titles = [...document.querySelectorAll(".voa-beat-title")];
-  const t = titles.find(el => el.textContent.includes("Midterms make it worse"));
+  const t = titles.find((el) => el.textContent.includes("Midterms make it worse"));
   const section = t.closest(".voa-beat");
   const rect = section.getBoundingClientRect();
   return { top: rect.top + window.scrollY, height: section.scrollHeight };
 });
 const scrollable = box.height - 900;
-const STEPS = 4;
+const STEPS = 3; // Beat2.tsx STEP_COUNT
 for (let i = 0; i < STEPS; i++) {
   const frac = (i + 0.5) / STEPS;
   await page.evaluate((y) => window.scrollTo(0, y), box.top + scrollable * frac);

@@ -1,7 +1,6 @@
-// Ad hoc visual smoke check for the VoterAge story - not a committed test
-// suite (none of the tests/ scaffold referenced in project memory exists
-// in this worktree; only its gitignored output dirs were present). Run
-// with: node tests/voter-age-smoke.mjs (preview server must be running).
+// Ad hoc visual smoke check for the VoterAge story (spec v2 - "The Shape
+// of the Electorate"). Run with: node tests/voter-age-smoke.mjs
+// (preview server must be running).
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -33,12 +32,22 @@ for (const [i, frac] of stops.entries()) {
 
 const beatTitles = await page.$$eval(".voa-beat-title", (els) => els.map((e) => e.textContent));
 console.log("beat titles found:", beatTitles);
+const expectedTitleFragments = [
+  "shape of the electorate",
+  "Midterms make it worse",
+  "isn't only about age",
+  "Does anything change",
+];
+for (const fragment of expectedTitleFragments) {
+  const found = beatTitles.some((t) => t.includes(fragment));
+  console.log(`  beat title containing "${fragment}":`, found ? "OK" : "MISSING");
+}
 
-const dotCounts = await page.$$eval("circle.voa-dot", (els) => els.length);
-console.log("scatter dots on last frame:", dotCounts);
+const barCount = await page.$$eval("rect.pb-track", (els) => els.length);
+console.log("PopulationBars track bars on last frame (category variant, beat 3 income = 10):", barCount);
 
-const tileCounts = await page.$$eval(".voa-tile", (els) => els.length);
-console.log("state grid tiles on last frame:", tileCounts);
+const dotCount = await page.$$eval("circle.cd-dot", (els) => els.length);
+console.log("ColoradoDots dots on last frame:", dotCount);
 
 console.log("console/page errors:", errors.length ? errors : "none");
 

@@ -1,170 +1,109 @@
-import { useMemo } from "react";
-import StateGrid from "./StateGrid";
-import MailTrend, { type TrendSeries } from "./MailTrend";
+import ColoradoDots from "./ColoradoDots";
 import { useActiveStep } from "./useActiveStep";
-import { fmtPP } from "./format";
 import type { VoterAgeData } from "./types";
 
-const TREND_STEP_COUNT = 4;
-const YEARS = [2016, 2020, 2024];
+const STEP_COUNT = 5;
 
 export default function Beat4({ data }: { data: VoterAgeData }) {
-  // The 2024 cross-section map doesn't change across its two text steps
-  // (same pattern as Beat3) - only the trend chart below needs step-driven
-  // reveal.
-  const { activeStep: trendStep, setStepRef: setTrendStepRef } = useActiveStep(TREND_STEP_COUNT);
+  const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
+  const co = data.colorado;
 
-  const cross = data.derived.mailCrossSection2024;
-  const cross2024Values = data.states.map((s) => s.under35Gap2024 ?? 0);
-  const domain2024 = useMemo((): [number, number] => {
-    return [Math.min(...cross2024Values), Math.max(...cross2024Values)];
-  }, [cross2024Values]);
+  const panels = [
+    { key: "education", title: "By educational attainment", rows: co.byDimension.education, emphasize: "Less than HS diploma" },
+    { key: "race", title: "By race / ethnicity", rows: co.byDimension.race, emphasize: "Asian" },
+    { key: "income", title: "By income", rows: co.byDimension.income, emphasize: "$0–30K" },
+  ] as const;
 
-  const outperformers = data.states
-    .filter((s) => s.mailStatus === "never" && (s.under35Gap2024 ?? -Infinity) > cross.mailMean)
-    .sort((a, b) => (b.under35Gap2024 ?? 0) - (a.under35Gap2024 ?? 0))
-    .slice(0, 4);
-
-  // Natural-experiment series, from the build-time-derived stats (no
-  // hand-typed numbers - see scripts/generate_voter_age_data.py).
-  const ne = data.derived.naturalExperiment;
-  const permanentStates = data.states.filter(
-    (s) => s.mailStatus === "permanent-pre2016" || s.mailStatus === "permanent-post2020"
-  );
-  const permanentByYear = (year: number) =>
-    permanentStates.reduce((sum, s) => sum + (s.years[String(year)]?.under35Gap ?? 0), 0) /
-    permanentStates.length;
-
-  const series: TrendSeries[] = [
-    {
-      key: "never",
-      label: "never-mail",
-      color: "var(--muted)",
-      values: YEARS.map((y) => ({ year: y, gap: ne.neverMailMeanByYear[String(y)] })),
-    },
-    {
-      key: "permanent",
-      label: "permanent adopters",
-      color: "var(--series-1)",
-      values: YEARS.map((y) => ({ year: y, gap: permanentByYear(y) })),
-    },
-    {
-      key: "nj",
-      label: "New Jersey",
-      color: "var(--series-2)",
-      values: YEARS.map((y) => ({ year: y, gap: ne.newJersey.gapByYear[String(y)] })),
-    },
-    {
-      key: "mt",
-      label: "Montana",
-      color: "var(--series-3)",
-      values: YEARS.map((y) => ({ year: y, gap: ne.montana.gapByYear[String(y)] })),
-    },
-  ];
-  const visibleKeys = new Set(series.slice(0, trendStep + 1).map((s) => s.key));
+  const activePanel = step === 0 ? panels[0] : step === 1 ? panels[1] : panels[2];
 
   return (
-    <>
-      <section className="voa-beat">
-        <h2 className="voa-beat-title">Beat 4 — Does mail-in voting help?</h2>
-        <div className="voa-scrolly">
-          <div className="voa-scrolly-viz">
-            <StateGrid
-              states={data.states}
-              valueFor={(s) => s.under35Gap2024}
-              domain={domain2024}
-              highlightMail
-              valueLabel="2024 gap"
-              legendCaption="2024 only"
-            />
-          </div>
-          <div className="voa-scrolly-steps">
-            <div className="voa-step">
-              <div className="voa-step-inner">
-                <h3>The obvious hypothesis</h3>
-                <p>
-                  If ballot access is the barrier, universal mail voting should help — no trip to
-                  a polling place required. All-mail states average{" "}
-                  <strong>{fmtPP(cross.mailMean)}</strong> vs.{" "}
-                  <strong>{fmtPP(cross.neverMean)}</strong> everywhere else. Directionally right.
-                </p>
+    <section className="voa-beat">
+      <h2 className="voa-beat-title">4. Does anything change this?</h2>
+      <div className="voa-scrolly">
+        <div className="voa-scrolly-viz">
+          {step <= 2 ? (
+            <>
+              <div className="voa-dim-caption">{activePanel.title}</div>
+              <ColoradoDots rows={activePanel.rows} overallEffectPp={co.overall.effectPp} emphasizeGroup={activePanel.emphasize} />
+              <p className="voa-dim-note">
+                Dashed line: overall effect (+{co.overall.effectPp.toFixed(1)}pp). Each dot is that group's own effect
+                ± 1 standard error.
+              </p>
+            </>
+          ) : step === 3 ? (
+            <div className="voa-callout voa-co-age-card">
+              <div className="voa-co-age-figure">+{co.age.youngestCohortEffectPp}pp</div>
+              <div>
+                for the youngest cohorts ({co.age.youngestCohortLabel}) — a {co.age.relativeIncreasePct}% relative
+                increase over their 2010 turnout. The largest effect of any group in the study.
               </div>
+              <p className="voa-dim-note">{co.age.shapeNote}</p>
             </div>
-            <div className="voa-step">
-              <div className="voa-step-inner">
-                <h3>But not a clean pattern</h3>
-                <p>
-                  That difference isn't statistically significant (Welch's t ={" "}
-                  {cross.welchT.toFixed(2)}, {cross.nMail} mail states vs. {cross.nNever} others).{" "}
-                  {outperformers.map((s) => s.state).join(", ")} — none of them all-mail —
-                  outperform most all-mail states. This isn't "no effect": a gap this size (
-                  {fmtPP(cross.mailMean - cross.neverMean)}) could matter in a close election. The
-                  problem is precision, not necessarily size.
-                </p>
-              </div>
+          ) : (
+            <div className="voa-callout">
+              <strong>Three caveats:</strong>
+              <ul className="voa-confound-list">
+                {co.confounds.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        <div className="voa-scrolly-steps">
+          <div className="voa-step" ref={setStepRef(0)}>
+            <div className="voa-step-inner">
+              <h3>Colorado moved to all-mail voting in 2014</h3>
+              <p>
+                Every registered voter gets a ballot mailed to them automatically. A study tracking individual voters
+                by birth year and prior turnout found turnout rose about {co.overall.effectPp.toFixed(1)} points
+                overall — and the gains weren't even.{" "}
+                <a href={co.url} target="_blank" rel="noopener noreferrer">
+                  Bonica, Grumbach, Hill &amp; Jefferson (2021)
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+          <div className="voa-step" ref={setStepRef(1)}>
+            <div className="voa-step-inner">
+              <h3>The rhyme: race</h3>
+              <p>
+                Every group gained more than the least-affected group. Asian, Black and Latino voters — all
+                underrepresented in the national data you just saw — gained more than white voters did.
+              </p>
+            </div>
+          </div>
+          <div className="voa-step" ref={setStepRef(2)}>
+            <div className="voa-step-inner">
+              <h3>And income</h3>
+              <p>
+                Same shape. The lowest income bracket gained the most; the highest gained the least. It's not that
+                all-mail voting is a uniform +8 points everywhere — it's larger exactly where the gap was larger.
+              </p>
+            </div>
+          </div>
+          <div className="voa-step" ref={setStepRef(3)}>
+            <div className="voa-step-inner">
+              <h3>Age shows the same pattern, biggest of all</h3>
+              <p>
+                The youngest voters — the group furthest below the line in beat one — gained the most from switching
+                to all-mail ballots.
+              </p>
+            </div>
+          </div>
+          <div className="voa-step" ref={setStepRef(4)}>
+            <div className="voa-step-inner">
+              <h3>What this doesn't prove</h3>
+              <p>
+                This is one state, well-identified — not a randomized nationwide experiment. Read the pattern as{" "}
+                <em>consistent with</em> all-mail voting closing representation gaps, not as proof it would do the
+                same everywhere.
+              </p>
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="voa-beat">
-        <h2 className="voa-beat-title">Beat 4b — A state that switched on, then off</h2>
-        <div className="voa-scrolly">
-          <div className="voa-scrolly-viz">
-            <MailTrend series={series} visibleKeys={visibleKeys} years={YEARS} />
-          </div>
-          <div className="voa-scrolly-steps">
-            <div className="voa-step" ref={setTrendStepRef(0)}>
-              <div className="voa-step-inner">
-                <h3>The baseline</h3>
-                <p>
-                  40 states never went all-mail. Their average gap barely moves across three
-                  presidential cycles: {fmtPP(ne.neverMailMeanByYear["2016"])} in 2016,{" "}
-                  {fmtPP(ne.neverMailMeanByYear["2024"])} in 2024.
-                </p>
-              </div>
-            </div>
-            <div className="voa-step" ref={setTrendStepRef(1)}>
-              <div className="voa-step-inner">
-                <h3>States that adopted and stayed</h3>
-                <p>
-                  California, Nevada, Vermont, Hawaii, Utah, and DC went all-mail (mostly around
-                  2020) and never reverted. Their average improved — but so did the never-mail
-                  baseline over the same years, since national turnout itself shifted between
-                  2016 and 2020.
-                </p>
-              </div>
-            </div>
-            <div className="voa-step" ref={setTrendStepRef(2)}>
-              <div className="voa-step-inner">
-                <h3>New Jersey: on, then off</h3>
-                <p>
-                  New Jersey mailed every registered voter a ballot for 2020 only, then reverted.
-                  Against the never-mail baseline, that's a{" "}
-                  <strong>{fmtPP(ne.newJersey.didOnSwitch2020)}</strong> shift when the policy
-                  switched on, and <strong>{fmtPP(ne.newJersey.didOffSwitch2024)}</strong> when it
-                  switched back off. Mean reversion alone can't explain a reversal — a state
-                  starting where NJ started would be predicted to keep improving.
-                </p>
-              </div>
-            </div>
-            <div className="voa-step" ref={setTrendStepRef(3)}>
-              <div className="voa-step-inner">
-                <h3>Montana: the same shape, weaker</h3>
-                <p>
-                  Montana let counties opt into all-mail for 2020. Same pattern (
-                  <strong>{fmtPP(ne.montana.didOnSwitch2020)}</strong> on), but a much weaker
-                  reversal (<strong>{fmtPP(ne.montana.didOffSwitch2024)}</strong> off) — n=2 here,
-                  so treat this as suggestive, not proof. And a placebo check on Colorado/Oregon/
-                  Washington (already all-mail before 2016, which should show ~0 change) still
-                  drifted {fmtPP(data.derived.placeboAlwaysMailPre2016.meanChange2016to2024)},
-                  an unexplained residual that applies to all of this comparison.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
