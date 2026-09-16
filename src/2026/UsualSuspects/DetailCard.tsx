@@ -30,7 +30,7 @@ const EDGE = 8;
 // before the card has actually rendered - see the layout effect below,
 // which corrects it against the card's real height the instant it mounts.
 // The estimate undercounted for a tall movie list, which used to let the
-// "Center on" button clip past the bottom of the viewport.
+// bottom button clip past the bottom of the viewport.
 function estimatePosition(clientX: number, clientY: number, movieCount: number): React.CSSProperties {
   // Rows are ~66px (38x57 poster + padding); the list stops growing at the
   // CSS max-height of 244px and scrolls from there.
@@ -101,22 +101,6 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   const photo = photoUrl(actor, 64);
   const count = sharedMovies.length;
 
-  const head = (
-    <>
-      {photo ? (
-        <img className="tus-card-photo" src={photo} alt="" width={56} height={56} />
-      ) : (
-        <div className="tus-card-photo tus-card-photo-fallback" />
-      )}
-      <div>
-        <div className="tus-card-name">{actor.name}</div>
-        <div className="tus-card-meta">
-          {count} film{count === 1 ? "" : "s"} with {rootActor.name}
-        </div>
-      </div>
-    </>
-  );
-
   return (
     <>
       <div
@@ -130,18 +114,27 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
           ×
         </button>
 
-        {actor.tmdbId ? (
-          <a
-            className="tus-card-head tus-person-link"
-            href={`https://www.themoviedb.org/person/${actor.tmdbId}`}
-            target="_blank"
-            rel="noreferrer"
+        <div className="tus-card-head">
+          <button
+            type="button"
+            className="tus-card-photo-btn"
+            onClick={() => onCenter(actor)}
+            aria-label={`Center on ${actor.name}`}
+            title={`Center on ${actor.name}`}
           >
-            {head}
-          </a>
-        ) : (
-          <div className="tus-card-head">{head}</div>
-        )}
+            {photo ? (
+              <img className="tus-card-photo" src={photo} alt="" width={56} height={56} />
+            ) : (
+              <div className="tus-card-photo tus-card-photo-fallback" />
+            )}
+          </button>
+          <div>
+            <div className="tus-card-name">{actor.name}</div>
+            <div className="tus-card-meta">
+              {count} film{count === 1 ? "" : "s"} with {rootActor.name}
+            </div>
+          </div>
+        </div>
 
         <ul className="tus-card-movies">
           {sharedMovies.map((movie) => {
@@ -186,9 +179,16 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
           })}
         </ul>
 
-        <button className="tus-card-center" onClick={() => onCenter(actor)}>
-          Center on {actor.name}
-        </button>
+        {actor.tmdbId && (
+          <a
+            className="tus-card-center"
+            href={`https://www.themoviedb.org/person/${actor.tmdbId}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View on TMDB ↗
+          </a>
+        )}
       </div>
     </>
   );

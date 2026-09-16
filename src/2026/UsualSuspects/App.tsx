@@ -141,7 +141,7 @@ interface FlatNode {
   y: number;
   size: number;
   sharedMovies: Movie[];
-  name?: string;
+  nameLines?: string[];
 }
 
 function buildFlatNodes(rows: Row[]): FlatNode[] {
@@ -156,7 +156,7 @@ function buildFlatNodes(rows: Row[]): FlatNode[] {
         y: row.y + p.y,
         size: p.size,
         sharedMovies: p.sharedMovies,
-        name: p.name,
+        nameLines: p.nameLines,
       });
     }
   });
@@ -350,8 +350,8 @@ export default function App() {
     return map;
   }, [activeData]);
 
-  // Opening a detail card telegraphs the likely next action - its own
-  // "Center on X" button - so warm that actor's own costar photos while the
+  // Opening a detail card telegraphs the likely next action - clicking its
+  // own photo to recenter - so warm that actor's own costar photos while the
   // card is still open, rather than waiting for the recenter click to
   // start ~200 fresh image requests from zero on whatever connection the
   // browser happens to have that moment. requestIdleCallback (main-thread
@@ -683,6 +683,22 @@ export default function App() {
 
   const root = actorById.get(rootId) ?? null;
   const totalCostars = buckets.reduce((sum, b) => sum + b.entries.length, 0);
+  // Distinct films across every costar edge - a union, not a sum, since one
+  // film puts the root alongside its whole cast and would otherwise be
+  // counted once per costar in it. This is films *in this pool*, not a
+  // filmography: solo work and films whose cast didn't clear the pool's own
+  // threshold aren't in the edges at all, which is why the copy scopes it
+  // with "here" rather than stating it flat (the same hedge the costar count
+  // beside it already uses).
+  const totalFilms = useMemo(() => {
+    const ids = new Set<number>();
+    for (const bucket of buckets) {
+      for (const entry of bucket.entries) {
+        for (const movie of entry.sharedMovies) ids.add(movie.id);
+      }
+    }
+    return ids.size;
+  }, [buckets]);
   const headline = headlineFor(buckets, totalCostars);
 
   // The chart is exactly as wide as its frame and as tall as its rows need,
@@ -700,17 +716,19 @@ export default function App() {
   // numbers below it had a unit. That worked under the old ascending axis,
   // where leftmost meant the 1-film pile and 207 was a real number; under
   // descending it's the closest-collaborator column, so it read "1 costars".
-  // Both units are named once in .tus-axis-unit-note above the chart now.
+  // Each row's own label spells its unit out now ("N films together · M
+  // costars" - see tus-row-label below), so there's no shared legend left to
+  // carry it.
 
   // Hover label geometry - everything here lives in viewBox units, like
   // everything else drawn inside the <svg>. These used to be divided by the
   // chart's uniform render scale to keep them a constant on-screen size;
   // with the vertical arrangement the svg renders 1:1 with its viewBox, so
   // viewBox units and CSS px are the same thing and the divisor is gone.
-  // Skipped on a named row: the name is already rendered beside the face
+  // Skipped on a named row: the name is already rendered under the face
   // there, so a hover label would only repeat it on top of itself.
   const hoveredCandidate = hoveredNodeId != null ? (flatNodes.find((n) => n.id === hoveredNodeId) ?? null) : null;
-  const hoveredNode = hoveredCandidate?.name ? null : hoveredCandidate;
+  const hoveredNode = hoveredCandidate?.nameLines ? null : hoveredCandidate;
   const hoveredActor = hoveredNode ? (actorById.get(hoveredNode.id) ?? null) : null;
   const HOVER_LABEL_FONT_SIZE = 13;
   const HOVER_LABEL_PAD_X = 8;
@@ -736,7 +754,11 @@ export default function App() {
   }
 
   return (
-    <div className="tus-root">
+    // data-pool-status is a test hook, not a style/behavior hook: it exposes
+    // searchStatus in the DOM so Playwright can wait for the full pool fetch
+    // to land without polling for the render to stop changing (see
+    // waitForFullPool in usual-suspects.spec.ts for why that's unreliable).
+    <div className="tus-root" data-pool-status={searchStatus}>
       <div className="tus-chrome">
         <header className="tus-toolbar">
           <h1 className="tus-title">The Usual Suspects</h1>
@@ -831,42 +853,44 @@ export default function App() {
                     stale when commit 4bc930f supplemented the edges, and the
                     prose never carried them in the first place. The exact
                     counts live in .claude/usual-suspects-refit-spec.md and
-                    are re-derived from the data everywhere they're shown. */}
-                {isLanding ? (
+                    are re-derived from the data everywhere they're shown.
+
+                    "Some actors share the silver screen far more than
+                    others" is kept only here, where it's the answer to the
+                    question mark the four pairs set up. On a deep link it
+                    had nothing to resolve and was the one line on the page
+                    that said nothing about the actor in front of you - so
+                    the two numbers below stand alone there instead. */}
+                {isLanding && (
                   <>
                     Ryan Gosling and Emma Stone. Dwayne "The Rock" Johnson and Kevin Hart. Keanu
                     Reeves and Winona Ryder. Adam Sandler and Allen Covert? Some actors share the
                     silver screen far more than others.{" "}
                   </>
-                ) : (
-                  <>Some actors share the silver screen far more than others. </>
                 )}
-                {totalCostars.toLocaleString()} costars here
-                {/* Gated on `data` (the full pool), not `activeData` - the
-                    bundled default slice's count (1,612) is real but wrong
-                    for this claim until the full pool (2,839) lands, so the
-                    figure is omitted rather than shown wrong for the first
-                    ~2s of every load. */}
-                {data && <>, out of {data.actors.length.toLocaleString()} actors</>}.{" "}
+                {/* Both figures come from the root's own edges, which the
+                    bundled default slice already carries in full for every
+                    actor it holds - so unlike the pool-wide "out of N
+                    actors" this replaced, there's no window where these are
+                    real but wrong and need gating on the full fetch. */}
+                {totalFilms.toLocaleString()} film{totalFilms === 1 ? "" : "s"} here, with{" "}
+                {totalCostars.toLocaleString()} costar{totalCostars === 1 ? "" : "s"}.
+              </p>
+              {/* Split from the paragraph above and italicised - this is an
+                  instruction for using the chart, not part of the sentence
+                  describing what's in it, so it reads better set apart
+                  rather than tacked onto the same line. */}
+              <p className="tus-interaction-hint">
                 {compact ? "Tap" : "Click"} anyone to see the films they share.
                 {/* Desktop-only accelerator (see ActorNode.tsx's
                     onDoubleClick) - left out on touch, where double-tap
-                    means zoom and the bottom-sheet card's own "Center on"
-                    button is already one tap away. */}
+                    means zoom and the bottom-sheet card's own photo button
+                    is already one tap away. */}
                 {!compact && " Double-click to recenter."}
               </p>
             </div>
           </div>
 
-          {/* One legend line instead of a per-row unit. The row labels in
-              the gutter already say "N films together" in full - the
-              vertical arrangement makes horizontal room free, so unlike the
-              previous column layout there's no pressure to compress them to
-              bare numbers. This only has to explain the count on the right. */}
-          <p className="tus-axis-unit-note">
-            Closest collaborators first. The number beside each row is how many people share
-            that many films with {root.name}.
-          </p>
           <div className="tus-graph-frame" ref={setFrameEl}>
             <svg
               className="tus-graph"
@@ -937,15 +961,26 @@ export default function App() {
                     </text>
                   ) : (
                     <>
-                      {/* Label and head count on one centred line above the
-                          row's faces, in the band beeswarm.ts reserves for
-                          them. One line rather than the stacked pair the
-                          gutter version used: centred text stacked two deep
-                          reads as a heading over the whole chart rather than
-                          as this row's caption. */}
-                      <text className="tus-row-label" x={row.centerX} y={row.y + 15} textAnchor="middle">
+                      {/* Label on one centred line above the row's faces, in
+                          the band beeswarm.ts reserves for it. One line
+                          rather than the stacked pair the gutter version
+                          used: centred text stacked two deep reads as a
+                          heading over the whole chart rather than as this
+                          row's caption.
+
+                          The head count is omitted on named rows: with eight
+                          or fewer chips on screen, the faces themselves are
+                          the count - a number there is noise exactly where
+                          the chart is cleanest and arrives above the fold.
+                          It earns its place on the packed rows below, where
+                          nobody is going to count 491 faces. */}
+                      <text className="tus-row-label" x={row.centerX} y={row.y + 14} textAnchor="middle">
                         {filmLabel(row.sharedFilms, compact)}
-                        <tspan className="tus-row-count"> · {row.actors.length}</tspan>
+                        {!row.named && (
+                          <tspan className="tus-row-count">
+                            {` · ${row.actors.length} costar${row.actors.length === 1 ? "" : "s"}`}
+                          </tspan>
+                        )}
                       </text>
                     </>
                   )}
@@ -959,8 +994,9 @@ export default function App() {
                         x={p.x}
                         y={row.y + p.y}
                         size={p.size}
-                        label={p.name}
+                        nameLines={p.nameLines}
                         hitWidth={p.hitWidth}
+                        hitHeight={p.hitHeight}
                         sharedMovies={p.sharedMovies}
                         isSelected={selection?.actor.id === actor.id}
                         onSelect={(a, movies, e) => selectNode(a, movies, e.clientX, e.clientY)}
@@ -981,7 +1017,7 @@ export default function App() {
                   carry a visible name - see hoveredNode above.
                   pointerEvents="none" on the whole group: it's a read-only
                   label, not a second interactive surface - every real
-                  interaction (links, "Center on") still lives in the
+                  interaction (links, recentering) still lives in the
                   click-opened card. */}
               {hoverLabel && (
                 <g pointerEvents="none">

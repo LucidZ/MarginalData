@@ -347,6 +347,13 @@
   line-height: 1.4;
 }
 
+.tus-interaction-hint {
+  margin: 0.3rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .tus-root-photo {
   width: 48px;
   height: 48px;
@@ -370,8 +377,8 @@
   font-weight: inherit;
 }
 
-/* Shared by the root banner name and the detail card head - both link out to
-   the actor's TMDB person page when we have a tmdbId. */
+/* Used by the root banner name, which links out to the actor's TMDB person
+   page when we have a tmdbId. */
 .tus-person-link {
   display: inline-block;
   color: inherit;
@@ -379,17 +386,6 @@
 }
 
 .tus-person-link:hover {
-  text-decoration: underline;
-}
-
-/* The card-head link wraps photo + name + meta as one block (like a movie
-   row) - underline just the name on hover, not the whole thing, so the meta
-   line and photo don't read as separately clickable text. */
-.tus-card-head.tus-person-link:hover {
-  text-decoration: none;
-}
-
-.tus-card-head.tus-person-link:hover .tus-card-name {
   text-decoration: underline;
 }
 
@@ -489,9 +485,13 @@
 
 /* Row caption, centred above its own row. Words rather than the bare number
    the horizontal layout was forced into - a label above a row costs the same
-   whatever it says. */
+   whatever it says. Smaller and letter-spaced relative to .tus-node-label:
+   on a named row the two now alternate down the page (label, faces, names,
+   label, ...), and at equal size/weight they read as the same kind of text
+   instead of a caption over its own content. */
 .tus-row-label {
-  font-size: 13px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
   fill: var(--text-secondary);
 }
 
@@ -502,11 +502,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Name beside a face on the sparse rows (ActorNode.tsx's `label`). */
+/* Name under a face on the sparse rows (ActorNode.tsx's `nameLines`). */
 .tus-node-label {
   font-size: 13px;
   fill: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .tus-baseline {
@@ -597,29 +597,13 @@
   pointer-events: none;
 }
 
-/* The axis legend, now shown at every viewport rather than only on mobile.
-   Every column label is a bare number at every size (see filmLabel in
-   App.tsx) - spelling the units out once here instead of repeating "films
-   together" under all 13 of Adam Sandler's columns is what let each column
-   shrink to its own swarm's width: that repeated text measured 93-111px,
-   which forced a 184px minimum footprint per column whether it held 207
-   people or one. Above the chart, not below, so it's readable without
-   scrolling. */
-.tus-axis-unit-note {
-  margin: 0 0 0.35rem;
-  padding-inline: 1.5rem;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
 /* --- Detail card (click/tap opened) ---------------------------------------
    Replaces the old hover tooltip, which had two fatal problems: it chased the
    cursor (every mousemove over the node re-positioned it, so its links could
    never be reached), and on touch it was unreachable entirely because the same
    tap that revealed it also re-centered the chart underneath. Click-to-open
-   with an explicit "Center on" button makes one gesture do one thing on both
-   platforms. */
+   with an explicit centering action (the card's own photo) makes one gesture
+   do one thing on both platforms. */
 .tus-card {
   position: fixed;
   z-index: 100;
@@ -658,10 +642,30 @@
   padding-right: 1.25rem;
 }
 
+.tus-card-photo-btn {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.tus-card-photo-btn:hover .tus-card-photo,
+.tus-card-photo-btn:focus-visible .tus-card-photo {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.tus-card-photo-btn:focus-visible {
+  outline: none;
+}
+
 .tus-card-photo {
   width: 56px;
   height: 56px;
-  flex: 0 0 56px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -757,6 +761,8 @@ span.tus-movie-row .tus-movie-title {
 }
 
 .tus-card-center {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--accent);
@@ -765,6 +771,8 @@ span.tus-movie-row .tus-movie-title {
   color: var(--accent);
   font-size: 0.85rem;
   font-weight: 500;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
   font-family: inherit;
 }

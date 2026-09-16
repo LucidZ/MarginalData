@@ -111,16 +111,18 @@ async function settleTransition(page: Page) {
  * gives an actor different costars, so people move between rows and React
  * remounts them under a different row group.
  *
- * "out of N actors" renders only when the full pool is present (App.tsx
- * gates that clause on `data`, not `activeData`, so the bundled slice's own
- * smaller count is never shown as the pool's). Matching the phrase rather
- * than the number keeps this from needing a re-pin every time the pool is
- * regenerated.
+ * `data-pool-status` on .tus-root mirrors App.tsx's own `searchStatus`, which
+ * flips to "ready" only once the full pool (`data`) has landed - not once
+ * `activeData` has something to show, which is true from the very first
+ * render off the bundled slice. That keeps this independent of whatever
+ * copy happens to be on screen, so it doesn't need a re-pin when the prose
+ * changes (as it did when the old "out of N actors" clause it used to match
+ * was replaced - see the totalFilms/totalCostars comment in App.tsx).
  */
 async function waitForFullPool(page: Page) {
   await page.waitForLoadState("networkidle");
-  await expect(page.locator(".tus-context-meta")).toContainText("out of", { timeout: 15_000 });
-  // The clause appears as soon as `data` lands; give React and the row
+  await expect(page.locator(".tus-root")).toHaveAttribute("data-pool-status", "ready", { timeout: 15_000 });
+  // The attribute flips as soon as `data` lands; give React and the row
   // re-layout that follows it a paint before anything is measured.
   await page.waitForTimeout(300);
 }
@@ -479,6 +481,80 @@ test.describe("The Usual Suspects", () => {
     }
   });
 
+  // Regression for the chip-centring bug: packNamedRow used to size every
+  // chip against a single extent shared across the whole chart (the widest
+  // name anywhere), so a chip's face sat at a fixed offset from its own
+  // text rather than from the chip's own centre - a short name left its
+  // face visibly left of the row label centred above it (~150px on screen
+  // for Adam Sandler's own chart at spec-writing time). Moving the name
+  // under the face instead of beside it made "centre the chip" and "centre
+  // the face" the same operation; this asserts they land on the same x.
+  test("named-row faces are centred on their row label", async ({ browser }) => {
+    for (const [actorName, viewport] of [
+      [null, DESKTOP],
+      [null, MOBILE],
+      ["Adam Sandler", DESKTOP],
+      ["Adam Sandler", MOBILE],
+    ] as const) {
+      const page = await (await browser.newContext({ viewport })).newPage();
+      await page.goto("/2026/UsualSuspects");
+      if (actorName) {
+        await selectActor(page, actorName);
+      } else {
+        await page.waitForSelector(".tus-node");
+      }
+
+      const offsets = await page.evaluate(() => {
+        const results: number[] = [];
+        for (const g of document.querySelectorAll(".tus-graph > g")) {
+          const label = g.querySelector(".tus-row-label");
+          const nodes = [...g.querySelectorAll(".tus-node")];
+          // Only chip (named) rows carry a name under each face - the
+          // packed rows settle as one blob and aren't centring-sensitive
+          // the same way, so they're not what this test is about.
+          if (!label || nodes.length === 0 || !nodes[0].querySelector(".tus-node-label")) continue;
+          const labelRect = label.getBoundingClientRect();
+          const labelCenter = labelRect.x + labelRect.width / 2;
+
+          // Edges of each chip's own hit rect, not its circle's centre - a
+          // row's chips can have unequal widths (chip width tracks the
+          // wider of the face and its own wrapped name), so the midpoint of
+          // the leftmost and rightmost *faces* isn't the same point as the
+          // midpoint of the block's actual left and right edges unless
+          // those two end chips happen to be the same width. The rect (the
+          // only hit-testable rect on a named node - see ActorNode.tsx) is
+          // centred on the face and sized to the chip's real width, so its
+          // edges are the block boundary this test actually cares about.
+          //
+          // Grouped by line - a row that wraps to two lines is checked per
+          // line, not as one bounding box, since each line is independently
+          // centred by construction (see packNamedRow) and only a per-line
+          // check can tell that apart from a row whose overall bbox merely
+          // averages out to the right place.
+          const byLine = new Map<number, { left: number; right: number }[]>();
+          for (const n of nodes) {
+            const rect = n.querySelector("rect")!.getBoundingClientRect();
+            const cy = Math.round(rect.y);
+            const edges = byLine.get(cy) ?? [];
+            edges.push({ left: rect.x, right: rect.x + rect.width });
+            byLine.set(cy, edges);
+          }
+          for (const edges of byLine.values()) {
+            const lineCenter = (Math.min(...edges.map((e) => e.left)) + Math.max(...edges.map((e) => e.right))) / 2;
+            results.push(Math.abs(lineCenter - labelCenter));
+          }
+        }
+        return results;
+      });
+
+      expect(offsets.length, "expected at least one named row on screen").toBeGreaterThan(0);
+      for (const offset of offsets) {
+        expect(offset, "a named row's chip line drifted off its label's centre").toBeLessThanOrEqual(2);
+      }
+      await page.close();
+    }
+  });
+
   // Replaces "chart bottom stays within the viewport on desktop", which was
   // the right assertion for a horizontal chart squeezed into the space below
   // the header and is the wrong one now: rows stack downward and the page
@@ -637,7 +713,10 @@ test.describe("The Usual Suspects", () => {
       expect(cardBox!.y + cardBox!.height, `${label}: card bottom edge off-screen`).toBeLessThanOrEqual(
         DESKTOP.height,
       );
-      await expect(page.locator(".tus-card-center")).toBeInViewport();
+      await expect(page.locator(".tus-card-photo-btn")).toBeInViewport();
+      if (await page.locator(".tus-card-center").count()) {
+        await expect(page.locator(".tus-card-center")).toBeInViewport();
+      }
       await page.locator(".tus-card-close").click();
       await page.waitForTimeout(200);
     }
@@ -784,7 +863,7 @@ test.describe("The Usual Suspects", () => {
 
     await page.locator(".tus-node").first().click();
     const first = await page.locator(".tus-card-name").textContent();
-    await page.locator(".tus-card-center").click();
+    await page.locator(".tus-card-photo-btn").click();
     await page.waitForTimeout(600);
     await expect(page.locator(".tus-root-name")).toHaveText(first!);
 

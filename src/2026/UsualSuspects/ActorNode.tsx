@@ -1,3 +1,4 @@
+import { NAME_LINE_HEIGHT, NAME_TOP_GAP } from "./beeswarm";
 import { photoUrl } from "./graph";
 import type { Actor, Movie } from "./types";
 
@@ -6,19 +7,21 @@ interface Props {
   x: number;
   y: number;
   size: number;
-  /** Name to render beside the avatar. Set only on the sparse "named" rows
-   * (see NAMED_ROW_MAX in beeswarm.ts), where there's horizontal room to
-   * spare and these are the people someone would actually recognize -
+  /** Name lines to render under the avatar. Set only on the sparse "named"
+   * rows (see NAMED_ROW_MAX in beeswarm.ts), where there's horizontal room
+   * to spare and these are the people someone would actually recognize -
    * having the name on screen at rest is what the vertical arrangement buys
    * that the horizontal one couldn't. Everyone else relies on the hover
-   * readout and the click-opened card, as before. */
-  label?: string;
-  /** Width of the clickable area when a `label` is shown - see the hit
-   * target below. */
+   * readout and the click-opened card, as before. Already wrapped to at
+   * most two lines by beeswarm.ts's wrapName. */
+  nameLines?: string[];
+  /** Width and height of the clickable area when `nameLines` is shown - see
+   * the hit target below. */
   hitWidth?: number;
+  hitHeight?: number;
   sharedMovies: Movie[];
   isSelected: boolean;
-  /** Click/tap opens the detail card - re-centering is a deliberate button inside that card, not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
+  /** Click/tap opens the detail card - re-centering is a deliberate action inside that card (clicking the actor's photo), not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
   onSelect: (actor: Actor, sharedMovies: Movie[], e: React.MouseEvent) => void;
   /** Desktop-only fast path: double-click jumps straight to centering on this
    * actor, skipping the intermediate card. Doesn't touch what a single
@@ -26,7 +29,7 @@ interface Props {
    * learn - it's an accelerator for people who already recognize the
    * thumbnail, not a replacement gesture. Left off touch: mobile's default
    * double-tap-to-zoom would fight it, and the bottom-sheet card's own
-   * "Center on" button is already one tap away there. */
+   * photo button is already one tap away there. */
   onCenter: (actor: Actor) => void;
   /** Registers/unregisters this node's real DOM element with App.tsx's
    * roving-tabindex machinery - it needs to call .focus() and
@@ -51,8 +54,9 @@ export default function ActorNode({
   x,
   y,
   size,
-  label,
+  nameLines,
   hitWidth,
+  hitHeight,
   sharedMovies,
   isSelected,
   onSelect,
@@ -97,22 +101,26 @@ export default function ActorNode({
           browser-dependent past the clip boundary. Every other child below
           is explicitly pointerEvents="none" - see the ring's own comment
           for why that's load-bearing, not decoration. */}
-      {/* On a named row the face and its name sit side by side and read as
-          one thing, so they have to behave as one: this extends the hit area
-          across the name rather than leaving it decorative. It also fixes a
-          real wart - without it, the node's own bounding-box centre falls in
-          the gap beside the face, on the background overlay, so anything
-          aiming at "the middle of this node" (including Playwright's own
-          click) missed it entirely.
+      {/* On a named row the face and its name read as one thing, so they
+          have to behave as one: this extends the hit area down across the
+          name rather than leaving it decorative. Centred on the face (x
+          from -hitWidth/2), which is what keeps this node's own
+          bounding-box centre sitting on the avatar rather than off to one
+          side of it - the old side-by-side layout had a real wart here,
+          where the bbox centre fell in the gap beside the face and missed
+          anything aiming at "the middle of this node" (including
+          Playwright's own click); centring the chip fixes that by
+          construction instead of needing a workaround.
 
-          Bounded to hitWidth, which beeswarm.ts sets to the chip's cell
-          minus a gap. That preserves the guarantee the whole hit-testing
-          design rests on - no node's target may reach into a neighbour's -
-          which is exactly what the old inflated 44px touch circle violated
-          and what made most of a dense column unclickable. Rendered before
-          the circle so the avatar still wins at its own centre. */}
-      {label && hitWidth != null && (
-        <rect x={-r} y={-r} width={hitWidth} height={size} fill="transparent" pointerEvents="all" />
+          Sized to hitWidth/hitHeight, which beeswarm.ts sets to this chip's
+          own width and face-plus-name height. That preserves the guarantee
+          the whole hit-testing design rests on - no node's target may reach
+          into a neighbour's - which is exactly what the old inflated 44px
+          touch circle violated and what made most of a dense column
+          unclickable. Rendered before the circle so the avatar still wins
+          at its own centre. */}
+      {nameLines && hitWidth != null && hitHeight != null && (
+        <rect x={-hitWidth / 2} y={-r} width={hitWidth} height={hitHeight} fill="transparent" pointerEvents="all" />
       )}
       <circle r={r} fill="transparent" pointerEvents="all" />
       <clipPath id={`tus-clip-${actor.id}`}>
@@ -158,14 +166,25 @@ export default function ActorNode({
         </text>
       )}
       {/* pointerEvents="none" like every other painted child here: the
-          transparent circle above is the only hit-testable part of a node,
-          and a name extending well past the avatar's own radius would
-          otherwise swallow clicks aimed at whatever sits to its right. */}
-      {label && (
-        <text className="tus-node-label" x={r + 10} dominantBaseline="central" pointerEvents="none">
-          {label}
+          transparent rect above is the only hit-testable part of a node,
+          and text below the avatar would otherwise swallow clicks aimed at
+          whatever sits beneath it. Centred under the face (x=0), which is
+          the whole point of moving the name here instead of beside it - a
+          chip symmetric about its own avatar is what lets "centre the chip"
+          and "centre the face" be the same operation (see packNamedRow). */}
+      {nameLines?.map((line, i) => (
+        <text
+          key={i}
+          className="tus-node-label"
+          x={0}
+          y={r + NAME_TOP_GAP + i * NAME_LINE_HEIGHT}
+          textAnchor="middle"
+          dominantBaseline="hanging"
+          pointerEvents="none"
+        >
+          {line}
         </text>
-      )}
+      ))}
     </g>
   );
 }

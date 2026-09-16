@@ -12,14 +12,21 @@ export interface PositionedActor {
   sharedMovies: Movie[];
   /** Set only on a named row (see NAMED_ROW_MAX) - the sparse top rows have
    * horizontal room to spare, so the people who actually carry the story get
-   * their names on screen without a hover or a click. */
-  name?: string;
+   * their names on screen without a hover or a click. Wrapped to at most
+   * NAME_MAX_LINES already, so the renderer never has to re-measure. */
+  nameLines?: string[];
   /** Width of this node's clickable area, for named rows only: the face and
-   * its name read as one unit, so they have to behave as one. Bounded to the
-   * chip's own cell minus a gap, which keeps the guarantee every hit target
-   * here depends on - that a node's hit area can never reach into a
-   * neighbour's (see ActorNode.tsx). */
+   * its name read as one unit, so they have to behave as one. Centred on the
+   * face's own x (unlike a left-anchored cell), which is what lets the chip
+   * stay symmetric - see packNamedRow. Bounded to this chip's own share of
+   * the line minus CHIP_GAP, which keeps the guarantee every hit target here
+   * depends on - that a node's hit area can never reach into a neighbour's
+   * (see ActorNode.tsx). */
   hitWidth?: number;
+  /** Height of the clickable area for a named row's chip - the face plus
+   * however many lines this chip's own name wrapped to (shorter names in the
+   * same row can have fewer lines than the row's tallest chip). */
+  hitHeight?: number;
 }
 
 /** Vertical band reserved above each row's faces for its own label. The
@@ -42,8 +49,8 @@ export interface Row {
   /** Non-null for a collapsed run of shared-film counts nobody has -
    * [highest, lowest]. Drawn as a narrow axis break, not a row of faces. */
   missing: [number, number] | null;
-  /** True when this row's actors carry `name` and are laid out as labelled
-   * chips rather than packed into a blob. */
+  /** True when this row's actors carry `nameLines` and are laid out as
+   * labelled chips rather than packed into a blob. */
   named: boolean;
   /** Centre x of this row's own content, for placing its label. Equal to the
    * chart's midline for every row, since rows are centred - kept explicit so
@@ -91,44 +98,80 @@ export const COMPACT_ROWS = {
  * the part whose names someone would recognize. */
 const NAMED_ROW_MAX = 8;
 
-/** Width a named chip reserves: avatar, gap, and room for a name. Wraps to
- * another line when the viewport can't fit them side by side, which on a
- * 390px phone means one per line - still the right call there, since a
- * 2-person row is then 2 lines and the names are the whole point of it.
- *
- * 240 rather than a tighter 210: at 210 the text column is 136px, which fits
- * about 17 characters at the label's own size, and real names overrun that
- * routinely enough to matter - "Christopher McDonald" (20) painted straight
- * through Carl Weathers' face in the row below it. 240 leaves 166px, about
- * 21 characters, which covers the overwhelming majority; NAME_MAX_CHARS
- * below is the backstop for the rest. */
-const CHIP_WIDTH = 240;
-const CHIP_HEIGHT = 64;
-/** Clear space kept at the right of each chip's hit area - see hitWidth. */
-const CHIP_GAP = 24;
-
-/** Hard cap on a rendered name, with an ellipsis past it. SVG text has no
+/** Clear space kept between two adjacent chips on the same line. Also the
+ * margin that keeps one chip's hit rect out of its neighbour's - each rect
+ * is centred on its own face and sized to that chip's own width, so two
+ * neighbours packed CHIP_GAP + their half-widths apart can never overlap. */
+const CHIP_GAP = 28;
+/** Avatar bottom edge to the top of the first name line. Exported so
+ * ActorNode.tsx can place the text at the same offset this file assumes
+ * when it computes chip height - duplicating the literal in both files is
+ * how they'd quietly drift apart. */
+export const NAME_TOP_GAP = 8;
+export const NAME_LINE_HEIGHT = 15;
+/** A name gets at most two lines before it's truncated with an ellipsis -
+ * three would let a single outlier name make every chip in its row taller
+ * than the row actually needs. */
+const NAME_MAX_LINES = 2;
+/** Target width a wrapped name tries to stay inside before the per-line
+ * character backstop below applies. Loose on purpose: this only decides
+ * where to break onto a second line, not how wide the chip ends up (that's
+ * whatever the widest resulting line actually measures). */
+const NAME_MAX_WIDTH = 150;
+/** Hard cap on one line, with an ellipsis past it. SVG text has no
  * equivalent of text-overflow, and measuring every name with
  * getComputedTextLength would force a synchronous layout per node during
- * packing, so this is a character budget derived from CHIP_WIDTH's text
- * column at the label's font size rather than a real measurement. Erring
- * long: a name that slightly overruns its chip is far less bad than one
- * truncated when it didn't need to be. */
-const NAME_MAX_CHARS = 22;
-
-/** Gap between a face and its name, matched to ActorNode's own label offset. */
-const NAME_GAP = 10;
+ * packing, so this is a character budget at the label's own font size
+ * rather than a real measurement - the backstop for the rare name whose
+ * words don't wrap the second line short enough on their own. */
+const NAME_MAX_CHARS_PER_LINE = 18;
+/** Vertical gap between two wrapped lines of chips within one row. */
+const CHIP_LINE_GAP = 12;
+/** Air below a named row's last name line, so it doesn't crowd the next
+ * row's label. rowGap alone isn't enough now that a row ends in text rather
+ * than in a face. */
+const NAMED_ROW_BOTTOM_PAD = 10;
 
 /** Rough width of a rendered name, from character count rather than
  * getComputedTextLength - measuring would force a synchronous layout per
- * node during packing, and "close enough to centre on" is all this is for.
- * The 0.55 factor is the same one the hover label's backdrop uses. */
+ * node during packing, and "close enough to size a chip on" is all this is
+ * for. The 0.55 factor is the same one the hover label's backdrop uses. */
 function estimatedTextWidth(text: string): number {
   return text.length * 13 * 0.55;
 }
 
-function fitName(name: string): string {
-  return name.length <= NAME_MAX_CHARS ? name : `${name.slice(0, NAME_MAX_CHARS - 1).trimEnd()}…`;
+function truncateLine(line: string): string {
+  return line.length <= NAME_MAX_CHARS_PER_LINE ? line : `${line.slice(0, NAME_MAX_CHARS_PER_LINE - 1).trimEnd()}…`;
+}
+
+/** Wraps a name onto at most NAME_MAX_LINES lines, greedily packing words so
+ * each line's estimated width stays under NAME_MAX_WIDTH (a single word
+ * longer than that still gets its own line - there's nowhere else to put
+ * it). Replaces the old flat NAME_MAX_CHARS truncation now that a chip has
+ * two lines of vertical room instead of one: "Christopher McDonald" used to
+ * overrun a single line and paint into the row below, but wraps cleanly to
+ * two lines here. Whatever's left past NAME_MAX_LINES is dropped and an
+ * ellipsis appended to the last kept line. */
+function wrapName(name: string): string[] {
+  const words = name.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (current && estimatedTextWidth(candidate) > NAME_MAX_WIDTH) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+
+  const kept = lines.slice(0, NAME_MAX_LINES);
+  if (lines.length > NAME_MAX_LINES) {
+    kept[kept.length - 1] = `${kept[kept.length - 1]}…`;
+  }
+  return kept.map(truncateLine);
 }
 
 /** Beeswarms don't hex-pack perfectly; this is the share of a row's box the
@@ -267,60 +310,83 @@ function packRow(bucket: Bucket, size: number, width: number): { actors: Positio
   return { actors, height: Math.max(nominalHeight, ...actors.map((a) => a.y + a.size / 2)) };
 }
 
-/** Lays a sparse row out as labelled chips - face then name - wrapping when
+/** Lays a sparse row out as labelled chips - face above name - wrapping when
  * the width runs out. No simulation: with eight or fewer people there is
  * nothing to pack around, and a predictable left-to-right reading order is
- * worth more here than organic placement. */
+ * worth more here than organic placement.
+ *
+ * The name sits *under* the face, not beside it, specifically so the chip is
+ * symmetric about the avatar: centring the chip and centring the face become
+ * the same operation. Side-by-side used to need a shared extent computed
+ * across the whole chart (every chip padded to the widest name anywhere) just
+ * so one-person rows would line up in a column - and that shared padding put
+ * the face itself off-centre by half the leftover slack, which is exactly
+ * the bug this replaced (the row label above centres on the row's true
+ * midline; the old chip didn't). With the name below, each chip's own real
+ * width is already symmetric, so per-line centring on the *real* extent
+ * (rather than a shared one) puts every one-person row's face exactly on
+ * centre, and a wrapped last line no longer hangs off to one side either. */
 function packNamedRow(
   bucket: Bucket,
   size: number,
   width: number,
   nameOf: (id: number) => string,
-  chipExtent: number,
 ): { actors: PositionedActor[]; height: number } {
-  const perLine = Math.max(1, Math.floor(width / CHIP_WIDTH));
-  const named = bucket.entries.map((e) => ({ ...e, label: fitName(nameOf(e.actor.id)) }));
+  const chips = bucket.entries.map((e) => {
+    const lines = wrapName(nameOf(e.actor.id));
+    const textWidth = lines.length ? Math.max(...lines.map(estimatedTextWidth)) : 0;
+    return { ...e, lines, chipWidth: Math.max(size, textWidth) };
+  });
 
-  // Centre each line on its own real extent, not on a nominal grid. Two
-  // things go wrong with a single block offset computed from CHIP_WIDTH: a
-  // one-person row centres the 240px *cell* rather than the face-plus-name
-  // actually in it, so a short name leaves the face visibly left of the
-  // label above it; and a row that wraps centres only the full line, leaving
-  // the short last line hanging at the left. Per-line centring fixes both,
-  // and for the one-person rows at the top of every chart - the ones a
-  // reader looks at first - it's the difference between deliberate and
-  // slightly broken.
+  // Chip widths vary with name length, so lines are filled greedily rather
+  // than sliced at a fixed count-per-line - always at least one chip per
+  // line, even if that one chip alone exceeds `width` (a very long name on a
+  // narrow phone), so nothing is ever dropped.
+  const lines: (typeof chips)[] = [];
+  let line: typeof chips = [];
+  let lineWidth = 0;
+  for (const chip of chips) {
+    const next = lineWidth + (line.length ? CHIP_GAP : 0) + chip.chipWidth;
+    if (line.length && next > width) {
+      lines.push(line);
+      line = [chip];
+      lineWidth = chip.chipWidth;
+    } else {
+      line.push(chip);
+      lineWidth = next;
+    }
+  }
+  if (line.length) lines.push(line);
+
+  const maxLines = Math.max(1, ...chips.map((c) => c.lines.length));
+  const chipHeight = size + NAME_TOP_GAP + maxLines * NAME_LINE_HEIGHT;
+  const linePitch = chipHeight + CHIP_LINE_GAP;
+
   const actors: PositionedActor[] = [];
-  const lineCount = Math.ceil(named.length / perLine);
-  for (let line = 0; line < lineCount; line++) {
-    const slice = named.slice(line * perLine, (line + 1) * perLine);
-    // One uniform extent for every chip in the chart, not each line's own.
-    // Centring on the real per-line width looks more precise and reads
-    // worse: every single-person row then centres on its own name length, so
-    // the faces wander left and right down the page instead of forming a
-    // column - very obvious on a phone, where the sparse rows are one chip
-    // each and the faces are the only thing the eye tracks. A shared extent
-    // keeps all the one-chip rows on the same axis while still centring each
-    // row's whole block.
-    const lineWidth = (slice.length - 1) * CHIP_WIDTH + chipExtent;
-    const originX = Math.max(0, (width - lineWidth) / 2);
-    slice.forEach(({ actor, sharedMovies, label }, i) => {
+  lines.forEach((rowLine, lineIndex) => {
+    const realWidth = rowLine.reduce((sum, c) => sum + c.chipWidth, 0) + (rowLine.length - 1) * CHIP_GAP;
+    const originX = Math.max(0, (width - realWidth) / 2);
+    let cursor = originX;
+    for (const { actor, sharedMovies, lines: nameLines, chipWidth } of rowLine) {
       actors.push({
         id: actor.id,
-        x: originX + i * CHIP_WIDTH + size / 2,
-        y: line * CHIP_HEIGHT + size / 2,
+        x: cursor + chipWidth / 2,
+        y: lineIndex * linePitch + size / 2,
         size,
         sharedMovies,
-        name: label,
-        // The cell minus a gap, so the next chip's own face is never inside
-        // this one's hit area. Chips are CHIP_WIDTH apart and the face is
-        // centred size/2 from the cell's left edge, so leaving CHIP_GAP
-        // clear at the right keeps the two comfortably separate.
-        hitWidth: CHIP_WIDTH - CHIP_GAP,
+        nameLines,
+        // Centred on the face (x above), sized to this chip's own width -
+        // adjacent chips are chipWidth/2 + CHIP_GAP + chipWidth/2 apart, so
+        // this rect stops CHIP_GAP short of the next chip's own edge and can
+        // never reach into a neighbour's hit area.
+        hitWidth: chipWidth,
+        hitHeight: size + NAME_TOP_GAP + nameLines.length * NAME_LINE_HEIGHT,
       });
-    });
-  }
-  return { actors, height: (lineCount - 1) * CHIP_HEIGHT + size };
+      cursor += chipWidth + CHIP_GAP;
+    }
+  });
+
+  return { actors, height: (lines.length - 1) * linePitch + chipHeight + NAMED_ROW_BOTTOM_PAD };
 }
 
 /**
@@ -351,34 +417,12 @@ function packNamedRow(
  * Buckets arrive descending from bucketCostars; re-sorted here anyway so the
  * break-run detection can't be silently wrong under another ordering.
  */
-/** Widest face-plus-name across every chip-rendered row - the uniform extent
- * packNamedRow centres on. */
-function widestChipExtent(buckets: Bucket[], cfg: RowLayoutConfig, nameOf: (id: number) => string): number {
-  let widest = 0;
-  for (const bucket of buckets) {
-    if (bucket.entries.length > NAMED_ROW_MAX) continue;
-    for (const { actor } of bucket.entries) {
-      widest = Math.max(widest, estimatedTextWidth(fitName(nameOf(actor.id))));
-    }
-  }
-  return cfg.maxNodeSize + NAME_GAP + widest;
-}
-
 export function layoutRows(
   buckets: Bucket[],
   cfg: RowLayoutConfig,
   nameOf: (id: number) => string,
 ): { rows: Row[]; height: number } {
   const ordered = [...buckets].sort((a, b) => b.sharedFilms - a.sharedFilms);
-
-  // The widest face-plus-name in any row that will render as chips, measured
-  // once for the whole chart so every chip centres on the same extent (see
-  // packNamedRow). Clamped to the available width so a very long name on a
-  // narrow screen can't push the block off the left edge.
-  const chipExtent = Math.min(
-    widestChipExtent(ordered, cfg, nameOf),
-    cfg.contentWidth,
-  );
 
   const rows: Row[] = [];
   let y = 0;
@@ -387,7 +431,7 @@ export function layoutRows(
     const named = bucket.entries.length <= NAMED_ROW_MAX;
     const size = sizeForRow(bucket.entries.length, cfg);
     const packed = named
-      ? packNamedRow(bucket, size, cfg.contentWidth, nameOf, chipExtent)
+      ? packNamedRow(bucket, size, cfg.contentWidth, nameOf)
       : packRow(bucket, size, cfg.contentWidth);
     // Push the faces down past the label band; the label itself is drawn in
     // the space this clears (see ROW_LABEL_BAND).
