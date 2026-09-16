@@ -81,18 +81,14 @@
   color: var(--accent);
 }
 
-/* Toolbar, not a masthead. The title used to be a full <h1> block with a
-   five-line paragraph under it and the search row under that - 340px of
-   chrome on desktop, 489px (58% of the screen) on a 390px phone, before a
-   single face appeared. Sitting the title inline with the controls is most
-   of that space back, and the height it frees goes straight into the
-   chart's own budget (see `available` in App.tsx), which is what releases
-   the MIN_SCALE clamp the chart used to render at. */
+/* Quiet top-left label, not a masthead - the centered hero below (photo +
+   name) is the page's real visual title now, the way a person's own face
+   and name outweigh a section header. Kept small and left-aligned so it
+   reads the same register as "Marginal Data" above it rather than competing
+   with the hero for attention. */
 .tus-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
 }
 
 .tus-title {
@@ -101,14 +97,18 @@
   white-space: nowrap;
 }
 
+/* Search + Shuffle + info, centered as its own row between the hero and the
+   first row of costars - not part of the toolbar above. Putting the hero
+   first means the page opens on a face and a fact before it offers a
+   control to change either. */
 .tus-search-row {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   gap: 0.5rem;
-  /* Takes the rest of the toolbar row, but wraps to its own line before the
-     title is squeezed - on a 390px phone "The Usual Suspects" and a usable
-     search field genuinely don't share a line. */
-  flex: 1 1 300px;
+  max-width: 560px;
+  margin: 0.9rem auto 0;
+  padding-inline: 1.5rem;
 }
 
 .tus-search {
@@ -318,12 +318,19 @@
   margin-top: 0.4rem;
 }
 
-.tus-root-banner {
+/* The centered hero - big photo, name, headline, meta, all stacked and
+   centered as one column. Replaces the old photo-left/text-right banner:
+   with the photo this much bigger, side-by-side made the row too tall to
+   read as one unit, where centered stacking reads as a single subject. */
+.tus-hero {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  margin: 0.6rem 0 0.5rem;
+  text-align: center;
+  gap: 0.3rem;
+  margin: 1.1rem auto 0;
   padding-inline: 1.5rem;
+  max-width: 520px;
 }
 
 /* The one sentence a cold arrival needs, generated from the chart in front
@@ -333,38 +340,67 @@
    it about the current actor is what earns it the space instead. It also
    captions the leftmost column, since the axis now runs descending. */
 .tus-headline {
-  margin: 0;
-  font-size: 1.05rem;
+  margin: 0.5rem 0 0;
+  font-size: 1.2rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.35;
   color: var(--text-primary);
 }
 
 .tus-context-meta {
-  margin: 0.15rem 0 0;
+  margin: 0.2rem 0 0;
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  line-height: 1.4;
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .tus-interaction-hint {
-  margin: 0.3rem 0 0;
+  margin: 0.35rem 0 0;
   color: var(--text-secondary);
   font-size: 0.85rem;
   font-style: italic;
 }
 
-.tus-root-photo {
-  width: 48px;
-  height: 48px;
+/* Unstyled wrapper around the hero photo - a real <button> so it opens the
+   same detail card every other node does (see App.tsx's onClick), but with
+   none of a button's own chrome fighting the circular photo inside it. */
+.tus-hero-photo-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 50%;
+}
+
+.tus-hero-photo-btn:hover .tus-hero-photo,
+.tus-hero-photo-btn:focus-visible .tus-hero-photo {
+  box-shadow: 0 0 0 4px var(--accent);
+}
+
+.tus-hero-photo-btn:focus-visible {
+  outline: none;
+}
+
+.tus-hero-photo {
+  width: 104px;
+  height: 104px;
   flex: none;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--accent);
+  transition: box-shadow 0.15s ease;
 }
 
-.tus-root-photo-fallback {
+.tus-hero-photo-fallback {
   background: var(--gridline);
+}
+
+@media (max-width: 640px) {
+  .tus-hero-photo {
+    width: 84px;
+    height: 84px;
+  }
 }
 
 /* The root actor's own name, inside the headline line. Carries no size or
@@ -657,6 +693,13 @@
 .tus-card-photo-btn:hover .tus-card-photo,
 .tus-card-photo-btn:focus-visible .tus-card-photo {
   box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* The root's own card (App.tsx's hero photo opens this) - a plain div, not
+   a button, since re-centering on yourself is a no-op: no cursor/hover glow
+   to suggest an action that isn't there. */
+.tus-card-photo-static {
+  cursor: default;
 }
 
 .tus-card-photo-btn:focus-visible {

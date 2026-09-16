@@ -100,6 +100,12 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
 
   const photo = photoUrl(actor, 64);
   const count = sharedMovies.length;
+  // The root's own photo (App.tsx's hero) opens this same card - "N films
+  // with {rootActor.name}" doesn't parse when actor and rootActor are the
+  // same person, and re-centering on yourself is a no-op that would only
+  // push a redundant history entry, so both get a self-specific treatment
+  // below rather than a second component.
+  const isSelf = actor.id === rootActor.id;
 
   return (
     <>
@@ -115,23 +121,33 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
         </button>
 
         <div className="tus-card-head">
-          <button
-            type="button"
-            className="tus-card-photo-btn"
-            onClick={() => onCenter(actor)}
-            aria-label={`Center on ${actor.name}`}
-            title={`Center on ${actor.name}`}
-          >
-            {photo ? (
-              <img className="tus-card-photo" src={photo} alt="" width={56} height={56} />
-            ) : (
-              <div className="tus-card-photo tus-card-photo-fallback" />
-            )}
-          </button>
+          {isSelf ? (
+            <div className="tus-card-photo-btn tus-card-photo-static">
+              {photo ? (
+                <img className="tus-card-photo" src={photo} alt="" width={56} height={56} />
+              ) : (
+                <div className="tus-card-photo tus-card-photo-fallback" />
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="tus-card-photo-btn"
+              onClick={() => onCenter(actor)}
+              aria-label={`Center on ${actor.name}`}
+              title={`Center on ${actor.name}`}
+            >
+              {photo ? (
+                <img className="tus-card-photo" src={photo} alt="" width={56} height={56} />
+              ) : (
+                <div className="tus-card-photo tus-card-photo-fallback" />
+              )}
+            </button>
+          )}
           <div>
             <div className="tus-card-name">{actor.name}</div>
             <div className="tus-card-meta">
-              {count} film{count === 1 ? "" : "s"} with {rootActor.name}
+              {isSelf ? `${count} film${count === 1 ? "" : "s"}` : `${count} film${count === 1 ? "" : "s"} with ${rootActor.name}`}
             </div>
           </div>
         </div>

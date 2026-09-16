@@ -689,16 +689,19 @@ export default function App() {
   // filmography: solo work and films whose cast didn't clear the pool's own
   // threshold aren't in the edges at all, which is why the copy scopes it
   // with "here" rather than stating it flat (the same hedge the costar count
-  // beside it already uses).
-  const totalFilms = useMemo(() => {
-    const ids = new Set<number>();
+  // beside it already uses). Also doubles as the movie list behind the root's
+  // own detail card (see the hero photo's onClick below) - sorted newest
+  // first, since a filmography reads better that way than a costar list does.
+  const rootMovies = useMemo(() => {
+    const byId = new Map<number, Movie>();
     for (const bucket of buckets) {
       for (const entry of bucket.entries) {
-        for (const movie of entry.sharedMovies) ids.add(movie.id);
+        for (const movie of entry.sharedMovies) byId.set(movie.id, movie);
       }
     }
-    return ids.size;
+    return [...byId.values()].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
   }, [buckets]);
+  const totalFilms = rootMovies.length;
   const headline = headlineFor(buckets, totalCostars);
 
   // The chart is exactly as wide as its frame and as tall as its rows need,
@@ -762,22 +765,6 @@ export default function App() {
       <div className="tus-chrome">
         <header className="tus-toolbar">
           <h1 className="tus-title">The Usual Suspects</h1>
-          <div className="tus-search-row">
-            <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
-            <button type="button" className="tus-shuffle" onClick={shuffle}>
-              Shuffle
-            </button>
-            <button
-              type="button"
-              className="tus-info-toggle"
-              onClick={() => setInfoOpen((open) => !open)}
-              aria-expanded={infoOpen}
-              aria-label="About this chart"
-              title="About this chart"
-            >
-              i
-            </button>
-          </div>
         </header>
         {error && !data && (
           <p className="tus-error-note">
@@ -806,89 +793,112 @@ export default function App() {
 
       {root && (
         <>
-          <div className="tus-root-banner">
-            {rootPhoto ? (
-              // Keyed by its own src so a recenter remounts this <img>
-              // instead of reusing the old element - browsers keep painting
-              // the previous bitmap through a bare src swap until the new
-              // one finishes decoding, which on a slow connection meant the
-              // banner showed the *previous* actor's face next to the new
-              // actor's name for as long as several seconds. A fresh mount
-              // has nothing to paint until the new photo decodes, so it
-              // goes blank instead - blank reads as loading; the wrong
-              // person reads as broken.
-              <img key={rootPhoto} className="tus-root-photo" src={rootPhoto} alt="" />
-            ) : (
-              <div className="tus-root-photo tus-root-photo-fallback" />
-            )}
-            <div>
-              <p className="tus-headline">
-                {root.tmdbId ? (
-                  <a
-                    className="tus-root-name tus-person-link"
-                    href={`https://www.themoviedb.org/person/${root.tmdbId}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {root.name}
-                  </a>
-                ) : (
-                  <span className="tus-root-name">{root.name}</span>
-                )}
-                {headline && ` ${headline}`}
-              </p>
-              <p className="tus-context-meta">
-                {/* The four-pair cold open, shown only on the bare landing
-                    state. It's doing real work there - naming duos someone
-                    already has a feel for, then landing on one they don't -
-                    and it would be dead weight on a deep link, where the
-                    generated headline above already says something specific
-                    about the actor in front of them. The landing page opens
-                    centred on one of these eight at random
-                    (SUBTITLE_ACTOR_NCONSTS), so the sentence someone just
-                    read is also the chart they're looking at.
+          <div className="tus-hero">
+            <button
+              type="button"
+              className="tus-hero-photo-btn"
+              onClick={(e) => selectNode(root, rootMovies, e.clientX, e.clientY)}
+              aria-label={`${root.name} - open details`}
+              title={root.name}
+            >
+              {rootPhoto ? (
+                // Keyed by its own src so a recenter remounts this <img>
+                // instead of reusing the old element - browsers keep painting
+                // the previous bitmap through a bare src swap until the new
+                // one finishes decoding, which on a slow connection meant the
+                // banner showed the *previous* actor's face next to the new
+                // actor's name for as long as several seconds. A fresh mount
+                // has nothing to paint until the new photo decodes, so it
+                // goes blank instead - blank reads as loading; the wrong
+                // person reads as broken.
+                <img key={rootPhoto} className="tus-hero-photo" src={rootPhoto} alt="" />
+              ) : (
+                <div className="tus-hero-photo tus-hero-photo-fallback" />
+              )}
+            </button>
+            <p className="tus-headline">
+              {root.tmdbId ? (
+                <a
+                  className="tus-root-name tus-person-link"
+                  href={`https://www.themoviedb.org/person/${root.tmdbId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {root.name}
+                </a>
+              ) : (
+                <span className="tus-root-name">{root.name}</span>
+              )}
+              {headline && ` ${headline}`}
+            </p>
+            <p className="tus-context-meta">
+              {/* The four-pair cold open, shown only on the bare landing
+                  state. It's doing real work there - naming duos someone
+                  already has a feel for, then landing on one they don't -
+                  and it would be dead weight on a deep link, where the
+                  generated headline above already says something specific
+                  about the actor in front of them. The landing page opens
+                  centred on one of these eight at random
+                  (SUBTITLE_ACTOR_NCONSTS), so the sentence someone just
+                  read is also the chart they're looking at.
 
-                    No numbers in this copy, deliberately: the figures that
-                    used to be quoted for these pairs in a comment here went
-                    stale when commit 4bc930f supplemented the edges, and the
-                    prose never carried them in the first place. The exact
-                    counts live in .claude/usual-suspects-refit-spec.md and
-                    are re-derived from the data everywhere they're shown.
+                  No numbers in this copy, deliberately: the figures that
+                  used to be quoted for these pairs in a comment here went
+                  stale when commit 4bc930f supplemented the edges, and the
+                  prose never carried them in the first place. The exact
+                  counts live in .claude/usual-suspects-refit-spec.md and
+                  are re-derived from the data everywhere they're shown.
 
-                    "Some actors share the silver screen far more than
-                    others" is kept only here, where it's the answer to the
-                    question mark the four pairs set up. On a deep link it
-                    had nothing to resolve and was the one line on the page
-                    that said nothing about the actor in front of you - so
-                    the two numbers below stand alone there instead. */}
-                {isLanding && (
-                  <>
-                    Ryan Gosling and Emma Stone. Dwayne "The Rock" Johnson and Kevin Hart. Keanu
-                    Reeves and Winona Ryder. Adam Sandler and Allen Covert? Some actors share the
-                    silver screen far more than others.{" "}
-                  </>
-                )}
-                {/* Both figures come from the root's own edges, which the
-                    bundled default slice already carries in full for every
-                    actor it holds - so unlike the pool-wide "out of N
-                    actors" this replaced, there's no window where these are
-                    real but wrong and need gating on the full fetch. */}
-                {totalFilms.toLocaleString()} film{totalFilms === 1 ? "" : "s"} here, with{" "}
-                {totalCostars.toLocaleString()} costar{totalCostars === 1 ? "" : "s"}.
-              </p>
-              {/* Split from the paragraph above and italicised - this is an
-                  instruction for using the chart, not part of the sentence
-                  describing what's in it, so it reads better set apart
-                  rather than tacked onto the same line. */}
-              <p className="tus-interaction-hint">
-                {compact ? "Tap" : "Click"} anyone to see the films they share.
-                {/* Desktop-only accelerator (see ActorNode.tsx's
-                    onDoubleClick) - left out on touch, where double-tap
-                    means zoom and the bottom-sheet card's own photo button
-                    is already one tap away. */}
-                {!compact && " Double-click to recenter."}
-              </p>
-            </div>
+                  "Some actors share the silver screen far more than
+                  others" is kept only here, where it's the answer to the
+                  question mark the four pairs set up. On a deep link it
+                  had nothing to resolve and was the one line on the page
+                  that said nothing about the actor in front of you - so
+                  the two numbers below stand alone there instead. */}
+              {isLanding && (
+                <>
+                  Ryan Gosling and Emma Stone. Dwayne "The Rock" Johnson and Kevin Hart. Keanu
+                  Reeves and Winona Ryder. Adam Sandler and Allen Covert? Some actors share the
+                  silver screen far more than others.{" "}
+                </>
+              )}
+              {/* Both figures come from the root's own edges, which the
+                  bundled default slice already carries in full for every
+                  actor it holds - so unlike the pool-wide "out of N
+                  actors" this replaced, there's no window where these are
+                  real but wrong and need gating on the full fetch. */}
+              {totalFilms.toLocaleString()} film{totalFilms === 1 ? "" : "s"} here, with{" "}
+              {totalCostars.toLocaleString()} costar{totalCostars === 1 ? "" : "s"}.
+            </p>
+            {/* Split from the paragraph above and italicised - this is an
+                instruction for using the chart, not part of the sentence
+                describing what's in it, so it reads better set apart
+                rather than tacked onto the same line. */}
+            <p className="tus-interaction-hint">
+              {compact ? "Tap" : "Click"} anyone to see the films they share.
+              {/* Desktop-only accelerator (see ActorNode.tsx's
+                  onDoubleClick) - left out on touch, where double-tap
+                  means zoom and the bottom-sheet card's own photo button
+                  is already one tap away. */}
+              {!compact && " Double-click to recenter."}
+            </p>
+          </div>
+
+          <div className="tus-search-row">
+            <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
+            <button type="button" className="tus-shuffle" onClick={shuffle}>
+              Shuffle
+            </button>
+            <button
+              type="button"
+              className="tus-info-toggle"
+              onClick={() => setInfoOpen((open) => !open)}
+              aria-expanded={infoOpen}
+              aria-label="About this chart"
+              title="About this chart"
+            >
+              i
+            </button>
           </div>
 
           <div className="tus-graph-frame" ref={setFrameEl}>
