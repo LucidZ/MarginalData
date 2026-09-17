@@ -519,22 +519,41 @@
   overflow: visible;
 }
 
-/* Row caption, centred above its own row. Words rather than the bare number
-   the horizontal layout was forced into - a label above a row costs the same
-   whatever it says. Smaller and letter-spaced relative to .tus-node-label:
-   on a named row the two now alternate down the page (label, faces, names,
-   label, ...), and at equal size/weight they read as the same kind of text
-   instead of a caption over its own content. */
-.tus-row-label {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  fill: var(--text-secondary);
+/* Hairline across the top of each row's label band (App.tsx), where the
+   comment on the <line> covers why this and not alternating row fills.
+   --gridline rather than anything heavier: with a rule at every boundary
+   there are a dozen of these down a busy chart, and they only have to be
+   findable when you go looking for where a row ended - the faces are the
+   content. */
+.tus-row-rule {
+  stroke: var(--gridline);
+  stroke-width: 1;
 }
 
-/* The head count, inline after the label rather than stacked under it. */
-.tus-row-count {
+/* Row caption, centred under its own row's rule. Words rather than the bare
+   number the horizontal layout was forced into - a label above a row costs
+   the same whatever it says. Letter-spaced and a notch smaller than
+   .tus-node-label: on a named row the two alternate down the page (label,
+   faces, names, label, ...), and at equal size/weight they read as the same
+   kind of text instead of a caption over its own content. It was 11px and
+   --text-secondary, which overshot in the other direction - the heading of a
+   row was the faintest text anywhere near it, fainter than the names printed
+   under the faces it was heading. */
+.tus-row-label {
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.04em;
   fill: var(--text-primary);
+}
+
+/* The head count, inline after the label rather than stacked under it, and
+   lighter than the film count it trails. The emphasis used to run the other
+   way - bold "28 costars" after a secondary "3 films together" - which put
+   the weight on the detail rather than on the thing the row IS, and pulled
+   the eye off the centre of a label that's centred on purpose. */
+.tus-row-count {
+  font-weight: 400;
+  fill: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 

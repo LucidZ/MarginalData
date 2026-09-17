@@ -34,8 +34,21 @@ export interface PositionedActor {
  * centred: a gutter label is anchored to a fixed x while the content it
  * describes floats, so on a one-person row the two ended up 500px apart and
  * the label read as belonging to nothing. Above-and-centred keeps them tied
- * together at every row width. */
-const ROW_LABEL_BAND = 24;
+ * together at every row width.
+ *
+ * The band also holds the rule App.tsx draws across the top of each row (see
+ * tus-row-rule), which is what actually says where one row stops and the
+ * next starts. Nothing else did: a packed row that wraps to several lines
+ * stacks them at roughly the same pitch as the gap between rows, so the only
+ * boundary cue was an 11px caption sitting between two face masses - smaller
+ * than the names printed under the faces it was meant to be heading. */
+const ROW_LABEL_BAND = 30;
+
+/** Baseline of the row label within that band, measured from the row's top
+ * (i.e. from the rule). Exported so App.tsx places the text at the same
+ * offset this file reserves room for - the two used to carry separate
+ * literals, which is how they'd quietly drift apart. */
+export const ROW_LABEL_BASELINE = 20;
 
 export interface Row {
   /** Shared-film count this row represents. For a break row, the highest
@@ -75,17 +88,22 @@ export interface RowLayoutConfig {
   breakHeight: number;
 }
 
+/* rowGap is deliberately much larger than the gap between two wrapped lines
+ * *inside* a packed row (CHIP_LINE_GAP / the beeswarm's own line pitch).
+ * Proximity is doing the grouping here, so the two gaps have to be clearly
+ * different sizes - at 14px against an intra-row pitch in the same range,
+ * a two-line row read as two rows. */
 export const DESKTOP_ROWS = {
   minNodeSize: 26,
   maxNodeSize: 64,
-  rowGap: 14,
+  rowGap: 26,
   breakHeight: 26,
 } as const;
 
 export const COMPACT_ROWS = {
   minNodeSize: 22,
   maxNodeSize: 56,
-  rowGap: 10,
+  rowGap: 20,
   breakHeight: 22,
 } as const;
 

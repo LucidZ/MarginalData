@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ActorNode from "./ActorNode";
-import { COMPACT_ROWS, DESKTOP_ROWS, layoutRows, type Row } from "./beeswarm";
+import { COMPACT_ROWS, DESKTOP_ROWS, ROW_LABEL_BASELINE, layoutRows, type Row } from "./beeswarm";
 // A small pre-baked slice of the full pool - a handful of well-connected
 // actors' complete real ego-networks (same GraphData shape as the fetched
 // file). Bundled into this route's own JS chunk, so the default view can
@@ -954,8 +954,36 @@ export default function App() {
                 aria-hidden="true"
                 onClick={onGraphBackgroundClick}
               />
-              {rows.map((row) => (
+              {rows.map((row, rowIndex) => (
                 <g key={row.sharedFilms}>
+                  {/* Row rule - a hairline across the full chart width at the
+                      top of each row's label band, which is the one thing
+                      here that says unambiguously where a row begins.
+                      Alternating row fills (the spreadsheet convention) were
+                      the other candidate and were rejected: rows vary from
+                      one face to a dozen wrapped lines, so a tinted band
+                      reads as emphasis on the big ones rather than as
+                      structure, it lays a second tone under headshots whose
+                      own backgrounds run from white studio backdrop to near
+                      black, and in a chart where every row is the same kind
+                      of thing a fill that alternates invites a reader to
+                      look for the meaning it doesn't carry. A rule costs a
+                      pixel and says the same thing.
+
+                      Skipped above the first row, where there is no boundary
+                      to draw - only the chart's own top edge. aria-hidden:
+                      it's a visual grouping cue for a structure assistive
+                      tech already gets from the row labels. */}
+                  {rowIndex > 0 && (
+                    <line
+                      className="tus-row-rule"
+                      x1={0}
+                      x2={chartWidth}
+                      y1={row.y}
+                      y2={row.y}
+                      aria-hidden="true"
+                    />
+                  )}
                   {row.missing ? (
                     // A collapsed run of shared-film counts nobody has - the
                     // print convention for a broken axis, drawn once per gap
@@ -991,7 +1019,12 @@ export default function App() {
                           the chart is cleanest and arrives above the fold.
                           It earns its place on the packed rows below, where
                           nobody is going to count 491 faces. */}
-                      <text className="tus-row-label" x={row.centerX} y={row.y + 14} textAnchor="middle">
+                      <text
+                        className="tus-row-label"
+                        x={row.centerX}
+                        y={row.y + ROW_LABEL_BASELINE}
+                        textAnchor="middle"
+                      >
                         {filmLabel(row.sharedFilms, compact)}
                         {!row.named && (
                           <tspan className="tus-row-count">
