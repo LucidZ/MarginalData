@@ -10,7 +10,7 @@ export interface PopulationBarRow {
   label?: string;
   cvap: number; // eligible citizens, thousands
   votes: number; // thousands
-  expected: number; // cvap x this chart's average turnout, thousands
+  expected: number; // cvap x this chart's benchmark turnout, thousands
   missing: number; // votes - expected, thousands (negative = underrepresented)
   turnout: number; // percent
   /** "age" variant only - true for ages 80+, where Census only reports a
@@ -31,11 +31,13 @@ interface Props {
   showTrack?: boolean;
   showVotes?: boolean;
   showExpected?: boolean;
+  /** Legend copy for the expected line, e.g. "expected at 65+ turnout". */
+  expectedLineLabel?: string;
   /** Draws the gold shortfall layer: for each bar that falls under the
-   * expected-at-average-turnout marker, a block spanning the votes bar up
-   * to that marker. Bars that clear the marker get nothing - the story is
-   * about who isn't voting, and shading a "surplus" would imply some
-   * groups should participate less. */
+   * expected marker, a block spanning the votes bar up to that marker.
+   * Bars that clear the marker get nothing - the story is about who
+   * isn't voting, and shading a "surplus" would imply some groups should
+   * participate less. */
   showGap?: boolean;
   /** Fixes the y-domain - pass the same domain across a dataset swap (e.g.
    * 2024 -> 2022) so the transition reads as "the bars dropped", not "the
@@ -67,6 +69,7 @@ export default function PopulationBars({
   showTrack = true,
   showVotes = true,
   showExpected = true,
+  expectedLineLabel = "expected at average turnout",
   showGap = false,
   yDomain: yDomainProp,
   directLabelMissing = false,
@@ -77,10 +80,6 @@ export default function PopulationBars({
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(560);
   const [hover, setHover] = useState<{ row: PopulationBarRow; clientX: number; clientY: number } | null>(null);
-  // Shortfall and surplus are equal by construction (`expected` is each
-  // row's population scaled by the rate that reproduces the actual vote
-  // total), so one figure describes the whole gold area: the number of
-  // votes sitting on the far side of proportional.
   const shortRows = useMemo(() => rows.filter((r) => r.missing < 0), [rows]);
   const gapStat = useMemo(() => {
     const shortfall = shortRows.reduce((sum, r) => sum + r.missing, 0);
@@ -261,12 +260,12 @@ export default function PopulationBars({
       .attr("y", (d) => yScale(d.expected))
       .attr("height", (d) => yScale(d.votes) - yScale(d.expected));
 
-    // Expected-at-average-turnout marker. Age variant: one dotted path
-    // through every bar's expected value - since cvap varies smoothly by
-    // age, this traces a scaled silhouette of the population curve
-    // itself. Category variant: categories aren't ordered, so a
-    // connecting line would imply a false adjacency - draw a short
-    // dashed tick per bar instead (a bullet-chart target marker).
+    // Expected-turnout marker. Age variant: one dotted path through every
+    // bar's expected value - since cvap varies smoothly by age, this
+    // traces a scaled silhouette of the population curve itself.
+    // Category variant: categories aren't ordered, so a connecting line
+    // would imply a false adjacency - draw a short dashed tick per bar
+    // instead (a bullet-chart target marker).
     const expectedLine = root.select<SVGPathElement>("path.pb-expected-line");
     const expectedTicks = root.select<SVGGElement>("g.pb-expected-ticks");
     if (xKind === "age") {
@@ -356,7 +355,7 @@ export default function PopulationBars({
             <svg width="18" height="10" aria-hidden="true">
               <line x1="0" y1="5" x2="18" y2="5" className="pb-expected-line pb-legend-line" />
             </svg>{" "}
-            expected at average turnout
+            {expectedLineLabel}
           </span>
         )}
         {showGap && (

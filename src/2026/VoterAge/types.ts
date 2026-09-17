@@ -6,7 +6,7 @@ export interface AgeRow {
   age: number; // single year, 18-100 ("100" = "100 and over")
   cvap: number; // citizen voting-age population, thousands (PEP population x CPS citizen share)
   votes: number; // thousands (cvap x CPS turnout)
-  expected: number; // cvap x this cycle's average turnout, thousands
+  expected: number; // cvap x this cycle's 65-and-over turnout, thousands
   missing: number; // votes - expected, thousands (negative = underrepresented)
   turnout: number; // percent
   /** True for ages 80+ - Census's source only reports a turnout/citizen-
@@ -17,10 +17,12 @@ export interface AgeRow {
 }
 
 export interface AgeCycle {
-  avgTurnout: number; // percent
+  avgTurnout: number; // percent - true national average; kept for CPS reconciliation, not the chart's benchmark
+  over65Turnout: number; // percent - votes/cvap for ages 65+ only. The chart's benchmark line.
   totalCvap: number; // thousands
   totalVotes: number; // thousands
-  crossoverAge: number | null; // first age whose own turnout reaches avgTurnout
+  crossoverAge: number | null; // first age (ascending) whose own turnout reaches over65Turnout
+  declineAge: number | null; // last age (descending) whose own turnout still reaches over65Turnout
   rows: AgeRow[];
 }
 

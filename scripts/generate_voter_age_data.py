@@ -240,30 +240,42 @@ def build_age_rows(single_years, tail_80_84, tail_85_plus, pep_by_age, year):
     return rows
 
 
+OVER65_AGE = 65  # benchmark cohort for the chart's "expected" line
+
+
 def finalize_age_cycle(rows):
     total_cvap = sum(r["cvap"] for r in rows)
     total_votes = sum(r["votes"] for r in rows)
-    avg_turnout = total_votes / total_cvap
+    avg_turnout = total_votes / total_cvap  # kept for CPS reconciliation, spec v2 S5.3 - not the chart's benchmark
+
+    over65_cvap = sum(r["cvap"] for r in rows if r["age"] >= OVER65_AGE)
+    over65_votes = sum(r["votes"] for r in rows if r["age"] >= OVER65_AGE)
+    over65_turnout = over65_votes / over65_cvap
+
     for r in rows:
-        r["expected"] = round(r["cvap"] * avg_turnout, 1)
+        r["expected"] = round(r["cvap"] * over65_turnout, 1)
         r["missing"] = round(r["votes"] - r["expected"], 1)
         r["cvap"] = round(r["cvap"], 1)
         r["votes"] = round(r["votes"], 1)
 
-    # Crossover: first age (ascending) whose own turnout reaches the
-    # cycle average. Deliberately unsmoothed - the chart draws the actual
-    # bars, not a derivative of them, so smoothing here would claim a
-    # precision the visible chart doesn't have. The ratio is not perfectly
-    # monotonic near the crossover (a few ages just above 40 dip back
-    # below average before settling above for good) - say "around age
-    # NN" in prose, never "exactly".
+    # Crossover: first age (ascending) whose own turnout reaches the 65+
+    # benchmark. Decline: last age (descending) that still does - the 65+
+    # line isn't a ceiling every older age clears; turnout among the
+    # oldest ages falls back under even this high a bar. Both deliberately
+    # unsmoothed and both dip in and out near their edges (a few ages in
+    # the late 50s/early 60s already clear the line before it holds for
+    # good; a few in the 60s/70s dip back under before the real late-life
+    # decline sets in) - say "around age NN" in prose, never "exactly".
     crossover = next((r["age"] for r in rows if r["votes"] >= r["expected"]), None)
+    decline = next((r["age"] for r in reversed(rows) if r["votes"] >= r["expected"]), None)
 
     return {
         "avgTurnout": round(100 * avg_turnout, 2),
+        "over65Turnout": round(100 * over65_turnout, 2),
         "totalCvap": round(total_cvap, 1),
         "totalVotes": round(total_votes, 1),
         "crossoverAge": crossover,
+        "declineAge": decline,
         "rows": rows,
     }
 
@@ -546,7 +558,7 @@ def main():
                 f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
             ] + [PEP_URL, COLORADO["url"]],
             "retrieved": "2026-09-16",
-            "units": "thousands of people (cvap, votes, expected, missing); percent (turnout, avgTurnout); percentage points (effectPp, sePp)",
+            "units": "thousands of people (cvap, votes, expected, missing); percent (turnout, avgTurnout, over65Turnout); percentage points (effectPp, sePp)",
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
                 "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "

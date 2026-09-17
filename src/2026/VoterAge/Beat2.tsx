@@ -33,6 +33,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
 
   const rows2024 = useMemo(() => cycle2024.rows.map(toBarRow), [cycle2024]);
   const rows2022 = useMemo(() => cycle2022.rows.map(toBarRow), [cycle2022]);
+  const activeCycle = step === 0 ? cycle2024 : cycle2022;
   const activeRows = step === 0 ? rows2024 : rows2022;
 
   const yDomain = useMemo((): [number, number] => {
@@ -70,6 +71,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes
             showExpected
+            expectedLineLabel={`expected at the 65+ rate (${fmtPct(activeCycle.over65Turnout)})`}
             showGap
             yDomain={yDomain}
             tooltipFor={tooltipFor}
@@ -89,9 +91,10 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             <div className="voa-step-inner">
               <h3>2022: watch both quantities fall</h3>
               <p>
-                Both the bars and the dotted "fair" line drop, because the dotted line is set to <em>that year's</em>{" "}
-                average turnout ({fmtPct(cycle2022.avgTurnout)}, down from {fmtPct(cycle2024.avgTurnout)}). What
-                doesn't scale down evenly is how far short of the line the young bars fall.
+                The bars drop, and the dotted line drops a little too — because it's set to <em>that year's</em>{" "}
+                65+ turnout ({fmtPct(cycle2022.over65Turnout)}, down from {fmtPct(cycle2024.over65Turnout)}). But
+                65-and-overs barely change their habits between a presidential year and a midterm. What doesn't
+                scale down evenly is how far short of that steady line the young bars fall.
               </p>
               <div className="voa-callout">
                 Under-35 shortfall: <strong>{fmtMSigned(under35Missing2024)}</strong> in 2024 →{" "}

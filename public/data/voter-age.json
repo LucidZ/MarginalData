@@ -12,7 +12,7 @@
       "https://pmc.ncbi.nlm.nih.gov/articles/PMC9756790/"
     ],
     "retrieved": "2026-09-16",
-    "units": "thousands of people (cvap, votes, expected, missing); percent (turnout, avgTurnout); percentage points (effectPp, sePp)",
+    "units": "thousands of people (cvap, votes, expected, missing); percent (turnout, avgTurnout, over65Turnout); percentage points (effectPp, sePp)",
     "construction": "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). See spec v2 S5 for why levels come from PEP and rates from CPS.",
     "notes": [
       "Eligible population = citizen voting-age population (CVAP), not total voting-age population, to avoid confounding any gap with non-citizen population share.",
@@ -24,9 +24,11 @@
   "byAge": {
     "2022": {
       "avgTurnout": 51.95,
+      "over65Turnout": 66.79,
       "totalCvap": 238206.1,
       "totalVotes": 123739.2,
-      "crossoverAge": 40,
+      "crossoverAge": 65,
+      "declineAge": 79,
       "rows": [
         {
           "age": 18,
@@ -34,8 +36,8 @@
           "votes": 815.9,
           "turnout": 19.6,
           "ratesPooled": false,
-          "expected": 2162.1,
-          "missing": -1346.2
+          "expected": 2780.1,
+          "missing": -1964.2
         },
         {
           "age": 19,
@@ -43,8 +45,8 @@
           "votes": 984.6,
           "turnout": 24.5,
           "ratesPooled": false,
-          "expected": 2088.6,
-          "missing": -1104.0
+          "expected": 2685.6,
+          "missing": -1701.0
         },
         {
           "age": 20,
@@ -52,8 +54,8 @@
           "votes": 1201.9,
           "turnout": 29.6,
           "ratesPooled": false,
-          "expected": 2110.0,
-          "missing": -908.1
+          "expected": 2713.1,
+          "missing": -1511.2
         },
         {
           "age": 21,
@@ -61,8 +63,8 @@
           "votes": 1205.9,
           "turnout": 29.6,
           "ratesPooled": false,
-          "expected": 2115.8,
-          "missing": -909.9
+          "expected": 2720.5,
+          "missing": -1514.6
         },
         {
           "age": 22,
@@ -70,8 +72,8 @@
           "votes": 1217.8,
           "turnout": 29.9,
           "ratesPooled": false,
-          "expected": 2117.1,
-          "missing": -899.3
+          "expected": 2722.3,
+          "missing": -1504.5
         },
         {
           "age": 23,
@@ -79,8 +81,8 @@
           "votes": 1105.0,
           "turnout": 28.0,
           "ratesPooled": false,
-          "expected": 2051.8,
-          "missing": -946.8
+          "expected": 2638.2,
+          "missing": -1533.2
         },
         {
           "age": 24,
@@ -88,8 +90,8 @@
           "votes": 1248.4,
           "turnout": 31.6,
           "ratesPooled": false,
-          "expected": 2055.0,
-          "missing": -806.6
+          "expected": 2642.4,
+          "missing": -1394.0
         },
         {
           "age": 25,
@@ -97,8 +99,8 @@
           "votes": 1321.3,
           "turnout": 34.1,
           "ratesPooled": false,
-          "expected": 2015.7,
-          "missing": -694.4
+          "expected": 2591.9,
+          "missing": -1270.6
         },
         {
           "age": 26,
@@ -106,8 +108,8 @@
           "votes": 1369.3,
           "turnout": 34.3,
           "ratesPooled": false,
-          "expected": 2075.3,
-          "missing": -706.0
+          "expected": 2668.4,
+          "missing": -1299.1
         },
         {
           "age": 27,
@@ -115,8 +117,8 @@
           "votes": 1436.5,
           "turnout": 35.8,
           "ratesPooled": false,
-          "expected": 2081.9,
-          "missing": -645.4
+          "expected": 2677.0,
+          "missing": -1240.5
         },
         {
           "age": 28,
@@ -124,8 +126,8 @@
           "votes": 1525.6,
           "turnout": 38.1,
           "ratesPooled": false,
-          "expected": 2077.8,
-          "missing": -552.2
+          "expected": 2671.7,
+          "missing": -1146.1
         },
         {
           "age": 29,
@@ -133,8 +135,8 @@
           "votes": 1572.1,
           "turnout": 38.7,
           "ratesPooled": false,
-          "expected": 2110.5,
-          "missing": -538.4
+          "expected": 2713.8,
+          "missing": -1141.7
         },
         {
           "age": 30,
@@ -142,8 +144,8 @@
           "votes": 1509.5,
           "turnout": 37.2,
           "ratesPooled": false,
-          "expected": 2109.5,
-          "missing": -600.0
+          "expected": 2712.4,
+          "missing": -1202.9
         },
         {
           "age": 31,
@@ -151,8 +153,8 @@
           "votes": 1803.8,
           "turnout": 43.9,
           "ratesPooled": false,
-          "expected": 2134.4,
-          "missing": -330.6
+          "expected": 2744.4,
+          "missing": -940.6
         },
         {
           "age": 32,
@@ -160,8 +162,8 @@
           "votes": 1851.0,
           "turnout": 43.5,
           "ratesPooled": false,
-          "expected": 2212.5,
-          "missing": -361.5
+          "expected": 2844.9,
+          "missing": -993.9
         },
         {
           "age": 33,
@@ -169,8 +171,8 @@
           "votes": 1853.5,
           "turnout": 45.0,
           "ratesPooled": false,
-          "expected": 2137.2,
-          "missing": -283.7
+          "expected": 2748.1,
+          "missing": -894.6
         },
         {
           "age": 34,
@@ -178,8 +180,8 @@
           "votes": 1708.4,
           "turnout": 44.4,
           "ratesPooled": false,
-          "expected": 1999.7,
-          "missing": -291.3
+          "expected": 2571.2,
+          "missing": -862.8
         },
         {
           "age": 35,
@@ -187,8 +189,8 @@
           "votes": 1751.1,
           "turnout": 44.9,
           "ratesPooled": false,
-          "expected": 2026.4,
-          "missing": -275.3
+          "expected": 2605.6,
+          "missing": -854.5
         },
         {
           "age": 36,
@@ -196,8 +198,8 @@
           "votes": 1973.3,
           "turnout": 49.6,
           "ratesPooled": false,
-          "expected": 2068.8,
-          "missing": -95.5
+          "expected": 2660.0,
+          "missing": -686.7
         },
         {
           "age": 37,
@@ -205,8 +207,8 @@
           "votes": 1862.1,
           "turnout": 47.3,
           "ratesPooled": false,
-          "expected": 2044.3,
-          "missing": -182.2
+          "expected": 2628.6,
+          "missing": -766.5
         },
         {
           "age": 38,
@@ -214,8 +216,8 @@
           "votes": 1681.2,
           "turnout": 44.6,
           "ratesPooled": false,
-          "expected": 1957.8,
-          "missing": -276.6
+          "expected": 2517.3,
+          "missing": -836.1
         },
         {
           "age": 39,
@@ -223,8 +225,8 @@
           "votes": 1882.9,
           "turnout": 48.8,
           "ratesPooled": false,
-          "expected": 2004.1,
-          "missing": -121.2
+          "expected": 2576.9,
+          "missing": -694.0
         },
         {
           "age": 40,
@@ -232,8 +234,8 @@
           "votes": 2008.2,
           "turnout": 52.1,
           "ratesPooled": false,
-          "expected": 2003.5,
-          "missing": 4.7
+          "expected": 2576.2,
+          "missing": -568.0
         },
         {
           "age": 41,
@@ -241,8 +243,8 @@
           "votes": 1949.4,
           "turnout": 50.6,
           "ratesPooled": false,
-          "expected": 1999.6,
-          "missing": -50.2
+          "expected": 2571.1,
+          "missing": -621.7
         },
         {
           "age": 42,
@@ -250,8 +252,8 @@
           "votes": 1853.0,
           "turnout": 48.8,
           "ratesPooled": false,
-          "expected": 1973.2,
-          "missing": -120.2
+          "expected": 2537.2,
+          "missing": -684.2
         },
         {
           "age": 43,
@@ -259,8 +261,8 @@
           "votes": 1949.8,
           "turnout": 52.6,
           "ratesPooled": false,
-          "expected": 1924.2,
-          "missing": 25.6
+          "expected": 2474.2,
+          "missing": -524.4
         },
         {
           "age": 44,
@@ -268,8 +270,8 @@
           "votes": 1871.9,
           "turnout": 52.2,
           "ratesPooled": false,
-          "expected": 1863.5,
-          "missing": 8.4
+          "expected": 2396.2,
+          "missing": -524.3
         },
         {
           "age": 45,
@@ -277,8 +279,8 @@
           "votes": 1842.3,
           "turnout": 51.9,
           "ratesPooled": false,
-          "expected": 1842.2,
-          "missing": 0.1
+          "expected": 2368.7,
+          "missing": -526.4
         },
         {
           "age": 46,
@@ -286,8 +288,8 @@
           "votes": 1815.0,
           "turnout": 52.8,
           "ratesPooled": false,
-          "expected": 1784.4,
-          "missing": 30.6
+          "expected": 2294.4,
+          "missing": -479.4
         },
         {
           "age": 47,
@@ -295,8 +297,8 @@
           "votes": 1903.1,
           "turnout": 55.6,
           "ratesPooled": false,
-          "expected": 1776.7,
-          "missing": 126.4
+          "expected": 2284.5,
+          "missing": -381.4
         },
         {
           "age": 48,
@@ -304,8 +306,8 @@
           "votes": 1772.9,
           "turnout": 51.3,
           "ratesPooled": false,
-          "expected": 1794.4,
-          "missing": -21.5
+          "expected": 2307.3,
+          "missing": -534.4
         },
         {
           "age": 49,
@@ -313,8 +315,8 @@
           "votes": 1908.8,
           "turnout": 54.5,
           "ratesPooled": false,
-          "expected": 1820.1,
-          "missing": 88.7
+          "expected": 2340.3,
+          "missing": -431.5
         },
         {
           "age": 50,
@@ -322,8 +324,8 @@
           "votes": 2017.0,
           "turnout": 56.3,
           "ratesPooled": false,
-          "expected": 1859.4,
-          "missing": 157.6
+          "expected": 2390.9,
+          "missing": -373.9
         },
         {
           "age": 51,
@@ -331,8 +333,8 @@
           "votes": 2120.5,
           "turnout": 53.5,
           "ratesPooled": false,
-          "expected": 2057.1,
-          "missing": 63.4
+          "expected": 2645.1,
+          "missing": -524.6
         },
         {
           "age": 52,
@@ -340,8 +342,8 @@
           "votes": 2207.6,
           "turnout": 57.3,
           "ratesPooled": false,
-          "expected": 2001.4,
-          "missing": 206.2
+          "expected": 2573.4,
+          "missing": -365.8
         },
         {
           "age": 53,
@@ -349,8 +351,8 @@
           "votes": 2190.6,
           "turnout": 57.4,
           "ratesPooled": false,
-          "expected": 1982.1,
-          "missing": 208.5
+          "expected": 2548.7,
+          "missing": -358.1
         },
         {
           "age": 54,
@@ -358,8 +360,8 @@
           "votes": 2031.7,
           "turnout": 55.1,
           "ratesPooled": false,
-          "expected": 1914.8,
-          "missing": 116.9
+          "expected": 2462.0,
+          "missing": -430.3
         },
         {
           "age": 55,
@@ -367,8 +369,8 @@
           "votes": 2163.7,
           "turnout": 59.8,
           "ratesPooled": false,
-          "expected": 1879.4,
-          "missing": 284.3
+          "expected": 2416.5,
+          "missing": -252.8
         },
         {
           "age": 56,
@@ -376,8 +378,8 @@
           "votes": 2113.9,
           "turnout": 56.3,
           "ratesPooled": false,
-          "expected": 1951.6,
-          "missing": 162.3
+          "expected": 2509.4,
+          "missing": -395.5
         },
         {
           "age": 57,
@@ -385,8 +387,8 @@
           "votes": 2274.0,
           "turnout": 57.8,
           "ratesPooled": false,
-          "expected": 2042.4,
-          "missing": 231.6
+          "expected": 2626.1,
+          "missing": -352.1
         },
         {
           "age": 58,
@@ -394,8 +396,8 @@
           "votes": 2568.3,
           "turnout": 62.9,
           "ratesPooled": false,
-          "expected": 2122.6,
-          "missing": 445.7
+          "expected": 2729.3,
+          "missing": -161.0
         },
         {
           "age": 59,
@@ -403,8 +405,8 @@
           "votes": 2589.5,
           "turnout": 64.0,
           "ratesPooled": false,
-          "expected": 2101.4,
-          "missing": 488.1
+          "expected": 2702.1,
+          "missing": -112.6
         },
         {
           "age": 60,
@@ -412,8 +414,8 @@
           "votes": 2435.4,
           "turnout": 58.7,
           "ratesPooled": false,
-          "expected": 2153.6,
-          "missing": 281.8
+          "expected": 2769.2,
+          "missing": -333.8
         },
         {
           "age": 61,
@@ -421,8 +423,8 @@
           "votes": 2506.7,
           "turnout": 62.8,
           "ratesPooled": false,
-          "expected": 2073.1,
-          "missing": 433.6
+          "expected": 2665.7,
+          "missing": -159.0
         },
         {
           "age": 62,
@@ -430,8 +432,8 @@
           "votes": 2608.0,
           "turnout": 64.8,
           "ratesPooled": false,
-          "expected": 2090.5,
-          "missing": 517.5
+          "expected": 2688.0,
+          "missing": -80.0
         },
         {
           "age": 63,
@@ -439,8 +441,8 @@
           "votes": 2513.2,
           "turnout": 63.5,
           "ratesPooled": false,
-          "expected": 2057.6,
-          "missing": 455.6
+          "expected": 2645.6,
+          "missing": -132.4
         },
         {
           "age": 64,
@@ -448,8 +450,8 @@
           "votes": 2527.0,
           "turnout": 64.1,
           "ratesPooled": false,
-          "expected": 2048.0,
-          "missing": 479.0
+          "expected": 2633.4,
+          "missing": -106.4
         },
         {
           "age": 65,
@@ -457,8 +459,8 @@
           "votes": 2602.0,
           "turnout": 67.4,
           "ratesPooled": false,
-          "expected": 2006.6,
-          "missing": 595.4
+          "expected": 2580.2,
+          "missing": 21.8
         },
         {
           "age": 66,
@@ -466,8 +468,8 @@
           "votes": 2399.0,
           "turnout": 64.7,
           "ratesPooled": false,
-          "expected": 1925.8,
-          "missing": 473.2
+          "expected": 2476.2,
+          "missing": -77.2
         },
         {
           "age": 67,
@@ -475,8 +477,8 @@
           "votes": 2402.4,
           "turnout": 66.3,
           "ratesPooled": false,
-          "expected": 1882.1,
-          "missing": 520.3
+          "expected": 2420.1,
+          "missing": -17.7
         },
         {
           "age": 68,
@@ -484,8 +486,8 @@
           "votes": 2334.7,
           "turnout": 67.4,
           "ratesPooled": false,
-          "expected": 1799.5,
-          "missing": 535.2
+          "expected": 2313.9,
+          "missing": 20.8
         },
         {
           "age": 69,
@@ -493,8 +495,8 @@
           "votes": 2422.6,
           "turnout": 71.8,
           "ratesPooled": false,
-          "expected": 1752.6,
-          "missing": 670.0
+          "expected": 2253.5,
+          "missing": 169.1
         },
         {
           "age": 70,
@@ -502,8 +504,8 @@
           "votes": 2221.4,
           "turnout": 69.6,
           "ratesPooled": false,
-          "expected": 1657.6,
-          "missing": 563.8
+          "expected": 2131.3,
+          "missing": 90.1
         },
         {
           "age": 71,
@@ -511,8 +513,8 @@
           "votes": 2142.8,
           "turnout": 69.3,
           "ratesPooled": false,
-          "expected": 1606.2,
-          "missing": 536.6
+          "expected": 2065.3,
+          "missing": 77.5
         },
         {
           "age": 72,
@@ -520,8 +522,8 @@
           "votes": 1916.3,
           "turnout": 66.2,
           "ratesPooled": false,
-          "expected": 1502.7,
-          "missing": 413.6
+          "expected": 1932.1,
+          "missing": -15.8
         },
         {
           "age": 73,
@@ -529,8 +531,8 @@
           "votes": 1891.0,
           "turnout": 68.0,
           "ratesPooled": false,
-          "expected": 1444.5,
-          "missing": 446.5
+          "expected": 1857.4,
+          "missing": 33.6
         },
         {
           "age": 74,
@@ -538,8 +540,8 @@
           "votes": 1929.0,
           "turnout": 70.0,
           "ratesPooled": false,
-          "expected": 1431.5,
-          "missing": 497.5
+          "expected": 1840.6,
+          "missing": 88.4
         },
         {
           "age": 75,
@@ -547,8 +549,8 @@
           "votes": 1952.7,
           "turnout": 67.7,
           "ratesPooled": false,
-          "expected": 1499.1,
-          "missing": 453.6
+          "expected": 1927.6,
+          "missing": 25.1
         },
         {
           "age": 76,
@@ -556,8 +558,8 @@
           "votes": 1403.9,
           "turnout": 69.1,
           "ratesPooled": false,
-          "expected": 1056.0,
-          "missing": 347.9
+          "expected": 1357.8,
+          "missing": 46.1
         },
         {
           "age": 77,
@@ -565,8 +567,8 @@
           "votes": 1348.8,
           "turnout": 69.7,
           "ratesPooled": false,
-          "expected": 1005.2,
-          "missing": 343.6
+          "expected": 1292.5,
+          "missing": 56.3
         },
         {
           "age": 78,
@@ -574,8 +576,8 @@
           "votes": 1245.5,
           "turnout": 69.2,
           "ratesPooled": false,
-          "expected": 935.6,
-          "missing": 309.9
+          "expected": 1203.0,
+          "missing": 42.5
         },
         {
           "age": 79,
@@ -583,8 +585,8 @@
           "votes": 1298.8,
           "turnout": 69.7,
           "ratesPooled": false,
-          "expected": 968.0,
-          "missing": 330.8
+          "expected": 1244.7,
+          "missing": 54.1
         },
         {
           "age": 80,
@@ -592,8 +594,8 @@
           "votes": 1031.2,
           "turnout": 66.1,
           "ratesPooled": true,
-          "expected": 810.3,
-          "missing": 220.9
+          "expected": 1041.9,
+          "missing": -10.7
         },
         {
           "age": 81,
@@ -601,8 +603,8 @@
           "votes": 911.5,
           "turnout": 66.1,
           "ratesPooled": true,
-          "expected": 716.2,
-          "missing": 195.3
+          "expected": 920.9,
+          "missing": -9.4
         },
         {
           "age": 82,
@@ -610,8 +612,8 @@
           "votes": 820.4,
           "turnout": 66.1,
           "ratesPooled": true,
-          "expected": 644.6,
-          "missing": 175.8
+          "expected": 828.9,
+          "missing": -8.5
         },
         {
           "age": 83,
@@ -619,8 +621,8 @@
           "votes": 747.3,
           "turnout": 66.1,
           "ratesPooled": true,
-          "expected": 587.2,
-          "missing": 160.1
+          "expected": 755.0,
+          "missing": -7.7
         },
         {
           "age": 84,
@@ -628,8 +630,8 @@
           "votes": 683.5,
           "turnout": 66.1,
           "ratesPooled": true,
-          "expected": 537.1,
-          "missing": 146.4
+          "expected": 690.6,
+          "missing": -7.1
         },
         {
           "age": 85,
@@ -637,8 +639,8 @@
           "votes": 519.8,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 472.0,
-          "missing": 47.8
+          "expected": 606.9,
+          "missing": -87.1
         },
         {
           "age": 86,
@@ -646,8 +648,8 @@
           "votes": 467.6,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 424.6,
-          "missing": 43.0
+          "expected": 546.0,
+          "missing": -78.4
         },
         {
           "age": 87,
@@ -655,8 +657,8 @@
           "votes": 418.3,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 379.8,
-          "missing": 38.5
+          "expected": 488.4,
+          "missing": -70.1
         },
         {
           "age": 88,
@@ -664,8 +666,8 @@
           "votes": 349.6,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 317.4,
-          "missing": 32.2
+          "expected": 408.2,
+          "missing": -58.6
         },
         {
           "age": 89,
@@ -673,8 +675,8 @@
           "votes": 312.9,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 284.1,
-          "missing": 28.8
+          "expected": 365.3,
+          "missing": -52.4
         },
         {
           "age": 90,
@@ -682,8 +684,8 @@
           "votes": 272.8,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 247.7,
-          "missing": 25.1
+          "expected": 318.5,
+          "missing": -45.7
         },
         {
           "age": 91,
@@ -691,8 +693,8 @@
           "votes": 234.3,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 212.8,
-          "missing": 21.5
+          "expected": 273.6,
+          "missing": -39.3
         },
         {
           "age": 92,
@@ -700,8 +702,8 @@
           "votes": 197.9,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 179.7,
-          "missing": 18.2
+          "expected": 231.0,
+          "missing": -33.1
         },
         {
           "age": 93,
@@ -709,8 +711,8 @@
           "votes": 158.8,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 144.2,
-          "missing": 14.6
+          "expected": 185.4,
+          "missing": -26.6
         },
         {
           "age": 94,
@@ -718,8 +720,8 @@
           "votes": 129.7,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 117.7,
-          "missing": 12.0
+          "expected": 151.4,
+          "missing": -21.7
         },
         {
           "age": 95,
@@ -727,8 +729,8 @@
           "votes": 101.5,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 92.1,
-          "missing": 9.4
+          "expected": 118.5,
+          "missing": -17.0
         },
         {
           "age": 96,
@@ -736,8 +738,8 @@
           "votes": 75.8,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 68.9,
-          "missing": 6.9
+          "expected": 88.5,
+          "missing": -12.7
         },
         {
           "age": 97,
@@ -745,8 +747,8 @@
           "votes": 57.2,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 51.9,
-          "missing": 5.3
+          "expected": 66.8,
+          "missing": -9.6
         },
         {
           "age": 98,
@@ -754,8 +756,8 @@
           "votes": 40.7,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 37.0,
-          "missing": 3.7
+          "expected": 47.6,
+          "missing": -6.9
         },
         {
           "age": 99,
@@ -763,8 +765,8 @@
           "votes": 28.2,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 25.6,
-          "missing": 2.6
+          "expected": 32.9,
+          "missing": -4.7
         },
         {
           "age": 100,
@@ -772,16 +774,18 @@
           "votes": 46.4,
           "turnout": 57.2,
           "ratesPooled": true,
-          "expected": 42.1,
-          "missing": 4.3
+          "expected": 54.1,
+          "missing": -7.7
         }
       ]
     },
     "2024": {
       "avgTurnout": 65.21,
+      "over65Turnout": 74.62,
       "totalCvap": 242052.0,
       "totalVotes": 157849.2,
-      "crossoverAge": 40,
+      "crossoverAge": 62,
+      "declineAge": 84,
       "rows": [
         {
           "age": 18,
@@ -789,8 +793,8 @@
           "votes": 1589.6,
           "turnout": 37.2,
           "ratesPooled": false,
-          "expected": 2783.0,
-          "missing": -1193.4
+          "expected": 3184.7,
+          "missing": -1595.1
         },
         {
           "age": 19,
@@ -798,8 +802,8 @@
           "votes": 1913.7,
           "turnout": 45.9,
           "ratesPooled": false,
-          "expected": 2716.3,
-          "missing": -802.6
+          "expected": 3108.3,
+          "missing": -1194.6
         },
         {
           "age": 20,
@@ -807,8 +811,8 @@
           "votes": 1820.6,
           "turnout": 44.6,
           "ratesPooled": false,
-          "expected": 2663.6,
-          "missing": -843.0
+          "expected": 3048.0,
+          "missing": -1227.4
         },
         {
           "age": 21,
@@ -816,8 +820,8 @@
           "votes": 1972.5,
           "turnout": 47.0,
           "ratesPooled": false,
-          "expected": 2736.2,
-          "missing": -763.7
+          "expected": 3131.1,
+          "missing": -1158.6
         },
         {
           "age": 22,
@@ -825,8 +829,8 @@
           "votes": 2124.6,
           "turnout": 53.1,
           "ratesPooled": false,
-          "expected": 2607.1,
-          "missing": -482.5
+          "expected": 2983.4,
+          "missing": -858.8
         },
         {
           "age": 23,
@@ -834,8 +838,8 @@
           "votes": 2218.6,
           "turnout": 54.5,
           "ratesPooled": false,
-          "expected": 2652.7,
-          "missing": -434.1
+          "expected": 3035.5,
+          "missing": -816.9
         },
         {
           "age": 24,
@@ -843,8 +847,8 @@
           "votes": 2123.7,
           "turnout": 52.6,
           "ratesPooled": false,
-          "expected": 2632.3,
-          "missing": -508.6
+          "expected": 3012.2,
+          "missing": -888.5
         },
         {
           "age": 25,
@@ -852,8 +856,8 @@
           "votes": 2053.2,
           "turnout": 51.4,
           "ratesPooled": false,
-          "expected": 2605.6,
-          "missing": -552.4
+          "expected": 2981.6,
+          "missing": -928.4
         },
         {
           "age": 26,
@@ -861,8 +865,8 @@
           "votes": 2231.4,
           "turnout": 57.4,
           "ratesPooled": false,
-          "expected": 2535.9,
-          "missing": -304.5
+          "expected": 2901.9,
+          "missing": -670.5
         },
         {
           "age": 27,
@@ -870,8 +874,8 @@
           "votes": 2072.6,
           "turnout": 52.7,
           "ratesPooled": false,
-          "expected": 2566.6,
-          "missing": -494.0
+          "expected": 2937.0,
+          "missing": -864.4
         },
         {
           "age": 28,
@@ -879,8 +883,8 @@
           "votes": 2215.5,
           "turnout": 55.1,
           "ratesPooled": false,
-          "expected": 2620.8,
-          "missing": -405.3
+          "expected": 2999.0,
+          "missing": -783.5
         },
         {
           "age": 29,
@@ -888,8 +892,8 @@
           "votes": 2311.6,
           "turnout": 59.0,
           "ratesPooled": false,
-          "expected": 2555.7,
-          "missing": -244.1
+          "expected": 2924.6,
+          "missing": -613.0
         },
         {
           "age": 30,
@@ -897,8 +901,8 @@
           "votes": 2399.3,
           "turnout": 58.0,
           "ratesPooled": false,
-          "expected": 2697.1,
-          "missing": -297.8
+          "expected": 3086.4,
+          "missing": -687.1
         },
         {
           "age": 31,
@@ -906,8 +910,8 @@
           "votes": 2424.9,
           "turnout": 58.4,
           "ratesPooled": false,
-          "expected": 2710.1,
-          "missing": -285.2
+          "expected": 3101.2,
+          "missing": -676.3
         },
         {
           "age": 32,
@@ -915,8 +919,8 @@
           "votes": 2453.0,
           "turnout": 58.0,
           "ratesPooled": false,
-          "expected": 2756.1,
-          "missing": -303.1
+          "expected": 3153.9,
+          "missing": -700.9
         },
         {
           "age": 33,
@@ -924,8 +928,8 @@
           "votes": 2530.4,
           "turnout": 59.5,
           "ratesPooled": false,
-          "expected": 2774.8,
-          "missing": -244.4
+          "expected": 3175.3,
+          "missing": -644.9
         },
         {
           "age": 34,
@@ -933,8 +937,8 @@
           "votes": 2477.5,
           "turnout": 58.2,
           "ratesPooled": false,
-          "expected": 2773.9,
-          "missing": -296.4
+          "expected": 3174.3,
+          "missing": -696.8
         },
         {
           "age": 35,
@@ -942,8 +946,8 @@
           "votes": 2375.6,
           "turnout": 57.3,
           "ratesPooled": false,
-          "expected": 2701.3,
-          "missing": -325.7
+          "expected": 3091.2,
+          "missing": -715.6
         },
         {
           "age": 36,
@@ -951,8 +955,8 @@
           "votes": 2481.6,
           "turnout": 60.8,
           "ratesPooled": false,
-          "expected": 2660.9,
-          "missing": -179.3
+          "expected": 3045.0,
+          "missing": -563.4
         },
         {
           "age": 37,
@@ -960,8 +964,8 @@
           "votes": 2563.0,
           "turnout": 64.4,
           "ratesPooled": false,
-          "expected": 2596.3,
-          "missing": -33.3
+          "expected": 2971.0,
+          "missing": -408.0
         },
         {
           "age": 38,
@@ -969,8 +973,8 @@
           "votes": 2501.1,
           "turnout": 63.6,
           "ratesPooled": false,
-          "expected": 2564.8,
-          "missing": -63.7
+          "expected": 2934.9,
+          "missing": -433.8
         },
         {
           "age": 39,
@@ -978,8 +982,8 @@
           "votes": 2471.3,
           "turnout": 64.6,
           "ratesPooled": false,
-          "expected": 2495.7,
-          "missing": -24.4
+          "expected": 2855.9,
+          "missing": -384.6
         },
         {
           "age": 40,
@@ -987,8 +991,8 @@
           "votes": 2545.2,
           "turnout": 65.7,
           "ratesPooled": false,
-          "expected": 2525.3,
-          "missing": 19.9
+          "expected": 2889.7,
+          "missing": -344.5
         },
         {
           "age": 41,
@@ -996,8 +1000,8 @@
           "votes": 2640.8,
           "turnout": 67.2,
           "ratesPooled": false,
-          "expected": 2563.6,
-          "missing": 77.2
+          "expected": 2933.6,
+          "missing": -292.8
         },
         {
           "age": 42,
@@ -1005,8 +1009,8 @@
           "votes": 2439.1,
           "turnout": 63.5,
           "ratesPooled": false,
-          "expected": 2506.8,
-          "missing": -67.7
+          "expected": 2868.6,
+          "missing": -429.5
         },
         {
           "age": 43,
@@ -1014,8 +1018,8 @@
           "votes": 2463.9,
           "turnout": 65.2,
           "ratesPooled": false,
-          "expected": 2464.1,
-          "missing": -0.2
+          "expected": 2819.8,
+          "missing": -355.9
         },
         {
           "age": 44,
@@ -1023,8 +1027,8 @@
           "votes": 2482.5,
           "turnout": 64.8,
           "ratesPooled": false,
-          "expected": 2500.0,
-          "missing": -17.5
+          "expected": 2860.8,
+          "missing": -378.3
         },
         {
           "age": 45,
@@ -1032,8 +1036,8 @@
           "votes": 2566.0,
           "turnout": 69.4,
           "ratesPooled": false,
-          "expected": 2410.4,
-          "missing": 155.6
+          "expected": 2758.3,
+          "missing": -192.3
         },
         {
           "age": 46,
@@ -1041,8 +1045,8 @@
           "votes": 2512.0,
           "turnout": 70.2,
           "ratesPooled": false,
-          "expected": 2333.2,
-          "missing": 178.8
+          "expected": 2669.9,
+          "missing": -157.9
         },
         {
           "age": 47,
@@ -1050,8 +1054,8 @@
           "votes": 2373.9,
           "turnout": 67.0,
           "ratesPooled": false,
-          "expected": 2310.8,
-          "missing": 63.1
+          "expected": 2644.3,
+          "missing": -270.4
         },
         {
           "age": 48,
@@ -1059,8 +1063,8 @@
           "votes": 2358.3,
           "turnout": 68.0,
           "ratesPooled": false,
-          "expected": 2261.5,
-          "missing": 96.8
+          "expected": 2587.9,
+          "missing": -229.6
         },
         {
           "age": 49,
@@ -1068,8 +1072,8 @@
           "votes": 2308.4,
           "turnout": 68.6,
           "ratesPooled": false,
-          "expected": 2194.3,
-          "missing": 114.1
+          "expected": 2510.9,
+          "missing": -202.5
         },
         {
           "age": 50,
@@ -1077,8 +1081,8 @@
           "votes": 2275.7,
           "turnout": 65.7,
           "ratesPooled": false,
-          "expected": 2257.7,
-          "missing": 18.0
+          "expected": 2583.6,
+          "missing": -307.9
         },
         {
           "age": 51,
@@ -1086,8 +1090,8 @@
           "votes": 2457.4,
           "turnout": 70.8,
           "ratesPooled": false,
-          "expected": 2264.4,
-          "missing": 193.0
+          "expected": 2591.2,
+          "missing": -133.8
         },
         {
           "age": 52,
@@ -1095,8 +1099,8 @@
           "votes": 2484.2,
           "turnout": 67.9,
           "ratesPooled": false,
-          "expected": 2385.6,
-          "missing": 98.6
+          "expected": 2729.9,
+          "missing": -245.7
         },
         {
           "age": 53,
@@ -1104,8 +1108,8 @@
           "votes": 2628.1,
           "turnout": 67.9,
           "ratesPooled": false,
-          "expected": 2525.4,
-          "missing": 102.7
+          "expected": 2889.9,
+          "missing": -261.8
         },
         {
           "age": 54,
@@ -1113,8 +1117,8 @@
           "votes": 2795.8,
           "turnout": 71.5,
           "ratesPooled": false,
-          "expected": 2550.6,
-          "missing": 245.2
+          "expected": 2918.7,
+          "missing": -122.9
         },
         {
           "age": 55,
@@ -1122,8 +1126,8 @@
           "votes": 2609.3,
           "turnout": 70.2,
           "ratesPooled": false,
-          "expected": 2422.6,
-          "missing": 186.7
+          "expected": 2772.2,
+          "missing": -162.9
         },
         {
           "age": 56,
@@ -1131,8 +1135,8 @@
           "votes": 2615.4,
           "turnout": 72.5,
           "ratesPooled": false,
-          "expected": 2354.1,
-          "missing": 261.3
+          "expected": 2693.8,
+          "missing": -78.4
         },
         {
           "age": 57,
@@ -1140,8 +1144,8 @@
           "votes": 2454.3,
           "turnout": 68.2,
           "ratesPooled": false,
-          "expected": 2348.5,
-          "missing": 105.8
+          "expected": 2687.5,
+          "missing": -233.2
         },
         {
           "age": 58,
@@ -1149,8 +1153,8 @@
           "votes": 2614.9,
           "turnout": 71.4,
           "ratesPooled": false,
-          "expected": 2387.1,
-          "missing": 227.8
+          "expected": 2731.6,
+          "missing": -116.7
         },
         {
           "age": 59,
@@ -1158,8 +1162,8 @@
           "votes": 2780.6,
           "turnout": 70.0,
           "ratesPooled": false,
-          "expected": 2589.7,
-          "missing": 190.9
+          "expected": 2963.4,
+          "missing": -182.8
         },
         {
           "age": 60,
@@ -1167,8 +1171,8 @@
           "votes": 2747.2,
           "turnout": 69.3,
           "ratesPooled": false,
-          "expected": 2584.4,
-          "missing": 162.8
+          "expected": 2957.4,
+          "missing": -210.2
         },
         {
           "age": 61,
@@ -1176,8 +1180,8 @@
           "votes": 2782.1,
           "turnout": 69.9,
           "ratesPooled": false,
-          "expected": 2597.4,
-          "missing": 184.7
+          "expected": 2972.2,
+          "missing": -190.1
         },
         {
           "age": 62,
@@ -1185,8 +1189,8 @@
           "votes": 2965.7,
           "turnout": 74.6,
           "ratesPooled": false,
-          "expected": 2590.8,
-          "missing": 374.9
+          "expected": 2964.7,
+          "missing": 1.0
         },
         {
           "age": 63,
@@ -1194,8 +1198,8 @@
           "votes": 2892.7,
           "turnout": 72.4,
           "ratesPooled": false,
-          "expected": 2606.3,
-          "missing": 286.4
+          "expected": 2982.4,
+          "missing": -89.7
         },
         {
           "age": 64,
@@ -1203,8 +1207,8 @@
           "votes": 2904.7,
           "turnout": 72.6,
           "ratesPooled": false,
-          "expected": 2609.5,
-          "missing": 295.2
+          "expected": 2986.1,
+          "missing": -81.4
         },
         {
           "age": 65,
@@ -1212,8 +1216,8 @@
           "votes": 2810.2,
           "turnout": 72.4,
           "ratesPooled": false,
-          "expected": 2530.1,
-          "missing": 280.1
+          "expected": 2895.2,
+          "missing": -85.0
         },
         {
           "age": 66,
@@ -1221,8 +1225,8 @@
           "votes": 2911.3,
           "turnout": 76.0,
           "ratesPooled": false,
-          "expected": 2499.4,
-          "missing": 411.9
+          "expected": 2860.1,
+          "missing": 51.2
         },
         {
           "age": 67,
@@ -1230,8 +1234,8 @@
           "votes": 2758.8,
           "turnout": 74.3,
           "ratesPooled": false,
-          "expected": 2419.8,
-          "missing": 339.0
+          "expected": 2769.1,
+          "missing": -10.3
         },
         {
           "age": 68,
@@ -1239,8 +1243,8 @@
           "votes": 2700.7,
           "turnout": 74.7,
           "ratesPooled": false,
-          "expected": 2357.4,
-          "missing": 343.3
+          "expected": 2697.7,
+          "missing": 3.0
         },
         {
           "age": 69,
@@ -1248,8 +1252,8 @@
           "votes": 2645.9,
           "turnout": 75.5,
           "ratesPooled": false,
-          "expected": 2285.7,
-          "missing": 360.2
+          "expected": 2615.6,
+          "missing": 30.3
         },
         {
           "age": 70,
@@ -1257,8 +1261,8 @@
           "votes": 2529.7,
           "turnout": 74.7,
           "ratesPooled": false,
-          "expected": 2209.5,
-          "missing": 320.2
+          "expected": 2528.4,
+          "missing": 1.3
         },
         {
           "age": 71,
@@ -1266,8 +1270,8 @@
           "votes": 2408.1,
           "turnout": 74.3,
           "ratesPooled": false,
-          "expected": 2114.8,
-          "missing": 293.3
+          "expected": 2420.0,
+          "missing": -11.9
         },
         {
           "age": 72,
@@ -1275,8 +1279,8 @@
           "votes": 2369.1,
           "turnout": 76.7,
           "ratesPooled": false,
-          "expected": 2015.2,
-          "missing": 353.9
+          "expected": 2306.1,
+          "missing": 63.0
         },
         {
           "age": 73,
@@ -1284,8 +1288,8 @@
           "votes": 2268.1,
           "turnout": 77.5,
           "ratesPooled": false,
-          "expected": 1909.6,
-          "missing": 358.5
+          "expected": 2185.2,
+          "missing": 82.9
         },
         {
           "age": 74,
@@ -1293,8 +1297,8 @@
           "votes": 2129.9,
           "turnout": 77.3,
           "ratesPooled": false,
-          "expected": 1797.1,
-          "missing": 332.8
+          "expected": 2056.4,
+          "missing": 73.5
         },
         {
           "age": 75,
@@ -1302,8 +1306,8 @@
           "votes": 1993.1,
           "turnout": 75.4,
           "ratesPooled": false,
-          "expected": 1723.8,
-          "missing": 269.3
+          "expected": 1972.6,
+          "missing": 20.5
         },
         {
           "age": 76,
@@ -1311,8 +1315,8 @@
           "votes": 1973.3,
           "turnout": 77.0,
           "ratesPooled": false,
-          "expected": 1671.9,
-          "missing": 301.4
+          "expected": 1913.2,
+          "missing": 60.1
         },
         {
           "age": 77,
@@ -1320,8 +1324,8 @@
           "votes": 2093.1,
           "turnout": 77.7,
           "ratesPooled": false,
-          "expected": 1757.7,
-          "missing": 335.4
+          "expected": 2011.4,
+          "missing": 81.7
         },
         {
           "age": 78,
@@ -1329,8 +1333,8 @@
           "votes": 1417.0,
           "turnout": 75.1,
           "ratesPooled": false,
-          "expected": 1230.9,
-          "missing": 186.1
+          "expected": 1408.6,
+          "missing": 8.4
         },
         {
           "age": 79,
@@ -1338,8 +1342,8 @@
           "votes": 1321.0,
           "turnout": 74.5,
           "ratesPooled": false,
-          "expected": 1156.3,
-          "missing": 164.7
+          "expected": 1323.2,
+          "missing": -2.2
         },
         {
           "age": 80,
@@ -1347,8 +1351,8 @@
           "votes": 1269.2,
           "turnout": 75.1,
           "ratesPooled": true,
-          "expected": 1102.4,
-          "missing": 166.8
+          "expected": 1261.5,
+          "missing": 7.7
         },
         {
           "age": 81,
@@ -1356,8 +1360,8 @@
           "votes": 1254.5,
           "turnout": 75.1,
           "ratesPooled": true,
-          "expected": 1089.6,
-          "missing": 164.9
+          "expected": 1246.9,
+          "missing": 7.6
         },
         {
           "age": 82,
@@ -1365,8 +1369,8 @@
           "votes": 1047.3,
           "turnout": 75.1,
           "ratesPooled": true,
-          "expected": 909.6,
-          "missing": 137.7
+          "expected": 1040.9,
+          "missing": 6.4
         },
         {
           "age": 83,
@@ -1374,8 +1378,8 @@
           "votes": 913.5,
           "turnout": 75.1,
           "ratesPooled": true,
-          "expected": 793.4,
-          "missing": 120.1
+          "expected": 907.9,
+          "missing": 5.6
         },
         {
           "age": 84,
@@ -1383,8 +1387,8 @@
           "votes": 810.5,
           "turnout": 75.1,
           "ratesPooled": true,
-          "expected": 704.0,
-          "missing": 106.5
+          "expected": 805.6,
+          "missing": 4.9
         },
         {
           "age": 85,
@@ -1392,8 +1396,8 @@
           "votes": 654.4,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 626.2,
-          "missing": 28.2
+          "expected": 716.6,
+          "missing": -62.2
         },
         {
           "age": 86,
@@ -1401,8 +1405,8 @@
           "votes": 588.6,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 563.2,
-          "missing": 25.4
+          "expected": 644.5,
+          "missing": -55.9
         },
         {
           "age": 87,
@@ -1410,8 +1414,8 @@
           "votes": 503.3,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 481.6,
-          "missing": 21.7
+          "expected": 551.1,
+          "missing": -47.8
         },
         {
           "age": 88,
@@ -1419,8 +1423,8 @@
           "votes": 443.8,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 424.6,
-          "missing": 19.2
+          "expected": 485.9,
+          "missing": -42.1
         },
         {
           "age": 89,
@@ -1428,8 +1432,8 @@
           "votes": 388.3,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 371.5,
-          "missing": 16.8
+          "expected": 425.2,
+          "missing": -36.9
         },
         {
           "age": 90,
@@ -1437,8 +1441,8 @@
           "votes": 316.3,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 302.7,
-          "missing": 13.6
+          "expected": 346.3,
+          "missing": -30.0
         },
         {
           "age": 91,
@@ -1446,8 +1450,8 @@
           "votes": 276.3,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 264.3,
-          "missing": 12.0
+          "expected": 302.5,
+          "missing": -26.2
         },
         {
           "age": 92,
@@ -1455,8 +1459,8 @@
           "votes": 233.5,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 223.4,
-          "missing": 10.1
+          "expected": 255.6,
+          "missing": -22.1
         },
         {
           "age": 93,
@@ -1464,8 +1468,8 @@
           "votes": 194.3,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 185.9,
-          "missing": 8.4
+          "expected": 212.7,
+          "missing": -18.4
         },
         {
           "age": 94,
@@ -1473,8 +1477,8 @@
           "votes": 158.7,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 151.8,
-          "missing": 6.9
+          "expected": 173.7,
+          "missing": -15.0
         },
         {
           "age": 95,
@@ -1482,8 +1486,8 @@
           "votes": 122.6,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 117.4,
-          "missing": 5.2
+          "expected": 134.3,
+          "missing": -11.7
         },
         {
           "age": 96,
@@ -1491,8 +1495,8 @@
           "votes": 96.3,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 92.1,
-          "missing": 4.2
+          "expected": 105.4,
+          "missing": -9.1
         },
         {
           "age": 97,
@@ -1500,8 +1504,8 @@
           "votes": 72.3,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 69.2,
-          "missing": 3.1
+          "expected": 79.2,
+          "missing": -6.9
         },
         {
           "age": 98,
@@ -1509,8 +1513,8 @@
           "votes": 51.4,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 49.1,
-          "missing": 2.3
+          "expected": 56.2,
+          "missing": -4.8
         },
         {
           "age": 99,
@@ -1518,8 +1522,8 @@
           "votes": 37.2,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 35.6,
-          "missing": 1.6
+          "expected": 40.7,
+          "missing": -3.5
         },
         {
           "age": 100,
@@ -1527,8 +1531,8 @@
           "votes": 64.0,
           "turnout": 68.2,
           "ratesPooled": true,
-          "expected": 61.2,
-          "missing": 2.8
+          "expected": 70.1,
+          "missing": -6.1
         }
       ]
     }
