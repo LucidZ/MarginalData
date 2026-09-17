@@ -241,4 +241,15 @@ export const ROUTES: RouteEntry[] = [
     date: "2026-02-16",
     note: "In the book The Expanse, ships simulate gravity by accelerating at the same rate gravity pulls on Earth. I wanted to see what that travel actually looks like as planets orbit. Turns out it's a lot faster than expected.",
   },
+  {
+    path: "/2026/UsualSuspects",
+    title: "The Usual Suspects — Marginal Data",
+    description:
+      "Some actors share the silver screen more than others. Type an actor's name to see every real costar they have, stacked by how many films they made together.",
+    component: () => import("./2026/UsualSuspects"),
+    group: "Explorers & Simulators",
+    image: "/og/usual-suspects.jpg",
+    date: "2026-09-02",
+    note: "Everyone knows the Kevin Bacon game, but I'd never actually looked at one actor's full costar list at once. Turns out most of it is one-film flings - it's the handful of people someone's made 5, 10, 20 films with that the pile-of-faces view actually reveals. Those are the usual suspects.",
+  },
 ];

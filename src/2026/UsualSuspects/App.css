@@ -1,0 +1,867 @@
+.tus-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --gridline: #e1e0d9;
+  /* Validated sequential/accent blue from the dataviz skill's reference palette (slot 1). */
+  --accent: #2a78d6;
+
+  /* Full-bleed, not the site's 1100px article column. This page is an app -
+     a search field, a canvas, a detail card - and the reading measure it
+     used to inherit was actively harmful: the chart broke out of it to
+     100vw (see .tus-graph-frame), so everything past 1100px sat on the site
+     `body`, which stays #ffffff even under prefers-color-scheme: dark (the
+     site shell never goes dark; this story's dark mode is a per-route
+     opt-in via the tokens above). At 1440px that put 340px of chart on a
+     white background with the dark surface stopping mid-column, and made
+     the scroll-edge gradients - painted in var(--page) - fade dark-to-dark
+     against white, i.e. invisible. Now the surface IS the viewport.
+     min-height rather than height: the site Footer still sits below and
+     stays reachable by scrolling; the chart itself is sized to fit the
+     first screenful by App.tsx's own height budget. */
+  width: 100%;
+  min-height: 100dvh;
+  padding: 0 0 2rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text-primary);
+  background: var(--page);
+}
+
+/* Everything above the chart. Holds the reading-width padding the chart
+   itself no longer wants, so prose stays off the viewport edge while the
+   canvas below runs edge to edge. */
+.tus-chrome {
+  padding: 0.9rem 1.5rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .tus-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --gridline: #2c2c2a;
+    --accent: #3987e5;
+  }
+  /* h1 otherwise falls through to the sitewide `h1 { color: var(--color-heading) }`
+     rule (src/index.css) - #1e3a5f, a navy tuned for that rule's own
+     permanently-light background (the site shell never goes dark itself;
+     confirmed body stays #ffffff under prefers-color-scheme: dark - dark
+     mode here is purely a per-story opt-in via .tus-root's own tokens
+     above). Against *this* page's own dark --page (#0d0d0d), that navy
+     measures 1.69:1 - nowhere near the 3:1 floor for large text. Overriding
+     locally with --accent (already dark-mode-correct one block up, ~5.3:1
+     here) rather than touching --color-heading itself, which is shared by
+     every other page on the site and would need its own light-mode value
+     preserved for pages that never asked to go dark - see the dark-mode
+     audit note in project_usual_suspects.md for why this couldn't be a
+     sitewide fix. */
+  :root:where(:not([data-theme="light"])) .tus-title {
+    color: var(--accent);
+  }
+}
+
+:root[data-theme="dark"] .tus-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --muted: #898781;
+  --gridline: #2c2c2a;
+  --accent: #3987e5;
+}
+
+:root[data-theme="dark"] .tus-title {
+  color: var(--accent);
+}
+
+/* Quiet top-left label, not a masthead - the centered hero below (photo +
+   name) is the page's real visual title now, the way a person's own face
+   and name outweigh a section header. Kept small and left-aligned so it
+   reads the same register as "Marginal Data" above it rather than competing
+   with the hero for attention. */
+.tus-toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.tus-title {
+  margin: 0;
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+/* Search + Shuffle + info, centered as its own row between the hero and the
+   first row of costars - not part of the toolbar above. Putting the hero
+   first means the page opens on a face and a fact before it offers a
+   control to change either. */
+.tus-search-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
+  max-width: 560px;
+  margin: 0.9rem auto 0;
+  padding-inline: 1.5rem;
+}
+
+.tus-search {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
+.tus-shuffle {
+  flex: 0 0 auto;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tus-shuffle:hover,
+.tus-shuffle:focus-visible {
+  background: var(--gridline);
+}
+
+/* The ⓘ toggle. Circular and quiet: it's the least-used control in the
+   toolbar and shouldn't compete with Shuffle, but it's the only route to the
+   method note, so it can't be hidden either. */
+.tus-info-toggle {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--gridline);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  align-self: center;
+}
+
+.tus-info-toggle:hover,
+.tus-info-toggle:focus-visible {
+  background: var(--gridline);
+  color: var(--text-primary);
+}
+
+/* Dims the chart behind the open panel. Also the reason the panel doesn't
+   need its own focus trap to feel modal - there's visibly nothing else to
+   interact with, and Escape or a click anywhere out here closes it. */
+.tus-info-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 1rem;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.tus-info {
+  position: relative;
+  max-width: 560px;
+  width: 100%;
+  padding: 1.4rem 1.5rem 1.5rem;
+  border: 1px solid var(--gridline);
+  border-radius: 12px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+}
+
+.tus-info h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  padding-right: 1.5rem;
+}
+
+.tus-info h3 {
+  margin: 1.1rem 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tus-info p {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.tus-info strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tus-info code {
+  font-size: 0.85em;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  background: var(--gridline);
+}
+
+.tus-info a {
+  color: var(--accent);
+}
+
+/* Shown only while a ?actor= id in the URL hasn't resolved yet - see rootId
+   in App.tsx. Deliberately not styled like .tus-error-note (a permanent,
+   muted footnote) - this is the main content area still catching up, not a
+   secondary caveat, so it gets a bit more visual weight. */
+.tus-root-loading {
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.tus-search-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.tus-search-results {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tus-search-results button {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* The whole page is otherwise faces - this is the one spot someone's asked
+   to recognize a bare name instead, so results carry a thumbnail too. */
+.tus-search-option-photo {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--gridline);
+}
+
+.tus-search-option-photo-fallback {
+  display: inline-block;
+}
+
+.tus-search-results button:hover,
+.tus-search-results button:focus {
+  background: var(--gridline);
+}
+
+/* Arrow-key highlight (SearchBox.tsx) - same treatment as hover/focus above
+   so keyboard and pointer navigation read as the same kind of "selected". */
+.tus-search-results button.tus-search-option-active {
+  background: var(--gridline);
+}
+
+/* Loading/no-match/error message (SearchBox.tsx) - not a button, so it
+   doesn't take the hover/focus/active treatment above; muted and
+   non-interactive since there's nothing to click. */
+.tus-search-status {
+  padding: 0.5rem 0.6rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tus-error-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+/* The centered hero - big photo, name, headline, meta, all stacked and
+   centered as one column. Replaces the old photo-left/text-right banner:
+   with the photo this much bigger, side-by-side made the row too tall to
+   read as one unit, where centered stacking reads as a single subject. */
+.tus-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.3rem;
+  margin: 1.1rem auto 0;
+  padding-inline: 1.5rem;
+  max-width: 520px;
+}
+
+/* The root actor's name, and now nothing else. It used to carry a generated
+   sentence too ("X and Y made 3 films together"), which restated the top row
+   of the chart a few hundred pixels below it - the row label and the first
+   face under it say that already. Dropping the clause left this as a title,
+   so it's sized like one. */
+.tus-headline {
+  margin: 0.5rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.tus-context-meta {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* Now a sibling of the search row rather than the last line of the hero, so
+   it carries its own centering and width instead of inheriting the hero's
+   flex column. Sits between the controls and the chart it describes. */
+.tus-interaction-hint {
+  margin: 0.55rem auto 0;
+  max-width: 520px;
+  padding-inline: 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Unstyled wrapper around the hero photo - a real <button> so it opens the
+   same detail card every other node does (see App.tsx's onClick), but with
+   none of a button's own chrome fighting the circular photo inside it. */
+.tus-hero-photo-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 50%;
+}
+
+.tus-hero-photo-btn:hover .tus-hero-photo,
+.tus-hero-photo-btn:focus-visible .tus-hero-photo {
+  box-shadow: 0 0 0 4px var(--accent);
+}
+
+.tus-hero-photo-btn:focus-visible {
+  outline: none;
+}
+
+.tus-hero-photo {
+  width: 104px;
+  height: 104px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+  transition: box-shadow 0.15s ease;
+}
+
+.tus-hero-photo-fallback {
+  background: var(--gridline);
+}
+
+@media (max-width: 640px) {
+  .tus-hero-photo {
+    width: 84px;
+    height: 84px;
+  }
+}
+
+/* The root actor's own name, inside the headline line. Carries no size or
+   weight of its own any more - .tus-headline sets those, and this reads as
+   part of that one sentence rather than as a separate title. Kept as its own
+   element (rather than interpolated into the generated string) so it can be
+   linked out to TMDB, and because it's the handle the Playwright suite uses
+   to assert which actor the chart is centered on. */
+.tus-root-name {
+  font-weight: inherit;
+}
+
+/* Used by the root banner name, which links out to the actor's TMDB person
+   page when we have a tmdbId. */
+.tus-person-link {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tus-person-link:hover {
+  text-decoration: underline;
+}
+
+.tus-root-meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* The chart's own frame. No longer needs the `margin-inline: calc(50% - 50vw)`
+   breakout it used to carry: .tus-root is the full viewport now, so this is
+   already edge to edge, and the breakout's whole purpose - escaping a
+   1100px reading column the chart was never meant to live in - is gone with
+   the column itself. Still the positioned ancestor the scroll-edge
+   gradients anchor to, and still the element App.tsx's frameRef measures
+   the top of (not the inner scroll div's) to size the chart's height
+   budget - neither of those depends on the breakout. */
+.tus-graph-frame {
+  position: relative;
+  padding-inline: 1.5rem;
+}
+
+/* Edge cues for the chart's own horizontal scroll - nothing else signals
+   that there's more to see, and without one a chart cut off mid-column at
+   the viewport edge reads as "that's everyone" rather than "keep scrolling"
+   (this is especially easy to miss on mobile, where 2-3 columns visible at
+   once is normal). data-overflow (App.tsx) only sets each side's token while
+   there's real, scrollable-to content past that edge, so a chart that
+   already fits the frame (most actors, after phases 2-3) shows neither. */
+.tus-graph-frame::before,
+.tus-graph-frame::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  z-index: 2;
+}
+
+.tus-graph-frame::before {
+  left: 0;
+  background: linear-gradient(to right, var(--page), transparent);
+}
+
+.tus-graph-frame::after {
+  right: 0;
+  background: linear-gradient(to left, var(--page), transparent);
+}
+
+.tus-graph-frame[data-overflow~="left"]::before,
+.tus-graph-frame[data-overflow~="right"]::after {
+  opacity: 1;
+}
+
+/* RETIRED NOTE, kept because it cost real debugging: this container used to
+   be `display: flex; justify-content: safe center; overflow-x: auto`, and the
+   `safe` keyword was load-bearing. Bare `center` centers even when the item
+   overflows, which put half the overflow before the container's own start
+   edge where scrollLeft can't reach - measured on Robert Downey Jr.'s mobile
+   chart as 161px, the entire first column, permanently offscreen. None of
+   that applies now: the chart fills the frame's width and grows downward, so
+   there is no horizontal overflow to center or to scroll. If a horizontal
+   scroller ever comes back here, `safe` is not optional.
+
+   The original note follows.
+
+   flex + justify-content:safe center (not width: fit-content) is what
+   centers a chart narrower than the frame: fit-content looked like the
+   obvious tool, but the svg inside is a replaced element with a fixed
+   intrinsic width (see App.tsx), so fit-content's own min-content floor
+   equals that full width - it refuses to shrink the box on a narrow
+   viewport where the chart genuinely needs to scroll, so the box overflows
+   its own parent instead of containing the overflow. Centering via flex has
+   no such floor: a chart smaller than the frame centers, one larger fills
+   it and scrolls.
+
+   `safe` is not optional here, and its absence was a real, shipped bug: bare
+   `justify-content: center` centers even when the item overflows, which
+   means half the overflow lands *before* the container's own start edge -
+   unreachable, since scrollLeft can't go negative. Measured on Robert Downey
+   Jr.'s mobile chart (665px svg in a 342px container, 323px overflow): the
+   svg's own rendered box started at x=-137.5 relative to the viewport - 161px
+   of it, the entire first column, permanently offscreen with no scroll
+   position that could reach it. `safe` falls back to start alignment
+   specifically when centering would cause that overflow, which is exactly
+   the "safe centering" CSS Box Alignment defines the keyword for. */
+.tus-graph-scroll {
+  display: block;
+}
+
+.tus-graph {
+  display: block;
+  overflow: visible;
+}
+
+/* Hairline across the top of each row's label band (App.tsx), where the
+   comment on the <line> covers why this and not alternating row fills.
+   --gridline rather than anything heavier: with a rule at every boundary
+   there are a dozen of these down a busy chart, and they only have to be
+   findable when you go looking for where a row ended - the faces are the
+   content. */
+.tus-row-rule {
+  stroke: var(--gridline);
+  stroke-width: 1;
+}
+
+/* Row caption, centred under its own row's rule. Words rather than the bare
+   number the horizontal layout was forced into - a label above a row costs
+   the same whatever it says. Letter-spaced and a notch smaller than
+   .tus-node-label: on a named row the two alternate down the page (label,
+   faces, names, label, ...), and at equal size/weight they read as the same
+   kind of text instead of a caption over its own content. It was 11px and
+   --text-secondary, which overshot in the other direction - the heading of a
+   row was the faintest text anywhere near it, fainter than the names printed
+   under the faces it was heading. */
+.tus-row-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  fill: var(--text-primary);
+}
+
+/* The head count, inline after the label rather than stacked under it, and
+   lighter than the film count it trails. The emphasis used to run the other
+   way - bold "28 costars" after a secondary "3 films together" - which put
+   the weight on the detail rather than on the thing the row IS, and pulled
+   the eye off the centre of a label that's centred on purpose. */
+.tus-row-count {
+  font-weight: 400;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Name under a face on the sparse rows (ActorNode.tsx's `nameLines`). */
+.tus-node-label {
+  font-size: 13px;
+  fill: var(--text-primary);
+  font-weight: 600;
+}
+
+.tus-baseline {
+  stroke: var(--gridline);
+  stroke-width: 1;
+}
+
+.tus-axis-label {
+  font-size: 14px;
+  fill: var(--text-secondary);
+}
+
+/* The broken-axis marker standing in for a run of shared-film counts nobody
+   has (see layoutBeeswarm in beeswarm.ts). Muted and smaller than a real
+   axis number so it reads as "something is skipped here" rather than as a
+   column of its own - the numbers either side say how wide the gap is. */
+.tus-axis-break {
+  font-size: 13px;
+  fill: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+.tus-count-label {
+  font-size: 16px;
+  font-weight: 600;
+  fill: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tus-node {
+  cursor: pointer;
+}
+
+/* Hover readout (App.tsx) - a fast, non-interactive way to read a name
+   while sweeping across a dense column, without the ~1s delay of the
+   native <title> tooltip it sits alongside. Surface-color fill + gridline
+   border, matching the detail card's own surface rather than inventing a
+   third visual language for "floating text on the chart". */
+.tus-hover-label-bg {
+  fill: var(--surface-1);
+  stroke: var(--gridline);
+  stroke-width: 1;
+}
+
+.tus-hover-label-text {
+  fill: var(--text-primary);
+  font-weight: 500;
+}
+
+.tus-node-ring {
+  fill: none;
+  stroke: var(--page);
+  stroke-width: 3;
+}
+
+.tus-node:hover .tus-node-ring,
+.tus-node:focus .tus-node-ring {
+  stroke: var(--accent);
+  outline: none;
+}
+
+/* The sitewide :focus-visible rule (src/index.css) draws a square outline
+   around any focusable element, including this one (App.tsx's roving
+   tabindex calls real .focus() on a node's own <g>) - stacked on top of the
+   ring above, a box around a circular avatar reads as two competing
+   indicators. The ring alone (already accent-colored on focus, same as
+   hover) is the purpose-built one, so the generic outline is redundant here,
+   not additive. */
+.tus-node:focus-visible {
+  outline: none;
+}
+
+/* Keeps the tapped node visibly tied to the open card - on touch there's no
+   hover state to carry that association. */
+.tus-node-selected .tus-node-ring {
+  stroke: var(--accent);
+  stroke-width: 4;
+}
+
+.tus-node-fallback {
+  fill: var(--gridline);
+}
+
+.tus-node-initials {
+  font-size: 14px;
+  fill: var(--text-secondary);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* --- Detail card (click/tap opened) ---------------------------------------
+   Replaces the old hover tooltip, which had two fatal problems: it chased the
+   cursor (every mousemove over the node re-positioned it, so its links could
+   never be reached), and on touch it was unreachable entirely because the same
+   tap that revealed it also re-centered the chart underneath. Click-to-open
+   with an explicit centering action (the card's own photo) makes one gesture
+   do one thing on both platforms. */
+.tus-card {
+  position: fixed;
+  z-index: 100;
+  padding: 0.85rem 0.95rem;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  font-size: 0.88rem;
+}
+
+.tus-card-close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.45rem;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+}
+
+.tus-card-close:hover {
+  color: var(--text-primary);
+  background: var(--gridline);
+}
+
+.tus-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.6rem;
+  padding-right: 1.25rem;
+}
+
+.tus-card-photo-btn {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.tus-card-photo-btn:hover .tus-card-photo,
+.tus-card-photo-btn:focus-visible .tus-card-photo {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* The root's own card (App.tsx's hero photo opens this) - a plain div, not
+   a button, since re-centering on yourself is a no-op: no cursor/hover glow
+   to suggest an action that isn't there. */
+.tus-card-photo-static {
+  cursor: default;
+}
+
+.tus-card-photo-btn:focus-visible {
+  outline: none;
+}
+
+.tus-card-photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tus-card-photo-fallback {
+  background: var(--gridline);
+}
+
+.tus-card-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.tus-card-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.1rem;
+}
+
+.tus-card-movies {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  max-height: 244px;
+  overflow-y: auto;
+}
+
+.tus-card-movies li {
+  border-top: 1px solid var(--gridline);
+}
+
+.tus-card-movies li:first-child {
+  border-top: none;
+}
+
+/* The whole row is the link target, not just the title text - a 38px poster
+   beside a short title makes for a small tap target otherwise. */
+.tus-movie-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.2rem;
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+a.tus-movie-row:hover {
+  background: var(--gridline);
+}
+
+.tus-movie-poster {
+  width: 38px;
+  height: 57px;
+  flex: 0 0 38px;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--gridline);
+}
+
+.tus-movie-poster-fallback {
+  display: block;
+}
+
+.tus-movie-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.tus-movie-title {
+  color: var(--accent);
+  line-height: 1.25;
+}
+
+span.tus-movie-row .tus-movie-title {
+  color: var(--text-primary);
+}
+
+.tus-movie-meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tus-movie-dot {
+  margin: 0 0.3rem;
+}
+
+.tus-movie-rating {
+  white-space: nowrap;
+}
+
+.tus-card-center {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tus-card-center:hover {
+  background: var(--accent);
+  color: var(--surface-1);
+}
+
+/* On a 390px screen a floating card anchored to a tapped node has nowhere to
+   go, so it becomes a bottom sheet instead. */
+.tus-card-sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  width: auto;
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+  padding-bottom: 1.1rem;
+}
+
+.tus-card-sheet .tus-card-movies {
+  max-height: 40vh;
+}
