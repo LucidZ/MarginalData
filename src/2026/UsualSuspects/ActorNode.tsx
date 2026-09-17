@@ -21,15 +21,22 @@ interface Props {
   hitHeight?: number;
   sharedMovies: Movie[];
   isSelected: boolean;
-  /** Click/tap opens the detail card - re-centering is a deliberate action inside that card (clicking the actor's photo), not this click. On touch there is no hover, so every affordance has to hang off this one gesture. */
+  /** Click/tap opens the detail card. A click on a node that's *already*
+   * selected (the blue ring) is escalated to a recenter by App.tsx's
+   * selectNode instead of re-selecting a no-op - the same outcome as
+   * double-clicking it, for anyone who clicks once, reads the ring, then
+   * clicks again rather than reaching for the card's own photo button. On
+   * touch there is no hover, so every affordance has to hang off this one
+   * gesture. */
   onSelect: (actor: Actor, sharedMovies: Movie[], e: React.MouseEvent) => void;
   /** Desktop-only fast path: double-click jumps straight to centering on this
-   * actor, skipping the intermediate card. Doesn't touch what a single
-   * click means (still just opens the card), so there's no new state to
-   * learn - it's an accelerator for people who already recognize the
-   * thumbnail, not a replacement gesture. Left off touch: mobile's default
-   * double-tap-to-zoom would fight it, and the bottom-sheet card's own
-   * photo button is already one tap away there. */
+   * actor, skipping the intermediate card - what a second click on an
+   * already-selected node now also does (see onSelect above). Doesn't touch
+   * what a first click means (still just opens the card), so there's no new
+   * state to learn - it's an accelerator for people who already recognize
+   * the thumbnail, not a replacement gesture. Left off touch: mobile's
+   * default double-tap-to-zoom would fight it, and the bottom-sheet card's
+   * own photo button is already one tap away there. */
   onCenter: (actor: Actor) => void;
   /** Registers/unregisters this node's real DOM element with App.tsx's
    * roving-tabindex machinery - it needs to call .focus() and

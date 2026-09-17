@@ -76,7 +76,18 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   // the two setSelection calls in that click's batch, not the last.
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose();
+      if (cardRef.current?.contains(e.target as Node)) return;
+      // Exempts a second click on the node that's already selected (its own
+      // blue ring, ActorNode.tsx's isSelected) from the auto-close below.
+      // Capture always runs before that node's own bubble-phase onClick, so
+      // closing here first would null out `selection` before App.tsx's
+      // selectNode gets to compare the click against it - which is exactly
+      // the comparison that turns a repeat click into a recenter. Letting
+      // the click reach the node with `selection` still intact is what
+      // makes that toggle possible; the node's own handler closes this card
+      // anyway; a recenter clears the selection too, once it fires.
+      if ((e.target as Element)?.closest?.(".tus-node-selected")) return;
+      onClose();
     };
     document.addEventListener("click", onDocClick, true);
     return () => document.removeEventListener("click", onDocClick, true);

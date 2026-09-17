@@ -769,6 +769,30 @@ test.describe("The Usual Suspects", () => {
     await page.close();
   });
 
+  // Same fast path as the double-click above, reached one single click at a
+  // time - clicking the already-selected (blue-ringed) node again escalates
+  // to a recenter instead of re-selecting a no-op (App.tsx's selectNode).
+  test("clicking an already-selected node a second time recenters on them", async ({ browser }) => {
+    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
+    await page.goto("/2026/UsualSuspects");
+    await selectActor(page, MICHAEL_CAINE);
+
+    const { left: node } = await leftmostAndRightmostClickable(page);
+    const label = await node.getAttribute("aria-label");
+    const name = label!.replace(" - open details", "");
+
+    await node.click();
+    await page.waitForTimeout(300);
+    await expect(page.locator(".tus-card-name")).toHaveText(name);
+    await expect(node).toHaveClass(/tus-node-selected/);
+
+    await node.click();
+    await page.waitForTimeout(600);
+    await expect(page.locator(".tus-root-name")).toHaveText(name);
+    await expect(page.locator(".tus-card")).toHaveCount(0);
+    await page.close();
+  });
+
   test("search: ArrowDown + Enter selects the highlighted result", async ({ browser }) => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");

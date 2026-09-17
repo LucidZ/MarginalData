@@ -273,7 +273,14 @@ export default function App() {
   // outside-click swap in DetailCard.tsx (which relies on a click always
   // landing outside `.tus-card` to close-then-reopen in one gesture) sees
   // no difference between them.
+  // A click on the node that's already selected (the blue ring) escalates to
+  // a recenter, same as a double-click - so a second tap on a node you just
+  // read the card for jumps you there instead of doing nothing.
   const selectNode = (actor: Actor, sharedMovies: Movie[], clientX: number, clientY: number) => {
+    if (selection?.actor.id === actor.id) {
+      recenter(actor);
+      return;
+    }
     setSelection({ actor, sharedMovies, clientX, clientY });
   };
   const viewportWidth = useViewportWidth();
