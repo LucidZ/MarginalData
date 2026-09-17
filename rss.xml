@@ -5,7 +5,14 @@
     <link>https://marginaldata.com/</link>
     <description>Small interactive experiments in data and visualization.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 03 Sep 2026 20:59:51 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 17 Sep 2026 19:18:09 GMT</lastBuildDate>
+    <item>
+      <title>The Usual Suspects — Marginal Data</title>
+      <link>https://marginaldata.com/2026/UsualSuspects</link>
+      <guid>https://marginaldata.com/2026/UsualSuspects</guid>
+      <pubDate>Wed, 02 Sep 2026 00:00:00 GMT</pubDate>
+      <description>Some actors share the silver screen more than others. Type an actor's name to see every real costar they have, stacked by how many films they made together.</description>
+    </item>
     <item>
       <title>If Wealth Were Land — Marginal Data</title>
       <link>https://marginaldata.com/2026/WealthLandCartogram</link>
