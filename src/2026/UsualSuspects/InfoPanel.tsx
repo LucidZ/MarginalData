@@ -8,7 +8,25 @@ interface Props {
    * default slice's own totals are real but are not the pool's). */
   actorCount: number | null;
   movieCount: number | null;
+  /** ISO date the shipped pool file was generated, or null while it's still
+   * downloading (the bundled slice predates the stamp and doesn't carry one).
+   * Rendered as a plain month and year - a day-level date on a dataset nobody
+   * regenerates weekly implies a freshness that isn't there. */
+  generatedAt: string | null;
   onClose: () => void;
+}
+
+/** "10 September 2026" -> "September 2026". Parsed as UTC noon rather than
+ * via `new Date("2026-09-10")`, which is midnight UTC and lands on the 9th
+ * for anyone west of Greenwich - enough to print the wrong month on the 1st. */
+function formatVintage(iso: string): string | null {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 /**
@@ -21,7 +39,8 @@ interface Props {
  * this site had nowhere at all - the page hotlinks profile images off
  * image.tmdb.org on every view.
  */
-export default function InfoPanel({ actorCount, movieCount, onClose }: Props) {
+export default function InfoPanel({ actorCount, movieCount, generatedAt, onClose }: Props) {
+  const vintage = generatedAt ? formatVintage(generatedAt) : null;
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -111,6 +130,17 @@ export default function InfoPanel({ actorCount, movieCount, onClose }: Props) {
           </a>
           . This product uses the TMDB API but is not endorsed or certified by TMDB.
         </p>
+        {/* The date lives here rather than under the chart: it's a fact about
+            the method, and the hero above the chart is deliberately down to a
+            name and one sentence. Comes from the data file itself
+            (generatedAt), so a regeneration moves it without anyone
+            remembering to. */}
+        {vintage && (
+          <p>
+            Built from data pulled in {vintage}. Films released since then, or credits added to
+            IMDb or TMDB since then, aren't here yet.
+          </p>
+        )}
       </div>
     </div>
   );

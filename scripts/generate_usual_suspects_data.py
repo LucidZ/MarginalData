@@ -44,6 +44,7 @@ Requires TMDB_READ_ACCESS_TOKEN in .env.local (v4 bearer token).
 
 import argparse
 import csv
+import datetime
 import gzip
 import http.client
 import itertools
@@ -655,7 +656,18 @@ def main():
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w") as f:
         json.dump(
-            {"actors": actors, "edges": edge_list, "movies": movies_out, "maxSharedFilms": max_shared_films},
+            {
+                # The vintage of the IMDb dump and TMDB pull this file was
+                # built from, so the ⓘ panel can date the data without
+                # anyone hand-editing a string in the frontend and forgetting
+                # to move it on the next regeneration. Date only - the hour
+                # a multi-hour enrichment run happened to finish is noise.
+                "generatedAt": datetime.date.today().isoformat(),
+                "actors": actors,
+                "edges": edge_list,
+                "movies": movies_out,
+                "maxSharedFilms": max_shared_films,
+            },
             f,
             separators=(",", ":"),
         )

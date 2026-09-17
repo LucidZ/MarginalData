@@ -637,24 +637,6 @@ test.describe("The Usual Suspects", () => {
     await page.close();
   });
 
-  test("the cold-open copy shows on the landing page and not on a deep link", async ({ browser }) => {
-    const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
-    const OPENER = "Keanu Reeves and Winona Ryder";
-
-    await page.goto("/2026/UsualSuspects");
-    await page.waitForSelector(".tus-node");
-    await expect(page.locator(".tus-context-meta")).toContainText(OPENER);
-
-    // A shared link goes straight to the chart: the generated headline
-    // already says something specific about the actor in front of you, so
-    // the four-pair pitch would just be in the way.
-    await page.goto(`/2026/UsualSuspects?actor=${TOM_HANKS_NCONST}`);
-    await page.waitForSelector(".tus-node");
-    await expect(page.locator(".tus-headline")).toContainText("Tom Hanks");
-    await expect(page.locator(".tus-context-meta")).not.toContainText(OPENER);
-    await page.close();
-  });
-
   // The recenter FLIP animates nodes with the Web Animations API over a
   // transform *attribute* set by ActorNode, relying on the animation not
   // filling forwards so the attribute takes over again when it ends. If that

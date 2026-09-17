@@ -333,17 +333,16 @@
   max-width: 520px;
 }
 
-/* The one sentence a cold arrival needs, generated from the chart in front
-   of them rather than written once for the landing page - see
-   headlineFor() in App.tsx. A shared ?actor= link is exactly when someone
-   shows up with no context, so this can't be gated on entry point; making
-   it about the current actor is what earns it the space instead. It also
-   captions the leftmost column, since the axis now runs descending. */
+/* The root actor's name, and now nothing else. It used to carry a generated
+   sentence too ("X and Y made 3 films together"), which restated the top row
+   of the chart a few hundred pixels below it - the row label and the first
+   face under it say that already. Dropping the clause left this as a title,
+   so it's sized like one. */
 .tus-headline {
   margin: 0.5rem 0 0;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--text-primary);
 }
 
@@ -354,8 +353,14 @@
   line-height: 1.45;
 }
 
+/* Now a sibling of the search row rather than the last line of the hero, so
+   it carries its own centering and width instead of inheriting the hero's
+   flex column. Sits between the controls and the chart it describes. */
 .tus-interaction-hint {
-  margin: 0.35rem 0 0;
+  margin: 0.55rem auto 0;
+  max-width: 520px;
+  padding-inline: 1.5rem;
+  text-align: center;
   color: var(--text-secondary);
   font-size: 0.85rem;
   font-style: italic;

@@ -12,7 +12,7 @@ import { COMPACT_ROWS, DESKTOP_ROWS, ROW_LABEL_BASELINE, layoutRows, type Row } 
 import defaultActorsRaw from "./defaultActors.json";
 import DetailCard, { type Selection } from "./DetailCard";
 import InfoPanel from "./InfoPanel";
-import { buildAdjacency, bucketCostars, photoUrl, type Bucket } from "./graph";
+import { buildAdjacency, bucketCostars, photoUrl } from "./graph";
 import SearchBox from "./SearchBox";
 import { useData } from "./useData";
 import type { Actor, GraphData, Movie } from "./types";
@@ -58,62 +58,34 @@ function pickRandomDefaultActor(): Actor {
   return defaultActors.actors.find((a) => a.id === id) ?? defaultActors.actors[0];
 }
 
-// The eight actors named in the subtitle copy above, keyed by IMDb nconst
-// (stable across pool regens - see the rootId comment below for why numeric
-// ids aren't safe here even though this file's ids happen to agree with the
-// current pool). Landing page opens centered on one of them at random, so
-// the sentence someone just read is also the chart they see, instead of
-// naming eight actors and then dropping them on someone else entirely.
-const SUBTITLE_ACTOR_NCONSTS = [
-  "nm0331516", // Ryan Gosling
-  "nm1297015", // Emma Stone
-  "nm0425005", // Dwayne Johnson
-  "nm0366389", // Kevin Hart
-  "nm0000206", // Keanu Reeves
-  "nm0000213", // Winona Ryder
-  "nm0001191", // Adam Sandler
-  "nm0184445", // Allen Covert
-];
-
-function pickRandomSubtitleActor(): Actor {
-  const nconst = SUBTITLE_ACTOR_NCONSTS[Math.floor(Math.random() * SUBTITLE_ACTOR_NCONSTS.length)];
-  // All eight are costars of the bundled slice's own default actors (that's
-  // how they ended up in the subtitle's shared-film claims in the first
-  // place), so they're already present in defaultActors.actors - no need to
-  // wait on the full pool fetch to land on one of them.
-  const match = defaultActors.actors.find((a) => a.nconst === nconst);
-  return match ?? pickRandomDefaultActor();
-}
-
-/** Everything after the root actor's own name in the one sentence a cold
- * arrival needs, built from the chart in front of them. The name itself is
- * rendered separately (and linked out to TMDB), so the line still reads as
- * one sentence - "Adam Sandler" + "and Allen Covert made 26 films together."
- * - while staying its own addressable element. A shared ?actor= link is exactly when someone shows up with no
- * context, so this can't be gated on entry point the way a landing-page
- * intro can - making it about the current actor is what earns it the space
- * instead. It's also the caption for the leftmost column, now that the axis
- * runs descending.
+/** The one fact line under the root's name, built from the chart in front of
+ * them. It replaced a generated headline ("X and Y made 3 films together")
+ * that said out loud what the top row of the chart was already showing -
+ * the row label and the first face under it carry that claim now, so the
+ * space is better spent on the two numbers nothing else states.
  *
- * 86.2% of the pool (2,446 of 2,839, measured) has a top collaborator at 2+
- * shared films, so the main sentence lands for almost everyone. The other
- * 393 are obscure, low-degree actors that Shuffle can't reach (it draws from
- * defaultActorIds) and only search finds - "made 1 films together" would be
- * both ungrammatical and a non-fact, so they get the count instead.
+ * "among the N actors tracked here" is not a hedge for its own sake, it's
+ * the actual definition of both numbers before it. Edges only ever join two
+ * pool members (see build_edges and the TMDB credits supplement in
+ * scripts/generate_usual_suspects_data.py), so a film only enters this count
+ * if at least one *other* pool actor was in it too. Clark Duke's 14 is not
+ * his filmography - The Last Movie Star is a theatrical release of his that
+ * no other pool actor appears in, so it isn't here. Saying "acted in 14
+ * theatrical releases" would be a plain overclaim; this phrasing is the
+ * same fact stated at the scope that's true, and the ⓘ panel expands on it.
  *
- * Ties are broken on the lower pool id, which is free accuracy rather than
- * an arbitrary pick: ids are assigned in descending costar-degree order (see
- * the rootId comment below), so the lower id is the better-known name. Adam
- * Sandler's 23-film tie resolves to Rob Schneider, not Jonathan Loughran.
+ * poolActorCount is the size of the *full* pool (data?.actors.length), not
+ * the bundled default slice's own actors array - the slice is a ~2,100-actor
+ * subset of the full ~2,839 and would understate the count it's supposed to
+ * define. Null until the full pool finishes loading, in which case the
+ * number is omitted rather than shown wrong or shown twice as the fetch
+ * completes - same gating InfoPanel already uses for its own actor count.
  */
-function headlineFor(buckets: Bucket[], totalCostars: number): string | null {
-  const top = buckets[0];
-  if (!top || top.entries.length === 0) return null;
-  if (top.sharedFilms < 2) {
-    return `appears here with ${totalCostars.toLocaleString()} costars — one film each.`;
-  }
-  const best = top.entries.reduce((a, b) => (b.actor.id < a.actor.id ? b : a));
-  return `and ${best.actor.name} made ${top.sharedFilms} films together.`;
+function countsLine(totalFilms: number, totalCostars: number, poolActorCount: number | null): string {
+  const films = `${totalFilms.toLocaleString()} film${totalFilms === 1 ? "" : "s"}`;
+  const costars = `${totalCostars.toLocaleString()} costar${totalCostars === 1 ? "" : "s"}`;
+  const actors = poolActorCount != null ? `${poolActorCount.toLocaleString()} actors` : "actors";
+  return `${films} with ${costars} among the ${actors} tracked here.`;
 }
 
 /** Row labels are words again. Under the previous horizontal arrangement
@@ -261,9 +233,11 @@ export default function App() {
   // Its numeric id is safe to use directly: the slice is generated from the
   // same pool file in the same build, so their ids always agree. That's only
   // true *within* a build, which is exactly why the URL below can't use ids.
-  // Picks from the subtitle's eight named actors specifically (not the wider
-  // defaultActorIds pool that Shuffle draws from) - see pickRandomSubtitleActor.
-  const fallbackActor = useMemo(pickRandomSubtitleActor, []);
+  // Draws from the same defaultActorIds pool as Shuffle - the landing page
+  // used to be pinned to eight specific actors so a cold-open sentence
+  // naming them would match the chart underneath; the sentence is gone, so
+  // there's no reason left to land on any particular eight.
+  const fallbackActor = useMemo(pickRandomDefaultActor, []);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   // Shared by both ways a node gets picked - a direct click on its own <g>
@@ -429,10 +403,6 @@ export default function App() {
   const paramActor = paramNconst != null ? actorByNconst.get(paramNconst) : undefined;
   const paramPending = paramNconst != null && !paramActor && searchStatus === "loading";
   const paramInvalid = paramMalformed || (paramNconst != null && !paramActor && !paramPending);
-  // No ?actor= at all - someone arrived at the page itself rather than at a
-  // shared link to one actor. The only state where the cold-open copy earns
-  // its space; see the context line below.
-  const isLanding = rawParam == null;
   const rootId = paramActor ? paramActor.id : paramPending ? ROOT_PENDING : fallbackActor.id;
 
   useEffect(() => {
@@ -709,7 +679,7 @@ export default function App() {
     return [...byId.values()].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
   }, [buckets]);
   const totalFilms = rootMovies.length;
-  const headline = headlineFor(buckets, totalCostars);
+  const counts = countsLine(totalFilms, totalCostars, data?.actors.length ?? null);
 
   // The chart is exactly as wide as its frame and as tall as its rows need,
   // so there's no viewport fitting to do: no uniform scale, no height budget,
@@ -779,21 +749,14 @@ export default function App() {
             covers the actors already on screen.
           </p>
         )}
-        {/* The five-line paragraph that used to live here is gone, replaced
-            by the per-actor headline in the context row below (headlineFor).
-            It cost 340px of chrome on desktop and 489px on a 390px phone -
-            58% of the screen before a single face appeared - and on a deep
-            link, which is the URL people actually share, three of its four
-            name-drops weren't the chart you'd just landed on.
-
-            Its four-pair cold open is still worth having on the bare landing
-            state (no ?actor=), where it does real work; that's phase 4 in
-            .claude/usual-suspects-ux-spec.md, which carries the copy. Do not
-            restore it verbatim: every one of its counts is stale. Commit
-            4bc930f moved all four - Gosling/Stone 3 -> 4, Johnson/Hart
-            4 -> 5, Reeves/Ryder 3 -> 4, and Sandler/Covert 10 -> 26.
-            SUBTITLE_ACTOR_NCONSTS above still lists exactly those eight, so
-            the landing page keeps opening on one of them. */}
+        {/* The five-line intro paragraph that used to live here, and later a
+            four-pair "Ryan Gosling and Emma Stone..." cold open that
+            replaced it, are both gone - replaced by the per-actor counts
+            line in the context row below (countsLine). Don't reintroduce
+            either: both cost real chrome (the original ran 340px on desktop,
+            489px on a 390px phone - 58% of the screen before a single face
+            appeared) for copy that, on a deep link, named actors other than
+            the one someone just landed on. */}
       </div>
 
       {paramPending && <p className="tus-root-loading">Loading this actor…</p>}
@@ -836,59 +799,13 @@ export default function App() {
               ) : (
                 <span className="tus-root-name">{root.name}</span>
               )}
-              {headline && ` ${headline}`}
             </p>
-            <p className="tus-context-meta">
-              {/* The four-pair cold open, shown only on the bare landing
-                  state. It's doing real work there - naming duos someone
-                  already has a feel for, then landing on one they don't -
-                  and it would be dead weight on a deep link, where the
-                  generated headline above already says something specific
-                  about the actor in front of them. The landing page opens
-                  centred on one of these eight at random
-                  (SUBTITLE_ACTOR_NCONSTS), so the sentence someone just
-                  read is also the chart they're looking at.
-
-                  No numbers in this copy, deliberately: the figures that
-                  used to be quoted for these pairs in a comment here went
-                  stale when commit 4bc930f supplemented the edges, and the
-                  prose never carried them in the first place. The exact
-                  counts live in .claude/usual-suspects-refit-spec.md and
-                  are re-derived from the data everywhere they're shown.
-
-                  "Some actors share the silver screen far more than
-                  others" is kept only here, where it's the answer to the
-                  question mark the four pairs set up. On a deep link it
-                  had nothing to resolve and was the one line on the page
-                  that said nothing about the actor in front of you - so
-                  the two numbers below stand alone there instead. */}
-              {isLanding && (
-                <>
-                  Ryan Gosling and Emma Stone. Dwayne "The Rock" Johnson and Kevin Hart. Keanu
-                  Reeves and Winona Ryder. Adam Sandler and Allen Covert? Some actors share the
-                  silver screen far more than others.{" "}
-                </>
-              )}
-              {/* Both figures come from the root's own edges, which the
-                  bundled default slice already carries in full for every
-                  actor it holds - so unlike the pool-wide "out of N
-                  actors" this replaced, there's no window where these are
-                  real but wrong and need gating on the full fetch. */}
-              {totalFilms.toLocaleString()} film{totalFilms === 1 ? "" : "s"} here, with{" "}
-              {totalCostars.toLocaleString()} costar{totalCostars === 1 ? "" : "s"}.
-            </p>
-            {/* Split from the paragraph above and italicised - this is an
-                instruction for using the chart, not part of the sentence
-                describing what's in it, so it reads better set apart
-                rather than tacked onto the same line. */}
-            <p className="tus-interaction-hint">
-              {compact ? "Tap" : "Click"} anyone to see the films they share.
-              {/* Desktop-only accelerator (see ActorNode.tsx's
-                  onDoubleClick) - left out on touch, where double-tap
-                  means zoom and the bottom-sheet card's own photo button
-                  is already one tap away. */}
-              {!compact && " Double-click to recenter."}
-            </p>
+            {/* Both figures come from the root's own edges, which the bundled
+                default slice already carries in full for every actor it holds
+                - so unlike the pool-wide "out of N actors" this replaced,
+                there's no window where these are real but wrong and need
+                gating on the full fetch. */}
+            <p className="tus-context-meta">{counts}</p>
           </div>
 
           <div className="tus-search-row">
@@ -907,6 +824,21 @@ export default function App() {
               i
             </button>
           </div>
+
+          {/* Below the search row, not above it. As the third centered line
+              in the hero this read as part of the description of what's on
+              screen; it's an instruction for the chart, and the chart is
+              what comes next, so it sits directly above it. That also cuts
+              the hero to two lines - a name and a fact - before the page
+              offers a control. */}
+          <p className="tus-interaction-hint">
+            {compact ? "Tap" : "Click"} anyone to see the films they share.
+            {/* Desktop-only accelerator (see ActorNode.tsx's
+                onDoubleClick) - left out on touch, where double-tap means
+                zoom and the bottom-sheet card's own photo button is
+                already one tap away. */}
+            {!compact && " Double-click to recenter."}
+          </p>
 
           <div className="tus-graph-frame" ref={setFrameEl}>
             <svg
@@ -1097,6 +1029,7 @@ export default function App() {
             <InfoPanel
               actorCount={data?.actors.length ?? null}
               movieCount={data?.movies.length ?? null}
+              generatedAt={data?.generatedAt ?? null}
               onClose={() => setInfoOpen(false)}
             />
           )}

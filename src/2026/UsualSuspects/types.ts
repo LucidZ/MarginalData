@@ -26,6 +26,11 @@ export interface Movie {
 export type Edge = [number, number, number, number[]];
 
 export interface GraphData {
+  /** ISO date the generator built this file, e.g. "2026-09-10" - the vintage
+   * of the IMDb dump and TMDB pull behind every number on the page. Optional
+   * because files generated before the script started stamping it don't have
+   * one; the ⓘ panel omits the line rather than guessing. */
+  generatedAt?: string;
   actors: Actor[];
   edges: Edge[];
   movies: Movie[];

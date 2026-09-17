@@ -213,7 +213,7 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
             target="_blank"
             rel="noreferrer"
           >
-            View on TMDB ↗
+            View actor profile on TMDB ↗
           </a>
         )}
       </div>
