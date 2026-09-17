@@ -187,6 +187,10 @@ interface SimNode extends SimulationNodeDatum {
    * instead of drifting out of the row. */
   seedX: number;
   seedY: number;
+  /** Which seeded line this node started on - kept so the post-settle
+   * centring step (see packRow) can balance each line on its own instead of
+   * the blob as a whole. */
+  line: number;
 }
 
 /**
@@ -250,7 +254,7 @@ function packRow(bucket: Bucket, size: number, width: number): { actors: Positio
     // settled result from reading as a grid.
     const seedX = r + col * pitch + (line % 2 ? pitch / 2 : 0) + ((i * 37) % 7) - 3;
     const seedY = r + line * linePitch + ((i * 53) % 5) - 2;
-    return { id: actor.id, r, seedX, seedY, x: seedX, y: seedY };
+    return { id: actor.id, r, seedX, seedY, line, x: seedX, y: seedY };
   });
 
   const simulation = forceSimulation(nodes)
@@ -288,6 +292,27 @@ function packRow(bucket: Bucket, size: number, width: number): { actors: Positio
     }
   }
 
+  // Centre each seeded line on its own, not the blob's bounding box as a
+  // whole. A single blob-wide offset only visibly moves rows that don't fill
+  // even their first line: once any line spans the full width, that line's
+  // own edges pin the box to [0, width] and the shared offset comes out to
+  // ~0 - leaving a shorter trailing line (almost always the last one)
+  // exactly where the seed grid put it, hard against the left edge. Per-line
+  // centring balances that line against the row's own width regardless of
+  // what the lines above it settled at.
+  const byLine = new Map<number, SimNode[]>();
+  for (const n of nodes) {
+    const group = byLine.get(n.line);
+    if (group) group.push(n);
+    else byLine.set(n.line, [n]);
+  }
+  for (const group of byLine.values()) {
+    const left = Math.min(...group.map((n) => n.x! - r));
+    const right = Math.max(...group.map((n) => n.x! + r));
+    const offset = (width - (right - left)) / 2 - left;
+    for (const n of group) n.x! += offset;
+  }
+
   const moviesById = new Map(bucket.entries.map((e) => [e.actor.id, e.sharedMovies]));
   const actors: PositionedActor[] = nodes.map((n) => ({
     id: n.id,
@@ -296,15 +321,6 @@ function packRow(bucket: Bucket, size: number, width: number): { actors: Positio
     size,
     sharedMovies: moviesById.get(n.id) ?? [],
   }));
-
-  // Centre the settled blob in the row. Only visibly changes rows that
-  // don't fill a line - a 207-person row already spans the full width, so
-  // this is a no-op there, while a 12-person row would otherwise sit in the
-  // left third of an empty band.
-  const left = Math.min(...actors.map((a) => a.x - a.size / 2));
-  const right = Math.max(...actors.map((a) => a.x + a.size / 2));
-  const offset = (width - (right - left)) / 2 - left;
-  for (const a of actors) a.x += offset;
 
   const nominalHeight = (lines - 1) * linePitch + size;
   return { actors, height: Math.max(nominalHeight, ...actors.map((a) => a.y + a.size / 2)) };
