@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
+import StickyViz from "./StickyViz";
 import { useActiveStep } from "./useActiveStep";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
 import type { VoterAgeData, Dimension, DimensionRow } from "./types";
@@ -88,7 +89,7 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
     <section className="voa-beat">
       <h2 className="voa-beat-title">3. It isn't only about age</h2>
       <div className="voa-scrolly">
-        <div className="voa-scrolly-viz">
+        <StickyViz>
           <div className="voa-dim-caption">{active.dim.label} · avg turnout {fmtPct(active.dim.avgTurnout)}</div>
           <PopulationBars
             rows={active.rows}
@@ -103,7 +104,7 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
             tooltipFor={tooltipFor}
           />
           {active.dim.note && <p className="voa-dim-note">{active.dim.note}</p>}
-        </div>
+        </StickyViz>
         <div className="voa-scrolly-steps">
           <div className="voa-step" ref={setStepRef(0)}>
             <div className="voa-step-inner">

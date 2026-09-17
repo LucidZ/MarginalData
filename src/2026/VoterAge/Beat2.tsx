@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
+import StickyViz from "./StickyViz";
 import { useActiveStep } from "./useActiveStep";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
 import type { VoterAgeData, AgeRow } from "./types";
@@ -60,7 +61,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
     <section className="voa-beat">
       <h2 className="voa-beat-title">2. Midterms make it worse</h2>
       <div className="voa-scrolly">
-        <div className="voa-scrolly-viz">
+        <StickyViz>
           <PopulationBars
             rows={activeRows}
             xKind="age"
@@ -73,7 +74,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             yDomain={yDomain}
             tooltipFor={tooltipFor}
           />
-        </div>
+        </StickyViz>
         <div className="voa-scrolly-steps">
           <div className="voa-step" ref={setStepRef(0)}>
             <div className="voa-step-inner">

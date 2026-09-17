@@ -1,4 +1,5 @@
 import ColoradoDots from "./ColoradoDots";
+import StickyViz from "./StickyViz";
 import { useActiveStep } from "./useActiveStep";
 import type { VoterAgeData } from "./types";
 
@@ -20,7 +21,7 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
     <section className="voa-beat">
       <h2 className="voa-beat-title">4. Does anything change this?</h2>
       <div className="voa-scrolly">
-        <div className="voa-scrolly-viz">
+        <StickyViz>
           {step <= 2 ? (
             <>
               <div className="voa-dim-caption">{activePanel.title}</div>
@@ -49,7 +50,7 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
               </ul>
             </div>
           )}
-        </div>
+        </StickyViz>
         <div className="voa-scrolly-steps">
           <div className="voa-step" ref={setStepRef(0)}>
             <div className="voa-step-inner">
