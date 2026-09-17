@@ -11,6 +11,11 @@ interface Props {
    * so the same caveat is permanent rather than temporary. "ready": `actors`
    * is the authoritative full pool. */
   status: "loading" | "error" | "ready";
+  /** Narrow viewports share the toolbar row with three buttons, which leaves
+   * the input too narrow for the full prompt - it truncated mid-word
+   * ("Type an acto") once Share joined the row. The short form says the same
+   * thing in the space that's actually there. */
+  compact: boolean;
   onSelect: (actor: Actor) => void;
 }
 
@@ -39,7 +44,7 @@ function collapse(normalized: string): string {
   return normalized.replace(/[\s.'-]/g, "");
 }
 
-export default function SearchBox({ actors, status, onSelect }: Props) {
+export default function SearchBox({ actors, status, compact, onSelect }: Props) {
   const [query, setQuery] = useState("");
   // -1 means nothing is highlighted yet - an arrow key is what gives the
   // list a selection, not typing itself (mirrors most combobox widgets, and
@@ -171,7 +176,7 @@ export default function SearchBox({ actors, status, onSelect }: Props) {
           setActiveIndex(-1);
         }}
         onKeyDown={onKeyDown}
-        placeholder="Type an actor's name..."
+        placeholder={compact ? "Actor's name..." : "Type an actor's name..."}
         className="tus-search-input"
         aria-label="Search for an actor"
         role="combobox"

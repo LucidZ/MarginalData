@@ -878,4 +878,66 @@ test.describe("The Usual Suspects", () => {
     await expect(page.locator(".tus-root-name")).toHaveText(MICHAEL_CAINE);
     await page.close();
   });
+
+  // Share copies a link built from the *root actor*, not from the address
+  // bar - the two disagree in exactly the cases that matter. A fresh load
+  // picks a random root and writes no ?actor= at all, so a location-derived
+  // link would send someone to a different random actor; this checks the
+  // no-param case specifically for that reason.
+  test("share on a fresh load copies a link to the actor actually on screen", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: DESKTOP, permissions: ["clipboard-read", "clipboard-write"] });
+    const page = await context.newPage();
+    await page.goto("/2026/UsualSuspects");
+    await page.waitForSelector(".tus-node");
+    expect(new URL(page.url()).searchParams.get("actor"), "fresh load should have no param to copy from").toBeNull();
+
+    const rootName = (await page.locator(".tus-root-name").textContent())!;
+    await page.locator(".tus-share").click();
+    await expect(page.locator(".tus-share")).toHaveAttribute("data-status", "copied");
+
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    const url = new URL(copied.slice(copied.indexOf("http")));
+    expect(url.pathname).toBe("/2026/UsualSuspects");
+    expect(url.searchParams.get("actor")).toMatch(/^nm\d+$/);
+    expect(copied).toContain(rootName);
+
+    // The copied link resolves back to the same person it was copied from -
+    // the whole contract in one assertion.
+    await page.goto(url.toString());
+    await page.waitForSelector(".tus-node");
+    await expect(page.locator(".tus-root-name")).toHaveText(rootName);
+    await context.close();
+  });
+
+  test("share follows a recenter rather than the stale URL", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: DESKTOP, permissions: ["clipboard-read", "clipboard-write"] });
+    const page = await context.newPage();
+    await page.goto(`/2026/UsualSuspects?actor=${TOM_HANKS_NCONST}`);
+    await page.waitForSelector(".tus-node");
+    await selectActor(page, BRUCE_WILLIS);
+
+    await page.locator(".tus-share").click();
+    await expect(page.locator(".tus-share")).toHaveAttribute("data-status", "copied");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain(BRUCE_WILLIS);
+    expect(copied).not.toContain(TOM_HANKS_NCONST);
+    await context.close();
+  });
+
+  // Regression for the row overflowing once Share became its fourth control:
+  // a text input's intrinsic minimum width kept .tus-search from shrinking,
+  // which pushed the toggle off a 390px screen.
+  test("the toolbar keeps all four controls on screen at 390px", async ({ browser }) => {
+    const page = await (await browser.newContext({ viewport: MOBILE })).newPage();
+    await page.goto("/2026/UsualSuspects");
+    await page.waitForSelector(".tus-node");
+
+    for (const selector of [".tus-search", ".tus-shuffle", ".tus-share", ".tus-info-toggle"]) {
+      const box = (await page.locator(selector).boundingBox())!;
+      expect(box, `${selector} should be laid out`).not.toBeNull();
+      expect(box.x, `${selector} starts off the left edge`).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, `${selector} runs past the right edge`).toBeLessThanOrEqual(MOBILE.width);
+    }
+    await page.close();
+  });
 });

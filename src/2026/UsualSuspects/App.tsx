@@ -14,6 +14,7 @@ import DetailCard, { type Selection } from "./DetailCard";
 import InfoPanel from "./InfoPanel";
 import { buildAdjacency, bucketCostars, photoUrl } from "./graph";
 import SearchBox from "./SearchBox";
+import ShareButton from "./ShareButton";
 import { useData } from "./useData";
 import type { Actor, GraphData, Movie } from "./types";
 import "./App.css";
@@ -809,10 +810,19 @@ export default function App() {
           </div>
 
           <div className="tus-search-row">
-            <SearchBox actors={activeData.actors} status={searchStatus} onSelect={(actor) => recenter(actor)} />
+            <SearchBox
+              actors={activeData.actors}
+              status={searchStatus}
+              compact={compact}
+              onSelect={(actor) => recenter(actor)}
+            />
             <button type="button" className="tus-shuffle" onClick={shuffle}>
               Shuffle
             </button>
+            {/* Shares the actor the chart is centered on, not whatever is in
+                the address bar - see shareUrl. Rendered only with a real
+                root, so it can't offer a link to ROOT_PENDING. */}
+            <ShareButton actor={root} totalFilms={totalFilms} totalCostars={totalCostars} />
             <button
               type="button"
               className="tus-info-toggle"
