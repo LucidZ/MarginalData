@@ -1,10 +1,11 @@
 import { chromium } from "playwright";
+const BASE = process.env.BASE_URL || "http://localhost:4321";
 import { mkdirSync } from "node:fs";
 const OUT = "tests/screenshots";
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
-await page.goto("http://localhost:4321/2026/VoterAge/", { waitUntil: "networkidle" });
+await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 const box = await page.evaluate(() => {
   const titles = [...document.querySelectorAll(".voa-beat-title")];

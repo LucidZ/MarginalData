@@ -68,11 +68,8 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
   const eduLow = extremes(education).lowest;
   const eduHigh = extremes(education).highest;
   const HS_OR_LESS_GROUPS = ["Less than 9th grade", "9th to 12th grade, no diploma", "High school graduate"];
-  const BACHELORS_PLUS_GROUPS = ["Bachelor's degree", "Advanced degree"];
   const hsOrLess = education.rows.filter((r) => HS_OR_LESS_GROUPS.includes(r.group)).reduce((s, r) => s + r.missing, 0);
-  const bachelorsPlus = education.rows.filter((r) => BACHELORS_PLUS_GROUPS.includes(r.group)).reduce((s, r) => s + r.missing, 0);
 
-  const whiteNH = race.rows.find((r) => r.group === "White alone, not Hispanic")!;
   const hispanic = race.rows.find((r) => r.group === "Hispanic (any race)")!;
 
   const under50k = income.rows.filter((r) => ["Under $10,000", "$10,000 to $14,999", "$15,000 to $19,999", "$20,000 to $29,999", "$30,000 to $39,999", "$40,000 to $49,999"].includes(r.group)).reduce((s, r) => s + r.missing, 0);
@@ -99,7 +96,7 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes
             showExpected
-            signColor
+            showGap
             directLabelMissing
             tooltipFor={tooltipFor}
           />
@@ -121,9 +118,8 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
               <h3>Education is the biggest gap in the data</h3>
               <p>
                 Turnout ranges from {fmtPct(eduLow.turnout)} (less than 9th grade) to {fmtPct(eduHigh.turnout)}{" "}
-                (advanced degree) — a wider spread than age. High school or less cast{" "}
-                <strong>{fmtM(Math.abs(hsOrLess))} fewer</strong> votes than proportional; a bachelor's degree or more
-                cast <strong>{fmtM(bachelorsPlus)} more</strong>.
+                (advanced degree) — a wider spread than age. High school or less accounts for nearly all of the gold
+                here: <strong>{fmtM(Math.abs(hsOrLess))} missing votes</strong> across three groups.
               </p>
               <div className="voa-callout">
                 Largest single gap in this story: <strong>{fmtMSigned(hsOrLess)}</strong> for high school or less.
@@ -134,9 +130,9 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
             <div className="voa-step-inner">
               <h3>Race and ethnicity</h3>
               <p>
-                White, non-Hispanic voters cast {fmtMSigned(whiteNH.missing)} more votes than proportional; Hispanic
-                voters cast {fmtMSigned(hispanic.missing)}. Black and Asian voters are also short of the line, by
-                smaller amounts because those are smaller populations.
+                Hispanic voters fall <strong>{fmtM(Math.abs(hispanic.missing))}</strong> short of the line — the
+                largest single gap on this chart. Black and Asian voters are short too, by smaller amounts, because
+                those are smaller populations. White, non-Hispanic voters are the one group above it.
               </p>
             </div>
           </div>

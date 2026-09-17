@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { select, scaleBand, scaleLinear, axisBottom, axisLeft, easeCubicOut, line as d3line, curveLinear } from "d3";
 import Tooltip from "./Tooltip";
 
@@ -31,9 +31,12 @@ interface Props {
   showTrack?: boolean;
   showVotes?: boolean;
   showExpected?: boolean;
-  /** Colors the votes bar by the sign of `missing` (below/above the
-   * expected line) instead of a single neutral accent. */
-  signColor?: boolean;
+  /** Draws the gold shortfall layer: for each bar that falls under the
+   * expected-at-average-turnout marker, a block spanning the votes bar up
+   * to that marker. Bars that clear the marker get nothing - the story is
+   * about who isn't voting, and shading a "surplus" would imply some
+   * groups should participate less. */
+  showGap?: boolean;
   /** Fixes the y-domain - pass the same domain across a dataset swap (e.g.
    * 2024 -> 2022) so the transition reads as "the bars dropped", not "the
    * axis rescaled under them". Computed from the data if omitted. */
@@ -42,6 +45,9 @@ interface Props {
    * its tip, per spec v2 S3.2 (small groups' bars are otherwise too small
    * to read a gap off directly). */
   directLabelMissing?: boolean;
+  /** Prints the total-gap stat line under the chart. Defaults to
+   * following `showGap`. */
+  showGapSummary?: boolean;
   tooltipFor?: (row: PopulationBarRow) => ReactNode;
 }
 
@@ -61,15 +67,26 @@ export default function PopulationBars({
   showTrack = true,
   showVotes = true,
   showExpected = true,
-  signColor = false,
+  showGap = false,
   yDomain: yDomainProp,
   directLabelMissing = false,
+  showGapSummary,
   tooltipFor,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(560);
   const [hover, setHover] = useState<{ row: PopulationBarRow; clientX: number; clientY: number } | null>(null);
+  // Shortfall and surplus are equal by construction (`expected` is each
+  // row's population scaled by the rate that reproduces the actual vote
+  // total), so one figure describes the whole gold area: the number of
+  // votes sitting on the far side of proportional.
+  const shortRows = useMemo(() => rows.filter((r) => r.missing < 0), [rows]);
+  const gapStat = useMemo(() => {
+    const shortfall = shortRows.reduce((sum, r) => sum + r.missing, 0);
+    const votes = rows.reduce((sum, r) => sum + r.votes, 0);
+    return { shortfall: Math.abs(shortfall), pct: votes > 0 ? (Math.abs(shortfall) / votes) * 100 : 0 };
+  }, [rows, shortRows]);
 
   useEffect(() => {
     const obs = new ResizeObserver((entries) => {
@@ -108,6 +125,7 @@ export default function PopulationBars({
       root.append("text").attr("class", "voa-axis-label pb-axis-label-y").attr("text-anchor", "middle");
       root.append("g").attr("class", "pb-tracks");
       root.append("g").attr("class", "pb-votes");
+      root.append("g").attr("class", "pb-gaps");
       root.append("path").attr("class", "pb-expected-line");
       root.append("g").attr("class", "pb-expected-ticks");
       root.append("g").attr("class", "pb-missing-labels");
@@ -198,10 +216,7 @@ export default function PopulationBars({
       .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-votes")
       .data(rows, (d) => d.key);
     votes.exit().transition(t as any).attr("y", innerH).attr("height", 0).remove();
-    const votesClass = (d: PopulationBarRow) => {
-      const sign = signColor ? (d.missing >= 0 ? " pb-sign-pos" : " pb-sign-neg") : "";
-      return `pb-votes${d.ratesPooled ? " pb-pooled" : ""}${sign}`;
-    };
+    const votesClass = (d: PopulationBarRow) => `pb-votes${d.ratesPooled ? " pb-pooled" : ""}`;
     votes
       .enter()
       .append("rect")
@@ -218,6 +233,33 @@ export default function PopulationBars({
       .attr("width", xScale.bandwidth())
       .attr("y", (d) => yScale(d.votes))
       .attr("height", (d) => innerH - yScale(d.votes));
+
+    // Gold shortfall blocks - one per under-voting bar, sitting on top of
+    // the votes bar and capped by the dotted line. Across the age chart
+    // they merge into one wedge, so the gap reads as a single shape
+    // rather than 25 separate pieces. Bars over the line get nothing.
+    const gapClass = (d: PopulationBarRow) => `pb-gap${d.ratesPooled ? " pb-pooled" : ""}`;
+    const gaps = root
+      .select<SVGGElement>("g.pb-gaps")
+      .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-gap")
+      .data(shortRows, (d) => d.key);
+    gaps.exit().remove();
+    gaps
+      .enter()
+      .append("rect")
+      .attr("class", gapClass)
+      .attr("x", (d) => xScale(d.key) ?? 0)
+      .attr("width", xScale.bandwidth())
+      .attr("y", (d) => yScale(d.votes))
+      .attr("height", 0)
+      .merge(gaps as any)
+      .attr("class", gapClass)
+      .style("opacity", showGap ? 1 : 0)
+      .transition(t as any)
+      .attr("x", (d) => xScale(d.key) ?? 0)
+      .attr("width", xScale.bandwidth())
+      .attr("y", (d) => yScale(d.expected))
+      .attr("height", (d) => yScale(d.votes) - yScale(d.expected));
 
     // Expected-at-average-turnout marker. Age variant: one dotted path
     // through every bar's expected value - since cvap varies smoothly by
@@ -260,7 +302,7 @@ export default function PopulationBars({
     const missingLabels = root
       .select<SVGGElement>("g.pb-missing-labels")
       .selectAll<SVGTextElement, PopulationBarRow>("text.pb-missing-label")
-      .data(xKind === "category" && directLabelMissing ? rows : [], (d) => d.key);
+      .data(xKind === "category" && directLabelMissing ? shortRows : [], (d) => d.key);
     missingLabels.exit().remove();
     missingLabels
       .enter()
@@ -270,9 +312,8 @@ export default function PopulationBars({
       .merge(missingLabels as any)
       .transition(t as any)
       .attr("x", (d) => (xScale(d.key) ?? 0) + xScale.bandwidth() / 2)
-      .attr("y", (d) => yScale(Math.max(d.votes, d.expected)) - 8)
-      .text((d) => `${d.missing >= 0 ? "+" : ""}${(d.missing / 1000).toFixed(1)}M`)
-      .attr("class", (d) => `pb-missing-label${d.missing >= 0 ? " pb-sign-pos-text" : " pb-sign-neg-text"}`);
+      .attr("y", (d) => yScale(d.expected) - 8)
+      .text((d) => `${(d.missing / 1000).toFixed(1)}M`);
 
     // Invisible full-height hit targets - hover/tap works across the
     // whole bar column, not just the (sometimes very short) votes rect.
@@ -303,7 +344,7 @@ export default function PopulationBars({
       .on("mouseleave touchend", function () {
         setHover(null);
       });
-  }, [rows, xKind, width, height, showTrack, showVotes, showExpected, signColor, yDomainProp, directLabelMissing, tooltipFor, yLabel]);
+  }, [rows, xKind, width, height, showTrack, showVotes, showExpected, showGap, shortRows, yDomainProp, directLabelMissing, tooltipFor, yLabel]);
 
   return (
     <div ref={wrapRef} className="voa-chart-surface pb-surface">
@@ -318,9 +359,23 @@ export default function PopulationBars({
             expected at average turnout
           </span>
         )}
+        {showGap && (
+          <>
+            <span className="voa-legend-swatch pb-legend-gap" style={{ marginLeft: "0.9rem" }} /> Votes short of it
+          </>
+        )}
       </div>
       <svg ref={svgRef} role="img" aria-label={xLabel} />
       <div className="voa-axis-label-x">{xLabel}</div>
+      {(showGapSummary ?? showGap) && (
+        <div className="pb-gap-summary">
+          <span className="pb-gap-marker" aria-hidden="true" />
+          <span>
+            <strong>{(gapStat.shortfall / 1000).toFixed(1)}M missing votes</strong> — {gapStat.pct.toFixed(1)}% of every
+            ballot cast
+          </span>
+        </div>
+      )}
       {hover && tooltipFor && <Tooltip content={tooltipFor(hover.row)} clientX={hover.clientX} clientY={hover.clientY} />}
     </div>
   );

@@ -70,7 +70,7 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes
             showExpected
-            signColor
+            showGap
             yDomain={yDomain}
             tooltipFor={tooltipFor}
           />

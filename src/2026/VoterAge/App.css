@@ -11,6 +11,8 @@
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --diverge-bad: #e34948;
+  --gap: #e0a11c;
+  --gap-edge: #a97407;
   --border: rgba(11, 11, 11, 0.1);
 
 
@@ -36,6 +38,8 @@
     --series-2: #d95926;
     --series-3: #199e70;
     --diverge-bad: #e66767;
+    --gap: #f0b942;
+    --gap-edge: #f8d68c;
     --border: rgba(255, 255, 255, 0.1);
 
   }
@@ -54,6 +58,8 @@
   --series-2: #d95926;
   --series-3: #199e70;
   --diverge-bad: #e66767;
+  --gap: #f0b942;
+  --gap-edge: #f8d68c;
   --border: rgba(255, 255, 255, 0.1);
 }
 
@@ -207,7 +213,10 @@
   background: var(--gridline);
 }
 .pb-legend-votes {
-  background: var(--series-1);
+  background: var(--series-3);
+}
+.pb-legend-gap {
+  background: var(--gap);
 }
 .pb-legend-expected {
   display: inline-flex;
@@ -221,15 +230,18 @@
   opacity: 0.6;
 }
 .pb-votes {
-  fill: var(--series-1);
-}
-.pb-votes.pb-sign-neg {
-  fill: var(--diverge-bad);
-}
-.pb-votes.pb-sign-pos {
   fill: var(--series-3);
 }
 .pb-votes.pb-pooled {
+  opacity: 0.75;
+}
+
+/* Shortfall block - a solid gold band sitting on top of the votes bar,
+   capped by the dotted line. Only under-voting bars get one. */
+.pb-gap {
+  fill: var(--gap);
+}
+.pb-gap.pb-pooled {
   opacity: 0.75;
 }
 .pb-expected-line {
@@ -251,12 +263,33 @@
 .pb-missing-label {
   font-size: 11px;
   font-weight: 700;
+  fill: var(--gap-edge);
 }
-.pb-missing-label.pb-sign-neg-text {
-  fill: var(--diverge-bad);
+/* Total-gap stat line under the x-axis label. The triangle is the same
+   gold as the wedge it summarises. */
+.pb-gap-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.45rem 0.4rem 0.1rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--gridline);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  text-align: center;
 }
-.pb-missing-label.pb-sign-pos-text {
-  fill: var(--series-3);
+.pb-gap-summary strong {
+  color: var(--text-primary);
+}
+.pb-gap-marker {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid var(--gap);
 }
 .pb-hit {
   fill: transparent;

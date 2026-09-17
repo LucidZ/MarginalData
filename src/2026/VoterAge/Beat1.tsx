@@ -26,10 +26,9 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
   const cycle = data.byAge["2024"];
   const rows = useMemo(() => cycle.rows.map(toBarRow), [cycle]);
 
-  const under35 = cycle.rows.filter((r) => r.age < 35);
-  const over65 = cycle.rows.filter((r) => r.age >= 65);
-  const under35Missing = under35.reduce((s, r) => s + r.missing, 0);
-  const over65Missing = over65.reduce((s, r) => s + r.missing, 0);
+  const under35Missing = cycle.rows.filter((r) => r.age < 35).reduce((s, r) => s + r.missing, 0);
+  // Every age that fell short, summed - the same quantity the chart shades gold.
+  const totalMissing = cycle.rows.reduce((s, r) => s + Math.min(0, r.missing), 0);
 
   const age25 = cycle.rows.find((r) => r.age === 25)!;
   const age75 = cycle.rows.find((r) => r.age === 75)!;
@@ -57,7 +56,7 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes={step >= 1}
             showExpected={step >= 2}
-            signColor={step >= 3}
+            showGap={step >= 3}
             tooltipFor={tooltipFor}
           />
         </StickyViz>
@@ -94,12 +93,12 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
           </div>
           <div className="voa-step" ref={setStepRef(3)}>
             <div className="voa-step-inner">
-              <h3>Below the line, above the line</h3>
+              <h3>Fill in what's missing</h3>
               <p>
-                Color the bars by whether they clear that line. Red bars voted less than their share of the
-                population would predict; green bars voted more. The switch happens around age {cycle.crossoverAge}{" "}
-                — not a hard cutoff, turnout dips back under a few more times before settling above for good, but
-                that's roughly where the electorate stops skewing young and starts skewing old.
+                Gold is the distance from a bar up to that line: votes an age would have cast at the national
+                average, and didn't. The gold runs out around age {cycle.crossoverAge} — not a hard cutoff, a few
+                ages in their forties dip back under before it clears for good, but that's roughly where the
+                electorate stops falling short of its own population.
               </p>
             </div>
           </div>
@@ -107,13 +106,13 @@ export default function Beat1({ data }: { data: VoterAgeData }) {
             <div className="voa-step-inner">
               <h3>In votes, not percentages</h3>
               <p>
-                Sum the gaps on each side of that line. Everyone under 35 cast <strong>{fmtM(Math.abs(under35Missing))}
-                {" "}fewer</strong> votes than proportional turnout would have given them. Everyone 65 and older cast{" "}
-                <strong>{fmtM(over65Missing)} more</strong>.
+                Add the gold up and it comes to <strong>{fmtM(Math.abs(totalMissing))} votes</strong> — ballots that
+                would exist if every age turned out at the national average. Most of it is concentrated young:
+                under-35s account for <strong>{fmtM(Math.abs(under35Missing))}</strong> of the total on their own.
               </p>
               <div className="voa-callout">
-                <strong>{fmtMSigned(under35Missing)}</strong> under 35 · <strong>{fmtMSigned(over65Missing)}</strong>{" "}
-                age 65+, relative to a same-turnout-for-everyone electorate.
+                {fmtM(Math.abs(totalMissing))} missing votes, {fmtPct((Math.abs(totalMissing) / cycle.totalVotes) * 100)}{" "}
+                of every ballot cast in 2024 — and <strong>{fmtM(Math.abs(under35Missing))}</strong> of it is under 35.
               </div>
             </div>
           </div>

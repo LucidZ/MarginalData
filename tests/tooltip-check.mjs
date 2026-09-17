@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+const BASE = process.env.BASE_URL || "http://localhost:4321";
 import { mkdirSync } from "node:fs";
 const OUT = "tests/screenshots";
 mkdirSync(OUT, { recursive: true });
@@ -31,7 +32,7 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
 {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
-  await page.goto("http://localhost:4321/2026/VoterAge/", { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
   // Beat1 step 4 (full reveal, count callout) - hover an age bar
@@ -83,7 +84,7 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
 {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  await page.goto("http://localhost:4321/2026/VoterAge/", { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
   const section = await scrollBeatToStep(page, "shape of the electorate", 4, 5);
