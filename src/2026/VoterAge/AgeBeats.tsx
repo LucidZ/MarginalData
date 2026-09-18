@@ -87,33 +87,73 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   const u = clamp01((progress - MORPH_STEP - 0.15) / 0.7);
   const t = ease(u);
 
+  /** 2024 -> 2022: the same cohort is two years younger. */
+  const SHIFT_YEARS = 2;
+
+  const rows2022ByAge = useMemo(() => new Map(rows2022.map((r) => [Number(r.x), r])), [rows2022]);
+
+  // The t=1 resting state, memoized so the d3 effect doesn't re-run on every
+  // scroll quantum once the morph has settled - same reason `rows2024` is
+  // returned by identity at t=0.
+  const rowsSettled2022 = useMemo(
+    () =>
+      rows2024.map((r) => {
+        const age = Number(r.x);
+        const target = rows2022ByAge.get(age - SHIFT_YEARS);
+        const xPos = age - SHIFT_YEARS;
+        // Cohorts 18 and 19 were 16 and 17 in 2022 - below voting age, so
+        // Census has no row for them. They slide off the left edge holding
+        // their real 2024 heights rather than lerping toward a number that
+        // doesn't exist. (The mirror of this: slots 99 and 100 end up empty,
+        // because filling them would need 2024 ages 101-102. Those bars are
+        // ~1px tall and worth 0.013M of the 36.1M gold total - the printed
+        // figure is still the full-year one.)
+        if (!target) return { ...r, xPos, opacity: 0 };
+        return { ...target, key: r.key, xPos };
+      }),
+    [rows2024, rows2022ByAge]
+  );
+
   // Identity-stable at both ends: through all of beat 1 this returns the
   // very same `rows2024` array, so the d3 effect doesn't re-run (and re-fire
   // a 700ms tween) on every one of the ~200 scroll quanta the progress hook
   // reports across the beat.
   const activeRows = useMemo(() => {
     if (t <= 0) return rows2024;
-    if (t >= 1) return rows2022;
-    return rows2024.map((r, i) => {
-      const b = rows2022[i];
+    if (t >= 1) return rowsSettled2022;
+    return rows2024.map((r) => {
+      const age = Number(r.x);
+      const target = rows2022ByAge.get(age - SHIFT_YEARS);
+      const xPos = age - SHIFT_YEARS * t;
+      if (!target) return { ...r, xPos, opacity: clamp01(1 - t / 0.4) };
       return {
         ...r,
-        cvap: lerp(r.cvap, b.cvap, t),
-        votes: lerp(r.votes, b.votes, t),
-        expected: lerp(r.expected, b.expected, t),
-        missing: lerp(r.missing, b.missing, t),
-        turnout: lerp(r.turnout, b.turnout, t),
+        xPos,
+        cvap: lerp(r.cvap, target.cvap, t),
+        votes: lerp(r.votes, target.votes, t),
+        expected: lerp(r.expected, target.expected, t),
+        missing: lerp(r.missing, target.missing, t),
+        turnout: lerp(r.turnout, target.turnout, t),
       };
     });
-  }, [rows2024, rows2022, t]);
+  }, [rows2024, rows2022ByAge, rowsSettled2022, t]);
 
   // Which real election the LABELS describe. Everything printed reads from
   // this, never from activeRows (which mid-morph describes no election that
   // ever happened). See morph spec S2/S4c.
   const shownYear2022 = t >= 0.5;
   const shownCycle = shownYear2022 ? cycle2022 : cycle2024;
-  const shownRows = shownYear2022 ? rows2022 : rows2024;
-  const shownRowsByKey = useMemo(() => new Map(shownRows.map((r) => [r.key, r])), [shownRows]);
+  // Cohort-aware: once 2022 is showing, bar `age-a` displays 2022's age
+  // a-2 (the cohort slide), not 2022's own age a.
+  const shownRowsByKey = useMemo(() => {
+    if (!shownYear2022) return new Map(rows2024.map((r) => [r.key, r]));
+    const m = new Map<string, PopulationBarRow>();
+    for (const r of rows2024) {
+      const target = rows2022ByAge.get(Number(r.x) - SHIFT_YEARS);
+      if (target) m.set(r.key, target);
+    }
+    return m;
+  }, [shownYear2022, rows2024, rows2022ByAge]);
 
   // Pinned across both cycles from first paint, so the axis never rescales -
   // not at a beat-1 layer reveal, and not under the morph.
@@ -149,7 +189,8 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   // effect deps, and this component now re-renders on every scroll quantum.
   const tooltipFor = useCallback(
     (row: PopulationBarRow) => {
-      const real = shownRowsByKey.get(row.key) ?? row;
+      const real = shownRowsByKey.get(row.key);
+      if (!real) return null; // a cohort that has slid off the chart
       const year = shownYear2022 ? "2022" : "2024";
       return (
         <>
@@ -289,15 +330,19 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               <h2 className="voa-beat-title voa-beat-title--incolumn">2. Midterms make it worse</h2>
               <h3>No president on the ballot</h3>
               <p>
-                Nothing has moved: same bars, same 2024 election, same line. Now change exactly one thing about it —
-                take the president off the ballot. In a midterm, turnout drops for everyone. The question is whether
-                it drops evenly.
+                Nothing has moved: same bars, same 2024 election, same line. Now rewind two years and take the
+                president off the ballot. In a midterm, turnout drops for everyone. The question is whether it drops
+                evenly.
               </p>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(7)}>
             <div className="voa-step-inner">
               <h3>2022: even the standard slips</h3>
+              <p>
+                Every bar slid two years left as it fell — it's the same people, two years younger. The two youngest
+                slid clean off the chart: 2024's 18- and 19-year-olds weren't old enough to vote in 2022 at all.
+              </p>
               <p>
                 Watch the dotted line, not just the bars — it isn't fixed. It traces what 65-and-overs manage in each
                 election on its own terms, the same way it did a moment ago: {fmtPct(BENCH)} in 2024, down to{" "}

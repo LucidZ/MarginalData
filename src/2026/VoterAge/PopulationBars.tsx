@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { select, scaleBand, scaleLinear, axisBottom, axisLeft, easeCubicOut, line as d3line, curveLinear } from "d3";
 import Tooltip from "./Tooltip";
 
@@ -18,6 +18,13 @@ export interface PopulationBarRow {
    * bucket. Rendered at reduced opacity so the flatter, less-certain
    * region reads as visually distinct from single-year data. */
   ratesPooled?: boolean;
+  /** "age" variant only - continuous position on the age axis, for a bar
+   * that is mid-slide between two age slots (VoterAge's cohort morph).
+   * Defaults to the row's own `x`, which is what every static chart wants. */
+  xPos?: number;
+  /** Per-row opacity multiplier, 0-1. Defaults to 1. Used by the cohort
+   * morph to fade out bars that have no counterpart in the target year. */
+  opacity?: number;
 }
 
 interface Props {
@@ -96,6 +103,7 @@ export default function PopulationBars({
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const clipId = useId();
   const [width, setWidth] = useState(560);
   const [hover, setHover] = useState<{ row: PopulationBarRow; clientX: number; clientY: number } | null>(null);
   const shortRows = useMemo(() => rows.filter((r) => r.missing < 0), [rows]);
@@ -125,6 +133,27 @@ export default function PopulationBars({
       .range([0, innerW])
       .padding(xKind === "age" ? 0.15 : 0.35);
 
+    // Uniform band geometry: with a contiguous domain, slot i sits at
+    // x0 + i*step, so a fractional age lands exactly between two slots and
+    // an integer age lands exactly on xScale(key). Lets a bar animate
+    // *between* slots without leaving the scale.
+    const x0 = xScale(domainKeys[0]) ?? 0;
+    const ageLo = xKind === "age" ? Math.min(...rows.map((r) => Number(r.x))) : 0;
+    const xOf = (d: PopulationBarRow) =>
+      xKind === "age" ? x0 + ((d.xPos ?? Number(d.x)) - ageLo) * xScale.step() : xScale(d.key) ?? 0;
+
+    // xOf's arithmetic assumes slot i == ageLo + i. Single years of age are
+    // contiguous today; if that ever stops being true this must become a
+    // lookup, and failing loudly beats drawing a scrambled chart. Only
+    // checked on the default (no xPos) path - the cohort morph deliberately
+    // moves xPos away from ageLo+i while it's mid-slide, and that's the point.
+    if (import.meta.env.DEV && xKind === "age" && rows.every((r) => r.xPos === undefined)) {
+      console.assert(
+        rows.every((r, i) => Number(r.x) === ageLo + i),
+        "PopulationBars: age rows must be contiguous single years for xOf()"
+      );
+    }
+
     const yDomain: [number, number] =
       yDomainProp ?? [0, Math.max(1, ...rows.map((r) => r.cvap)) * 1.08];
     const yScale = scaleLinear().domain(yDomain).range([innerH, 0]);
@@ -135,15 +164,26 @@ export default function PopulationBars({
       root.append("g").attr("class", "voa-axis pb-axis-x");
       root.append("g").attr("class", "voa-axis pb-axis-y");
       root.append("text").attr("class", "voa-axis-label pb-axis-label-y").attr("text-anchor", "middle");
-      root.append("g").attr("class", "pb-tracks");
-      root.append("g").attr("class", "pb-votes");
-      root.append("g").attr("class", "pb-gaps");
-      root.append("path").attr("class", "pb-expected-line");
+      root.append("clipPath").attr("id", clipId).append("rect").attr("class", "pb-clip-rect");
+      // Bars sliding past x=0 (cohort morph) must be cut at the y-axis, not
+      // drawn over it. Axes, ticks and labels stay outside so a clipped tick
+      // label never gets chopped.
+      const clipped = root.append("g").attr("class", "pb-clipped").attr("clip-path", `url(#${clipId})`);
+      clipped.append("g").attr("class", "pb-tracks");
+      clipped.append("g").attr("class", "pb-votes");
+      clipped.append("g").attr("class", "pb-gaps");
+      clipped.append("path").attr("class", "pb-expected-line");
       root.append("g").attr("class", "pb-expected-ticks");
       root.append("g").attr("class", "pb-missing-labels");
-      root.append("g").attr("class", "pb-hits");
+      clipped.append("g").attr("class", "pb-hits");
     }
     root.attr("transform", `translate(${margin.left},${margin.top})`);
+    root
+      .select<SVGRectElement>("rect.pb-clip-rect")
+      .attr("x", 0)
+      .attr("y", -2)
+      .attr("width", innerW)
+      .attr("height", innerH + 2);
 
     const tr = transitionMs > 0 ? svg.transition().duration(transitionMs).ease(easeCubicOut) : null;
     const anim = (sel: any) => (tr ? sel.transition(tr) : sel);
@@ -206,15 +246,15 @@ export default function PopulationBars({
       .enter()
       .append("rect")
       .attr("class", (d) => `pb-track${d.ratesPooled ? " pb-pooled" : ""}`)
-      .attr("x", (d) => xScale(d.key) ?? 0)
+      .attr("x", (d) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", innerH)
       .attr("height", 0)
       .merge(tracks as any)
       .attr("class", (d) => `pb-track${d.ratesPooled ? " pb-pooled" : ""}`)
-      .style("opacity", showTrack ? 1 : 0);
+      .style("opacity", (d: PopulationBarRow) => (showTrack ? 1 : 0) * (d.opacity ?? 1));
     anim(tracksMerged)
-      .attr("x", (d: PopulationBarRow) => xScale(d.key) ?? 0)
+      .attr("x", (d: PopulationBarRow) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", (d: PopulationBarRow) => yScale(d.cvap))
       .attr("height", (d: PopulationBarRow) => innerH - yScale(d.cvap));
@@ -232,15 +272,15 @@ export default function PopulationBars({
       .enter()
       .append("rect")
       .attr("class", votesClass)
-      .attr("x", (d) => xScale(d.key) ?? 0)
+      .attr("x", (d) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", innerH)
       .attr("height", 0)
       .merge(votes as any)
       .attr("class", votesClass)
-      .style("opacity", showVotes ? 1 : 0);
+      .style("opacity", (d: PopulationBarRow) => (showVotes ? 1 : 0) * (d.opacity ?? 1));
     anim(votesMerged)
-      .attr("x", (d: PopulationBarRow) => xScale(d.key) ?? 0)
+      .attr("x", (d: PopulationBarRow) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", (d: PopulationBarRow) => yScale(d.votes))
       .attr("height", (d: PopulationBarRow) => innerH - yScale(d.votes));
@@ -259,15 +299,15 @@ export default function PopulationBars({
       .enter()
       .append("rect")
       .attr("class", gapClass)
-      .attr("x", (d) => xScale(d.key) ?? 0)
+      .attr("x", (d) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", (d) => (tr ? yScale(d.votes) : yScale(d.expected)))
       .attr("height", (d) => (tr ? 0 : yScale(d.votes) - yScale(d.expected)))
       .merge(gaps as any)
       .attr("class", gapClass)
-      .style("opacity", showGap ? 1 : 0);
+      .style("opacity", (d: PopulationBarRow) => (showGap ? 1 : 0) * (d.opacity ?? 1));
     anim(gapsMerged)
-      .attr("x", (d: PopulationBarRow) => xScale(d.key) ?? 0)
+      .attr("x", (d: PopulationBarRow) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", (d: PopulationBarRow) => yScale(d.expected))
       .attr("height", (d: PopulationBarRow) => yScale(d.votes) - yScale(d.expected));
@@ -283,7 +323,7 @@ export default function PopulationBars({
     if (xKind === "age") {
       expectedTicks.selectAll("*").remove();
       const lineGen = d3line<PopulationBarRow>()
-        .x((d) => (xScale(d.key) ?? 0) + xScale.bandwidth() / 2)
+        .x((d) => xOf(d) + xScale.bandwidth() / 2)
         .y((d) => yScale(d.expected))
         .curve(curveLinear);
       anim(expectedLine.datum(rows).style("opacity", showExpected ? 1 : 0)).attr("d", lineGen);
@@ -334,7 +374,7 @@ export default function PopulationBars({
       .append("rect")
       .attr("class", "pb-hit")
       .merge(hits as any)
-      .attr("x", (d) => xScale(d.key) ?? 0)
+      .attr("x", (d) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", 0)
       .attr("height", innerH)
@@ -418,7 +458,11 @@ export default function PopulationBars({
           </div>
         </div>
       )}
-      {hover && tooltipFor && <Tooltip content={tooltipFor(hover.row)} clientX={hover.clientX} clientY={hover.clientY} />}
+      {(() => {
+        if (!hover || !tooltipFor) return null;
+        const content = tooltipFor(hover.row);
+        return content ? <Tooltip content={content} clientX={hover.clientX} clientY={hover.clientY} /> : null;
+      })()}
     </div>
   );
 }

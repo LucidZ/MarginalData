@@ -71,8 +71,17 @@ Each does exactly one job. Do not unify them.
 | Channel | Driven by | Why |
 |---|---|---|
 | Bar/line geometry | eased `t` (steep) | fast crossing = little time spent between states |
+| Bar **position** | eased `t` (same clock as height) | geometry, so position and height must move as one object, never on different curves |
 | Year stamp cross-fade | raw `u` (linear) | slow and legible = tells the reader *where they are* in the transition |
 | All printed numbers | `t < 0.5 ? 2024 : 2022` | never fabricated |
+
+**Addendum, 2026-09-18 — the cohort slide.** `.claude/voter-age-cohort-slide-spec.md`
+extends this document with the fourth channel above: as of that spec, each bar also
+slides two age-slots left during the 2024→2022 morph (same cohort, two years
+younger), fading out the two cohorts (2024 ages 18-19) that have no 2022
+counterpart. Every rule in this document still governs it — geometry (now
+including position) interpolates on `t`, numbers snap, nothing mounts mid-flight.
+Read that spec for the pairing/positioning mechanics.
 
 The year stamp on the *linear* fraction is the deliberate part: it is the
 progress indicator. It begins moving the instant the morph begins and settles

@@ -35,8 +35,10 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
-  // Beat1 step 4 (full reveal, count callout) - hover an age bar
-  let section = await scrollBeatToStep(page, "shape of the electorate", 4, 5);
+  // Beat1 step 4 (full reveal, count callout) - hover an age bar. stepCount
+  // is 9, not 5: beats 1+2 share one 9-step section since the 2026-09-18
+  // merge (AgeBeats.tsx STEP_COUNT), so step 4 of 9 is the last beat-1 step.
+  let section = await scrollBeatToStep(page, "shape of the electorate", 4, 9);
   const hit = await section.$("rect.pb-hit");
   const box = await hit.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -87,7 +89,7 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
-  const section = await scrollBeatToStep(page, "shape of the electorate", 4, 5);
+  const section = await scrollBeatToStep(page, "shape of the electorate", 4, 9);
   const hit = await section.$("rect.pb-hit");
   const box = await hit.boundingBox();
   await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
