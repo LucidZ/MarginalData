@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import StickyViz from "./StickyViz";
-import { useActiveStep } from "./useActiveStep";
+import { useStepProgress } from "./useStepProgress";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
 import type { VoterAgeData, AgeRow } from "./types";
 
 const STEP_COUNT = 3;
 const COMPARE_AGES = [18, 22, 65, 79];
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
 function toBarRow(row: AgeRow, avgTurnout: number): PopulationBarRow {
   return {
@@ -28,15 +31,38 @@ function missingSum(rows: AgeRow[], test: (age: number) => boolean) {
 }
 
 export default function Beat2({ data }: { data: VoterAgeData }) {
-  const { activeStep: step, setStepRef } = useActiveStep(STEP_COUNT);
+  const { progress, setStepRef } = useStepProgress(STEP_COUNT);
   const cycle2024 = data.byAge["2024"];
   const cycle2022 = data.byAge["2022"];
 
   const rows2024 = useMemo(() => cycle2024.rows.map((r) => toBarRow(r, cycle2024.avgTurnout)), [cycle2024]);
   const rows2022 = useMemo(() => cycle2022.rows.map((r) => toBarRow(r, cycle2022.avgTurnout)), [cycle2022]);
-  const activeCycle = step === 0 ? cycle2024 : cycle2022;
-  const activeRows = step === 0 ? rows2024 : rows2022;
-  const showHypothetical = step === 1;
+
+  // progress 0 = step 0 centered, 1 = step 1 centered. Start the morph after
+  // the reader has left step 0's text and finish it before step 1's is
+  // centered, so the end state is on screen while its paragraph is being read.
+  const t = clamp01((progress - 0.15) / 0.7);
+  const e2 = clamp01((t - 0.6) / 0.4);
+
+  const activeRows = useMemo(
+    () =>
+      rows2024.map((r, i) => {
+        const b = rows2022[i];
+        return {
+          ...r,
+          cvap: lerp(r.cvap, b.cvap, t),
+          votes: lerp(r.votes, b.votes, t),
+          expected: lerp(r.expected, b.expected, t),
+          expected2: lerp(r.expected2!, b.expected2!, t),
+          missing: lerp(r.missing, b.missing, t),
+          turnout: lerp(r.turnout, b.turnout, t),
+        };
+      }),
+    [rows2024, rows2022, t]
+  );
+
+  const over65 = lerp(cycle2024.over65Turnout, cycle2022.over65Turnout, t);
+  const avgTurnout = lerp(cycle2024.avgTurnout, cycle2022.avgTurnout, t);
 
   const yDomain = useMemo((): [number, number] => {
     const maxCvap = Math.max(...cycle2024.rows.map((r) => r.cvap), ...cycle2022.rows.map((r) => r.cvap));
@@ -73,12 +99,14 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes
             showExpected
-            expectedLineLabel={`expected at the 65+ rate (${fmtPct(activeCycle.over65Turnout)})`}
-            showExpected2={showHypothetical}
-            expectedLine2Label={`expected at the national average (${fmtPct(activeCycle.avgTurnout)})`}
+            expectedLineLabel={`expected at the 65+ rate (${fmtPct(over65)})`}
+            showExpected2={e2 > 0}
+            expected2Opacity={e2}
+            expectedLine2Label={`expected at the national average (${fmtPct(avgTurnout)})`}
             showGap
             yDomain={yDomain}
             tooltipFor={tooltipFor}
+            transitionMs={0}
           />
         </StickyViz>
         <div className="voa-scrolly-steps">

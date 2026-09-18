@@ -59,6 +59,15 @@ interface Props {
   /** Prints the total-gap stat line under the chart. Defaults to
    * following `showGap`. */
   showGapSummary?: boolean;
+  /** 0 disables d3's time-driven tween entirely, for a chart whose values
+   * are driven continuously by scroll position - a tween there fights the
+   * scroll instead of following it, and can't be stopped or reversed
+   * mid-flight. Default 700 keeps the step-to-step animation everywhere else. */
+  transitionMs?: number;
+  /** Continuous override for `showExpected2`'s 0/1 visibility, so the
+   * second marker can fade in across a scroll span rather than popping
+   * at a step boundary. Applies to the legend entry too. */
+  expected2Opacity?: number;
   tooltipFor?: (row: PopulationBarRow) => ReactNode;
 }
 
@@ -85,12 +94,15 @@ export default function PopulationBars({
   yDomain: yDomainProp,
   directLabelMissing = false,
   showGapSummary,
+  transitionMs = 700,
+  expected2Opacity,
   tooltipFor,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(560);
   const [hover, setHover] = useState<{ row: PopulationBarRow; clientX: number; clientY: number } | null>(null);
+  const legendExpected2Opacity = expected2Opacity ?? (showExpected2 ? 1 : 0);
   const shortRows = useMemo(() => rows.filter((r) => r.missing < 0), [rows]);
   const gapStat = useMemo(() => {
     const shortfall = shortRows.reduce((sum, r) => sum + r.missing, 0);
@@ -144,7 +156,9 @@ export default function PopulationBars({
     }
     root.attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const t = svg.transition().duration(700).ease(easeCubicOut);
+    const e2 = expected2Opacity ?? (showExpected2 ? 1 : 0);
+    const tr = transitionMs > 0 ? svg.transition().duration(transitionMs).ease(easeCubicOut) : null;
+    const anim = (sel: any) => (tr ? sel.transition(tr) : sel);
 
     // X axis: age variant shows sparse ticks (every 10 years + first/last);
     // category variant shows every bar, with short labels.
@@ -164,15 +178,13 @@ export default function PopulationBars({
       if (hi % 10 !== 0 && !tickAges.includes(hi)) tickAges.push(hi);
       const ageToKey = new Map(rows.map((r) => [Number(r.x), r.key]));
       const keyToAge = new Map(rows.map((r) => [r.key, r.label ?? String(r.x)]));
-      xAxisSel
-        .transition(t as any)
-        .call(
+      anim(xAxisSel).call(
           axisBottom(xScale)
             .tickValues(tickAges.map((a) => ageToKey.get(a)!))
             .tickFormat((key) => keyToAge.get(key as string) ?? "") as any
         );
     } else {
-      xAxisSel.transition(t as any).call(
+      anim(xAxisSel).call(
         axisBottom(xScale).tickFormat((key) => {
           const row = rows.find((r) => r.key === key);
           return row?.label ?? (row ? String(row.x) : "");
@@ -188,7 +200,7 @@ export default function PopulationBars({
         .attr("dy", "0.15em");
     }
 
-    root.select<SVGGElement>("g.pb-axis-y").transition(t as any).call(axisLeft(yScale).ticks(5).tickFormat(fmtK as any) as any);
+    anim(root.select<SVGGElement>("g.pb-axis-y")).call(axisLeft(yScale).ticks(5).tickFormat(fmtK as any) as any);
 
     root
       .select("text.pb-axis-label-y")
@@ -201,8 +213,8 @@ export default function PopulationBars({
       .select<SVGGElement>("g.pb-tracks")
       .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-track")
       .data(rows, (d) => d.key);
-    tracks.exit().transition(t as any).attr("y", innerH).attr("height", 0).remove();
-    tracks
+    anim(tracks.exit()).attr("y", innerH).attr("height", 0).remove();
+    const tracksMerged = tracks
       .enter()
       .append("rect")
       .attr("class", (d) => `pb-track${d.ratesPooled ? " pb-pooled" : ""}`)
@@ -212,12 +224,12 @@ export default function PopulationBars({
       .attr("height", 0)
       .merge(tracks as any)
       .attr("class", (d) => `pb-track${d.ratesPooled ? " pb-pooled" : ""}`)
-      .style("opacity", showTrack ? 1 : 0)
-      .transition(t as any)
-      .attr("x", (d) => xScale(d.key) ?? 0)
+      .style("opacity", showTrack ? 1 : 0);
+    anim(tracksMerged)
+      .attr("x", (d: PopulationBarRow) => xScale(d.key) ?? 0)
       .attr("width", xScale.bandwidth())
-      .attr("y", (d) => yScale(d.cvap))
-      .attr("height", (d) => innerH - yScale(d.cvap));
+      .attr("y", (d: PopulationBarRow) => yScale(d.cvap))
+      .attr("height", (d: PopulationBarRow) => innerH - yScale(d.cvap));
 
     // Votes bars - same x/width as the track, shorter height, drawn on
     // top so the visible remainder above it (up to the track's height)
@@ -226,9 +238,9 @@ export default function PopulationBars({
       .select<SVGGElement>("g.pb-votes")
       .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-votes")
       .data(rows, (d) => d.key);
-    votes.exit().transition(t as any).attr("y", innerH).attr("height", 0).remove();
+    anim(votes.exit()).attr("y", innerH).attr("height", 0).remove();
     const votesClass = (d: PopulationBarRow) => `pb-votes${d.ratesPooled ? " pb-pooled" : ""}`;
-    votes
+    const votesMerged = votes
       .enter()
       .append("rect")
       .attr("class", votesClass)
@@ -238,12 +250,12 @@ export default function PopulationBars({
       .attr("height", 0)
       .merge(votes as any)
       .attr("class", votesClass)
-      .style("opacity", showVotes ? 1 : 0)
-      .transition(t as any)
-      .attr("x", (d) => xScale(d.key) ?? 0)
+      .style("opacity", showVotes ? 1 : 0);
+    anim(votesMerged)
+      .attr("x", (d: PopulationBarRow) => xScale(d.key) ?? 0)
       .attr("width", xScale.bandwidth())
-      .attr("y", (d) => yScale(d.votes))
-      .attr("height", (d) => innerH - yScale(d.votes));
+      .attr("y", (d: PopulationBarRow) => yScale(d.votes))
+      .attr("height", (d: PopulationBarRow) => innerH - yScale(d.votes));
 
     // Gold shortfall blocks - one per under-voting bar, sitting on top of
     // the votes bar and capped by the dotted line. Across the age chart
@@ -255,22 +267,22 @@ export default function PopulationBars({
       .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-gap")
       .data(shortRows, (d) => d.key);
     gaps.exit().remove();
-    gaps
+    const gapsMerged = gaps
       .enter()
       .append("rect")
       .attr("class", gapClass)
       .attr("x", (d) => xScale(d.key) ?? 0)
       .attr("width", xScale.bandwidth())
-      .attr("y", (d) => yScale(d.votes))
-      .attr("height", 0)
+      .attr("y", (d) => (tr ? yScale(d.votes) : yScale(d.expected)))
+      .attr("height", (d) => (tr ? 0 : yScale(d.votes) - yScale(d.expected)))
       .merge(gaps as any)
       .attr("class", gapClass)
-      .style("opacity", showGap ? 1 : 0)
-      .transition(t as any)
-      .attr("x", (d) => xScale(d.key) ?? 0)
+      .style("opacity", showGap ? 1 : 0);
+    anim(gapsMerged)
+      .attr("x", (d: PopulationBarRow) => xScale(d.key) ?? 0)
       .attr("width", xScale.bandwidth())
-      .attr("y", (d) => yScale(d.expected))
-      .attr("height", (d) => yScale(d.votes) - yScale(d.expected));
+      .attr("y", (d: PopulationBarRow) => yScale(d.expected))
+      .attr("height", (d: PopulationBarRow) => yScale(d.votes) - yScale(d.expected));
 
     // Expected-turnout marker. Age variant: one dotted path through every
     // bar's expected value - since cvap varies smoothly by age, this
@@ -286,26 +298,22 @@ export default function PopulationBars({
         .x((d) => (xScale(d.key) ?? 0) + xScale.bandwidth() / 2)
         .y((d) => yScale(d.expected))
         .curve(curveLinear);
-      expectedLine
-        .datum(rows)
-        .style("opacity", showExpected ? 1 : 0)
-        .transition(t as any)
-        .attr("d", lineGen);
+      anim(expectedLine.datum(rows).style("opacity", showExpected ? 1 : 0)).attr("d", lineGen);
     } else {
       expectedLine.style("opacity", 0);
       const ticks = expectedTicks.selectAll<SVGLineElement, PopulationBarRow>("line.pb-expected-tick").data(rows, (d) => d.key);
       ticks.exit().remove();
-      ticks
+      const ticksMerged = ticks
         .enter()
         .append("line")
         .attr("class", "pb-expected-tick")
         .merge(ticks as any)
-        .style("opacity", showExpected ? 1 : 0)
-        .transition(t as any)
-        .attr("x1", (d) => xScale(d.key) ?? 0)
-        .attr("x2", (d) => (xScale(d.key) ?? 0) + xScale.bandwidth())
-        .attr("y1", (d) => yScale(d.expected))
-        .attr("y2", (d) => yScale(d.expected));
+        .style("opacity", showExpected ? 1 : 0);
+      anim(ticksMerged)
+        .attr("x1", (d: PopulationBarRow) => xScale(d.key) ?? 0)
+        .attr("x2", (d: PopulationBarRow) => (xScale(d.key) ?? 0) + xScale.bandwidth())
+        .attr("y1", (d: PopulationBarRow) => yScale(d.expected))
+        .attr("y2", (d: PopulationBarRow) => yScale(d.expected));
     }
 
     // Second hypothetical marker (e.g. national-average turnout applied
@@ -318,11 +326,7 @@ export default function PopulationBars({
         .x((d) => (xScale(d.key) ?? 0) + xScale.bandwidth() / 2)
         .y((d) => yScale(d.expected2 ?? d.expected))
         .curve(curveLinear);
-      expected2Line
-        .datum(rows)
-        .style("opacity", showExpected2 ? 1 : 0)
-        .transition(t as any)
-        .attr("d", line2Gen);
+      anim(expected2Line.datum(rows).style("opacity", e2)).attr("d", line2Gen);
     } else {
       expected2Line.style("opacity", 0);
     }
@@ -334,16 +338,16 @@ export default function PopulationBars({
       .selectAll<SVGTextElement, PopulationBarRow>("text.pb-missing-label")
       .data(xKind === "category" && directLabelMissing ? shortRows : [], (d) => d.key);
     missingLabels.exit().remove();
-    missingLabels
+    const missingLabelsMerged = missingLabels
       .enter()
       .append("text")
       .attr("class", "pb-missing-label")
       .attr("text-anchor", "middle")
-      .merge(missingLabels as any)
-      .transition(t as any)
-      .attr("x", (d) => (xScale(d.key) ?? 0) + xScale.bandwidth() / 2)
-      .attr("y", (d) => yScale(d.expected) - 8)
-      .text((d) => `${(d.missing / 1000).toFixed(1)}M`);
+      .merge(missingLabels as any);
+    anim(missingLabelsMerged)
+      .attr("x", (d: PopulationBarRow) => (xScale(d.key) ?? 0) + xScale.bandwidth() / 2)
+      .attr("y", (d: PopulationBarRow) => yScale(d.expected) - 8)
+      .text((d: PopulationBarRow) => `${(d.missing / 1000).toFixed(1)}M`);
 
     // Invisible full-height hit targets - hover/tap works across the
     // whole bar column, not just the (sometimes very short) votes rect.
@@ -389,6 +393,8 @@ export default function PopulationBars({
     directLabelMissing,
     tooltipFor,
     yLabel,
+    transitionMs,
+    expected2Opacity,
   ]);
 
   return (
@@ -404,8 +410,11 @@ export default function PopulationBars({
             {expectedLineLabel}
           </span>
         )}
-        {showExpected2 && (
-          <span className="pb-legend-expected2" style={{ marginLeft: "0.9rem" }}>
+        {legendExpected2Opacity > 0.01 && (
+          <span
+            className="pb-legend-expected2"
+            style={{ marginLeft: "0.9rem", opacity: legendExpected2Opacity }}
+          >
             <svg width="18" height="10" aria-hidden="true">
               <line x1="0" y1="5" x2="18" y2="5" className="pb-expected2-line pb-legend-line-2" />
             </svg>{" "}
