@@ -135,7 +135,6 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             showExpected
             expectedLineLabel={`expected at the 65+ rate (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`}
             showGap
-            gapSummaryVariant="hero"
             heroGap={{
               figure: fmtM(shortfallShown),
               label: `votes short of the ${shownYear2022 ? "2022" : "2024"} 65+ standard`,

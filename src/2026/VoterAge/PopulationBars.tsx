@@ -47,19 +47,15 @@ interface Props {
    * its tip, per spec v2 S3.2 (small groups' bars are otherwise too small
    * to read a gap off directly). */
   directLabelMissing?: boolean;
-  /** Prints the total-gap stat line under the chart. Defaults to
-   * following `showGap`. */
-  showGapSummary?: boolean;
-  /** "hero" swaps the one-line stat for a large centered figure + delta
-   * line (VoterAge Beat 2's pinned-benchmark morph). Every other caller
-   * keeps the default "line" treatment untouched. */
-  gapSummaryVariant?: "line" | "hero";
-  /** hero variant only. Pre-derived by the caller from whichever dataset
+  /** Large centered figure + delta line under the chart (VoterAge Beat 2's
+   * pinned-benchmark morph). Omit to print nothing under the chart - the
+   * gap total belongs in the scrolly copy, not a chart label that pops in
+   * and jerks the layout. Pre-derived by the caller from whichever dataset
    * is currently "shown", never from a continuously-lerped `rows` - the
-   * point of the hero variant is that the printed figure must never take
-   * a value that isn't a real election's. `deltaOpacity` fades the third
-   * line in without ever unmounting it, so its arrival reserves space
-   * from first paint and can't nudge anything else. */
+   * printed figure must never take a value that isn't a real election's.
+   * `deltaOpacity` fades the third line in without ever unmounting it, so
+   * its arrival reserves space from first paint and can't nudge anything
+   * else. */
   heroGap?: { figure: string; label: string; delta: string; deltaOpacity: number };
   /** Extra content layered over the plot's top-right corner (e.g. a
    * scroll-position year stamp) - absolutely positioned, doesn't affect
@@ -93,8 +89,6 @@ export default function PopulationBars({
   showGap = false,
   yDomain: yDomainProp,
   directLabelMissing = false,
-  showGapSummary,
-  gapSummaryVariant = "line",
   heroGap,
   plotOverlay,
   transitionMs = 700,
@@ -105,11 +99,6 @@ export default function PopulationBars({
   const [width, setWidth] = useState(560);
   const [hover, setHover] = useState<{ row: PopulationBarRow; clientX: number; clientY: number } | null>(null);
   const shortRows = useMemo(() => rows.filter((r) => r.missing < 0), [rows]);
-  const gapStat = useMemo(() => {
-    const shortfall = shortRows.reduce((sum, r) => sum + r.missing, 0);
-    const votes = rows.reduce((sum, r) => sum + r.votes, 0);
-    return { shortfall: Math.abs(shortfall), pct: votes > 0 ? (Math.abs(shortfall) / votes) * 100 : 0 };
-  }, [rows, shortRows]);
 
   useEffect(() => {
     const obs = new ResizeObserver((entries) => {
@@ -388,52 +377,47 @@ export default function PopulationBars({
         <span className="pb-legend-entry" style={{ marginLeft: "0.9rem" }}>
           <span className="voa-legend-swatch pb-legend-votes" /> Votes cast
         </span>
-        {showExpected && (
-          <span className="pb-legend-expected" style={{ marginLeft: "0.9rem" }}>
-            <svg width="18" height="10" aria-hidden="true">
-              <line x1="0" y1="5" x2="18" y2="5" className="pb-expected-line pb-legend-line" />
-            </svg>{" "}
-            {expectedLineLabel}
-          </span>
-        )}
-        {showGap && (
-          <span className="pb-legend-entry" style={{ marginLeft: "0.9rem" }}>
-            <span className="voa-legend-swatch pb-legend-gap" /> Votes short of it
-          </span>
-        )}
+        <span
+          className="pb-legend-expected"
+          style={{ marginLeft: "0.9rem", opacity: showExpected ? 1 : 0 }}
+          aria-hidden={!showExpected || undefined}
+        >
+          <svg width="18" height="10" aria-hidden="true">
+            <line x1="0" y1="5" x2="18" y2="5" className="pb-expected-line pb-legend-line" />
+          </svg>{" "}
+          {expectedLineLabel}
+        </span>
+        <span
+          className="pb-legend-entry"
+          style={{ marginLeft: "0.9rem", opacity: showGap ? 1 : 0 }}
+          aria-hidden={!showGap || undefined}
+        >
+          <span className="voa-legend-swatch pb-legend-gap" /> Votes short of it
+        </span>
       </div>
       <div className="pb-plot-wrap">
         <svg ref={svgRef} role="img" aria-label={xLabel} />
         {plotOverlay}
       </div>
       <div className="voa-axis-label-x">{xLabel}</div>
-      {(showGapSummary ?? showGap) &&
-        (gapSummaryVariant === "hero" && heroGap ? (
-          <div className="pb-gap-summary pb-gap-summary--hero">
-            <span className="pb-gap-marker" aria-hidden="true" />
-            <div className="pb-gap-hero">
-              <div className="pb-gap-hero-figure">{heroGap.figure}</div>
-              <div className="pb-gap-hero-label">{heroGap.label}</div>
-              {/* Always mounted so its arrival can't nudge the figure/label
-                  above it - only opacity fades in near the end of the morph. */}
-              <div
-                className="pb-gap-hero-delta"
-                style={{ opacity: heroGap.deltaOpacity }}
-                aria-hidden={heroGap.deltaOpacity < 0.01 || undefined}
-              >
-                {heroGap.delta}
-              </div>
+      {showGap && heroGap && (
+        <div className="pb-gap-summary pb-gap-summary--hero">
+          <span className="pb-gap-marker" aria-hidden="true" />
+          <div className="pb-gap-hero">
+            <div className="pb-gap-hero-figure">{heroGap.figure}</div>
+            <div className="pb-gap-hero-label">{heroGap.label}</div>
+            {/* Always mounted so its arrival can't nudge the figure/label
+                above it - only opacity fades in near the end of the morph. */}
+            <div
+              className="pb-gap-hero-delta"
+              style={{ opacity: heroGap.deltaOpacity }}
+              aria-hidden={heroGap.deltaOpacity < 0.01 || undefined}
+            >
+              {heroGap.delta}
             </div>
           </div>
-        ) : (
-          <div className="pb-gap-summary">
-            <span className="pb-gap-marker" aria-hidden="true" />
-            <span>
-              <strong>{(gapStat.shortfall / 1000).toFixed(1)}M missing votes</strong> — {gapStat.pct.toFixed(1)}% of
-              every ballot cast
-            </span>
-          </div>
-        ))}
+        </div>
+      )}
       {hover && tooltipFor && <Tooltip content={tooltipFor(hover.row)} clientX={hover.clientX} clientY={hover.clientY} />}
     </div>
   );
