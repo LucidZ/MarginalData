@@ -11,38 +11,67 @@ const COMPARE_AGES = [18, 22, 65, 79];
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
-function toBarRow(row: AgeRow, avgTurnout: number): PopulationBarRow {
+// Steepened ease-in-out: flat shoulders, fast middle, so the chart rests at
+// the two real states and crosses between them quickly - a reader can still
+// stop and reverse anywhere, it just takes intent. gamma=3 puts most of the
+// change in the middle third. See .claude/voter-age-morph-honesty-spec.md S4a.
+function ease(x: number, gamma = 3) {
+  return x < 0.5 ? Math.pow(2 * x, gamma) / 2 : 1 - Math.pow(2 * (1 - x), gamma) / 2;
+}
+
+function toBarRow(row: AgeRow): PopulationBarRow {
   return {
     key: `age-${row.age}`,
     x: row.age,
     label: row.age === 100 ? "100+" : String(row.age),
     cvap: row.cvap,
     votes: row.votes,
-    expected: row.expected,
-    expected2: (row.cvap * avgTurnout) / 100,
-    missing: row.missing,
+    expected: row.expected, // recomputed by pin() below against the pinned benchmark
+    missing: row.missing, // recomputed by pin() below
     turnout: row.turnout,
     ratesPooled: row.ratesPooled,
   };
 }
 
-function missingSum(rows: AgeRow[], test: (age: number) => boolean) {
-  return rows.filter((r) => test(r.age)).reduce((s, r) => s + r.missing, 0);
+// Re-benchmarks every row against the two fixed rates rather than its own
+// cycle's 65+ turnout, so 2024 and 2022 are measured on the same ruler - a
+// midterm's shortfall is no longer judged against a softer, midterm-only
+// standard. See spec S3/S4b.
+function pin(rows: PopulationBarRow[], bench: number, bench2: number): PopulationBarRow[] {
+  return rows.map((r) => ({
+    ...r,
+    expected: (r.cvap * bench) / 100,
+    expected2: (r.cvap * bench2) / 100,
+    missing: r.votes - (r.cvap * bench) / 100,
+  }));
 }
+
+const shortfallOf = (rows: PopulationBarRow[]) =>
+  Math.abs(rows.filter((r) => r.missing < 0).reduce((s, r) => s + r.missing, 0));
 
 export default function Beat2({ data }: { data: VoterAgeData }) {
   const { progress, setStepRef } = useStepProgress(STEP_COUNT);
   const cycle2024 = data.byAge["2024"];
   const cycle2022 = data.byAge["2022"];
 
-  const rows2024 = useMemo(() => cycle2024.rows.map((r) => toBarRow(r, cycle2024.avgTurnout)), [cycle2024]);
-  const rows2022 = useMemo(() => cycle2022.rows.map((r) => toBarRow(r, cycle2022.avgTurnout)), [cycle2022]);
+  // The pinned gold standard (permanent - never lerped) and the 2022
+  // comparison line. Both come from the data, never hand-typed - spec S9.
+  const BENCH = cycle2024.over65Turnout; // 74.62
+  const BENCH_2022 = cycle2022.over65Turnout; // 66.79
 
-  // progress 0 = step 0 centered, 1 = step 1 centered. Start the morph after
-  // the reader has left step 0's text and finish it before step 1's is
-  // centered, so the end state is on screen while its paragraph is being read.
-  const t = clamp01((progress - 0.15) / 0.7);
-  const e2 = clamp01((t - 0.6) / 0.4);
+  const rows2024 = useMemo(() => pin(cycle2024.rows.map(toBarRow), BENCH, BENCH_2022), [cycle2024, BENCH, BENCH_2022]);
+  const rows2022 = useMemo(() => pin(cycle2022.rows.map(toBarRow), BENCH, BENCH_2022), [cycle2022, BENCH, BENCH_2022]);
+
+  // Three independent channels driven off the same scroll span - do not
+  // unify them (spec S2):
+  //   u  - raw linear fraction, drives the year-stamp cross-fade (wants to
+  //        read as a progress indicator: starts moving immediately, settles
+  //        exactly when the morph completes).
+  //   t  - eased version of u, drives bar/line geometry (steep middle so a
+  //        reader crosses quickly and rests at the two real states).
+  //   printed numbers - snap off `shown` (t<0.5), never off the lerped rows.
+  const u = clamp01((progress - 0.15) / 0.7);
+  const t = ease(u);
 
   const activeRows = useMemo(
     () =>
@@ -61,16 +90,23 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
     [rows2024, rows2022, t]
   );
 
-  const over65 = lerp(cycle2024.over65Turnout, cycle2022.over65Turnout, t);
-  const avgTurnout = lerp(cycle2024.avgTurnout, cycle2022.avgTurnout, t);
+  // Which real election the LABELS describe. Everything printed reads from
+  // this, never from activeRows (which mid-morph describes no election
+  // that ever happened). See spec S2/S4c.
+  const shownYear2022 = t >= 0.5;
+  const shownCycle = shownYear2022 ? cycle2022 : cycle2024;
+  const shownRows = shownYear2022 ? rows2022 : rows2024;
+  const shownRowsByKey = useMemo(() => new Map(shownRows.map((r) => [r.key, r])), [shownRows]);
 
   const yDomain = useMemo((): [number, number] => {
     const maxCvap = Math.max(...cycle2024.rows.map((r) => r.cvap), ...cycle2022.rows.map((r) => r.cvap));
     return [0, maxCvap * 1.08];
   }, [cycle2024, cycle2022]);
 
-  const under35Missing2024 = missingSum(cycle2024.rows, (a) => a < 35);
-  const under35Missing2022 = missingSum(cycle2022.rows, (a) => a < 35);
+  const shortfall2024 = shortfallOf(rows2024);
+  const shortfall2022 = shortfallOf(rows2022);
+  const shortfallShown = shownYear2022 ? shortfall2022 : shortfall2024;
+  const deltaVs2024 = shortfall2022 - shortfall2024;
 
   const compareRows = COMPARE_AGES.map((age) => ({
     age,
@@ -78,13 +114,21 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
     t2022: cycle2022.rows.find((r) => r.age === age)!.turnout,
   }));
 
-  const tooltipFor = (row: PopulationBarRow) => (
-    <>
-      <div className="voa-tooltip__head">Age {row.label}</div>
-      {fmtM(row.cvap)} eligible · {fmtM(row.votes)} voted ({fmtPct(row.turnout)})
-      <div className="voa-tooltip__note">{fmtMSigned(row.missing)} vs. proportional</div>
-    </>
-  );
+  // Tooltip content snaps too, the same as every other printed number - a
+  // hovered bar mid-morph describes `shown`, not the lerped geometry it
+  // happens to be sitting on.
+  const tooltipFor = (row: PopulationBarRow) => {
+    const real = shownRowsByKey.get(row.key) ?? row;
+    return (
+      <>
+        <div className="voa-tooltip__head">
+          Age {real.label} · {shownCycle === cycle2022 ? "2022" : "2024"}
+        </div>
+        {fmtM(real.cvap)} eligible · {fmtM(real.votes)} voted ({fmtPct(real.turnout)})
+        <div className="voa-tooltip__note">{fmtMSigned(real.missing)} vs. the 2024 standard</div>
+      </>
+    );
+  };
 
   return (
     <section className="voa-beat">
@@ -99,14 +143,32 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes
             showExpected
-            expectedLineLabel={`expected at the 65+ rate (${fmtPct(over65)})`}
-            showExpected2={e2 > 0}
-            expected2Opacity={e2}
-            expectedLine2Label={`expected at the national average (${fmtPct(avgTurnout)})`}
+            expectedLineLabel={`expected at the 2024 65+ rate (${fmtPct(BENCH)})`}
+            showExpected2
+            expected2Opacity={t}
+            expectedLine2Label={`what 65+ managed in 2022 (${fmtPct(BENCH_2022)})`}
             showGap
+            gapSummaryVariant="hero"
+            heroGap={{
+              figure: fmtM(shortfallShown),
+              label: "votes short of the 2024 standard",
+              delta: fmtMSigned(deltaVs2024),
+              // Fades in over the scroll's last ~15% - reserved from first
+              // paint (PopulationBars always mounts it), so its arrival
+              // moves nothing else. Keyed to raw `u`, the linear scroll
+              // signal, not the eased `t` (whose last 15% is a much
+              // narrower sliver of actual scroll distance).
+              deltaOpacity: clamp01((u - 0.85) / 0.15),
+            }}
             yDomain={yDomain}
             tooltipFor={tooltipFor}
             transitionMs={0}
+            plotOverlay={
+              <div className="voa-year-stamp" aria-hidden="true">
+                <span style={{ opacity: 1 - u }}>2024</span>
+                <span style={{ opacity: u }}>2022</span>
+              </div>
+            }
           />
         </StickyViz>
         <div className="voa-scrolly-steps">
@@ -121,22 +183,17 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
           </div>
           <div className="voa-step" ref={setStepRef(1)}>
             <div className="voa-step-inner">
-              <h3>2022: watch both quantities fall</h3>
+              <h3>2022: the bars fall, the standard doesn't</h3>
               <p>
-                The bars drop, and the dotted line drops a little too — because it's set to <em>that year's</em>{" "}
-                65+ turnout ({fmtPct(cycle2022.over65Turnout)}, down from {fmtPct(cycle2024.over65Turnout)}). But
-                65-and-overs barely change their habits between a presidential year and a midterm. What doesn't
-                scale down evenly is how far short of that steady line the young bars fall.
+                The dotted line stays exactly where it was. It marks the {fmtPct(BENCH)} that 65-and-overs hit in
+                2024 — the best any age group manages in the best year, and the fairest standard we have for what
+                full participation looks like.
               </p>
               <p>
-                The second, orange dotted line shows a lower bar: what each age group would need to hit to match{" "}
-                <em>{fmtPct(cycle2022.avgTurnout)}, the national average</em> that year. Most of the youngest bars
-                fall short of even that.
+                Watch what the bars do against it. A second line drops in at {fmtPct(BENCH_2022)}: that's what
+                65-and-overs themselves managed in 2022. Even the most reliable voters in the country slip in a
+                midterm — but only by eight points. The young bars fall off a cliff.
               </p>
-              <div className="voa-callout">
-                Under-35 shortfall: <strong>{fmtMSigned(under35Missing2024)}</strong> in 2024 →{" "}
-                <strong>{fmtMSigned(under35Missing2022)}</strong> in 2022.
-              </div>
             </div>
           </div>
           <div className="voa-step" ref={setStepRef(2)}>

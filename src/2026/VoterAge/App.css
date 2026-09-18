@@ -200,6 +200,10 @@
   color: var(--text-secondary);
   margin: 0.1rem 0.3rem 0.4rem;
   flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.pb-legend-inert {
+  pointer-events: none;
 }
 .voa-legend-swatch {
   width: 13px;
@@ -290,6 +294,7 @@
   line-height: 1.45;
   color: var(--text-secondary);
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .pb-gap-summary strong {
   color: var(--text-primary);
@@ -302,10 +307,69 @@
   border-right: 6px solid transparent;
   border-bottom: 10px solid var(--gap);
 }
+
+/* Hero variant (VoterAge Beat 2's pinned-benchmark morph): one large
+   centered figure replaces the line, plus a delta line that only ever
+   fades - never mounts/unmounts - so its arrival at the end of the morph
+   can't nudge the figure above it. */
+.pb-gap-summary--hero {
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-top: 0.6rem;
+}
+.pb-gap-summary--hero .pb-gap-marker {
+  display: none;
+}
+.pb-gap-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pb-gap-hero-figure {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--gap-edge);
+}
+.pb-gap-hero-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.1rem;
+}
+.pb-gap-hero-delta {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gap-edge);
+  margin-top: 0.3rem;
+}
 .pb-hit {
   fill: transparent;
   pointer-events: all;
   touch-action: manipulation;
+}
+
+/* ---------- Year stamp (Beat 2 morph progress indicator) ---------- */
+.pb-plot-wrap {
+  position: relative;
+}
+.voa-year-stamp {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.6rem;
+  width: 3.2rem;
+  height: 1.8rem;
+  pointer-events: none;
+  user-select: none;
+}
+.voa-year-stamp span {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* ---------- ColoradoDots (beat 4) ---------- */
