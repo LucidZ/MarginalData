@@ -8,7 +8,7 @@ import type { VoterAgeData, AgeRow } from "./types";
 const STEP_COUNT = 3;
 const COMPARE_AGES = [18, 22, 65, 79];
 
-function toBarRow(row: AgeRow): PopulationBarRow {
+function toBarRow(row: AgeRow, avgTurnout: number): PopulationBarRow {
   return {
     key: `age-${row.age}`,
     x: row.age,
@@ -16,6 +16,7 @@ function toBarRow(row: AgeRow): PopulationBarRow {
     cvap: row.cvap,
     votes: row.votes,
     expected: row.expected,
+    expected2: (row.cvap * avgTurnout) / 100,
     missing: row.missing,
     turnout: row.turnout,
     ratesPooled: row.ratesPooled,
@@ -31,10 +32,11 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
   const cycle2024 = data.byAge["2024"];
   const cycle2022 = data.byAge["2022"];
 
-  const rows2024 = useMemo(() => cycle2024.rows.map(toBarRow), [cycle2024]);
-  const rows2022 = useMemo(() => cycle2022.rows.map(toBarRow), [cycle2022]);
+  const rows2024 = useMemo(() => cycle2024.rows.map((r) => toBarRow(r, cycle2024.avgTurnout)), [cycle2024]);
+  const rows2022 = useMemo(() => cycle2022.rows.map((r) => toBarRow(r, cycle2022.avgTurnout)), [cycle2022]);
   const activeCycle = step === 0 ? cycle2024 : cycle2022;
   const activeRows = step === 0 ? rows2024 : rows2022;
+  const showHypothetical = step === 1;
 
   const yDomain = useMemo((): [number, number] => {
     const maxCvap = Math.max(...cycle2024.rows.map((r) => r.cvap), ...cycle2022.rows.map((r) => r.cvap));
@@ -72,6 +74,8 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             showVotes
             showExpected
             expectedLineLabel={`expected at the 65+ rate (${fmtPct(activeCycle.over65Turnout)})`}
+            showExpected2={showHypothetical}
+            expectedLine2Label={`expected at the national average (${fmtPct(activeCycle.avgTurnout)})`}
             showGap
             yDomain={yDomain}
             tooltipFor={tooltipFor}
@@ -95,6 +99,11 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
                 65+ turnout ({fmtPct(cycle2022.over65Turnout)}, down from {fmtPct(cycle2024.over65Turnout)}). But
                 65-and-overs barely change their habits between a presidential year and a midterm. What doesn't
                 scale down evenly is how far short of that steady line the young bars fall.
+              </p>
+              <p>
+                The second, orange dotted line shows a lower bar: what each age group would need to hit to match{" "}
+                <em>{fmtPct(cycle2022.avgTurnout)}, the national average</em> that year. Most of the youngest bars
+                fall short of even that.
               </p>
               <div className="voa-callout">
                 Under-35 shortfall: <strong>{fmtMSigned(under35Missing2024)}</strong> in 2024 →{" "}

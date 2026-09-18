@@ -13,6 +13,10 @@ export interface PopulationBarRow {
   expected: number; // cvap x this chart's benchmark turnout, thousands
   missing: number; // votes - expected, thousands (negative = underrepresented)
   turnout: number; // percent
+  /** Optional second hypothetical marker, e.g. cvap x national average
+   * turnout - drawn as its own dotted line alongside `expected`. Not
+   * tied to the gold shortfall shading, which stays keyed to `expected`. */
+  expected2?: number;
   /** "age" variant only - true for ages 80+, where Census only reports a
    * turnout/citizen-share rate pooled across the whole 80-84 or 85+
    * bucket. Rendered at reduced opacity so the flatter, less-certain
@@ -33,6 +37,11 @@ interface Props {
   showExpected?: boolean;
   /** Legend copy for the expected line, e.g. "expected at 65+ turnout". */
   expectedLineLabel?: string;
+  /** Draws a second dotted marker from each row's `expected2`, styled
+   * distinctly from the primary expected line. */
+  showExpected2?: boolean;
+  /** Legend copy for the second expected line. */
+  expectedLine2Label?: string;
   /** Draws the gold shortfall layer: for each bar that falls under the
    * expected marker, a block spanning the votes bar up to that marker.
    * Bars that clear the marker get nothing - the story is about who
@@ -70,6 +79,8 @@ export default function PopulationBars({
   showVotes = true,
   showExpected = true,
   expectedLineLabel = "expected at average turnout",
+  showExpected2 = false,
+  expectedLine2Label = "expected at the national average",
   showGap = false,
   yDomain: yDomainProp,
   directLabelMissing = false,
@@ -127,6 +138,7 @@ export default function PopulationBars({
       root.append("g").attr("class", "pb-gaps");
       root.append("path").attr("class", "pb-expected-line");
       root.append("g").attr("class", "pb-expected-ticks");
+      root.append("path").attr("class", "pb-expected2-line");
       root.append("g").attr("class", "pb-missing-labels");
       root.append("g").attr("class", "pb-hits");
     }
@@ -296,6 +308,25 @@ export default function PopulationBars({
         .attr("y2", (d) => yScale(d.expected));
     }
 
+    // Second hypothetical marker (e.g. national-average turnout applied
+    // to every age). Age variant only, same silhouette treatment as the
+    // primary line - category variant has no tick version since no beat
+    // currently needs one.
+    const expected2Line = root.select<SVGPathElement>("path.pb-expected2-line");
+    if (xKind === "age") {
+      const line2Gen = d3line<PopulationBarRow>()
+        .x((d) => (xScale(d.key) ?? 0) + xScale.bandwidth() / 2)
+        .y((d) => yScale(d.expected2 ?? d.expected))
+        .curve(curveLinear);
+      expected2Line
+        .datum(rows)
+        .style("opacity", showExpected2 ? 1 : 0)
+        .transition(t as any)
+        .attr("d", line2Gen);
+    } else {
+      expected2Line.style("opacity", 0);
+    }
+
     // Direct missing-value labels (category variant only) - above the
     // taller of votes/expected so the label never sits inside a fill.
     const missingLabels = root
@@ -343,7 +374,22 @@ export default function PopulationBars({
       .on("mouseleave touchend", function () {
         setHover(null);
       });
-  }, [rows, xKind, width, height, showTrack, showVotes, showExpected, showGap, shortRows, yDomainProp, directLabelMissing, tooltipFor, yLabel]);
+  }, [
+    rows,
+    xKind,
+    width,
+    height,
+    showTrack,
+    showVotes,
+    showExpected,
+    showExpected2,
+    showGap,
+    shortRows,
+    yDomainProp,
+    directLabelMissing,
+    tooltipFor,
+    yLabel,
+  ]);
 
   return (
     <div ref={wrapRef} className="voa-chart-surface pb-surface">
@@ -356,6 +402,14 @@ export default function PopulationBars({
               <line x1="0" y1="5" x2="18" y2="5" className="pb-expected-line pb-legend-line" />
             </svg>{" "}
             {expectedLineLabel}
+          </span>
+        )}
+        {showExpected2 && (
+          <span className="pb-legend-expected2" style={{ marginLeft: "0.9rem" }}>
+            <svg width="18" height="10" aria-hidden="true">
+              <line x1="0" y1="5" x2="18" y2="5" className="pb-expected2-line pb-legend-line-2" />
+            </svg>{" "}
+            {expectedLine2Label}
           </span>
         )}
         {showGap && (
