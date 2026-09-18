@@ -26,24 +26,11 @@ function toBarRow(row: AgeRow): PopulationBarRow {
     label: row.age === 100 ? "100+" : String(row.age),
     cvap: row.cvap,
     votes: row.votes,
-    expected: row.expected, // recomputed by pin() below against the pinned benchmark
-    missing: row.missing, // recomputed by pin() below
+    expected: row.expected, // this cycle's own 65+ rate x cvap - same field Beat1 uses
+    missing: row.missing,
     turnout: row.turnout,
     ratesPooled: row.ratesPooled,
   };
-}
-
-// Re-benchmarks every row against the two fixed rates rather than its own
-// cycle's 65+ turnout, so 2024 and 2022 are measured on the same ruler - a
-// midterm's shortfall is no longer judged against a softer, midterm-only
-// standard. See spec S3/S4b.
-function pin(rows: PopulationBarRow[], bench: number, bench2: number): PopulationBarRow[] {
-  return rows.map((r) => ({
-    ...r,
-    expected: (r.cvap * bench) / 100,
-    expected2: (r.cvap * bench2) / 100,
-    missing: r.votes - (r.cvap * bench) / 100,
-  }));
 }
 
 const shortfallOf = (rows: PopulationBarRow[]) =>
@@ -54,13 +41,15 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
   const cycle2024 = data.byAge["2024"];
   const cycle2022 = data.byAge["2022"];
 
-  // The pinned gold standard (permanent - never lerped) and the 2022
-  // comparison line. Both come from the data, never hand-typed - spec S9.
+  // Each cycle's own 65+ rate - never hand-typed, comes straight from the
+  // data, same as Beat1. Unlike the earlier version of this beat, the
+  // dotted line is NOT pinned to 2024: it traces whichever cycle is
+  // showing, exactly like beat one's single benchmark line.
   const BENCH = cycle2024.over65Turnout; // 74.62
   const BENCH_2022 = cycle2022.over65Turnout; // 66.79
 
-  const rows2024 = useMemo(() => pin(cycle2024.rows.map(toBarRow), BENCH, BENCH_2022), [cycle2024, BENCH, BENCH_2022]);
-  const rows2022 = useMemo(() => pin(cycle2022.rows.map(toBarRow), BENCH, BENCH_2022), [cycle2022, BENCH, BENCH_2022]);
+  const rows2024 = useMemo(() => cycle2024.rows.map(toBarRow), [cycle2024]);
+  const rows2022 = useMemo(() => cycle2022.rows.map(toBarRow), [cycle2022]);
 
   // Three independent channels driven off the same scroll span - do not
   // unify them (spec S2):
@@ -82,7 +71,6 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
           cvap: lerp(r.cvap, b.cvap, t),
           votes: lerp(r.votes, b.votes, t),
           expected: lerp(r.expected, b.expected, t),
-          expected2: lerp(r.expected2!, b.expected2!, t),
           missing: lerp(r.missing, b.missing, t),
           turnout: lerp(r.turnout, b.turnout, t),
         };
@@ -125,7 +113,9 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
           Age {real.label} · {shownCycle === cycle2022 ? "2022" : "2024"}
         </div>
         {fmtM(real.cvap)} eligible · {fmtM(real.votes)} voted ({fmtPct(real.turnout)})
-        <div className="voa-tooltip__note">{fmtMSigned(real.missing)} vs. the 2024 standard</div>
+        <div className="voa-tooltip__note">
+          {fmtMSigned(real.missing)} vs. the {shownYear2022 ? "2022" : "2024"} 65+ standard
+        </div>
       </>
     );
   };
@@ -143,15 +133,12 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes
             showExpected
-            expectedLineLabel={`expected at the 2024 65+ rate (${fmtPct(BENCH)})`}
-            showExpected2
-            expected2Opacity={t}
-            expectedLine2Label={`what 65+ managed in 2022 (${fmtPct(BENCH_2022)})`}
+            expectedLineLabel={`expected at the 65+ rate (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`}
             showGap
             gapSummaryVariant="hero"
             heroGap={{
               figure: fmtM(shortfallShown),
-              label: "votes short of the 2024 standard",
+              label: `votes short of the ${shownYear2022 ? "2022" : "2024"} 65+ standard`,
               delta: fmtMSigned(deltaVs2024),
               // Fades in over the scroll's last ~15% - reserved from first
               // paint (PopulationBars always mounts it), so its arrival
@@ -183,16 +170,16 @@ export default function Beat2({ data }: { data: VoterAgeData }) {
           </div>
           <div className="voa-step" ref={setStepRef(1)}>
             <div className="voa-step-inner">
-              <h3>2022: the bars fall, the standard doesn't</h3>
+              <h3>2022: even the standard slips</h3>
               <p>
-                The dotted line stays exactly where it was. It marks the {fmtPct(BENCH)} that 65-and-overs hit in
-                2024 — the best any age group manages in the best year, and the fairest standard we have for what
-                full participation looks like.
+                Watch the dotted line, not just the bars — it isn't fixed. It traces what 65-and-overs manage in
+                each election on its own terms, same as beat one: {fmtPct(BENCH)} in 2024, down to{" "}
+                {fmtPct(BENCH_2022)} in a midterm. Even the most reliable voters in the country turn out less
+                without a president on the ballot — but only by eight points.
               </p>
               <p>
-                Watch what the bars do against it. A second line drops in at {fmtPct(BENCH_2022)}: that's what
-                65-and-overs themselves managed in 2022. Even the most reliable voters in the country slip in a
-                midterm — but only by eight points. The young bars fall off a cliff.
+                What doesn't slip by eight points is everyone else. Watch how much further the bars themselves
+                fall against that lower line.
               </p>
             </div>
           </div>

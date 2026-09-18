@@ -1,7 +1,9 @@
 // Verifies Beat 2's 2024<->2022 morph never prints a number that didn't
 // happen: geometry interpolates continuously with scroll, but every label
-// snaps between the two real elections. See
-// .claude/voter-age-morph-honesty-spec.md.
+// snaps between the two real elections. The dotted line traces each cycle's
+// OWN 65+ rate (not a value pinned to 2024 - see the 2026-09-18 addendum at
+// the top of .claude/voter-age-morph-honesty-spec.md), so unlike the
+// original version of this beat, the line is expected to move.
 // Run with: BASE_URL=http://localhost:5183 node tests/beat2-morph.mjs
 import { chromium } from "playwright";
 const BASE = process.env.BASE_URL || "http://localhost:4321";
@@ -35,22 +37,29 @@ async function scrollTo(y) {
   await page.waitForTimeout(60);
 }
 
+// `.pb-surface`, `path.pb-expected-line`, `rect.pb-track` etc. are NOT
+// unique to Beat 2 - Beat 1 renders the exact same PopulationBars class
+// names for its own (independently static) chart, earlier in the DOM. An
+// unscoped querySelector silently grabs Beat 1's frozen copy instead of
+// Beat 2's, which would make every geometry assertion below vacuously true
+// regardless of what Beat 2 actually does. Scope every query to Beat 2's
+// own <section>.
 async function readState() {
   return page.evaluate(() => {
-    const spans = [...document.querySelectorAll(".voa-year-stamp span")];
+    const titles = [...document.querySelectorAll(".voa-beat-title")];
+    const section = titles.find((el) => el.textContent.includes("Midterms make it worse")).closest(".voa-beat");
+    const spans = [...section.querySelectorAll(".voa-year-stamp span")];
     const op2024 = spans[0] ? parseFloat(getComputedStyle(spans[0]).opacity) : null;
     const op2022 = spans[1] ? parseFloat(getComputedStyle(spans[1]).opacity) : null;
-    const heroFigEl = document.querySelector(".pb-gap-hero-figure");
+    const heroFigEl = section.querySelector(".pb-gap-hero-figure");
     const heroFig = heroFigEl ? parseFloat(heroFigEl.textContent) : null;
-    const deltaEl = document.querySelector(".pb-gap-hero-delta");
+    const deltaEl = section.querySelector(".pb-gap-hero-delta");
     const deltaOpacity = deltaEl ? parseFloat(getComputedStyle(deltaEl).opacity) : null;
-    const legend2 = document.querySelector(".pb-legend-expected2");
-    const legend2Opacity = legend2 ? parseFloat(getComputedStyle(legend2).opacity) : null;
-    const surface = document.querySelector(".pb-surface");
+    const surface = section.querySelector(".pb-surface");
     const nodeCount = surface ? surface.querySelectorAll("*").length : null;
     const surfaceHeight = surface ? surface.getBoundingClientRect().height : null;
-    const d = document.querySelector("path.pb-expected-line")?.getAttribute("d") ?? null;
-    return { op2024, op2022, heroFig, deltaOpacity, legend2Opacity, nodeCount, surfaceHeight, d };
+    const d = section.querySelector("path.pb-expected-line")?.getAttribute("d") ?? null;
+    return { op2024, op2022, heroFig, deltaOpacity, nodeCount, surfaceHeight, d };
   });
 }
 
@@ -85,20 +94,21 @@ console.log("PASS: year-stamp opacities are complementary at every sample");
 
 // 3. The printed gold figure only ever takes one of the two real values -
 // never something in between, which would describe an election that never
-// happened. Both years' figures come from the pipeline (spec S9), not
-// retyped here.
-const ALLOWED = [23.3, 54.0];
+// happened. Both years' shortfalls are measured against their OWN 65+ rate
+// (23.3M / 36.1M), not a value pinned to 2024's rate (that was 54.0M in the
+// earlier pinned-benchmark version of this beat - see spec addendum).
+const ALLOWED = [23.3, 36.1];
 for (const s of samples) {
   const nearest = ALLOWED.reduce((a, b) => (Math.abs(b - s.heroFig) < Math.abs(a - s.heroFig) ? b : a));
   if (Math.abs(s.heroFig - nearest) > 0.05) {
-    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.op2022.toFixed(2)} is neither 23.3M nor 54.0M`);
+    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.op2022.toFixed(2)} is neither 23.3M nor 36.1M`);
   }
 }
 const below = samples.filter((s) => s.op2022 < 0.45);
 const above = samples.filter((s) => s.op2022 > 0.55);
 if (!below.every((s) => Math.abs(s.heroFig - 23.3) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 23.3M before the flip");
-if (!above.every((s) => Math.abs(s.heroFig - 54.0) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 54.0M after the flip");
-console.log("PASS: gold figure snaps between the two real values only (23.3M / 54.0M), never a blend");
+if (!above.every((s) => Math.abs(s.heroFig - 36.1) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 36.1M after the flip");
+console.log("PASS: gold figure snaps between the two real values only (23.3M / 36.1M), never a blend");
 
 // 4. Delta line stays invisible until deep in the morph (last ~15% of u),
 // then fades in - reserved space, never a mount (spec S5/S7).
@@ -108,19 +118,19 @@ const veryLate = samples.filter((s) => s.op2022 > 0.98);
 if (!veryLate.some((s) => s.deltaOpacity > 0.8)) throw new Error("FAIL: delta line never reaches full opacity near u=1");
 console.log("PASS: delta line stays hidden until the very end of the morph, then fades in");
 
-// 5. Second dotted line's legend entry follows the steepened ease (t), not
-// raw u - distinct from the year stamp, which is linear on purpose.
-const lowU = samples.reduce((a, b) => (Math.abs(a.op2022 - 0.3) < Math.abs(b.op2022 - 0.3) ? a : b));
-const highU = samples.reduce((a, b) => (Math.abs(a.op2022 - 0.7) < Math.abs(b.op2022 - 0.7) ? a : b));
-if (!(lowU.legend2Opacity < lowU.op2022 - 0.05)) throw new Error("FAIL: legend fade isn't using the steepened ease below u=0.5 (flat shoulder expected)");
-if (!(highU.legend2Opacity > highU.op2022 + 0.05)) throw new Error("FAIL: legend fade isn't using the steepened ease above u=0.5 (flat shoulder expected)");
-console.log("PASS: second-line legend opacity tracks the eased t, not linear u");
-
-// 6. DOM node count under the chart surface never changes - nothing mounts
-// or unmounts across the whole morph (spec S5).
-const counts = new Set(samples.map((s) => s.nodeCount));
-if (counts.size !== 1) throw new Error(`FAIL: DOM node count changed across the morph: ${[...counts].join(", ")}`);
-console.log(`PASS: DOM node count stable at ${[...counts][0]} across the whole morph`);
+// 6. DOM node count under the chart surface stays within a small band.
+// Legend/hero/year-stamp elements are always-mounted (opacity-only, spec
+// S5) so they contribute zero variance. The one legitimate source of
+// mount/unmount left is the gold gap `<rect>` per bar (`showGap`): since
+// each cycle now has its OWN 65+ line, a handful of ages sit on different
+// sides of "short" in 2024 vs. 2022, so a few gap rects enter/exit as the
+// bars cross their own cycle's line. That's real geometry, not a printed
+// number, so a small spread here is expected - a large one would mean
+// something unrelated is mounting/unmounting.
+const counts = samples.map((s) => s.nodeCount);
+const countSpread = Math.max(...counts) - Math.min(...counts);
+if (countSpread > 10) throw new Error(`FAIL: DOM node count swung by ${countSpread} across the morph (${Math.min(...counts)}-${Math.max(...counts)}) - more than the expected few gap rects crossing threshold`);
+console.log(`PASS: DOM node count stays within a small band across the morph (${Math.min(...counts)}-${Math.max(...counts)})`);
 
 // 7. Chart surface height identical at both true endpoints (spec S5
 // sanity check).
@@ -129,19 +139,15 @@ const last = samples[samples.length - 1].surfaceHeight;
 if (Math.abs(first - last) > 0.5) throw new Error(`FAIL: chart surface height differs at the two endpoints: ${first} vs ${last}`);
 console.log(`PASS: chart surface height identical at both endpoints (${first}px)`);
 
-// 8. The primary dotted line barely moves relative to how far the bars
-// drop, at a middle age untouched by cohort-boundary population drift.
-// Not byte-identical: `expected` is recomputed per row from that row's
-// own-cycle cvap at the fixed 74.62% rate (spec S4b), and single-year
-// population estimates do shift a little year to year - the RATE is what's
-// pinned, not the population curve underneath it. The gold figure jumping
-// 23.3M -> 54.0M while this stays within a few pixels is the point.
+// 8. The primary dotted line DOES move now - it traces each cycle's own
+// 65+ rate (74.62% -> 66.79%), not a value pinned to 2024. Assert it drops
+// (higher y-pixel = lower value) by a visible amount at a middle age.
 const firstYs = lineYs(samples[0].d);
 const lastYs = lineYs(samples[samples.length - 1].d);
 const midIdx = Math.floor(firstYs.length / 2);
-const lineDrift = Math.abs(firstYs[midIdx] - lastYs[midIdx]);
-if (lineDrift > 6) throw new Error(`FAIL: primary dotted line moved ${lineDrift.toFixed(1)}px at a middle age - benchmark isn't reading as pinned`);
-console.log(`PASS: primary dotted line stays put at a middle age (${lineDrift.toFixed(2)}px drift end to end)`);
+const lineDrift = lastYs[midIdx] - firstYs[midIdx];
+if (lineDrift < 15) throw new Error(`FAIL: primary dotted line only moved ${lineDrift.toFixed(1)}px at a middle age - expected a visible drop from 74.62% to 66.79%`);
+console.log(`PASS: primary dotted line drops from the 2024 rate to the 2022 rate (${lineDrift.toFixed(2)}px at a middle age)`);
 
 // 9. Reversibility - revisit descending, expect the same u->figure map.
 const descSamples = [];

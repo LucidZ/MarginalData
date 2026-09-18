@@ -202,9 +202,6 @@
   flex-wrap: wrap;
   font-variant-numeric: tabular-nums;
 }
-.pb-legend-inert {
-  pointer-events: none;
-}
 .voa-legend-swatch {
   width: 13px;
   height: 13px;
@@ -263,17 +260,6 @@
   stroke: var(--text-primary);
   stroke-width: 2;
   stroke-dasharray: 4 2;
-}
-.pb-expected2-line {
-  fill: none;
-  stroke: var(--series-2);
-  stroke-width: 1.5;
-  stroke-dasharray: 1.5 3;
-}
-.pb-legend-line-2 {
-  stroke: var(--series-2);
-  stroke-width: 1.5;
-  stroke-dasharray: 1.5 3;
 }
 .pb-missing-label {
   font-size: 11px;

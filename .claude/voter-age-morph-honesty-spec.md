@@ -1,5 +1,19 @@
 # VoterAge Beat 2 v2: a morph that never prints a number that didn't happen
 
+**§3's pinned-benchmark decision was reverted 2026-09-18** per author direction
+after using the shipped page: the presidential and midterm charts should look
+identical, the same single-line design as Beat 1. The dotted line is no
+longer pinned at 74.62% — it now traces each cycle's own 65+ rate (74.62% at
+t=0, 66.79% at t=1), and `expected2`/the second dotted line/`showExpected2`
+were removed from `PopulationBars` entirely (they had no other caller). The
+gold shortfall is measured against each cycle's own standard again: 23.3M
+(2024, unchanged) and **36.1M** (2022, not 54.0M). Everything else below —
+the three-channel split, the eased eventual `t`/linear `u`, snap-not-lerp for
+printed numbers, the hero gold number, the year stamp — stands unchanged.
+Treat §3, §4b/4d's pinning language, and the "New: the year stamp"/§7's
+54.0M figure as historical context for *why* the two-line version existed,
+not as the current design.
+
 Implementation brief. Scope: `src/2026/VoterAge/` in the `voter-age-participation`
 worktree (`/Users/lucas/code/MarginalData-voter-age`).
 
