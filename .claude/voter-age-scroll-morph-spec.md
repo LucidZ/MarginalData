@@ -1,5 +1,19 @@
 # VoterAge Beat 2: scroll-driven morph instead of a step flip
 
+**Beats 1 and 2 were merged 2026-09-18.** `Beat1.tsx` and `Beat2.tsx` are now
+one component, `AgeBeats.tsx`: a single `<section>` with one `StickyViz` and
+one `PopulationBars` spanning nine steps (0-5 = beat 1's layer reveals off a
+rounded step index, 6-8 = this morph off the raw scroll fraction), with beat
+2's `<h2>` moved inside the text column. Two sticky panes meant the 2024
+chart scrolled away at the end of beat 1 only for an identical 2024 chart to
+scroll back in under beat 2's heading. The morph's own mechanics are
+unchanged — `u`/`t`/snapped-labels all still hold — but every `Beat2.tsx:NN`
+line reference below is historical; read it in `AgeBeats.tsx`. The morph
+window is now `progress` 6.15 → 6.85 rather than 0.15 → 0.85, and the
+y-domain and the hero gold figure are shared with beat 1 (the figure is
+mounted from first paint and fades in at step 4, so the merged chart's height
+never changes).
+
 Implementation brief. Everything below is scoped to
 `src/2026/VoterAge/` in the `voter-age-participation` worktree
 (`/Users/lucas/code/MarginalData-voter-age`, branch `voter-age-participation`).

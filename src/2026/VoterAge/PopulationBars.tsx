@@ -53,10 +53,10 @@ interface Props {
    * and jerks the layout. Pre-derived by the caller from whichever dataset
    * is currently "shown", never from a continuously-lerped `rows` - the
    * printed figure must never take a value that isn't a real election's.
-   * `deltaOpacity` fades the third line in without ever unmounting it, so
-   * its arrival reserves space from first paint and can't nudge anything
-   * else. */
-  heroGap?: { figure: string; label: string; delta: string; deltaOpacity: number };
+   * Never mounts or unmounts once passed: `opacity` fades the whole block
+   * in and `deltaOpacity` the third line, so both reserve their space from
+   * first paint and neither arrival can nudge the chart above it. */
+  heroGap?: { figure: string; label: string; delta: string; opacity?: number; deltaOpacity: number };
   /** Extra content layered over the plot's top-right corner (e.g. a
    * scroll-position year stamp) - absolutely positioned, doesn't affect
    * layout. */
@@ -400,8 +400,8 @@ export default function PopulationBars({
         {plotOverlay}
       </div>
       <div className="voa-axis-label-x">{xLabel}</div>
-      {showGap && heroGap && (
-        <div className="pb-gap-summary pb-gap-summary--hero">
+      {heroGap && (
+        <div className="pb-gap-summary pb-gap-summary--hero" style={{ opacity: heroGap.opacity ?? 1 }}>
           <span className="pb-gap-marker" aria-hidden="true" />
           <div className="pb-gap-hero">
             <div className="pb-gap-hero-figure">{heroGap.figure}</div>

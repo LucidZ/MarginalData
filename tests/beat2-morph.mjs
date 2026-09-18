@@ -4,7 +4,13 @@
 // OWN 65+ rate (not a value pinned to 2024 - see the 2026-09-18 addendum at
 // the top of .claude/voter-age-morph-honesty-spec.md), so unlike the
 // original version of this beat, the line is expected to move.
-// Run with: BASE_URL=http://localhost:5183 node tests/beat2-morph.mjs
+//
+// Beats 1 and 2 were merged into one section sharing one pinned chart on
+// 2026-09-18 (`AgeBeats.tsx`, formerly `Beat1.tsx` + `Beat2.tsx`), so the
+// morph window here is measured off step elements rather than off a "beat 2
+// section". That the chart stays pinned across the boundary is asserted in
+// tests/age-beats-steps.mjs.
+// Run with: BASE_URL=http://localhost:5174 node tests/beat2-morph.mjs
 import { chromium } from "playwright";
 const BASE = process.env.BASE_URL || "http://localhost:4321";
 
@@ -13,23 +19,29 @@ const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
 await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 
-const box = await page.evaluate(() => {
-  const titles = [...document.querySelectorAll(".voa-beat-title")];
-  const t = titles.find((el) => el.textContent.includes("Midterms make it worse"));
-  const section = t.closest(".voa-beat");
-  const rect = section.getBoundingClientRect();
-  return { top: rect.top + window.scrollY, height: section.scrollHeight };
-});
-const scrollable = box.height - 900;
-
-// Scan wider than the nominal step0->step1 span so both true endpoints of
-// the morph window (u=0 at progress 0.15, u=1 at progress 0.85 - see
-// Beat2.tsx) are actually reached, regardless of exactly how step heights
-// map to scroll position. We read `u` back from the year-stamp opacity
-// (op2022 == u by construction, spec S6) rather than assume a scrollY
-// formula for it.
-const SCAN_START = box.top + scrollable * (0 / 3);
-const SCAN_END = box.top + scrollable * (1.7 / 3);
+// Beats 1 and 2 now share one section and one chart (AgeBeats.tsx), so the
+// morph window can't be read off a "beat 2 section" - it's measured from the
+// steps themselves. Progress is a fractional step index, and the morph runs
+// from progress MORPH_STEP+0.15 to MORPH_STEP+0.85, i.e. between the centers
+// of steps 6 and 7. Scan a little past both ends so the true endpoints are
+// reached regardless of how step heights map to scroll position. We read `u`
+// back from the year-stamp opacity (op2022 == u by construction, spec S6)
+// rather than assume a scrollY formula for it.
+const MORPH_STEP = 6; // AgeBeats.tsx
+const window_ = await page.evaluate(
+  ({ i, h }) => {
+    const steps = [...document.querySelectorAll(".voa-beat .voa-step")];
+    const centerY = (el) => {
+      const r = el.getBoundingClientRect();
+      return r.top + window.scrollY + r.height / 2 - h / 2;
+    };
+    return { from: centerY(steps[i]), to: centerY(steps[i + 1]) };
+  },
+  { i: MORPH_STEP, h: 900 }
+);
+const span = window_.to - window_.from;
+const SCAN_START = window_.from - span * 0.15;
+const SCAN_END = window_.to + span * 0.15;
 const N = 40;
 
 async function scrollTo(y) {
@@ -37,17 +49,13 @@ async function scrollTo(y) {
   await page.waitForTimeout(60);
 }
 
-// `.pb-surface`, `path.pb-expected-line`, `rect.pb-track` etc. are NOT
-// unique to Beat 2 - Beat 1 renders the exact same PopulationBars class
-// names for its own (independently static) chart, earlier in the DOM. An
-// unscoped querySelector silently grabs Beat 1's frozen copy instead of
-// Beat 2's, which would make every geometry assertion below vacuously true
-// regardless of what Beat 2 actually does. Scope every query to Beat 2's
-// own <section>.
+// Beats 1 and 2 render one chart between them, so `.voa-beat:first-of-type`
+// IS the morphing chart - but beats 3 and 4 further down the page reuse the
+// same PopulationBars class names, so every query still has to be scoped to
+// a section rather than run against the document.
 async function readState() {
   return page.evaluate(() => {
-    const titles = [...document.querySelectorAll(".voa-beat-title")];
-    const section = titles.find((el) => el.textContent.includes("Midterms make it worse")).closest(".voa-beat");
+    const section = document.querySelector(".voa-beat");
     const spans = [...section.querySelectorAll(".voa-year-stamp span")];
     const op2024 = spans[0] ? parseFloat(getComputedStyle(spans[0]).opacity) : null;
     const op2022 = spans[1] ? parseFloat(getComputedStyle(spans[1]).opacity) : null;

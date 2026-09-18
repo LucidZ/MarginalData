@@ -95,6 +95,13 @@
   padding-top: 2rem;
   border-top: 1px solid var(--gridline);
 }
+/* Beat 2's heading rides up inside the text column instead of ruling off
+   the page full-width: beats 1 and 2 share one pinned chart (AgeBeats.tsx),
+   and a full-width break between them would have to unstick it. */
+.voa-beat-title--incolumn {
+  padding-top: 1.4rem;
+  margin-bottom: 1.2rem;
+}
 .voa-scrolly {
   display: flex;
   gap: 2rem;

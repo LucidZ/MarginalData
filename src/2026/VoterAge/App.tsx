@@ -1,7 +1,6 @@
 import { useJsonData } from "../../hooks/useJsonData";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import Beat1 from "./Beat1";
-import Beat2 from "./Beat2";
+import AgeBeats from "./AgeBeats";
 import Beat3 from "./Beat3";
 import Beat4 from "./Beat4";
 import type { VoterAgeData } from "./types";
@@ -37,8 +36,7 @@ export default function App() {
         </p>
       </header>
 
-      <Beat1 data={data} />
-      <Beat2 data={data} />
+      <AgeBeats data={data} />
       <Beat3 data={data} />
       <Beat4 data={data} />
 
