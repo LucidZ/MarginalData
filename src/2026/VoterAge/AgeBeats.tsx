@@ -3,6 +3,7 @@ import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import StickyViz from "./StickyViz";
 import { useStepProgress } from "./useStepProgress";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
+import { ageBeatsSteps, ageBeatsTitle, midtermsTitle, type AgeBeatsVals } from "./copy";
 import type { VoterAgeData, AgeRow } from "./types";
 
 /**
@@ -208,9 +209,46 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     [shownRowsByKey, shownYear2022, shownCycle]
   );
 
+  const compareTable = (
+    <table className="voa-compare-table">
+      <thead>
+        <tr>
+          <th>Age</th>
+          <th>2024</th>
+          <th>2022</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        {compareRows.map((r) => (
+          <tr key={r.age}>
+            <td>{r.age}</td>
+            <td>{fmtPct(r.t2024)}</td>
+            <td>{fmtPct(r.t2022)}</td>
+            <td className={r.t2022 - r.t2024 < -10 ? "voa-compare-big-drop" : ""}>{(r.t2022 - r.t2024).toFixed(1)}pp</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const copyVals: AgeBeatsVals = {
+    age25cvap: fmtM(age25.cvap),
+    age75cvap: fmtM(age75.cvap),
+    bench: fmtPct(BENCH),
+    bench2022: fmtPct(BENCH_2022),
+    crossoverAge: cycle2024.crossoverAge,
+    shortfall2024: fmtM(shortfall2024),
+    under35Missing: fmtM(under35Missing),
+    shortfall2024Pct: fmtPct((shortfall2024 / cycle2024.totalVotes) * 100),
+    declineAge: cycle2024.declineAge,
+    missing80Plus: fmtM(missing80Plus),
+    compareTable,
+  };
+
   return (
     <section className="voa-beat">
-      <h2 className="voa-beat-title">1. The shape of the electorate</h2>
+      <h2 className="voa-beat-title">{ageBeatsTitle}</h2>
       <div className="voa-scrolly">
         <StickyViz>
           <PopulationBars
@@ -250,143 +288,20 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
           />
         </StickyViz>
         <div className="voa-scrolly-steps">
-          <div className="voa-step" ref={setStepRef(0)}>
-            <div className="voa-step-inner">
-              <h3>Every bar is one year of age</h3>
-              <p>
-                The light bar is how many citizens of that age were eligible to vote in 2024. There are more
-                25-year-olds ({fmtM(age25.cvap)} eligible) than 75-year-olds ({fmtM(age75.cvap)}) — the population
-                just gets thinner with age, the way it does in most rich countries.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(1)}>
-            <div className="voa-step-inner">
-              <h3>Now add who actually voted</h3>
-              <p>
-                The solid bar is votes cast. It's shorter than the light bar everywhere — turnout is never 100% — but
-                not by the same amount at every age. Watch how much of the light bar the solid one covers as you move
-                left to right.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(2)}>
-            <div className="voa-step-inner">
-              <h3>The dotted line is what 65-and-over does</h3>
-              <p>
-                It traces what each age's vote bar would reach if every age turned out the way people 65 and older
-                actually do: {fmtPct(BENCH)}. That's the most reliable bloc in the electorate — the one group whose
-                turnout barely moves from one election to the next — so it's a steadier yardstick than a national
-                average that blends every age together.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(3)}>
-            <div className="voa-step-inner">
-              <h3>Fill in what's missing</h3>
-              <p>
-                Gold is the distance from a bar up to that line: votes an age would have cast at the 65+ rate, and
-                didn't. The gold runs out around age {cycle2024.crossoverAge} — not a hard cutoff, a few ages just
-                below it already clear the line before it holds for good, but that's roughly where turnout catches up
-                to the 65+ standard.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(4)}>
-            <div className="voa-step-inner">
-              <h3>In votes, not percentages</h3>
-              <p>
-                Add the gold up and it comes to <strong>{fmtM(shortfall2024)} votes</strong> — ballots that would
-                exist if every age turned out the way 65-and-overs do. Most of it is concentrated young: under-35s
-                account for <strong>{fmtM(under35Missing)}</strong> of the total on their own.
-              </p>
-              <div className="voa-callout">
-                {fmtM(shortfall2024)} missing votes, {fmtPct((shortfall2024 / cycle2024.totalVotes) * 100)} of every
-                ballot cast in 2024 — and <strong>{fmtM(under35Missing)}</strong> of it is under 35.
+          {ageBeatsSteps.map((s, i) => (
+            <div className="voa-step" key={i} ref={setStepRef(i)}>
+              <div className="voa-step-inner">
+                {i === 6 && (
+                  // Beat 2 starts here. Its heading rides up the text column
+                  // rather than ruling off the page full-width, because the
+                  // chart to its left is the same element and must not unstick.
+                  <h2 className="voa-beat-title voa-beat-title--incolumn">{midtermsTitle}</h2>
+                )}
+                <h3>{s.heading}</h3>
+                {s.body(copyVals)}
               </div>
             </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(5)}>
-            <div className="voa-step-inner">
-              <h3>Even 65+'s own standard doesn't hold forever</h3>
-              <p>
-                Watch the far right edge: by around age {cycle2024.declineAge}, the gold comes back. Turnout keeps
-                declining into the 80s and 90s — even the age group that sets this bar eventually falls short of it.
-                The 65+ line isn't a ceiling everyone past 65 clears; it's a bloc average with its own decline built
-                in at the far end.
-              </p>
-              <div className="voa-callout">
-                <strong>{fmtM(missing80Plus)}</strong> of the shortfall is ages 80 and up — a small slice of a small
-                population, but a real reversal of the pattern the rest of the chart shows.
-              </div>
-            </div>
-          </div>
-
-          <div className="voa-step" ref={setStepRef(6)}>
-            <div className="voa-step-inner">
-              {/* Beat 2 starts here. Its heading rides up the text column
-                  rather than ruling off the page full-width, because the
-                  chart to its left is the same element and must not unstick. */}
-              <h2 className="voa-beat-title voa-beat-title--incolumn">2. Midterms make it worse</h2>
-              <h3>No president on the ballot</h3>
-              <p>
-                Nothing has moved: same bars, same 2024 election, same line. Now rewind two years and take the
-                president off the ballot. In a midterm, turnout drops for everyone. The question is whether it drops
-                evenly.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(7)}>
-            <div className="voa-step-inner">
-              <h3>2022: even the standard slips</h3>
-              <p>
-                Every bar slid two years left as it fell — it's the same people, two years younger. The two youngest
-                slid clean off the chart: 2024's 18- and 19-year-olds weren't old enough to vote in 2022 at all.
-              </p>
-              <p>
-                Watch the dotted line, not just the bars — it isn't fixed. It traces what 65-and-overs manage in each
-                election on its own terms, the same way it did a moment ago: {fmtPct(BENCH)} in 2024, down to{" "}
-                {fmtPct(BENCH_2022)} in a midterm. Even the most reliable voters in the country turn out less without
-                a president on the ballot — but only by eight points.
-              </p>
-              <p>
-                What doesn't slip by eight points is everyone else. Watch how much further the bars themselves fall
-                against that lower line.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(8)}>
-            <div className="voa-step-inner">
-              <h3>The young nearly stop showing up; the old barely notice</h3>
-              <p>Turnout by single year of age, presidential vs. midterm:</p>
-              <table className="voa-compare-table">
-                <thead>
-                  <tr>
-                    <th>Age</th>
-                    <th>2024</th>
-                    <th>2022</th>
-                    <th>Change</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {compareRows.map((r) => (
-                    <tr key={r.age}>
-                      <td>{r.age}</td>
-                      <td>{fmtPct(r.t2024)}</td>
-                      <td>{fmtPct(r.t2022)}</td>
-                      <td className={r.t2022 - r.t2024 < -10 ? "voa-compare-big-drop" : ""}>
-                        {(r.t2022 - r.t2024).toFixed(1)}pp
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p>
-                An 18-year-old's turnout is nearly cut in half. A 79-year-old's barely moves. Older voters show up
-                regardless of what's on the ballot; younger voters mostly show up for president.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

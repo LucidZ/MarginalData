@@ -3,6 +3,7 @@ import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import StickyViz from "./StickyViz";
 import { useActiveStep } from "./useActiveStep";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
+import { beat3Steps, beat3Title, type Beat3Vals } from "./copy";
 import type { VoterAgeData, Dimension, DimensionRow } from "./types";
 
 const STEP_COUNT = 4;
@@ -82,9 +83,20 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
     </>
   );
 
+  const copyVals: Beat3Vals = {
+    eduLowTurnout: fmtPct(eduLow.turnout),
+    eduHighTurnout: fmtPct(eduHigh.turnout),
+    hsOrLessMissing: fmtM(Math.abs(hsOrLess)),
+    hsOrLessMissingSigned: fmtMSigned(hsOrLess),
+    hispanicMissing: fmtM(Math.abs(hispanic.missing)),
+    incomeLowTurnout: fmtPct(income.rows[0].turnout),
+    incomeHighTurnout: fmtPct(income.rows[income.rows.length - 1].turnout),
+    under50kMissing: fmtM(Math.abs(under50k)),
+  };
+
   return (
     <section className="voa-beat">
-      <h2 className="voa-beat-title">3. It isn't only about age</h2>
+      <h2 className="voa-beat-title">{beat3Title}</h2>
       <div className="voa-scrolly">
         <StickyViz>
           <div className="voa-dim-caption">{active.dim.label} · avg turnout {fmtPct(active.dim.avgTurnout)}</div>
@@ -103,50 +115,14 @@ export default function Beat3({ data }: { data: VoterAgeData }) {
           {active.dim.note && <p className="voa-dim-note">{active.dim.note}</p>}
         </StickyViz>
         <div className="voa-scrolly-steps">
-          <div className="voa-step" ref={setStepRef(0)}>
-            <div className="voa-step-inner">
-              <h3>Age, education, income and race are all tangled together</h3>
-              <p>
-                This is a descriptive story, not a causal one — these four traits correlate heavily with each other,
-                so none of what follows isolates "the effect" of any one of them. The point is narrower: age isn't
-                the only axis where the electorate doesn't look like the country.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(1)}>
-            <div className="voa-step-inner">
-              <h3>Education is the biggest gap in the data</h3>
-              <p>
-                Turnout ranges from {fmtPct(eduLow.turnout)} (less than 9th grade) to {fmtPct(eduHigh.turnout)}{" "}
-                (advanced degree) — a wider spread than age. High school or less accounts for nearly all of the gold
-                here: <strong>{fmtM(Math.abs(hsOrLess))} missing votes</strong> across three groups.
-              </p>
-              <div className="voa-callout">
-                Largest single gap in this story: <strong>{fmtMSigned(hsOrLess)}</strong> for high school or less.
+          {beat3Steps.map((s, i) => (
+            <div className="voa-step" key={i} ref={setStepRef(i)}>
+              <div className="voa-step-inner">
+                <h3>{s.heading}</h3>
+                {s.body(copyVals)}
               </div>
             </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(2)}>
-            <div className="voa-step-inner">
-              <h3>Race and ethnicity</h3>
-              <p>
-                Hispanic voters fall <strong>{fmtM(Math.abs(hispanic.missing))}</strong> short of the line — the
-                largest single gap on this chart. Black and Asian voters are short too, by smaller amounts, because
-                those are smaller populations. White, non-Hispanic voters are the one group above it.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(3)}>
-            <div className="voa-step-inner">
-              <h3>Income shows the same pattern, and comes with a caveat</h3>
-              <p>
-                Family income runs a clean gradient from {fmtPct(income.rows[0].turnout)} to{" "}
-                {fmtPct(income.rows[income.rows.length - 1].turnout)}. Households under $50k cast{" "}
-                <strong>{fmtM(Math.abs(under50k))} fewer</strong> votes than proportional.
-              </p>
-              <p className="voa-dim-note">{income.note}</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

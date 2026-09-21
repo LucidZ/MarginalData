@@ -1,6 +1,7 @@
 import ColoradoDots from "./ColoradoDots";
 import StickyViz from "./StickyViz";
 import { useActiveStep } from "./useActiveStep";
+import { beat4Steps, beat4Sticky, beat4Title, type Beat4Vals } from "./copy";
 import type { VoterAgeData } from "./types";
 
 const STEP_COUNT = 5;
@@ -17,32 +18,31 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
 
   const activePanel = step === 0 ? panels[0] : step === 1 ? panels[1] : panels[2];
 
+  const copyVals: Beat4Vals = {
+    overallEffectPp: co.overall.effectPp.toFixed(1),
+    bonicaUrl: co.url,
+  };
+
   return (
     <section className="voa-beat">
-      <h2 className="voa-beat-title">4. Does anything change this?</h2>
+      <h2 className="voa-beat-title">{beat4Title}</h2>
       <div className="voa-scrolly">
         <StickyViz>
           {step <= 2 ? (
             <>
               <div className="voa-dim-caption">{activePanel.title}</div>
               <ColoradoDots rows={activePanel.rows} overallEffectPp={co.overall.effectPp} emphasizeGroup={activePanel.emphasize} />
-              <p className="voa-dim-note">
-                Dashed line: overall effect (+{co.overall.effectPp.toFixed(1)}pp). Each dot is that group's own effect
-                ± 1 standard error.
-              </p>
+              <p className="voa-dim-note">{beat4Sticky.dotLegend(copyVals.overallEffectPp)}</p>
             </>
           ) : step === 3 ? (
             <div className="voa-callout voa-co-age-card">
               <div className="voa-co-age-figure">+{co.age.youngestCohortEffectPp}pp</div>
-              <div>
-                for the youngest cohorts ({co.age.youngestCohortLabel}) — a {co.age.relativeIncreasePct}% relative
-                increase over their 2010 turnout. The largest effect of any group in the study.
-              </div>
+              <div>{beat4Sticky.ageCardBody(co.age.relativeIncreasePct, co.age.youngestCohortLabel)}</div>
               <p className="voa-dim-note">{co.age.shapeNote}</p>
             </div>
           ) : (
             <div className="voa-callout">
-              <strong>Three caveats:</strong>
+              <strong>{beat4Sticky.confoundsLabel}</strong>
               <ul className="voa-confound-list">
                 {co.confounds.map((c, i) => (
                   <li key={i}>{c}</li>
@@ -52,57 +52,14 @@ export default function Beat4({ data }: { data: VoterAgeData }) {
           )}
         </StickyViz>
         <div className="voa-scrolly-steps">
-          <div className="voa-step" ref={setStepRef(0)}>
-            <div className="voa-step-inner">
-              <h3>Colorado moved to all-mail voting in 2014</h3>
-              <p>
-                Every registered voter gets a ballot mailed to them automatically. A study tracking individual voters
-                by birth year and prior turnout found turnout rose about {co.overall.effectPp.toFixed(1)} points
-                overall — and the gains weren't even.{" "}
-                <a href={co.url} target="_blank" rel="noopener noreferrer">
-                  Bonica, Grumbach, Hill &amp; Jefferson (2021)
-                </a>
-                .
-              </p>
+          {beat4Steps.map((s, i) => (
+            <div className="voa-step" key={i} ref={setStepRef(i)}>
+              <div className="voa-step-inner">
+                <h3>{s.heading}</h3>
+                {s.body(copyVals)}
+              </div>
             </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(1)}>
-            <div className="voa-step-inner">
-              <h3>The rhyme: race</h3>
-              <p>
-                Every group gained more than the least-affected group. Asian, Black and Latino voters — all
-                underrepresented in the national data you just saw — gained more than white voters did.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(2)}>
-            <div className="voa-step-inner">
-              <h3>And income</h3>
-              <p>
-                Same shape. The lowest income bracket gained the most; the highest gained the least. It's not that
-                all-mail voting is a uniform +8 points everywhere — it's larger exactly where the gap was larger.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(3)}>
-            <div className="voa-step-inner">
-              <h3>Age shows the same pattern, biggest of all</h3>
-              <p>
-                The youngest voters — the group furthest below the line in beat one — gained the most from switching
-                to all-mail ballots.
-              </p>
-            </div>
-          </div>
-          <div className="voa-step" ref={setStepRef(4)}>
-            <div className="voa-step-inner">
-              <h3>What this doesn't prove</h3>
-              <p>
-                This is one state, well-identified — not a randomized nationwide experiment. Read the pattern as{" "}
-                <em>consistent with</em> all-mail voting closing representation gaps, not as proof it would do the
-                same everywhere.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
