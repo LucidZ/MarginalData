@@ -23,11 +23,11 @@ await page.waitForSelector(".voa-root h1");
 // morph window can't be read off a "beat 2 section" - it's measured from the
 // steps themselves. Progress is a fractional step index, and the morph runs
 // from progress MORPH_STEP+0.15 to MORPH_STEP+0.85, i.e. between the centers
-// of steps 6 and 7. Scan a little past both ends so the true endpoints are
+// of steps 5 and 6. Scan a little past both ends so the true endpoints are
 // reached regardless of how step heights map to scroll position. We read `u`
-// back from the year-stamp opacity (op2022 == u by construction, spec S6)
-// rather than assume a scrollY formula for it.
-const MORPH_STEP = 6; // AgeBeats.tsx
+// back from the scrubber's data-u (RewindOverlay.tsx) rather than assume a
+// scrollY formula for it.
+const MORPH_STEP = 5; // AgeBeats.tsx
 const window_ = await page.evaluate(
   ({ i, h }) => {
     const steps = [...document.querySelectorAll(".voa-beat .voa-step")];
@@ -56,9 +56,10 @@ async function scrollTo(y) {
 async function readState() {
   return page.evaluate(() => {
     const section = document.querySelector(".voa-beat");
-    const spans = [...section.querySelectorAll(".voa-year-stamp span")];
-    const op2024 = spans[0] ? parseFloat(getComputedStyle(spans[0]).opacity) : null;
-    const op2022 = spans[1] ? parseFloat(getComputedStyle(spans[1]).opacity) : null;
+    const scrub = section.querySelector(".voa-scrubber");
+    const u = scrub ? parseFloat(scrub.dataset.u) : null;
+    const endsOn = scrub ? [...scrub.querySelectorAll(".voa-scrubber-end")].map((e) => e.classList.contains("is-on")) : null;
+    const plotOpacity = parseFloat(getComputedStyle(section.querySelector(".pb-plot-wrap svg")).opacity);
     const heroFigEl = section.querySelector(".pb-gap-hero-figure");
     const heroFig = heroFigEl ? parseFloat(heroFigEl.textContent) : null;
     const deltaEl = section.querySelector(".pb-gap-hero-delta");
@@ -67,7 +68,7 @@ async function readState() {
     const nodeCount = surface ? surface.querySelectorAll("*").length : null;
     const surfaceHeight = surface ? surface.getBoundingClientRect().height : null;
     const d = section.querySelector("path.pb-expected-line")?.getAttribute("d") ?? null;
-    return { op2024, op2022, heroFig, deltaOpacity, nodeCount, surfaceHeight, d };
+    return { u, endsOn, plotOpacity, heroFig, deltaOpacity, nodeCount, surfaceHeight, d };
   });
 }
 
@@ -87,18 +88,24 @@ for (let i = 0; i < N; i++) {
 }
 
 // 1. The scan actually spans the full morph.
-const us = samples.map((s) => s.op2022);
+const us = samples.map((s) => s.u);
 if (Math.min(...us) > 0.05) throw new Error(`FAIL: never reached near u=0 (min u=${Math.min(...us).toFixed(3)})`);
 if (Math.max(...us) < 0.95) throw new Error(`FAIL: never reached near u=1 (max u=${Math.max(...us).toFixed(3)})`);
 console.log(`PASS: scan spans u=${Math.min(...us).toFixed(3)}..${Math.max(...us).toFixed(3)}`);
 
-// 2. Year stamp cross-fades and stays complementary throughout.
+// 2. Scrubber: an end circle is filled only while resting on that real
+// year (left = 2022, right = 2024), and the plot is only undimmed there.
 for (const s of samples) {
-  if (Math.abs(s.op2024 + s.op2022 - 1) > 0.03) {
-    throw new Error(`FAIL: year-stamp opacities don't sum to 1 at u=${s.op2022}: ${s.op2024} + ${s.op2022}`);
+  const [on2022, on2024] = s.endsOn;
+  if (on2022 !== s.u >= 0.999 || on2024 !== s.u <= 0.001) {
+    throw new Error(`FAIL: scrubber ends [2022=${on2022}, 2024=${on2024}] wrong at u=${s.u}`);
+  }
+  const atRealYear = s.u <= 0.001 || s.u >= 0.999;
+  if (atRealYear !== (s.plotOpacity > 0.99)) {
+    throw new Error(`FAIL: plot opacity ${s.plotOpacity} at u=${s.u} - should be dimmed iff between years`);
   }
 }
-console.log("PASS: year-stamp opacities are complementary at every sample");
+console.log("PASS: scrubber ends fill only at a real year; plot dimmed only between years");
 
 // 3. The printed gold figure only ever takes one of the two real values -
 // never something in between, which would describe an election that never
@@ -109,20 +116,20 @@ const ALLOWED = [23.3, 36.1];
 for (const s of samples) {
   const nearest = ALLOWED.reduce((a, b) => (Math.abs(b - s.heroFig) < Math.abs(a - s.heroFig) ? b : a));
   if (Math.abs(s.heroFig - nearest) > 0.05) {
-    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.op2022.toFixed(2)} is neither 23.3M nor 36.1M`);
+    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 23.3M nor 36.1M`);
   }
 }
-const below = samples.filter((s) => s.op2022 < 0.45);
-const above = samples.filter((s) => s.op2022 > 0.55);
+const below = samples.filter((s) => s.u < 0.45);
+const above = samples.filter((s) => s.u > 0.55);
 if (!below.every((s) => Math.abs(s.heroFig - 23.3) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 23.3M before the flip");
 if (!above.every((s) => Math.abs(s.heroFig - 36.1) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 36.1M after the flip");
 console.log("PASS: gold figure snaps between the two real values only (23.3M / 36.1M), never a blend");
 
 // 4. Delta line stays invisible until deep in the morph (last ~15% of u),
 // then fades in - reserved space, never a mount (spec S5/S7).
-const early = samples.filter((s) => s.op2022 < 0.8);
+const early = samples.filter((s) => s.u < 0.8);
 if (!early.every((s) => s.deltaOpacity < 0.02)) throw new Error("FAIL: delta line visible before u=0.8");
-const veryLate = samples.filter((s) => s.op2022 > 0.98);
+const veryLate = samples.filter((s) => s.u > 0.98);
 if (!veryLate.some((s) => s.deltaOpacity > 0.8)) throw new Error("FAIL: delta line never reaches full opacity near u=1");
 console.log("PASS: delta line stays hidden until the very end of the morph, then fades in");
 
@@ -172,9 +179,9 @@ for (let i = 0; i < samples.length; i++) {
   // (by design, spec S2) turns into a full 23.3<->54.0 flip instead of the
   // sub-0.01M wobble a continuous value would show. Skip only that razor's
   // edge; everywhere else must match exactly.
-  if (Math.abs(samples[i].op2022 - 0.5) < 0.07) continue;
+  if (Math.abs(samples[i].u - 0.5) < 0.07) continue;
   if (Math.abs(samples[i].heroFig - descSamples[i].heroFig) > 0.05) {
-    throw new Error(`FAIL: reversal mismatch at sample ${i} (u=${samples[i].op2022})`);
+    throw new Error(`FAIL: reversal mismatch at sample ${i} (u=${samples[i].u})`);
   }
 }
 console.log("PASS: reversing the scroll retraces the same gold figure at every point (away from the exact flip boundary)");

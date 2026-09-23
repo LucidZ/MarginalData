@@ -20,7 +20,9 @@ export interface PopulationBarRow {
   ratesPooled?: boolean;
   /** "age" variant only - continuous position on the age axis, for a bar
    * that is mid-slide between two age slots (VoterAge's cohort morph).
-   * Defaults to the row's own `x`, which is what every static chart wants. */
+   * Defaults to the row's own `x`, which is what every static chart wants.
+   * `x`/`label` still name the row's slot - the x-axis ticks are built from
+   * them - so a morph should move `xPos` and leave those alone. */
   xPos?: number;
   /** Per-row opacity multiplier, 0-1. Defaults to 1. Used by the cohort
    * morph to fade out bars that have no counterpart in the target year. */
@@ -64,10 +66,15 @@ interface Props {
    * in and `deltaOpacity` the third line, so both reserve their space from
    * first paint and neither arrival can nudge the chart above it. */
   heroGap?: { figure: string; label: string; delta: string; opacity?: number; deltaOpacity: number };
-  /** Extra content layered over the plot's top-right corner (e.g. a
-   * scroll-position year stamp) - absolutely positioned, doesn't affect
-   * layout. */
-  plotOverlay?: ReactNode;
+  /** Extra content layered over the plot (e.g. a scroll-position year
+   * stamp) - absolutely positioned, doesn't affect layout. Pass a function
+   * to pin something to a data value: `yPct(v)` is v's height on the y-axis
+   * as a CSS top-% of the plot. */
+  plotOverlay?: ReactNode | ((geom: { yPct: (v: number) => number }) => ReactNode);
+  /** 0-1: dims and blurs the plot (not the overlay, legend or axes label
+   * below) - for a chart that is mid-morph between two real states and
+   * whose geometry shouldn't be read as data. Default 0. */
+  plotHaze?: number;
   /** 0 disables d3's time-driven tween entirely, for a chart whose values
    * are driven continuously by scroll position - a tween there fights the
    * scroll instead of following it, and can't be stopped or reversed
@@ -98,6 +105,7 @@ export default function PopulationBars({
   directLabelMissing = false,
   heroGap,
   plotOverlay,
+  plotHaze = 0,
   transitionMs = 700,
   tooltipFor,
 }: Props) {
@@ -107,6 +115,11 @@ export default function PopulationBars({
   const [width, setWidth] = useState(560);
   const [hover, setHover] = useState<{ row: PopulationBarRow; clientX: number; clientY: number } | null>(null);
   const shortRows = useMemo(() => rows.filter((r) => r.missing < 0), [rows]);
+  // New data means whatever sits under the pointer may have changed (the
+  // cohort morph slides bars two slots) - drop the stale tooltip rather
+  // than keep describing the bar that used to be there. Next mousemove
+  // re-targets it.
+  useEffect(() => setHover(null), [rows]);
 
   useEffect(() => {
     const obs = new ResizeObserver((entries) => {
@@ -119,6 +132,14 @@ export default function PopulationBars({
 
   const margin = xKind === "age" ? MARGIN_AGE : MARGIN_CATEGORY;
   const height = xKind === "age" ? Math.max(300, Math.min(width * 0.72, 420)) : Math.max(340, Math.min(width * 0.85, 460));
+
+  // Same yDomain/range as the d3 effect below, for placing HTML overlays.
+  // The svg scales uniformly via viewBox, so a %-of-height holds at any size.
+  const yPct = (v: number) => {
+    const [lo, hi] = yDomainProp ?? [0, Math.max(1, ...rows.map((r) => r.cvap)) * 1.08];
+    const innerH = height - margin.top - margin.bottom;
+    return ((margin.top + innerH * (1 - (v - lo) / (hi - lo))) / height) * 100;
+  };
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -436,8 +457,13 @@ export default function PopulationBars({
         </span>
       </div>
       <div className="pb-plot-wrap">
-        <svg ref={svgRef} role="img" aria-label={xLabel} />
-        {plotOverlay}
+        <svg
+          ref={svgRef}
+          role="img"
+          aria-label={xLabel}
+          style={plotHaze > 0 ? { opacity: 1 - 0.3 * plotHaze, filter: `blur(${1.25 * plotHaze}px)` } : undefined}
+        />
+        {typeof plotOverlay === "function" ? plotOverlay({ yPct }) : plotOverlay}
       </div>
       <div className="voa-axis-label-x">{xLabel}</div>
       {heroGap && (
