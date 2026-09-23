@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import StickyViz from "./StickyViz";
+import RewindOverlay, { rewindHaze } from "./RewindOverlay";
 import { useStepProgress } from "./useStepProgress";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
 import { ageBeatsSteps, ageBeatsTitle, midtermsTitle, type AgeBeatsVals } from "./copy";
@@ -18,18 +19,18 @@ import type { VoterAgeData, AgeRow } from "./types";
  * physical element: one sticky pane spanning nine steps, with beat 2's
  * heading riding up the text column while the chart stays put.
  *
- * Steps 0-5 accumulate the 2024 chart layer by layer, off a rounded step
+ * Steps 0-4 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
- * 700ms tween). Steps 6-8 morph it to 2022 continuously off the raw scroll
+ * 700ms tween). Steps 5-7 morph it to 2022 continuously off the raw scroll
  * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
  * and .claude/voter-age-morph-honesty-spec.md.
  */
 
-const STEP_COUNT = 9;
+const STEP_COUNT = 8;
 /** Index of beat 2's first step - the morph is measured from here. */
-const MORPH_STEP = 6;
+const MORPH_STEP = 5;
 /** Past this point the chart is scroll-driven, so d3's time tween is off. */
-const TWEEN_UNTIL = 5.4;
+const TWEEN_UNTIL = 4.4;
 
 const COMPARE_AGES = [18, 22, 65, 79];
 
@@ -79,9 +80,9 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
 
   // Three independent channels driven off the same scroll span - do not
   // unify them (morph spec S2):
-  //   u  - raw linear fraction, drives the year-stamp cross-fade (wants to
-  //        read as a progress indicator: starts moving immediately, settles
-  //        exactly when the morph completes).
+  //   u  - raw linear fraction, drives the RewindOverlay scrubber/clock and
+  //        the chart haze (wants to read as a progress indicator: starts
+  //        moving immediately, settles exactly when the morph completes).
   //   t  - eased version of u, drives bar/line geometry (steep middle so a
   //        reader crosses quickly and rests at the two real states).
   //   printed numbers - snap off `shown` (t<0.5), never off the lerped rows.
@@ -110,7 +111,11 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         // ~1px tall and worth 0.013M of the 36.1M gold total - the printed
         // figure is still the full-year one.)
         if (!target) return { ...r, xPos, opacity: 0 };
-        return { ...target, key: r.key, xPos };
+        // Keep the slot's own x/label: the axis ticks are placed by key and
+        // labelled by x, so taking target's (2-years-younger) x here would
+        // print "20" under the 2024 age-22 slot - every tick shifted right by
+        // the cohort slide the bars just made. Only the data fields move.
+        return { ...target, key: r.key, x: r.x, label: r.label, xPos };
       }),
     [rows2024, rows2022ByAge]
   );
@@ -169,11 +174,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   const deltaVs2024 = shortfall2022 - shortfall2024;
 
   const under35Missing = shortfallOf(cycle2024.rows.filter((r) => r.age < 35));
-  // Votes short of the 65+ benchmark among ages 80 and up specifically -
-  // small in raw votes (that population is small), but the point is the
-  // reversal: even the oldest ages eventually fall under the standard their
-  // own age group sets.
-  const missing80Plus = shortfallOf(cycle2024.rows.filter((r) => r.age >= 80));
 
   const age25 = cycle2024.rows.find((r) => r.age === 25)!;
   const age75 = cycle2024.rows.find((r) => r.age === 75)!;
@@ -188,8 +188,12 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   // bar mid-morph describes `shown`, not the lerped geometry it happens to
   // be sitting on. useCallback because PopulationBars lists this in its d3
   // effect deps, and this component now re-renders on every scroll quantum.
+  // Mid-morph the bars describe no real election, so there is nothing
+  // honest to hover - no tooltip until the chart settles on a real year.
+  const morphing = t > 0 && t < 1;
   const tooltipFor = useCallback(
     (row: PopulationBarRow) => {
+      if (morphing) return null;
       const real = shownRowsByKey.get(row.key);
       if (!real) return null; // a cohort that has slid off the chart
       const year = shownYear2022 ? "2022" : "2024";
@@ -206,7 +210,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         </>
       );
     },
-    [shownRowsByKey, shownYear2022, shownCycle]
+    [morphing, shownRowsByKey, shownYear2022, shownCycle]
   );
 
   const compareTable = (
@@ -241,8 +245,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     shortfall2024: fmtM(shortfall2024),
     under35Missing: fmtM(under35Missing),
     shortfall2024Pct: fmtPct((shortfall2024 / cycle2024.totalVotes) * 100),
-    declineAge: cycle2024.declineAge,
-    missing80Plus: fmtM(missing80Plus),
     compareTable,
   };
 
@@ -268,7 +270,10 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               // Mounted from first paint (so the space it takes is reserved
               // and its arrival moves nothing), faded in as the reader
               // reaches the step that first adds the gold up.
-              opacity: clamp01((progress - 3.55) / 0.35),
+              // Dimmed with the plot mid-morph: it only ever prints a real
+              // year's figure, but a crisp number under a rewinding chart
+              // still invites reading it as the chart's.
+              opacity: clamp01((progress - 3.55) / 0.35) * (1 - 0.65 * rewindHaze(u)),
               // Fades in over the morph's last ~15%. Keyed to raw `u`, the
               // linear scroll signal, not the eased `t` (whose last 15% is a
               // much narrower sliver of actual scroll distance).
@@ -279,19 +284,17 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             // the scroll instead of following it.
             transitionMs={progress > TWEEN_UNTIL ? 0 : 700}
             tooltipFor={tooltipFor}
-            plotOverlay={
-              <div className="voa-year-stamp" aria-hidden="true">
-                <span style={{ opacity: 1 - u }}>2024</span>
-                <span style={{ opacity: u }}>2022</span>
-              </div>
-            }
+            // Clock centred on the 1M gridline: low enough to leave the
+            // under-35 shortfall and the 60s bulge in view as it passes.
+            plotOverlay={({ yPct }) => <RewindOverlay u={u} clockTop={`${yPct(1000)}%`} />}
+            plotHaze={rewindHaze(u)}
           />
         </StickyViz>
         <div className="voa-scrolly-steps">
           {ageBeatsSteps.map((s, i) => (
             <div className="voa-step" key={i} ref={setStepRef(i)}>
               <div className="voa-step-inner">
-                {i === 6 && (
+                {i === 5 && (
                   // Beat 2 starts here. Its heading rides up the text column
                   // rather than ruling off the page full-width, because the
                   // chart to its left is the same element and must not unstick.

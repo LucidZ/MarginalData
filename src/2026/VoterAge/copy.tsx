@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Gloss, GlossList } from "../../components/Footnotes";
 import type { VoterAgeData } from "./types";
 
 /**
@@ -24,10 +25,16 @@ export const hero = {
   title: "The Shape of the Electorate",
   intro: (
     <>
-      Voting is one person, one vote — but turnout isn't uniform, so the electorate that actually shows up isn't a
-      scale model of the country. Using Census Bureau survey data and real population counts, here's who's missing,
-      when it's worst, which traits it shows up on besides age, and the one place a policy change has been shown to
-      narrow it.
+The U.S. was founded in part on the principle of representative democracy, 
+yet for most of its early history, the right to vote was restricted to white 
+male landowners. Over the past 250 years, marginalized groups—including women, 
+Black Americans, and young people—have fought, protested, and pushed for legal 
+reforms to secure equal voting rights and political representation.
+
+Despite those historic struggles, voter participation remains surprisingly low, 
+with only about 60% of eligible voters casting ballots in typical presidential 
+elections. This page explores the shape of the electorate versus the 
+broader population it is meant to represent.
     </>
   ),
 };
@@ -77,86 +84,77 @@ export interface AgeBeatsVals {
   shortfall2024: string;
   under35Missing: string;
   shortfall2024Pct: string;
-  declineAge: number | null;
-  missing80Plus: string;
   /** Step 8's turnout-by-age table, rendered by AgeBeats.tsx (it's data
    * presentation, not prose) and embedded here so the surrounding paragraphs
    * stay in one place with it. */
   compareTable: ReactNode;
 }
 
-export const ageBeatsTitle = "1. The shape of the electorate";
+export const ageBeatsTitle = "1. The age of the electorate";
 export const midtermsTitle = "2. Midterms make it worse";
 
 export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
   {
-    heading: "Every bar is one year of age",
-    body: (v) => (
-      <p>
-        The light bar is how many citizens of that age were eligible to vote in 2024. There are more 25-year-olds (
-        {v.age25cvap} eligible) than 75-year-olds ({v.age75cvap}) — the population just gets thinner with age, the
-        way it does in most rich countries.
-      </p>
-    ),
-  },
-  {
-    heading: "Now add who actually voted",
+    heading: "The country skews younger",
     body: () => (
       <p>
-        The solid bar is votes cast. It's shorter than the light bar everywhere — turnout is never 100% — but not by
-        the same amount at every age. Watch how much of the light bar the solid one covers as you move left to right.
+        Each bar is how many citizens of that age were{" "}
+        <Gloss
+          note={
+            <>
+              Eligible means citizens 18 and older. That leaves out:
+              <GlossList
+                items={[
+                  "Non-citizens",
+                  "Citizens younger than 18",
+                  "People with felony convictions (varies by state)",
+                  "Residents of U.S. territories",
+                  "People declared mentally incapacitated (varies by state)",
+                ]}
+              />
+            </>
+          }
+        >
+          eligible
+        </Gloss>{" "}
+        to vote in 2024.
       </p>
     ),
   },
   {
-    heading: "The dotted line is what 65-and-over does",
+    heading: "Voters skew older",
+    body: () => (
+      <p>
+        A distinctly different shape appears among voters because older people tend to vote more than younger people.
+      </p>
+    ),
+  },
+  {
+    heading: "People 65-and-over vote the most",
     body: (v) => (
       <p>
-        It traces what each age's vote bar would reach if every age turned out the way people 65 and older actually
-        do: {v.bench}. That's the most reliable bloc in the electorate — the one group whose turnout barely moves
-        from one election to the next — so it's a steadier yardstick than a national average that blends every age
-        together.
+        The highest participation rate ({v.bench}) belongs to those 65-and-over. Perhaps because most are retired and have more time...
       </p>
     ),
   },
   {
-    heading: "Fill in what's missing",
-    body: (v) => (
+    heading: "The trend in age",
+    body: () => (
       <p>
-        Gold is the distance from a bar up to that line: votes an age would have cast at the 65+ rate, and didn't.
-        The gold runs out around age {v.crossoverAge} — not a hard cutoff, a few ages just below it already clear the
-        line before it holds for good, but that's roughly where turnout catches up to the 65+ standard.
+        ... but even among those younger than 65 there is a clear trend in participation. 
       </p>
     ),
   },
   {
-    heading: "In votes, not percentages",
+    heading: "How the shortfalls add up",
     body: (v) => (
       <>
         <p>
-          Add the gold up and it comes to <strong>{v.shortfall2024} votes</strong> — ballots that would exist if
-          every age turned out the way 65-and-overs do. Most of it is concentrated young: under-35s account for{" "}
-          <strong>{v.under35Missing}</strong> of the total on their own.
+          If everyone voted at the same rate as the 65+ crowd there would be <strong>{v.shortfall2024} more votes</strong> 
+          representing <strong>{v.shortfall2024Pct}</strong> of the population.
         </p>
         <div className="voa-callout">
-          {v.shortfall2024} missing votes, {v.shortfall2024Pct} of every ballot cast in 2024 — and{" "}
-          <strong>{v.under35Missing}</strong> of it is under 35.
-        </div>
-      </>
-    ),
-  },
-  {
-    heading: "Even 65+'s own standard doesn't hold forever",
-    body: (v) => (
-      <>
-        <p>
-          Watch the far right edge: by around age {v.declineAge}, the gold comes back. Turnout keeps declining into
-          the 80s and 90s — even the age group that sets this bar eventually falls short of it. The 65+ line isn't a
-          ceiling everyone past 65 clears; it's a bloc average with its own decline built in at the far end.
-        </p>
-        <div className="voa-callout">
-          <strong>{v.missing80Plus}</strong> of the shortfall is ages 80 and up — a small slice of a small
-          population, but a real reversal of the pattern the rest of the chart shows.
+          In elections where the margins of victory tends to be small, this can be significant.
         </div>
       </>
     ),
