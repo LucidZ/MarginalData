@@ -28,14 +28,17 @@ CPS tail bucket, because that's all CPS reports.
 
 Sources used:
   CPS Table 1  - national, single year of age (18-79 + 80-84/85+ pooled),
-                 2022 and 2024 only (both cycles used in beats 1-2).
+                 every November election 2012-2024 (beats 1-2 use
+                 2022/2024; the explorer uses all seven).
   CPS Table 2  - national, race/Hispanic origin (2024 only, beat 3).
   CPS Table 5  - national, educational attainment (2024 only, beat 3).
   CPS Table 7  - national, family income (2024 only, beat 3).
-  PEP          - national, single year of age x sex, 2022 and 2024.
+  PEP          - national, single year of age x sex: 2010-2020 intercensal
+                 series for 2012-2018, Vintage 2024 for 2020-2024.
 
 Requirements:
-    openpyxl (no API key / auth needed - all public downloads)
+    openpyxl, xlrd >= 2 (for the 2012/2014 .xls tables)
+    (no API key / auth needed - all public downloads)
 
 Usage:
     python scripts/generate_voter_age_data.py
@@ -63,9 +66,25 @@ PEP_URL = (
     "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/"
     "national/asrh/nc-est2024-agesex-res.csv"
 )
+# 2010-2020 intercensal series, revised to agree with the 2020 Census - the
+# same anchor as the V2024 file above. Used for 2012-2018 only: it has just
+# the April 2020 census count for 2020, and every other year is a July 1
+# estimate, so 2020 comes from the V2024 file's POPESTIMATE2020.
+PEP_INTERCENSAL_URL = (
+    "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/"
+    "intercensal/national/asrh/nc-est2020int-agesex-res.csv"
+)
+PEP_INTERCENSAL_YEARS = (2012, 2014, 2016, 2018)
 
-# (year, p20_dir, table1_filename)
+# (year, p20_dir, table1_filename). Every November election 2012-2024.
+# 2012/2014 are legacy .xls (read with xlrd) and lay the table out
+# differently from 2016+ - parse_table1 handles both without fixed indices.
 CYCLES = [
+    (2012, "568", "table01.xls"),
+    (2014, "577", "table01.xls"),
+    (2016, "580", "table01.xlsx"),
+    (2018, "583", "table01.xlsx"),
+    (2020, "585", "table01.xlsx"),
     (2022, "586", "vote01_2022.xlsx"),
     (2024, "587", "vote01_2024.xlsx"),
 ]
@@ -122,6 +141,68 @@ def load_sheet(path):
     return wb.active
 
 
+TABLE1_SHEET = "Table 1"
+
+
+def load_table1_rows(path):
+    """All rows of CPS Table 1 as tuples, from .xls (2012/2014) or .xlsx.
+
+    Selects the sheet named "Table 1" when there is one, not the active
+    sheet: 2018's workbook has "Table 1" and "Table 1a" (margins of error)
+    and 1a is the active sheet, so wb.active silently parses MOEs. Then
+    asserts the title really is Table 1, for every year."""
+    if path.suffix == ".xls":
+        import xlrd
+        wb = xlrd.open_workbook(path)
+        names = wb.sheet_names()
+        sh = wb.sheet_by_name(TABLE1_SHEET) if TABLE1_SHEET in names else wb.sheet_by_index(0)
+        rows = [tuple(sh.row_values(i)) for i in range(sh.nrows)]
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            wb = openpyxl.load_workbook(path, data_only=True)
+        ws = wb[TABLE1_SHEET] if TABLE1_SHEET in wb.sheetnames else wb.active
+        rows = list(ws.iter_rows(values_only=True))
+
+    title = next(
+        (str(c).strip() for r in rows[:8] for c in r[:2] if c and str(c).strip().startswith("Table 1")),
+        None,
+    )
+    if title is None or not title.startswith("Table 1."):
+        raise ValueError(f"{path.name}: expected a 'Table 1.' title, found {title!r}")
+    return rows
+
+
+def _is_number(c):
+    return isinstance(c, (int, float)) and not isinstance(c, bool)
+
+
+def normalize_row(r):
+    """(label, numbers) for one Table 1 row, independent of layout. 2016+
+    puts the age label in col 1 (marker in col 0); 2012/2014 put a
+    dot-indented label in col 0 and shift every number left by one. The
+    label is the last non-numeric text among the first two cells, dots
+    stripped; numbers are the numeric cells in order."""
+    label = ""
+    for c in r[:2]:
+        if c is not None and not _is_number(c) and str(c).strip():
+            label = str(c).strip().lstrip(".").strip()
+    return label, [float(c) for c in r if _is_number(c)]
+
+
+BLOCK_MARKERS = ("both sexes", "male", "female")
+
+
+def _marker(r):
+    """The BOTH SEXES/MALE/FEMALE marker in either of the first two cells
+    (2016+ shares the BOTH SEXES row with "Total 18 years and over";
+    2012/2014 put title-case markers on rows of their own)."""
+    for c in r[:2]:
+        if c is not None and not _is_number(c) and str(c).strip().lstrip(".").strip().lower() in BLOCK_MARKERS:
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # CPS Table 1 - national, single year of age
 # ---------------------------------------------------------------------------
@@ -148,9 +229,8 @@ def parse_table1(path):
     block by locating the next marker row, not a fixed row offset (the
     header height is not stable across years).
     """
-    ws = load_sheet(path)
-    rows = list(ws.iter_rows(values_only=True))
-    markers = [i for i, r in enumerate(rows) if r[0] and str(r[0]).strip() in ("BOTH SEXES", "MALE", "FEMALE")]
+    rows = load_table1_rows(path)
+    markers = [i for i, r in enumerate(rows) if _marker(r)]
     if not markers:
         raise ValueError(f"{path.name}: no BOTH SEXES/MALE/FEMALE marker rows found")
     lo = markers[0]
@@ -160,15 +240,14 @@ def parse_table1(path):
     tail_80_84 = None
     tail_85_plus = None
     for r in rows[lo:hi]:
-        label = str(r[1] or "").strip()
+        label, n = normalize_row(r)
         m = SINGLE_YEAR_RE.match(label)
-        try:
-            # Col 4 = citizens reporting registered. Census counts "no
-            # response to registration" as not registered, same convention
-            # as col 10's voted.
-            total_pop, cit_pop, voted, registered = float(r[2]), float(r[3]), float(r[10]), float(r[4])
-        except (TypeError, ValueError):
+        if len(n) < 9:
             continue
+        # n[2] = citizens reporting registered. Census counts "no response
+        # to registration" as not registered, same convention as n[8]'s
+        # voted. (Cols 4 and 10 in the 2016+ layout, 3 and 9 in 2012/2014.)
+        total_pop, cit_pop, voted, registered = n[0], n[1], n[8], n[2]
         rec = (total_pop, cit_pop, voted, registered)
         if m:
             single_years[int(m.group(1))] = rec
@@ -189,24 +268,26 @@ def parse_table1(path):
 # PEP - national, single year of age, both sexes
 # ---------------------------------------------------------------------------
 
-def parse_pep(path, years):
-    """Returns {age: {year: population_thousands}} for ages 0-100 ("100"
-    means "100 and over"), both sexes (SEX == '0')."""
+def parse_pep(sources):
+    """sources = {path: [years]}. Returns {age: {year: population_thousands}}
+    for ages 0-100 ("100" means "100 and over"), both sexes (SEX == '0'),
+    merged across files. Checks ages 18-100 are complete for every year."""
     import csv
 
     out = {}
-    with open(path, newline="") as f:
-        for row in csv.DictReader(f):
-            if row["SEX"] != "0":
-                continue
-            age = int(row["AGE"])
-            if age == 999:  # the all-ages total row
-                continue
-            out[age] = {y: float(row[f"POPESTIMATE{y}"]) / 1000 for y in years}
+    for path, years in sources.items():
+        with open(path, newline="") as f:
+            for row in csv.DictReader(f):
+                if row["SEX"] != "0":
+                    continue
+                age = int(row["AGE"])
+                if age == 999:  # the all-ages total row
+                    continue
+                out.setdefault(age, {}).update({y: float(row[f"POPESTIMATE{y}"]) / 1000 for y in years})
 
-    missing = [a for a in range(18, 101) if a not in out]
-    if missing:
-        raise ValueError(f"{path.name}: missing PEP population for ages {missing}")
+        missing = [a for a in range(18, 101) if any(y not in out.get(a, {}) for y in years)]
+        if missing:
+            raise ValueError(f"{path.name}: missing PEP population for ages {missing}")
     return out
 
 
@@ -516,19 +597,24 @@ def main():
         edu_path = download("2024_vote05_2024_1.xlsx", f"{CPS_BASE}/587/vote05_2024_1.xlsx")
         income_path = download("2024_vote07_2024.xlsx", f"{CPS_BASE}/587/vote07_2024.xlsx")
         pep_path = download("nc-est2024-agesex-res.csv", PEP_URL)
+        pep_intercensal_path = download("nc-est2020int-agesex-res.csv", PEP_INTERCENSAL_URL)
     else:
         edu_path = RAW_DIR / "2024_vote05_2024_1.xlsx"
         income_path = RAW_DIR / "2024_vote07_2024.xlsx"
         pep_path = RAW_DIR / "nc-est2024-agesex-res.csv"
+        pep_intercensal_path = RAW_DIR / "nc-est2020int-agesex-res.csv"
 
-    print("Parsing CPS Table 1 (national, single year of age) x 2 cycles...")
+    print(f"Parsing CPS Table 1 (national, single year of age) x {len(CYCLES)} cycles...")
     table1 = {}
     for year, _, _ in CYCLES:
         table1[year] = parse_table1(table1_paths[year])
         print(f"  {year}: {len(table1[year][0])} single-year rows + 2 tail buckets OK")
 
     print("Parsing PEP (national population, single year of age)...")
-    pep_by_age = parse_pep(pep_path, [y for y, _, _ in CYCLES])
+    pep_by_age = parse_pep({
+        pep_intercensal_path: [y for y, _, _ in CYCLES if y in PEP_INTERCENSAL_YEARS],
+        pep_path: [y for y, _, _ in CYCLES if y not in PEP_INTERCENSAL_YEARS],
+    })
     print(f"  {len(pep_by_age)} ages (18-100) x {len(CYCLES)} years OK")
 
     print("Building byAge (PEP levels x CPS rates)...")
@@ -540,7 +626,8 @@ def main():
         cps_cvap = sum(v[1] for v in single_years.values()) + tail_80_84[1] + tail_85_plus[1]
         cps_votes = sum(v[2] for v in single_years.values()) + tail_80_84[2] + tail_85_plus[2]
         validate_age_reconstruction(cycle, cps_cvap, cps_votes, single_years, tail_80_84, tail_85_plus, pep_by_age, year)
-        by_age[str(year)] = cycle
+        # Presidential vs midterm, for the explorer's year control.
+        by_age[str(year)] = {"kind": "presidential" if year % 4 == 0 else "midterm", **cycle}
         print(
             f"  {year}: CVAP {cycle['totalCvap']:,.0f}k  votes {cycle['totalVotes']:,.0f}k  "
             f"avg turnout {cycle['avgTurnout']}%  crossover age {cycle['crossoverAge']}"
@@ -593,14 +680,16 @@ def main():
     output = {
         "meta": {
             "sources": [
-                "US Census Bureau, CPS November Voting and Registration Supplement, Tables 1/2/5/7 (2022, 2024)",
-                "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age estimates",
+                "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 "
+                "(2012, 2014, 2016, 2018, 2020, 2022, 2024) and Tables 2/5/7 (2024)",
+                "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age "
+                "estimates: Vintage 2024 (2020-2024) and 2010-2020 intercensal (2012-2018)",
                 COLORADO["citation"],
             ],
             "sourceUrls": [
                 f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
-            ] + [PEP_URL, COLORADO["url"]],
-            "retrieved": "2026-09-16",
+            ] + [PEP_URL, PEP_INTERCENSAL_URL, COLORADO["url"]],
+            "retrieved": "2026-09-25",
             "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration); percentage points (effectPp, sePp)",
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
@@ -613,6 +702,9 @@ def main():
                 "CPS turnout is self-reported and runs higher than certified results; the "
                 "overstatement is not perfectly uniform across groups, so treat exact percentage "
                 "points as approximate rather than exact.",
+                "byAge covers every November election 2012-2024. Population for 2012-2018 comes "
+                "from Census's 2010-2020 intercensal estimates, which were revised after the 2020 "
+                "Census; 2020-2024 from Vintage 2024. Both are anchored to the 2020 Census.",
                 "Ages 80+ (byAge) use real single-year PEP population but a CPS turnout/citizen-"
                 "share rate pooled across the whole 80-84 or 85+ bucket, since CPS does not report "
                 "single years of age above 79 - flagged per-row as ratesPooled.",

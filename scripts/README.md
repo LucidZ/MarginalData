@@ -6,18 +6,17 @@ Data processing and build scripts for MarginalData visualizations.
 
 ### `generate_voter_age_data.py`
 
-Builds the dataset for the "Electorate Is Older Than the Country" voter-participation-by-age
-story: national single-year-of-age turnout, national 5-bin turnout across five election cycles,
-and state-level 5-bin turnout for the mail-in-voting and midterm-severity beats.
+Builds the dataset for "The Shape of the Electorate" (`/2026/VoterAge`): eligible citizens,
+registered voters and votes by single year of age (18-100) for every November election
+2012-2024.
 
-**Purpose**: Downloads and normalizes two US Census Bureau CPS November Voting and Registration
-Supplement tables (Table 1: national by single year of age; Table 4c: by state, 5 age bins)
-across 2016/2018/2020/2022/2024, then derives the "under-35 representation gap"
-(share of votes cast by 18-34-year-olds minus their share of eligible citizens) used throughout
-the story.
+**Purpose**: Takes population *levels* from the Census Population Estimates Program (PEP) and
+*rates* (citizen share, registration, turnout) from the CPS November Voting and Registration
+Supplement's Table 1. See the module docstring for why each quantity comes from where it does.
 
 **Requirements**:
-- `openpyxl` (no API key - these are public XLSX downloads from census.gov)
+- `openpyxl`, plus `xlrd` >= 2 for the 2012/2014 tables, which are legacy `.xls`
+  (no API key - these are public downloads from census.gov)
 
 **Usage**:
 ```bash
@@ -29,13 +28,12 @@ python scripts/generate_voter_age_data.py --skip-download
 
 **Output**:
 - File: `public/data/voter-age.json`
-- Size: ~140KB
+- Size: ~195KB
 
-**Known data quirk**: 2018's Table 1 file is mislabeled at the source (Census serves Table 1a,
-margins of error, at the URL whose link text says "Table 1") — there's no alternate filename to
-recover the real Table 1 for that year. The script skips single-year-of-age for 2018 rather than
-silently parsing the wrong table; Table 4c for 2018 is unaffected. See the module docstring for
-detail.
+**Known data quirk**: 2018's Table 1 workbook has two sheets, `Table 1` and `Table 1a`
+(margins of error), and the *active* sheet is 1a. The script picks the sheet by name and
+checks that every year's title starts with `Table 1.`, so a margins-of-error sheet fails
+loudly instead of parsing as data.
 
 **When to run**:
 - Once to generate the initial dataset
