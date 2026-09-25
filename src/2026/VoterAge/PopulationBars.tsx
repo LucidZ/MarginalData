@@ -27,10 +27,12 @@ export interface PopulationBarRow {
   /** Per-row opacity multiplier, 0-1. Defaults to 1. Used by the cohort
    * morph to fade out bars that have no counterpart in the target year. */
   opacity?: number;
-  /** Where the shortfall splits into its registration part (votes up to
-   * here) and its turnout-among-the-registered part (here up to expected).
-   * Only read when the `gapSplit` prop is passed. */
-  splitAt?: number;
+  /** Registration layer, "age" variant only (VoterAge beat 1). Thousands. */
+  registered?: number;
+  /** cvap x the 65+ registration rate - the registration standard's line. */
+  expectedRegistered?: number;
+  /** registered x the 65+ show-up rate - the show-up standard's line. */
+  expectedFromRegistered?: number;
 }
 
 interface Props {
@@ -52,12 +54,21 @@ interface Props {
    * isn't voting, and shading a "surplus" would imply some groups should
    * participate less. */
   showGap?: boolean;
-  /** Splits the gold shortfall into two stacked layers at each row's
-   * `splitAt`: registration (lighter, sitting on the votes bar) and
-   * turnout among the registered (darker, up to the expected line), each
-   * with its own toggle and legend entry. When passed, `showGap` is
-   * ignored. */
-  gapSplit?: { registration: boolean; turnout: boolean };
+  /** Opacity 0-1 of the registered bar, drawn between the eligible track
+   * and the votes bar. Omit on charts whose rows carry no `registered`. */
+  registeredOpacity?: number;
+  /** Two more 65+ standards, one per hurdle ("age" variant only). Each is
+   * a dotted line plus a gold gap measured against the bar it sits on:
+   *   registration - line at expectedRegistered, gap down to registered
+   *   showUp       - line at expectedFromRegistered, gap down to votes
+   * `line`/`gap` are opacities, so a caller can dim a previous step's
+   * standard rather than drop it. */
+  registrationStandard?: { line: number; gap: number };
+  showUpStandard?: { line: number; gap: number };
+  /** Legend copy for the gold swatch. The dotted-line label is
+   * `expectedLineLabel`. Both are one entry each, relabelled by the caller
+   * as the active standard changes, so the legend never reflows. */
+  gapLegendLabel?: string;
   /** Fixes the y-domain - pass the same domain across a dataset swap (e.g.
    * 2024 -> 2022) so the transition reads as "the bars dropped", not "the
    * axis rescaled under them". Computed from the data if omitted. */
@@ -111,7 +122,10 @@ export default function PopulationBars({
   showExpected = true,
   expectedLineLabel = "expected at average turnout",
   showGap = false,
-  gapSplit,
+  registeredOpacity = 0,
+  registrationStandard,
+  showUpStandard,
+  gapLegendLabel = "Shortfall",
   yDomain: yDomainProp,
   directLabelMissing = false,
   heroGap,
@@ -202,10 +216,14 @@ export default function PopulationBars({
       // label never gets chopped.
       const clipped = root.append("g").attr("class", "pb-clipped").attr("clip-path", `url(#${clipId})`);
       clipped.append("g").attr("class", "pb-tracks");
+      clipped.append("g").attr("class", "pb-registered");
       clipped.append("g").attr("class", "pb-votes");
       clipped.append("g").attr("class", "pb-gaps");
-      clipped.append("g").attr("class", "pb-gaps-turnout");
+      clipped.append("g").attr("class", "pb-gaps-reg");
+      clipped.append("g").attr("class", "pb-gaps-showup");
       clipped.append("path").attr("class", "pb-expected-line");
+      clipped.append("path").attr("class", "pb-expected-line pb-line-reg");
+      clipped.append("path").attr("class", "pb-expected-line pb-line-showup");
       root.append("g").attr("class", "pb-expected-ticks");
       root.append("g").attr("class", "pb-missing-labels");
       clipped.append("g").attr("class", "pb-hits");
@@ -292,6 +310,32 @@ export default function PopulationBars({
       .attr("y", (d: PopulationBarRow) => yScale(d.cvap))
       .attr("height", (d: PopulationBarRow) => innerH - yScale(d.cvap));
 
+    // Registered bars - between the track and the votes bar, so the three
+    // read as one funnel: eligible, registered, voted.
+    const registeredRows = rows.filter((r) => r.registered !== undefined);
+    const regBars = root
+      .select<SVGGElement>("g.pb-registered")
+      .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-registered")
+      .data(registeredRows, (d) => d.key);
+    regBars.exit().remove();
+    const regClass = (d: PopulationBarRow) => `pb-registered${d.ratesPooled ? " pb-pooled" : ""}`;
+    const regMerged = regBars
+      .enter()
+      .append("rect")
+      .attr("class", regClass)
+      .attr("x", (d) => xOf(d))
+      .attr("width", xScale.bandwidth())
+      .attr("y", innerH)
+      .attr("height", 0)
+      .merge(regBars as any)
+      .attr("class", regClass)
+      .style("opacity", (d: PopulationBarRow) => registeredOpacity * (d.opacity ?? 1));
+    anim(regMerged)
+      .attr("x", (d: PopulationBarRow) => xOf(d))
+      .attr("width", xScale.bandwidth())
+      .attr("y", (d: PopulationBarRow) => yScale(d.registered!))
+      .attr("height", (d: PopulationBarRow) => innerH - yScale(d.registered!));
+
     // Votes bars - same x/width as the track, shorter height, drawn on
     // top so the visible remainder above it (up to the track's height)
     // reads directly as the gap between eligible and voted.
@@ -318,31 +362,22 @@ export default function PopulationBars({
       .attr("y", (d: PopulationBarRow) => yScale(d.votes))
       .attr("height", (d: PopulationBarRow) => innerH - yScale(d.votes));
 
-    // Gold shortfall blocks - one per under-voting bar, sitting on top of
-    // the votes bar and capped by the dotted line. Across the age chart
-    // they merge into one wedge, so the gap reads as a single shape
-    // rather than 25 separate pieces. Bars over the line get nothing.
-    // With `gapSplit` the block is two layers stacked at `splitAt`:
-    // registration on the votes bar, turnout above it up to the line.
-    // splitAt is clamped into [votes, expected] here too, since lerped
-    // rows mid-morph can fall outside it for a bar that only under-votes
-    // in one of the two elections.
-    const midOf = (d: PopulationBarRow) =>
-      gapSplit ? Math.min(Math.max(d.splitAt ?? d.votes, d.votes), d.expected) : d.expected;
+    // Gold shortfall blocks - one per bar that falls under a standard,
+    // sitting on the bar it's measured against and capped by that
+    // standard's dotted line. Across the age chart they merge into one
+    // wedge, so the gap reads as a single shape rather than 25 separate
+    // pieces. Bars over the line get nothing.
     const drawGapLayer = (
       group: string,
-      cls: string,
-      data: PopulationBarRow[],
-      bottom: (d: PopulationBarRow) => number,
-      top: (d: PopulationBarRow) => number,
-      visible: boolean,
-      inset = 0
+      bottom: (d: PopulationBarRow) => number | undefined,
+      top: (d: PopulationBarRow) => number | undefined,
+      opacity: number
     ) => {
-      const fullClass = (d: PopulationBarRow) => `pb-gap ${cls}${d.ratesPooled ? " pb-pooled" : ""}`;
-      // Pixel height, less `inset` px taken off the bottom edge - the upper
-      // of two stacked layers gives up 1px so a hairline of track shows
-      // between the two golds and they read as two pieces, not one fill.
-      const h = (d: PopulationBarRow) => Math.max(0, yScale(bottom(d)) - yScale(top(d)) - inset);
+      const data = rows.filter((d) => {
+        const b = bottom(d), t = top(d);
+        return b !== undefined && t !== undefined && b < t;
+      });
+      const gapClass = (d: PopulationBarRow) => `pb-gap${d.ratesPooled ? " pb-pooled" : ""}`;
       const sel = root
         .select<SVGGElement>(`g.${group}`)
         .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-gap")
@@ -351,37 +386,51 @@ export default function PopulationBars({
       const merged = sel
         .enter()
         .append("rect")
-        .attr("class", fullClass)
+        .attr("class", gapClass)
         .attr("x", (d) => xOf(d))
         .attr("width", xScale.bandwidth())
-        .attr("y", (d) => (tr ? yScale(bottom(d)) : yScale(top(d))))
-        .attr("height", (d) => (tr ? 0 : h(d)))
+        .attr("y", (d) => yScale(tr ? bottom(d)! : top(d)!))
+        .attr("height", (d) => (tr ? 0 : yScale(bottom(d)!) - yScale(top(d)!)))
         .merge(sel as any)
-        .attr("class", fullClass)
-        .style("opacity", (d: PopulationBarRow) => (visible ? 1 : 0) * (d.opacity ?? 1));
+        .attr("class", gapClass)
+        .style("opacity", (d: PopulationBarRow) => opacity * (d.opacity ?? 1));
       anim(merged)
         .attr("x", (d: PopulationBarRow) => xOf(d))
         .attr("width", xScale.bandwidth())
-        .attr("y", (d: PopulationBarRow) => yScale(top(d)))
-        .attr("height", h);
+        .attr("y", (d: PopulationBarRow) => yScale(top(d)!))
+        .attr("height", (d: PopulationBarRow) => yScale(bottom(d)!) - yScale(top(d)!));
     };
+    drawGapLayer("pb-gaps", (d) => d.votes, (d) => d.expected, showGap ? 1 : 0);
     drawGapLayer(
-      "pb-gaps",
-      gapSplit ? "pb-gap--registration" : "",
-      shortRows,
+      "pb-gaps-reg",
+      (d) => d.registered,
+      (d) => (registrationStandard ? d.expectedRegistered : undefined),
+      registrationStandard?.gap ?? 0
+    );
+    drawGapLayer(
+      "pb-gaps-showup",
       (d) => d.votes,
-      midOf,
-      gapSplit ? gapSplit.registration : showGap
+      (d) => (showUpStandard ? d.expectedFromRegistered : undefined),
+      showUpStandard?.gap ?? 0
     );
-    drawGapLayer(
-      "pb-gaps-turnout",
-      "pb-gap--turnout",
-      gapSplit ? shortRows : [],
-      midOf,
-      (d) => d.expected,
-      !!gapSplit?.turnout,
-      1
-    );
+
+    // The two hurdle standards' dotted lines - same style as the expected
+    // line, age variant only.
+    const drawStandardLine = (cls: string, value: (d: PopulationBarRow) => number | undefined, opacity: number) => {
+      const path = root.select<SVGPathElement>(`path.${cls}`);
+      const lineRows = rows.filter((d) => value(d) !== undefined);
+      if (xKind !== "age" || !lineRows.length) {
+        path.style("opacity", 0).attr("d", null);
+        return;
+      }
+      const gen = d3line<PopulationBarRow>()
+        .x((d) => xOf(d) + xScale.bandwidth() / 2)
+        .y((d) => yScale(value(d)!))
+        .curve(curveLinear);
+      anim(path.datum(lineRows).style("opacity", opacity)).attr("d", gen);
+    };
+    drawStandardLine("pb-line-reg", (d) => d.expectedRegistered, registrationStandard?.line ?? 0);
+    drawStandardLine("pb-line-showup", (d) => d.expectedFromRegistered, showUpStandard?.line ?? 0);
 
     // Expected-turnout marker. Age variant: one dotted path through every
     // bar's expected value - since cvap varies smoothly by age, this
@@ -389,7 +438,7 @@ export default function PopulationBars({
     // Category variant: categories aren't ordered, so a connecting line
     // would imply a false adjacency - draw a short dashed tick per bar
     // instead (a bullet-chart target marker).
-    const expectedLine = root.select<SVGPathElement>("path.pb-expected-line");
+    const expectedLine = root.select<SVGPathElement>("path.pb-expected-line:not(.pb-line-reg):not(.pb-line-showup)");
     const expectedTicks = root.select<SVGGElement>("g.pb-expected-ticks");
     if (xKind === "age") {
       expectedTicks.selectAll("*").remove();
@@ -471,8 +520,11 @@ export default function PopulationBars({
     showVotes,
     showExpected,
     showGap,
-    gapSplit?.registration,
-    gapSplit?.turnout,
+    registeredOpacity,
+    registrationStandard?.line,
+    registrationStandard?.gap,
+    showUpStandard?.line,
+    showUpStandard?.gap,
     shortRows,
     yDomainProp,
     directLabelMissing,
@@ -480,6 +532,12 @@ export default function PopulationBars({
     yLabel,
     transitionMs,
   ]);
+
+  // One dotted entry and one gold entry, shared by whichever standard is
+  // active (the caller relabels them), so the legend never reflows.
+  const lineLegendOn = showExpected || (registrationStandard?.line ?? 0) > 0.5 || (showUpStandard?.line ?? 0) > 0.5;
+  const gapLegendOn = showGap || (registrationStandard?.gap ?? 0) > 0.5 || (showUpStandard?.gap ?? 0) > 0.5;
+  const hasRegistered = rows.some((r) => r.registered !== undefined);
 
   return (
     <div ref={wrapRef} className="voa-chart-surface pb-surface">
@@ -494,42 +552,34 @@ export default function PopulationBars({
         >
           <span className="voa-legend-swatch pb-legend-votes" /> Votes cast
         </span>
+        {/* After votes, not between eligible and votes: it drops out again at
+            the total step, and a hole at the end of the row goes unnoticed. */}
+        {hasRegistered && (
+          <span
+            className="pb-legend-entry"
+            style={{ marginLeft: "0.9rem", opacity: registeredOpacity > 0.5 ? 1 : 0 }}
+            aria-hidden={registeredOpacity <= 0.5 || undefined}
+          >
+            <span className="voa-legend-swatch pb-legend-registered" /> Registered
+          </span>
+        )}
         <span
           className="pb-legend-expected"
-          style={{ marginLeft: "0.9rem", opacity: showExpected ? 1 : 0 }}
-          aria-hidden={!showExpected || undefined}
+          style={{ marginLeft: "0.9rem", opacity: lineLegendOn ? 1 : 0 }}
+          aria-hidden={!lineLegendOn || undefined}
         >
           <svg width="18" height="10" aria-hidden="true">
             <line x1="0" y1="5" x2="18" y2="5" className="pb-expected-line pb-legend-line" />
           </svg>{" "}
           {expectedLineLabel}
         </span>
-        {gapSplit ? (
-          <>
-            <span
-              className="pb-legend-entry"
-              style={{ marginLeft: "0.9rem", opacity: gapSplit.registration ? 1 : 0 }}
-              aria-hidden={!gapSplit.registration || undefined}
-            >
-              <span className="voa-legend-swatch pb-legend-gap" /> Short: registration
-            </span>
-            <span
-              className="pb-legend-entry"
-              style={{ marginLeft: "0.9rem", opacity: gapSplit.turnout ? 1 : 0 }}
-              aria-hidden={!gapSplit.turnout || undefined}
-            >
-              <span className="voa-legend-swatch pb-legend-gap--turnout" /> Short: turnout
-            </span>
-          </>
-        ) : (
-          <span
-            className="pb-legend-entry"
-            style={{ marginLeft: "0.9rem", opacity: showGap ? 1 : 0 }}
-            aria-hidden={!showGap || undefined}
-          >
-            <span className="voa-legend-swatch pb-legend-gap" /> Shortfall
-          </span>
-        )}
+        <span
+          className="pb-legend-entry"
+          style={{ marginLeft: "0.9rem", opacity: gapLegendOn ? 1 : 0 }}
+          aria-hidden={!gapLegendOn || undefined}
+        >
+          <span className="voa-legend-swatch pb-legend-gap" /> {gapLegendLabel}
+        </span>
       </div>
       <div className="pb-plot-wrap">
         <svg

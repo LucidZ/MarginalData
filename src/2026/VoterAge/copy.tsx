@@ -89,10 +89,10 @@ export interface AgeBeatsVals {
   youthReg: string; // 2024 18-24 registration rate
   youthShowUp: string; // 2024 share of registered 18-24s who voted
   youthShowUp2022: string;
-  regShort2024: string; // registration part of the shortfall
-  turnoutShort2024: string; // turnout-among-the-registered part
-  regShort2022: string;
-  turnoutShort2022: string;
+  regGap2024: string; // people short of the 65+ registration rate
+  showUpGap2024: string; // votes short of the 65+ show-up rate among the registered
+  regGap2022: string;
+  showUpGap2022: string;
   /** Step 9's turnout-by-age table, rendered by AgeBeats.tsx (it's data
    * presentation, not prose) and embedded here so the surrounding paragraphs
    * stay in one place with it. */
@@ -139,47 +139,43 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
-    heading: "People 65-and-over vote the most",
-    body: (v) => (
+    heading: "First, you have to register",
+    body: () => (
       <p>
-        The highest participation rate ({v.bench}) belongs to those 65-and-over. Perhaps because most are retired and have more time...
+        Before anyone can vote, they have to register. The paler green is everyone who{" "}
+        <Gloss
+          note={
+            <>
+              Registration is self-reported in the same survey as voting. Census counts people who didn't answer the
+              question as not registered, and young people skip it most often (about one in five 18-to-24-year-olds),
+              so their registration is probably somewhat understated.
+            </>
+          }
+        >
+          says they're registered
+        </Gloss>
+        . Like voting, it climbs with age.
       </p>
     ),
   },
   {
-    heading: "First hurdle: registering",
+    heading: "The registration gap",
     body: (v) => (
-      <>
-        <p>
-          ... but even among those younger than 65 there is a clear trend. Part of it happens before election day:{" "}
-          {v.reg65} of people 65-and-over{" "}
-          <Gloss
-            note={
-              <>
-                Registration is self-reported in the same survey as voting. Census counts people who didn't answer the
-                question as not registered, and young people skip it most often (about one in five 18-to-24-year-olds),
-                so their registration is probably somewhat understated.
-              </>
-            }
-          >
-            say they're registered
-          </Gloss>
-          , compared with {v.youthReg} of 18-to-24-year-olds.
-        </p>
-        <p>
-          The lighter gold is how many more votes each age would cast if it registered at the 65+ rate, with its
-          registered voters still turning out at their own rate: <strong>{v.regShort2024}</strong> in 2024.
-        </p>
-      </>
+      <p>
+        {v.reg65} of people 65-and-over are registered, compared with {v.youthReg} of 18-to-24-year-olds. The dotted
+        line is how many would be registered at every age if everyone matched the 65+ rate. The gold between that
+        line and the paler bars is people who aren't on the rolls: <strong>{v.regGap2024}</strong> in 2024.
+      </p>
     ),
   },
   {
-    heading: "Second hurdle: showing up",
+    heading: "The show-up gap",
     body: (v) => (
       <p>
-        The darker gold is the rest of the way to the line: registered people who didn't vote. {v.showUp65} of
-        registered 65-and-overs voted; among registered 18-to-24-year-olds it was {v.youthShowUp}. That's another{" "}
-        <strong>{v.turnoutShort2024}</strong>.
+        Being registered isn't the same as voting. {v.showUp65} of registered 65-and-overs voted; among registered
+        18-to-24-year-olds it was {v.youthShowUp}. This dotted line is how many votes each age's registered voters
+        would cast at the 65+ rate. The gold down to the votes bar is registered people who didn't vote:{" "}
+        <strong>{v.showUpGap2024}</strong>.
       </p>
     ),
   },
@@ -188,9 +184,10 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     body: (v) => (
       <>
         <p>
-          If everyone voted at the same rate as the 65+ crowd there would be <strong>{v.shortfall2024} more votes</strong>{" "}
-          representing <strong>{v.shortfall2024Pct}</strong> of the population. In a presidential year, most of that is
-          registration.
+          Put both hurdles together and people 65-and-over have the highest turnout of any age ({v.bench}), perhaps
+          because most are retired and have more time. If everyone voted at the same rate as the 65+ crowd there would
+          be <strong>{v.shortfall2024} more votes</strong>, representing <strong>{v.shortfall2024Pct}</strong> of the
+          population.
         </p>
         <div className="voa-callout">
           In elections where the margins of victory tends to be small, this can be significant.
@@ -239,10 +236,10 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
           regardless of what's on the ballot; younger voters mostly show up for president.
         </p>
         <p>
-          The two golds show where the drop happens. The lighter one, registration, barely changes: {v.regShort2024}{" "}
-          in 2024, {v.regShort2022} in 2022. The darker one grows from {v.turnoutShort2024} to{" "}
-          <strong>{v.turnoutShort2022}</strong>. The midterm drop is mostly registered people staying home: only{" "}
-          {v.youthShowUp2022} of registered 18-to-24-year-olds voted in 2022, down from {v.youthShowUp}.
+          Both hurdles get worse in a midterm, but not equally. The registration gap grows from {v.regGap2024} to{" "}
+          {v.regGap2022} people. The show-up gap more than doubles, from {v.showUpGap2024} to{" "}
+          <strong>{v.showUpGap2022}</strong> votes: only {v.youthShowUp2022} of registered 18-to-24-year-olds voted in
+          2022, down from {v.youthShowUp}.
         </p>
       </>
     ),

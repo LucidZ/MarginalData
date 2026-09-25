@@ -21,7 +21,10 @@ import type { VoterAgeData, AgeRow } from "./types";
  *
  * Steps 0-5 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
- * 700ms tween). Steps 6-8 morph it to 2022 continuously off the raw scroll
+ * 700ms tween): eligible, votes, registered, then one 65+ standard per
+ * hurdle (registration, then show-up among the registered), then the
+ * single 65+ turnout standard and its total. The hurdle layers are off
+ * again from step 5 on - the morph only carries the single standard. Steps 6-8 morph it to 2022 continuously off the raw scroll
  * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
  * and .claude/voter-age-morph-honesty-spec.md.
  */
@@ -58,7 +61,9 @@ function toBarRow(row: AgeRow): PopulationBarRow {
     missing: row.missing,
     turnout: row.turnout,
     ratesPooled: row.ratesPooled,
-    splitAt: row.splitAt,
+    registered: row.registered,
+    expectedRegistered: row.expectedRegistered,
+    expectedFromRegistered: row.expectedFromRegistered,
   };
 }
 
@@ -150,7 +155,9 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         votes: lerp(r.votes, target.votes, t),
         expected: lerp(r.expected, target.expected, t),
         missing: lerp(r.missing, target.missing, t),
-        splitAt: lerp(r.splitAt ?? r.votes, target.splitAt ?? target.votes, t),
+        registered: lerp(r.registered!, target.registered!, t),
+        expectedRegistered: lerp(r.expectedRegistered!, target.expectedRegistered!, t),
+        expectedFromRegistered: lerp(r.expectedFromRegistered!, target.expectedFromRegistered!, t),
         turnout: lerp(r.turnout, target.turnout, t),
       };
     });
@@ -209,8 +216,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       const real = shownRowsByKey.get(row.key);
       if (!real) return null; // a cohort that has slid off the chart
       const year = shownYear2022 ? "2022" : "2024";
-      const src = shownCycle.rows.find((r) => r.age === Number(real.x));
-      const splitShown = src && step >= 3 && real.missing < 0;
+      const hurdles = step >= 2 && step < TOTAL_STEP;
       return (
         <>
           <div className="voa-tooltip__head">
@@ -218,16 +224,24 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             {real.ratesPooled ? " (rate shared across 80-84/85+)" : ""}
           </div>
           {fmtM(real.cvap)} eligible
-          {src && step >= 3 ? ` · ${fmtM(src.registered)} registered (${fmtPct(src.registeredRate)})` : ""}
+          {hurdles ? ` · ${fmtM(real.registered!)} registered` : ""}
+          {` · ${fmtM(real.votes)} voted (${fmtPct(real.turnout)})`}
           <br />
-          {fmtM(real.votes)} voted ({fmtPct(real.turnout)})
-          <br />
-          Expected at {fmtPct(shownCycle.over65Turnout)} (the {year} 65+ rate): {fmtM(real.expected)}
+          {step === 3 ? (
+            <>At the 65+ registration rate: {fmtM(real.expectedRegistered!)} registered</>
+          ) : step === 4 ? (
+            <>At the 65+ show-up rate: {fmtM(real.expectedFromRegistered!)} votes from its registered</>
+          ) : (
+            <>
+              Expected at {fmtPct(shownCycle.over65Turnout)} (the {year} 65+ rate): {fmtM(real.expected)}
+            </>
+          )}
           <div className="voa-tooltip__note">
-            {fmtMSigned(real.missing)} vs. that benchmark
-            {splitShown
-              ? ` (${fmtM(src.splitAt - src.votes)} registration, ${fmtM(src.expected - src.splitAt)} turnout)`
-              : ""}
+            {step === 3
+              ? `${fmtMSigned(real.registered! - real.expectedRegistered!)} registered vs. that standard`
+              : step === 4
+                ? `${fmtMSigned(real.votes - real.expectedFromRegistered!)} votes vs. that standard`
+                : `${fmtMSigned(real.missing)} vs. that benchmark`}
           </div>
         </>
       );
@@ -271,14 +285,14 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     under35Missing: fmtM(under35Missing),
     shortfall2024Pct: fmtPct((shortfall2024 / cycle2024.totalVotes) * 100),
     reg65: fmtPct(cycle2024.over65Registration),
-    showUp65: fmtPct((100 * cycle2024.over65Turnout) / cycle2024.over65Registration),
+    showUp65: fmtPct(cycle2024.over65ShowUp),
     youthReg: fmtPct(youth2024.registered),
     youthShowUp: fmtPct(youth2024.showUp),
     youthShowUp2022: fmtPct(youth2022.showUp),
-    regShort2024: fmtM(cycle2024.registrationShortfall),
-    turnoutShort2024: fmtM(cycle2024.turnoutShortfall),
-    regShort2022: fmtM(cycle2022.registrationShortfall),
-    turnoutShort2022: fmtM(cycle2022.turnoutShortfall),
+    regGap2024: fmtM(cycle2024.registrationGap),
+    showUpGap2024: fmtM(cycle2024.showUpGap),
+    regGap2022: fmtM(cycle2022.registrationGap),
+    showUpGap2022: fmtM(cycle2022.showUpGap),
     compareTable,
   };
 
@@ -294,9 +308,21 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             yLabel="People (millions)"
             showTrack
             showVotes={step >= 1}
-            showExpected={step >= 2}
-            expectedLineLabel={`at 65+ turnout (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`}
-            gapSplit={{ registration: step >= 3, turnout: step >= 4 }}
+            registeredOpacity={step >= 2 && step < TOTAL_STEP ? 1 : 0}
+            registrationStandard={
+              step === 3 ? { line: 1, gap: 1 } : step === 4 ? { line: 0.3, gap: 0.3 } : { line: 0, gap: 0 }
+            }
+            showUpStandard={step === 4 ? { line: 1, gap: 1 } : { line: 0, gap: 0 }}
+            showExpected={step >= TOTAL_STEP}
+            showGap={step >= TOTAL_STEP}
+            expectedLineLabel={
+              step === 3
+                ? `at 65+ registration (${fmtPct(cycle2024.over65Registration)})`
+                : step === 4
+                  ? `at 65+ show-up (${fmtPct(cycle2024.over65ShowUp)} of registered)`
+                  : `at 65+ turnout (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`
+            }
+            gapLegendLabel={step === 3 ? "Not registered" : step === 4 ? "Registered, didn't vote" : "Votes short"}
             heroGap={{
               figure: fmtM(shortfallShown),
               label: `votes short of the ${shownYear2022 ? "2022" : "2024"} 65+ standard`,

@@ -13,10 +13,11 @@
   --diverge-bad: #e34948;
   --gap: #e0a11c;
   --gap-edge: #a97407;
-  /* Darker step of the split shortfall (turnout among the registered);
-     the lighter step is --gap. Pair validated as an ordinal ramp and
-     against --series-3 underneath it, both modes. */
-  --gap-turnout: #a97407;
+  /* Registered bar - paler step of the votes green. Squeezed between the
+     gray track and --series-3; best tasteful separation from both is
+     ~14.8 OKLab dE, a hair under the 15 floor, so the legend + tooltip
+     carry identity too. Dark value passes outright. */
+  --registered: #6edbaf;
   --border: rgba(11, 11, 11, 0.1);
 
 
@@ -44,7 +45,7 @@
     --diverge-bad: #e66767;
     --gap: #f0b942;
     --gap-edge: #f8d68c;
-    --gap-turnout: #b57c12;
+    --registered: #12664a;
     --border: rgba(255, 255, 255, 0.1);
 
   }
@@ -65,7 +66,7 @@
   --diverge-bad: #e66767;
   --gap: #f0b942;
   --gap-edge: #f8d68c;
-  --gap-turnout: #b57c12;
+  --registered: #12664a;
   --border: rgba(255, 255, 255, 0.1);
 }
 
@@ -247,6 +248,15 @@
 .pb-track.pb-pooled {
   opacity: 0.6;
 }
+.pb-registered {
+  fill: var(--registered);
+}
+.pb-registered.pb-pooled {
+  opacity: 0.75;
+}
+.pb-legend-registered {
+  background: var(--registered);
+}
 .pb-votes {
   fill: var(--series-3);
 }
@@ -258,12 +268,6 @@
    capped by the dotted line. Only under-voting bars get one. */
 .pb-gap {
   fill: var(--gap);
-}
-.pb-gap--turnout {
-  fill: var(--gap-turnout);
-}
-.pb-legend-gap--turnout {
-  background: var(--gap-turnout);
 }
 .pb-gap.pb-pooled {
   opacity: 0.75;
