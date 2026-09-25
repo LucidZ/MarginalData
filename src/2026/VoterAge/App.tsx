@@ -1,6 +1,7 @@
 import { useJsonData } from "../../hooks/useJsonData";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import AgeBeats from "./AgeBeats";
+import Explorer from "./Explorer";
 import Beat3 from "./Beat3";
 import Beat4 from "./Beat4";
 import { hero, loadErrorText, sourcesFootnote } from "./copy";
@@ -33,6 +34,7 @@ export default function App() {
       </header>
 
       <AgeBeats data={data} />
+      <Explorer data={data} />
       <Beat3 data={data} />
       <Beat4 data={data} />
 

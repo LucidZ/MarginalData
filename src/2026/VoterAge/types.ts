@@ -20,6 +20,7 @@ export interface AgeRow {
 }
 
 export interface AgeCycle {
+  kind: "presidential" | "midterm"; // from the pipeline (year % 4) - don't recompute client-side
   avgTurnout: number; // percent - true national average; kept for CPS reconciliation, not the chart's benchmark
   over65Turnout: number; // percent - votes/cvap for ages 65+ only. The chart's benchmark line.
   over65Registration: number; // percent - registered/cvap for ages 65+
@@ -86,7 +87,8 @@ export interface VoterAgeData {
     construction: string;
     notes: string[];
   };
-  /** Keyed by election year as a string ("2022" | "2024"). */
+  /** Keyed by election year as a string, every November election 2012-2024.
+   * Beats 1-2 read "2024" and "2022" by key; the explorer reads them all. */
   byAge: Record<string, AgeCycle>;
   byDimension: {
     education: Dimension;

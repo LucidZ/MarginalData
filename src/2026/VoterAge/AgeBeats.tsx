@@ -3,6 +3,7 @@ import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import StickyViz from "./StickyViz";
 import RewindOverlay, { rewindHaze } from "./RewindOverlay";
 import { useStepProgress } from "./useStepProgress";
+import { toBarRow } from "./ageRows";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
 import { ageBeatsSteps, ageBeatsTitle, midtermsTitle, type AgeBeatsVals } from "./copy";
 import type { VoterAgeData, AgeRow } from "./types";
@@ -54,22 +55,6 @@ const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 // change in the middle third. See .claude/voter-age-morph-honesty-spec.md S4a.
 function ease(x: number, gamma = 3) {
   return x < 0.5 ? Math.pow(2 * x, gamma) / 2 : 1 - Math.pow(2 * (1 - x), gamma) / 2;
-}
-
-function toBarRow(row: AgeRow): PopulationBarRow {
-  return {
-    key: `age-${row.age}`,
-    x: row.age,
-    label: row.age === 100 ? "100+" : String(row.age),
-    cvap: row.cvap,
-    votes: row.votes,
-    expected: row.expected, // this cycle's own 65+ rate x cvap
-    missing: row.missing,
-    turnout: row.turnout,
-    ratesPooled: row.ratesPooled,
-    registered: row.registered,
-    expectedRegistered: row.expectedRegistered,
-  };
 }
 
 /** Pooled rates over an age range: registered/eligible, and votes/registered

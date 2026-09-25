@@ -181,6 +181,103 @@
   }
 }
 
+/* ---------- Explorer (Explorer.tsx, YearControl.tsx) ---------- */
+.voa-explorer-intro p {
+  font-size: clamp(0.9rem, 1.6vw, 1rem);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin: 0 0 0.8rem;
+}
+.voa-explorer-intro .voa-explorer-caveat {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.voa-explorer-chart {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.voa-yc {
+  max-width: 640px;
+  margin: 1.2rem auto 0.8rem;
+}
+.voa-yc-row {
+  display: flex;
+  gap: 0.35rem;
+}
+.voa-yc-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.45rem 0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background: var(--surface-1);
+  border: 1.5px solid var(--baseline);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.voa-yc-btn--midterm {
+  border-style: dashed;
+}
+.voa-yc-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--muted);
+}
+.voa-yc-btn.is-on {
+  color: var(--page);
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+/* Keeps the dash visible on the filled midterm button: page-colored dashes
+   over the dark fill, which shows through the gaps. */
+.voa-yc-btn--midterm.is-on {
+  border-color: var(--page);
+}
+.voa-yc-btn:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
+.voa-yc-short {
+  display: none;
+}
+.voa-yc-key {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.voa-yc-key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.voa-yc-key-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 11px;
+  border: 1.5px solid var(--muted);
+  border-radius: 3px;
+}
+.voa-yc-key-swatch--midterm {
+  border-style: dashed;
+}
+@media (max-width: 399px) {
+  .voa-yc-full {
+    display: none;
+  }
+  .voa-yc-short {
+    display: inline;
+  }
+  .voa-yc-row {
+    gap: 0.25rem;
+  }
+}
+
 /* ---------- Shared chart surface / axes ---------- */
 .voa-chart-surface {
   background: var(--surface-1);

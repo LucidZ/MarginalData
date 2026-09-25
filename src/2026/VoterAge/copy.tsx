@@ -234,6 +234,37 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Explorer (Explorer.tsx, YearControl.tsx) - every November election on record
+// ---------------------------------------------------------------------------
+
+export interface ExplorerVals {
+  firstYear: string; // earliest cycle in byAge
+}
+
+export const explorerCopy = {
+  title: (v: ExplorerVals) => `3. Every election since ${v.firstYear}`,
+  intro: (v: ExplorerVals) => (
+    <>
+      <p>
+        This is the same chart, for every November election since {v.firstYear}. Pick a year; midterms are marked
+        with a dashed outline. Each bar stays at its age, so switching years compares the same ages across
+        elections, not the same people.
+      </p>
+      <p className="voa-explorer-caveat">
+        Population for {v.firstYear}–2018 comes from the Census Bureau's 2010–2020 intercensal estimates, which
+        were revised after the 2020 census counted everyone. Later years use its current estimates, anchored to the
+        same census.
+      </p>
+    </>
+  ),
+  controlLabel: "Election year",
+  presidential: "Presidential",
+  midterm: "Midterm",
+  heroNotRegistered: "not registered",
+  heroNotVoted: "registered, didn't vote",
+};
+
+// ---------------------------------------------------------------------------
 // Beat 3 - "isn't only about age" (Beat3.tsx), 4 steps
 // ---------------------------------------------------------------------------
 
