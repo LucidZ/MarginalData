@@ -136,8 +136,10 @@ TAIL_85_PLUS = "85 years and over"
 def parse_table1(path):
     """
     Returns (single_years, tail_80_84, tail_85_plus) where single_years is
-    {age: (total_pop, citizen_pop, voted)} for ages 18-79, and the tail
-    tuples are each a single (total_pop, citizen_pop, voted).
+    {age: (total_pop, citizen_pop, voted, registered)} for ages 18-79, and
+    the tail tuples are each a single (total_pop, citizen_pop, voted,
+    registered). Registered is last so every existing [1]/[2] index into
+    these tuples still means citizens/voted.
 
     Table 1 repeats all 62 single-year rows three times - once per
     BOTH SEXES / MALE / FEMALE block (spec v2 S5.4 gotcha #1). An
@@ -161,15 +163,19 @@ def parse_table1(path):
         label = str(r[1] or "").strip()
         m = SINGLE_YEAR_RE.match(label)
         try:
-            total_pop, cit_pop, voted = float(r[2]), float(r[3]), float(r[10])
+            # Col 4 = citizens reporting registered. Census counts "no
+            # response to registration" as not registered, same convention
+            # as col 10's voted.
+            total_pop, cit_pop, voted, registered = float(r[2]), float(r[3]), float(r[10]), float(r[4])
         except (TypeError, ValueError):
             continue
+        rec = (total_pop, cit_pop, voted, registered)
         if m:
-            single_years[int(m.group(1))] = (total_pop, cit_pop, voted)
+            single_years[int(m.group(1))] = rec
         elif TAIL_80_84_RE.match(label):
-            tail_80_84 = (total_pop, cit_pop, voted)
+            tail_80_84 = rec
         elif label == TAIL_85_PLUS:
-            tail_85_plus = (total_pop, cit_pop, voted)
+            tail_85_plus = rec
 
     if len(single_years) != 62:  # ages 18-79
         raise ValueError(f"{path.name}: expected 62 single-year rows (18-79), got {len(single_years)}")
@@ -216,17 +222,18 @@ def build_age_rows(single_years, tail_80_84, tail_85_plus, pep_by_age, year):
     rows = []
     for age in range(18, 101):
         if age in single_years:
-            total_pop, cit_pop, voted = single_years[age]
+            total_pop, cit_pop, voted, registered = single_years[age]
             rates_pooled = False
         elif age < 85:
-            total_pop, cit_pop, voted = tail_80_84
+            total_pop, cit_pop, voted, registered = tail_80_84
             rates_pooled = True
         else:
-            total_pop, cit_pop, voted = tail_85_plus
+            total_pop, cit_pop, voted, registered = tail_85_plus
             rates_pooled = True
 
         cit_share = cit_pop / total_pop
         turnout = voted / cit_pop
+        reg_rate = registered / cit_pop
         pep_pop = pep_by_age[age][year]
         cvap = pep_pop * cit_share
         votes = cvap * turnout
@@ -234,7 +241,9 @@ def build_age_rows(single_years, tail_80_84, tail_85_plus, pep_by_age, year):
             "age": age,
             "cvap": cvap,
             "votes": votes,
+            "registered": cvap * reg_rate,
             "turnout": round(100 * turnout, 1),
+            "registeredRate": round(100 * reg_rate, 1),
             "ratesPooled": rates_pooled,
         })
     return rows
@@ -251,12 +260,40 @@ def finalize_age_cycle(rows):
     over65_cvap = sum(r["cvap"] for r in rows if r["age"] >= OVER65_AGE)
     over65_votes = sum(r["votes"] for r in rows if r["age"] >= OVER65_AGE)
     over65_turnout = over65_votes / over65_cvap
+    over65_registered = sum(r["registered"] for r in rows if r["age"] >= OVER65_AGE)
+    over65_reg_rate = over65_registered / over65_cvap
 
+    # Splits each shortfall (votes up to expected) into two stacked parts:
+    #   votes -> splitAt:     registration - the votes this age would add if
+    #                         it registered at the 65+ rate while its own
+    #                         registrants kept voting at their own rate
+    #                         (splitAt = votes x over65_reg_rate / reg_rate)
+    #   splitAt -> expected:  turnout among the registered - the rest of the
+    #                         way to the 65+ line
+    # The two sum exactly to the existing shortfall. Registration is applied
+    # first, which is the order the chart stacks them (it sits on the votes
+    # bar) and the more conservative attribution to registration: the other
+    # order credits it with ~76% of the 18-24 gap instead of ~67%.
+    # Clamped into [votes, expected] so neither part goes negative: an age
+    # that out-registers the 65+ rate but still under-votes gets a
+    # turnout-only shortfall, and vice versa - no "surplus" is ever shaded,
+    # same rule as the single gold wedge.
+    reg_short = 0.0
+    turnout_short = 0.0
     for r in rows:
         r["expected"] = round(r["cvap"] * over65_turnout, 1)
         r["missing"] = round(r["votes"] - r["expected"], 1)
         r["cvap"] = round(r["cvap"], 1)
         r["votes"] = round(r["votes"], 1)
+        reg_rate = r["registered"] / (r["cvap"] or 1)
+        r["registered"] = round(r["registered"], 1)
+        if r["votes"] < r["expected"] and reg_rate > 0:
+            split = r["votes"] * over65_reg_rate / reg_rate
+            r["splitAt"] = round(min(max(split, r["votes"]), r["expected"]), 1)
+            reg_short += r["splitAt"] - r["votes"]
+            turnout_short += r["expected"] - r["splitAt"]
+        else:
+            r["splitAt"] = r["votes"]
 
     # Crossover: first age (ascending) whose own turnout reaches the 65+
     # benchmark. Decline: last age (descending) that still does - the 65+
@@ -272,6 +309,11 @@ def finalize_age_cycle(rows):
     return {
         "avgTurnout": round(100 * avg_turnout, 2),
         "over65Turnout": round(100 * over65_turnout, 2),
+        "over65Registration": round(100 * over65_reg_rate, 2),
+        # The two halves of the shortfall, thousands. Sum to the total
+        # shortfall (sum of negative `missing`) up to per-row rounding.
+        "registrationShortfall": round(reg_short, 1),
+        "turnoutShortfall": round(turnout_short, 1),
         "totalCvap": round(total_cvap, 1),
         "totalVotes": round(total_votes, 1),
         "crossoverAge": crossover,
@@ -298,6 +340,20 @@ def validate_age_reconstruction(cycle, cps_published_cvap, cps_published_votes, 
         if abs(pct) > 12:
             raise ValueError(f"{year} block {label}: reconstruction {pct:+.1f}% off CPS (tolerance 12%)")
         return pct
+
+    # Same check for registration, against CPS's own published rate.
+    cps_cit = sum(v[1] for v in single_years.values()) + tail_80_84[1] + tail_85_plus[1]
+    cps_reg = sum(v[3] for v in single_years.values()) + tail_80_84[3] + tail_85_plus[3]
+    recon_reg = 100 * sum(r["registered"] for r in cycle["rows"]) / cycle["totalCvap"]
+    reg_diff = abs(recon_reg - 100 * cps_reg / cps_cit)
+    if reg_diff > 0.5:
+        raise ValueError(f"{year}: reconstructed registration {recon_reg:.2f}% is {reg_diff:.2f}pp from CPS (tolerance 0.5pp)")
+
+    # The split must add back up to the single shortfall it divides.
+    total_short = -sum(min(0, r["missing"]) for r in cycle["rows"])
+    split_sum = cycle["registrationShortfall"] + cycle["turnoutShortfall"]
+    if abs(split_sum - total_short) > 5:  # thousands; per-row rounding only
+        raise ValueError(f"{year}: shortfall split sums to {split_sum:.1f}k, total is {total_short:.1f}k")
 
     block_check("18-79", range(18, 80), sum(v[1] for v in single_years.values()))
     block_check("80-84", range(80, 85), tail_80_84[1])
@@ -506,6 +562,10 @@ def main():
             f"  {year}: CVAP {cycle['totalCvap']:,.0f}k  votes {cycle['totalVotes']:,.0f}k  "
             f"avg turnout {cycle['avgTurnout']}%  crossover age {cycle['crossoverAge']}"
         )
+        print(
+            f"         65+ registered {cycle['over65Registration']}%  shortfall split: "
+            f"registration {cycle['registrationShortfall']:,.0f}k + turnout {cycle['turnoutShortfall']:,.0f}k"
+        )
 
     print("Parsing CPS Table 5 (education, 2024)...")
     edu_total, edu_groups = parse_grouped_table(edu_path, EDUCATION_GROUPS)
@@ -558,7 +618,7 @@ def main():
                 f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
             ] + [PEP_URL, COLORADO["url"]],
             "retrieved": "2026-09-16",
-            "units": "thousands of people (cvap, votes, expected, missing); percent (turnout, avgTurnout, over65Turnout); percentage points (effectPp, sePp)",
+            "units": "thousands of people (cvap, votes, registered, expected, missing, splitAt, registrationShortfall, turnoutShortfall); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration); percentage points (effectPp, sePp)",
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
                 "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "
@@ -573,6 +633,10 @@ def main():
                 "Ages 80+ (byAge) use real single-year PEP population but a CPS turnout/citizen-"
                 "share rate pooled across the whole 80-84 or 85+ bucket, since CPS does not report "
                 "single years of age above 79 - flagged per-row as ratesPooled.",
+                "Registration (byAge registered/registeredRate) is self-reported in the same November "
+                "interview as voting, and Census counts non-response as not registered. Non-response "
+                "is highest among the young (~20% of 18-24s in 2024 vs ~12-13% of 65+), so youth "
+                "registration is likely understated somewhat - same convention as turnout.",
                 "income's avgTurnout/expected/missing use its own restricted-universe average "
                 "(family members with reported income only, ~60% of national CVAP), not the "
                 "national rate - see spec v2 S8.4.",

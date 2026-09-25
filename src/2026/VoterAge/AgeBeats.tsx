@@ -16,21 +16,23 @@ import type { VoterAgeData, AgeRow } from "./types";
  * chart leave and come back unchanged, and then read "this is the same chart
  * from beat one" underneath it. Beat 2's whole move is "hold this chart
  * still and change the election", which only lands if it is the same
- * physical element: one sticky pane spanning nine steps, with beat 2's
+ * physical element: one sticky pane spanning ten steps, with beat 2's
  * heading riding up the text column while the chart stays put.
  *
- * Steps 0-4 accumulate the 2024 chart layer by layer, off a rounded step
+ * Steps 0-5 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
- * 700ms tween). Steps 5-7 morph it to 2022 continuously off the raw scroll
+ * 700ms tween). Steps 6-8 morph it to 2022 continuously off the raw scroll
  * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
  * and .claude/voter-age-morph-honesty-spec.md.
  */
 
-const STEP_COUNT = 8;
+const STEP_COUNT = 9;
 /** Index of beat 2's first step - the morph is measured from here. */
-const MORPH_STEP = 5;
+const MORPH_STEP = 6;
+/** Beat 1's last step, where the shortfall total is added up. */
+const TOTAL_STEP = MORPH_STEP - 1;
 /** Past this point the chart is scroll-driven, so d3's time tween is off. */
-const TWEEN_UNTIL = 4.4;
+const TWEEN_UNTIL = MORPH_STEP - 0.6;
 
 const COMPARE_AGES = [18, 22, 65, 79];
 
@@ -56,7 +58,16 @@ function toBarRow(row: AgeRow): PopulationBarRow {
     missing: row.missing,
     turnout: row.turnout,
     ratesPooled: row.ratesPooled,
+    splitAt: row.splitAt,
   };
+}
+
+/** Pooled rates over an age range: registered/eligible, and votes/registered
+ * (how reliably the registered actually vote). */
+function bracketRates(rows: AgeRow[], lo: number, hi: number) {
+  const inRange = rows.filter((r) => r.age >= lo && r.age <= hi);
+  const sum = (k: "cvap" | "votes" | "registered") => inRange.reduce((s, r) => s + r[k], 0);
+  return { registered: (100 * sum("registered")) / sum("cvap"), showUp: (100 * sum("votes")) / sum("registered") };
 }
 
 /** Every age that fell short of its cycle's 65+ standard, summed - the same
@@ -139,6 +150,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         votes: lerp(r.votes, target.votes, t),
         expected: lerp(r.expected, target.expected, t),
         missing: lerp(r.missing, target.missing, t),
+        splitAt: lerp(r.splitAt ?? r.votes, target.splitAt ?? target.votes, t),
         turnout: lerp(r.turnout, target.turnout, t),
       };
     });
@@ -197,21 +209,34 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       const real = shownRowsByKey.get(row.key);
       if (!real) return null; // a cohort that has slid off the chart
       const year = shownYear2022 ? "2022" : "2024";
+      const src = shownCycle.rows.find((r) => r.age === Number(real.x));
+      const splitShown = src && step >= 3 && real.missing < 0;
       return (
         <>
           <div className="voa-tooltip__head">
             Age {real.label} · {year}
             {real.ratesPooled ? " (rate shared across 80-84/85+)" : ""}
           </div>
-          {fmtM(real.cvap)} eligible · {fmtM(real.votes)} voted ({fmtPct(real.turnout)})
+          {fmtM(real.cvap)} eligible
+          {src && step >= 3 ? ` · ${fmtM(src.registered)} registered (${fmtPct(src.registeredRate)})` : ""}
+          <br />
+          {fmtM(real.votes)} voted ({fmtPct(real.turnout)})
           <br />
           Expected at {fmtPct(shownCycle.over65Turnout)} (the {year} 65+ rate): {fmtM(real.expected)}
-          <div className="voa-tooltip__note">{fmtMSigned(real.missing)} vs. that benchmark</div>
+          <div className="voa-tooltip__note">
+            {fmtMSigned(real.missing)} vs. that benchmark
+            {splitShown
+              ? ` (${fmtM(src.splitAt - src.votes)} registration, ${fmtM(src.expected - src.splitAt)} turnout)`
+              : ""}
+          </div>
         </>
       );
     },
-    [morphing, shownRowsByKey, shownYear2022, shownCycle]
+    [morphing, shownRowsByKey, shownYear2022, shownCycle, step]
   );
+
+  const youth2024 = bracketRates(cycle2024.rows, 18, 24);
+  const youth2022 = bracketRates(cycle2022.rows, 18, 24);
 
   const compareTable = (
     <table className="voa-compare-table">
@@ -245,6 +270,15 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     shortfall2024: fmtM(shortfall2024),
     under35Missing: fmtM(under35Missing),
     shortfall2024Pct: fmtPct((shortfall2024 / cycle2024.totalVotes) * 100),
+    reg65: fmtPct(cycle2024.over65Registration),
+    showUp65: fmtPct((100 * cycle2024.over65Turnout) / cycle2024.over65Registration),
+    youthReg: fmtPct(youth2024.registered),
+    youthShowUp: fmtPct(youth2024.showUp),
+    youthShowUp2022: fmtPct(youth2022.showUp),
+    regShort2024: fmtM(cycle2024.registrationShortfall),
+    turnoutShort2024: fmtM(cycle2024.turnoutShortfall),
+    regShort2022: fmtM(cycle2022.registrationShortfall),
+    turnoutShort2022: fmtM(cycle2022.turnoutShortfall),
     compareTable,
   };
 
@@ -262,7 +296,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             showVotes={step >= 1}
             showExpected={step >= 2}
             expectedLineLabel={`at 65+ turnout (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`}
-            showGap={step >= 3}
+            gapSplit={{ registration: step >= 3, turnout: step >= 4 }}
             heroGap={{
               figure: fmtM(shortfallShown),
               label: `votes short of the ${shownYear2022 ? "2022" : "2024"} 65+ standard`,
@@ -273,7 +307,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               // Dimmed with the plot mid-morph: it only ever prints a real
               // year's figure, but a crisp number under a rewinding chart
               // still invites reading it as the chart's.
-              opacity: clamp01((progress - 3.55) / 0.35) * (1 - 0.65 * rewindHaze(u)),
+              opacity: clamp01((progress - (TOTAL_STEP - 0.45)) / 0.35) * (1 - 0.65 * rewindHaze(u)),
               // Fades in over the morph's last ~15%. Keyed to raw `u`, the
               // linear scroll signal, not the eased `t` (whose last 15% is a
               // much narrower sliver of actual scroll distance).
@@ -302,7 +336,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
           {ageBeatsSteps.map((s, i) => (
             <div className="voa-step" key={i} ref={setStepRef(i)}>
               <div className="voa-step-inner">
-                {i === 5 && (
+                {i === MORPH_STEP && (
                   // Beat 2 starts here. Its heading rides up the text column
                   // rather than ruling off the page full-width, because the
                   // chart to its left is the same element and must not unstick.

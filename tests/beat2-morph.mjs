@@ -23,11 +23,11 @@ await page.waitForSelector(".voa-root h1");
 // morph window can't be read off a "beat 2 section" - it's measured from the
 // steps themselves. Progress is a fractional step index, and the morph runs
 // from progress MORPH_STEP+0.15 to MORPH_STEP+0.85, i.e. between the centers
-// of steps 5 and 6. Scan a little past both ends so the true endpoints are
+// of steps 6 and 7. Scan a little past both ends so the true endpoints are
 // reached regardless of how step heights map to scroll position. We read `u`
 // back from the scrubber's data-u (RewindOverlay.tsx) rather than assume a
 // scrollY formula for it.
-const MORPH_STEP = 5; // AgeBeats.tsx
+const MORPH_STEP = 6; // AgeBeats.tsx
 const window_ = await page.evaluate(
   ({ i, h }) => {
     const steps = [...document.querySelectorAll(".voa-beat .voa-step")];

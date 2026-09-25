@@ -84,7 +84,16 @@ export interface AgeBeatsVals {
   shortfall2024: string;
   under35Missing: string;
   shortfall2024Pct: string;
-  /** Step 8's turnout-by-age table, rendered by AgeBeats.tsx (it's data
+  reg65: string; // 2024 65+ registration rate
+  showUp65: string; // 2024 share of registered 65+ who voted
+  youthReg: string; // 2024 18-24 registration rate
+  youthShowUp: string; // 2024 share of registered 18-24s who voted
+  youthShowUp2022: string;
+  regShort2024: string; // registration part of the shortfall
+  turnoutShort2024: string; // turnout-among-the-registered part
+  regShort2022: string;
+  turnoutShort2022: string;
+  /** Step 9's turnout-by-age table, rendered by AgeBeats.tsx (it's data
    * presentation, not prose) and embedded here so the surrounding paragraphs
    * stay in one place with it. */
   compareTable: ReactNode;
@@ -138,10 +147,39 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
-    heading: "The trend in age",
-    body: () => (
+    heading: "First hurdle: registering",
+    body: (v) => (
+      <>
+        <p>
+          ... but even among those younger than 65 there is a clear trend. Part of it happens before election day:{" "}
+          {v.reg65} of people 65-and-over{" "}
+          <Gloss
+            note={
+              <>
+                Registration is self-reported in the same survey as voting. Census counts people who didn't answer the
+                question as not registered, and young people skip it most often (about one in five 18-to-24-year-olds),
+                so their registration is probably somewhat understated.
+              </>
+            }
+          >
+            say they're registered
+          </Gloss>
+          , compared with {v.youthReg} of 18-to-24-year-olds.
+        </p>
+        <p>
+          The lighter gold is how many more votes each age would cast if it registered at the 65+ rate, with its
+          registered voters still turning out at their own rate: <strong>{v.regShort2024}</strong> in 2024.
+        </p>
+      </>
+    ),
+  },
+  {
+    heading: "Second hurdle: showing up",
+    body: (v) => (
       <p>
-        ... but even among those younger than 65 there is a clear trend in participation. 
+        The darker gold is the rest of the way to the line: registered people who didn't vote. {v.showUp65} of
+        registered 65-and-overs voted; among registered 18-to-24-year-olds it was {v.youthShowUp}. That's another{" "}
+        <strong>{v.turnoutShort2024}</strong>.
       </p>
     ),
   },
@@ -150,8 +188,9 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     body: (v) => (
       <>
         <p>
-          If everyone voted at the same rate as the 65+ crowd there would be <strong>{v.shortfall2024} more votes</strong> 
-          representing <strong>{v.shortfall2024Pct}</strong> of the population.
+          If everyone voted at the same rate as the 65+ crowd there would be <strong>{v.shortfall2024} more votes</strong>{" "}
+          representing <strong>{v.shortfall2024Pct}</strong> of the population. In a presidential year, most of that is
+          registration.
         </p>
         <div className="voa-callout">
           In elections where the margins of victory tends to be small, this can be significant.
@@ -198,6 +237,12 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
         <p>
           An 18-year-old's turnout is nearly cut in half. A 79-year-old's barely moves. Older voters show up
           regardless of what's on the ballot; younger voters mostly show up for president.
+        </p>
+        <p>
+          The two golds show where the drop happens. The lighter one, registration, barely changes: {v.regShort2024}{" "}
+          in 2024, {v.regShort2022} in 2022. The darker one grows from {v.turnoutShort2024} to{" "}
+          <strong>{v.turnoutShort2022}</strong>. The midterm drop is mostly registered people staying home: only{" "}
+          {v.youthShowUp2022} of registered 18-to-24-year-olds voted in 2022, down from {v.youthShowUp}.
         </p>
       </>
     ),

@@ -33,7 +33,7 @@ for (const [i, frac] of stops.entries()) {
 const beatTitles = await page.$$eval(".voa-beat-title", (els) => els.map((e) => e.textContent));
 console.log("beat titles found:", beatTitles);
 const expectedTitleFragments = [
-  "shape of the electorate",
+  "age of the electorate",
   "Midterms make it worse",
   "isn't only about age",
   "Does anything change",
