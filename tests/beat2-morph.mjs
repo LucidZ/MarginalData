@@ -23,11 +23,11 @@ await page.waitForSelector(".voa-root h1");
 // morph window can't be read off a "beat 2 section" - it's measured from the
 // steps themselves. Progress is a fractional step index, and the morph runs
 // from progress MORPH_STEP+0.15 to MORPH_STEP+0.85, i.e. between the centers
-// of steps 6 and 7. Scan a little past both ends so the true endpoints are
+// of steps 5 and 6. Scan a little past both ends so the true endpoints are
 // reached regardless of how step heights map to scroll position. We read `u`
 // back from the scrubber's data-u (RewindOverlay.tsx) rather than assume a
 // scrollY formula for it.
-const MORPH_STEP = 6; // AgeBeats.tsx
+const MORPH_STEP = 5; // AgeBeats.tsx
 const window_ = await page.evaluate(
   ({ i, h }) => {
     const steps = [...document.querySelectorAll(".voa-beat .voa-step")];
@@ -67,7 +67,7 @@ async function readState() {
     const surface = section.querySelector(".pb-surface");
     const nodeCount = surface ? surface.querySelectorAll("*").length : null;
     const surfaceHeight = surface ? surface.getBoundingClientRect().height : null;
-    const d = section.querySelector("path.pb-expected-line")?.getAttribute("d") ?? null;
+    const d = section.querySelector("path.pb-line-reg")?.getAttribute("d") ?? null;
     return { u, endsOn, plotOpacity, heroFig, deltaOpacity, nodeCount, surfaceHeight, d };
   });
 }
@@ -112,18 +112,20 @@ console.log("PASS: scrubber ends fill only at a real year; plot dimmed only betw
 // happened. Both years' shortfalls are measured against their OWN 65+ rate
 // (23.3M / 36.1M), not a value pinned to 2024's rate (that was 54.0M in the
 // earlier pinned-benchmark version of this beat - see spec addendum).
-const ALLOWED = [23.3, 36.1];
+// First hero figure is now the registration gap (people not registered),
+// the view beat 1 hands to the morph since the 2026-09-25 simplification.
+const ALLOWED = [16.7, 20.6];
 for (const s of samples) {
   const nearest = ALLOWED.reduce((a, b) => (Math.abs(b - s.heroFig) < Math.abs(a - s.heroFig) ? b : a));
   if (Math.abs(s.heroFig - nearest) > 0.05) {
-    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 23.3M nor 36.1M`);
+    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 16.7M nor 20.6M`);
   }
 }
 const below = samples.filter((s) => s.u < 0.45);
 const above = samples.filter((s) => s.u > 0.55);
-if (!below.every((s) => Math.abs(s.heroFig - 23.3) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 23.3M before the flip");
-if (!above.every((s) => Math.abs(s.heroFig - 36.1) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 36.1M after the flip");
-console.log("PASS: gold figure snaps between the two real values only (23.3M / 36.1M), never a blend");
+if (!below.every((s) => Math.abs(s.heroFig - 16.7) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 16.7M before the flip");
+if (!above.every((s) => Math.abs(s.heroFig - 20.6) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 20.6M after the flip");
+console.log("PASS: gold figure snaps between the two real values only (16.7M / 20.6M), never a blend");
 
 // 4. Delta line stays invisible until deep in the morph (last ~15% of u),
 // then fades in - reserved space, never a mount (spec S5/S7).
@@ -161,8 +163,10 @@ const firstYs = lineYs(samples[0].d);
 const lastYs = lineYs(samples[samples.length - 1].d);
 const midIdx = Math.floor(firstYs.length / 2);
 const lineDrift = lastYs[midIdx] - firstYs[midIdx];
-if (lineDrift < 15) throw new Error(`FAIL: primary dotted line only moved ${lineDrift.toFixed(1)}px at a middle age - expected a visible drop from 74.62% to 66.79%`);
-console.log(`PASS: primary dotted line drops from the 2024 rate to the 2022 rate (${lineDrift.toFixed(2)}px at a middle age)`);
+// The morph now carries the registration line (80.24% -> 77.34%), a much
+// smaller drop than the turnout line's 74.62% -> 66.79%.
+if (lineDrift < 3) throw new Error(`FAIL: registration dotted line only moved ${lineDrift.toFixed(1)}px at a middle age - expected a visible drop from 80.24% to 77.34%`);
+console.log(`PASS: registration dotted line drops from the 2024 rate to the 2022 rate (${lineDrift.toFixed(2)}px at a middle age)`);
 
 // 9. Reversibility - revisit descending, expect the same u->figure map.
 const descSamples = [];

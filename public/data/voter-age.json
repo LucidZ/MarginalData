@@ -12,7 +12,7 @@
       "https://pmc.ncbi.nlm.nih.gov/articles/PMC9756790/"
     ],
     "retrieved": "2026-09-16",
-    "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, expectedFromRegistered, registrationGap, showUpGap); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration, over65ShowUp); percentage points (effectPp, sePp)",
+    "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration); percentage points (effectPp, sePp)",
     "construction": "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). See spec v2 S5 for why levels come from PEP and rates from CPS.",
     "notes": [
       "Eligible population = citizen voting-age population (CVAP), not total voting-age population, to avoid confounding any gap with non-citizen population share.",
@@ -27,9 +27,8 @@
       "avgTurnout": 51.95,
       "over65Turnout": 66.79,
       "over65Registration": 77.34,
-      "over65ShowUp": 86.36,
       "registrationGap": 20554.3,
-      "showUpGap": 18519.6,
+      "registeredNotVoted": 40473.8,
       "totalCvap": 238206.1,
       "totalVotes": 123739.2,
       "crossoverAge": 65,
@@ -45,8 +44,7 @@
           "ratesPooled": false,
           "expected": 2780.1,
           "missing": -1964.2,
-          "expectedRegistered": 3219.2,
-          "expectedFromRegistered": 1101.6
+          "expectedRegistered": 3219.2
         },
         {
           "age": 19,
@@ -58,8 +56,7 @@
           "ratesPooled": false,
           "expected": 2685.6,
           "missing": -1701.0,
-          "expectedRegistered": 3109.8,
-          "expectedFromRegistered": 1507.6
+          "expectedRegistered": 3109.8
         },
         {
           "age": 20,
@@ -71,8 +68,7 @@
           "ratesPooled": false,
           "expected": 2713.1,
           "missing": -1511.2,
-          "expectedRegistered": 3141.6,
-          "expectedFromRegistered": 1812.5
+          "expectedRegistered": 3141.6
         },
         {
           "age": 21,
@@ -84,8 +80,7 @@
           "ratesPooled": false,
           "expected": 2720.5,
           "missing": -1514.6,
-          "expectedRegistered": 3150.2,
-          "expectedFromRegistered": 1912.5
+          "expectedRegistered": 3150.2
         },
         {
           "age": 22,
@@ -97,8 +92,7 @@
           "ratesPooled": false,
           "expected": 2722.3,
           "missing": -1504.5,
-          "expectedRegistered": 3152.2,
-          "expectedFromRegistered": 1941.8
+          "expectedRegistered": 3152.2
         },
         {
           "age": 23,
@@ -110,8 +104,7 @@
           "ratesPooled": false,
           "expected": 2638.2,
           "missing": -1533.2,
-          "expectedRegistered": 3055.0,
-          "expectedFromRegistered": 1847.0
+          "expectedRegistered": 3055.0
         },
         {
           "age": 24,
@@ -123,8 +116,7 @@
           "ratesPooled": false,
           "expected": 2642.4,
           "missing": -1394.0,
-          "expectedRegistered": 3059.8,
-          "expectedFromRegistered": 1841.6
+          "expectedRegistered": 3059.8
         },
         {
           "age": 25,
@@ -136,8 +128,7 @@
           "ratesPooled": false,
           "expected": 2591.9,
           "missing": -1270.6,
-          "expectedRegistered": 3001.3,
-          "expectedFromRegistered": 1905.4
+          "expectedRegistered": 3001.3
         },
         {
           "age": 26,
@@ -149,8 +140,7 @@
           "ratesPooled": false,
           "expected": 2668.4,
           "missing": -1299.1,
-          "expectedRegistered": 3089.9,
-          "expectedFromRegistered": 1991.7
+          "expectedRegistered": 3089.9
         },
         {
           "age": 27,
@@ -162,8 +152,7 @@
           "ratesPooled": false,
           "expected": 2677.0,
           "missing": -1240.5,
-          "expectedRegistered": 3099.8,
-          "expectedFromRegistered": 2110.8
+          "expectedRegistered": 3099.8
         },
         {
           "age": 28,
@@ -175,8 +164,7 @@
           "ratesPooled": false,
           "expected": 2671.7,
           "missing": -1146.1,
-          "expectedRegistered": 3093.7,
-          "expectedFromRegistered": 2123.7
+          "expectedRegistered": 3093.7
         },
         {
           "age": 29,
@@ -188,8 +176,7 @@
           "ratesPooled": false,
           "expected": 2713.8,
           "missing": -1141.7,
-          "expectedRegistered": 3142.4,
-          "expectedFromRegistered": 2153.7
+          "expectedRegistered": 3142.4
         },
         {
           "age": 30,
@@ -201,8 +188,7 @@
           "ratesPooled": false,
           "expected": 2712.4,
           "missing": -1202.9,
-          "expectedRegistered": 3140.8,
-          "expectedFromRegistered": 2160.1
+          "expectedRegistered": 3140.8
         },
         {
           "age": 31,
@@ -214,8 +200,7 @@
           "ratesPooled": false,
           "expected": 2744.4,
           "missing": -940.6,
-          "expectedRegistered": 3177.9,
-          "expectedFromRegistered": 2362.3
+          "expectedRegistered": 3177.9
         },
         {
           "age": 32,
@@ -227,8 +212,7 @@
           "ratesPooled": false,
           "expected": 2844.9,
           "missing": -993.9,
-          "expectedRegistered": 3294.3,
-          "expectedFromRegistered": 2415.5
+          "expectedRegistered": 3294.3
         },
         {
           "age": 33,
@@ -240,8 +224,7 @@
           "ratesPooled": false,
           "expected": 2748.1,
           "missing": -894.6,
-          "expectedRegistered": 3182.2,
-          "expectedFromRegistered": 2404.5
+          "expectedRegistered": 3182.2
         },
         {
           "age": 34,
@@ -253,8 +236,7 @@
           "ratesPooled": false,
           "expected": 2571.2,
           "missing": -862.8,
-          "expectedRegistered": 2977.3,
-          "expectedFromRegistered": 2211.2
+          "expectedRegistered": 2977.3
         },
         {
           "age": 35,
@@ -266,8 +248,7 @@
           "ratesPooled": false,
           "expected": 2605.6,
           "missing": -854.5,
-          "expectedRegistered": 3017.2,
-          "expectedFromRegistered": 2215.9
+          "expectedRegistered": 3017.2
         },
         {
           "age": 36,
@@ -279,8 +260,7 @@
           "ratesPooled": false,
           "expected": 2660.0,
           "missing": -686.7,
-          "expectedRegistered": 3080.2,
-          "expectedFromRegistered": 2405.4
+          "expectedRegistered": 3080.2
         },
         {
           "age": 37,
@@ -292,8 +272,7 @@
           "ratesPooled": false,
           "expected": 2628.6,
           "missing": -766.5,
-          "expectedRegistered": 3043.8,
-          "expectedFromRegistered": 2289.6
+          "expectedRegistered": 3043.8
         },
         {
           "age": 38,
@@ -305,8 +284,7 @@
           "ratesPooled": false,
           "expected": 2517.3,
           "missing": -836.1,
-          "expectedRegistered": 2914.9,
-          "expectedFromRegistered": 2235.9
+          "expectedRegistered": 2914.9
         },
         {
           "age": 39,
@@ -318,8 +296,7 @@
           "ratesPooled": false,
           "expected": 2576.9,
           "missing": -694.0,
-          "expectedRegistered": 2984.0,
-          "expectedFromRegistered": 2339.3
+          "expectedRegistered": 2984.0
         },
         {
           "age": 40,
@@ -331,8 +308,7 @@
           "ratesPooled": false,
           "expected": 2576.2,
           "missing": -568.0,
-          "expectedRegistered": 2983.1,
-          "expectedFromRegistered": 2382.5
+          "expectedRegistered": 2983.1
         },
         {
           "age": 41,
@@ -344,8 +320,7 @@
           "ratesPooled": false,
           "expected": 2571.1,
           "missing": -621.7,
-          "expectedRegistered": 2977.2,
-          "expectedFromRegistered": 2351.0
+          "expectedRegistered": 2977.2
         },
         {
           "age": 42,
@@ -357,8 +332,7 @@
           "ratesPooled": false,
           "expected": 2537.2,
           "missing": -684.2,
-          "expectedRegistered": 2938.0,
-          "expectedFromRegistered": 2270.1
+          "expectedRegistered": 2938.0
         },
         {
           "age": 43,
@@ -370,8 +344,7 @@
           "ratesPooled": false,
           "expected": 2474.2,
           "missing": -524.4,
-          "expectedRegistered": 2865.0,
-          "expectedFromRegistered": 2224.7
+          "expectedRegistered": 2865.0
         },
         {
           "age": 44,
@@ -383,8 +356,7 @@
           "ratesPooled": false,
           "expected": 2396.2,
           "missing": -524.3,
-          "expectedRegistered": 2774.6,
-          "expectedFromRegistered": 2161.8
+          "expectedRegistered": 2774.6
         },
         {
           "age": 45,
@@ -396,8 +368,7 @@
           "ratesPooled": false,
           "expected": 2368.7,
           "missing": -526.4,
-          "expectedRegistered": 2742.9,
-          "expectedFromRegistered": 2073.8
+          "expectedRegistered": 2742.9
         },
         {
           "age": 46,
@@ -409,8 +380,7 @@
           "ratesPooled": false,
           "expected": 2294.4,
           "missing": -479.4,
-          "expectedRegistered": 2656.8,
-          "expectedFromRegistered": 2147.2
+          "expectedRegistered": 2656.8
         },
         {
           "age": 47,
@@ -422,8 +392,7 @@
           "ratesPooled": false,
           "expected": 2284.5,
           "missing": -381.4,
-          "expectedRegistered": 2645.4,
-          "expectedFromRegistered": 2111.9
+          "expectedRegistered": 2645.4
         },
         {
           "age": 48,
@@ -435,8 +404,7 @@
           "ratesPooled": false,
           "expected": 2307.3,
           "missing": -534.4,
-          "expectedRegistered": 2671.7,
-          "expectedFromRegistered": 2098.3
+          "expectedRegistered": 2671.7
         },
         {
           "age": 49,
@@ -448,8 +416,7 @@
           "ratesPooled": false,
           "expected": 2340.3,
           "missing": -431.5,
-          "expectedRegistered": 2709.9,
-          "expectedFromRegistered": 2260.4
+          "expectedRegistered": 2709.9
         },
         {
           "age": 50,
@@ -461,8 +428,7 @@
           "ratesPooled": false,
           "expected": 2390.9,
           "missing": -373.9,
-          "expectedRegistered": 2768.6,
-          "expectedFromRegistered": 2287.0
+          "expectedRegistered": 2768.6
         },
         {
           "age": 51,
@@ -474,8 +440,7 @@
           "ratesPooled": false,
           "expected": 2645.1,
           "missing": -524.6,
-          "expectedRegistered": 3062.9,
-          "expectedFromRegistered": 2460.0
+          "expectedRegistered": 3062.9
         },
         {
           "age": 52,
@@ -487,8 +452,7 @@
           "ratesPooled": false,
           "expected": 2573.4,
           "missing": -365.8,
-          "expectedRegistered": 2979.9,
-          "expectedFromRegistered": 2476.0
+          "expectedRegistered": 2979.9
         },
         {
           "age": 53,
@@ -500,8 +464,7 @@
           "ratesPooled": false,
           "expected": 2548.7,
           "missing": -358.1,
-          "expectedRegistered": 2951.2,
-          "expectedFromRegistered": 2438.9
+          "expectedRegistered": 2951.2
         },
         {
           "age": 54,
@@ -513,8 +476,7 @@
           "ratesPooled": false,
           "expected": 2462.0,
           "missing": -430.3,
-          "expectedRegistered": 2850.9,
-          "expectedFromRegistered": 2281.4
+          "expectedRegistered": 2850.9
         },
         {
           "age": 55,
@@ -526,8 +488,7 @@
           "ratesPooled": false,
           "expected": 2416.5,
           "missing": -252.8,
-          "expectedRegistered": 2798.2,
-          "expectedFromRegistered": 2289.8
+          "expectedRegistered": 2798.2
         },
         {
           "age": 56,
@@ -539,8 +500,7 @@
           "ratesPooled": false,
           "expected": 2509.4,
           "missing": -395.5,
-          "expectedRegistered": 2905.8,
-          "expectedFromRegistered": 2311.6
+          "expectedRegistered": 2905.8
         },
         {
           "age": 57,
@@ -552,8 +512,7 @@
           "ratesPooled": false,
           "expected": 2626.1,
           "missing": -352.1,
-          "expectedRegistered": 3040.9,
-          "expectedFromRegistered": 2483.4
+          "expectedRegistered": 3040.9
         },
         {
           "age": 58,
@@ -565,8 +524,7 @@
           "ratesPooled": false,
           "expected": 2729.3,
           "missing": -161.0,
-          "expectedRegistered": 3160.4,
-          "expectedFromRegistered": 2670.3
+          "expectedRegistered": 3160.4
         },
         {
           "age": 59,
@@ -578,8 +536,7 @@
           "ratesPooled": false,
           "expected": 2702.1,
           "missing": -112.6,
-          "expectedRegistered": 3128.9,
-          "expectedFromRegistered": 2650.0
+          "expectedRegistered": 3128.9
         },
         {
           "age": 60,
@@ -591,8 +548,7 @@
           "ratesPooled": false,
           "expected": 2769.2,
           "missing": -333.8,
-          "expectedRegistered": 3206.5,
-          "expectedFromRegistered": 2557.1
+          "expectedRegistered": 3206.5
         },
         {
           "age": 61,
@@ -604,8 +560,7 @@
           "ratesPooled": false,
           "expected": 2665.7,
           "missing": -159.0,
-          "expectedRegistered": 3086.7,
-          "expectedFromRegistered": 2559.1
+          "expectedRegistered": 3086.7
         },
         {
           "age": 62,
@@ -617,8 +572,7 @@
           "ratesPooled": false,
           "expected": 2688.0,
           "missing": -80.0,
-          "expectedRegistered": 3112.6,
-          "expectedFromRegistered": 2682.7
+          "expectedRegistered": 3112.6
         },
         {
           "age": 63,
@@ -630,8 +584,7 @@
           "ratesPooled": false,
           "expected": 2645.6,
           "missing": -132.4,
-          "expectedRegistered": 3063.5,
-          "expectedFromRegistered": 2596.0
+          "expectedRegistered": 3063.5
         },
         {
           "age": 64,
@@ -643,8 +596,7 @@
           "ratesPooled": false,
           "expected": 2633.4,
           "missing": -106.4,
-          "expectedRegistered": 3049.3,
-          "expectedFromRegistered": 2583.1
+          "expectedRegistered": 3049.3
         },
         {
           "age": 65,
@@ -656,8 +608,7 @@
           "ratesPooled": false,
           "expected": 2580.2,
           "missing": 21.8,
-          "expectedRegistered": 2987.7,
-          "expectedFromRegistered": 2600.0
+          "expectedRegistered": 2987.7
         },
         {
           "age": 66,
@@ -669,8 +620,7 @@
           "ratesPooled": false,
           "expected": 2476.2,
           "missing": -77.2,
-          "expectedRegistered": 2867.3,
-          "expectedFromRegistered": 2477.6
+          "expectedRegistered": 2867.3
         },
         {
           "age": 67,
@@ -682,8 +632,7 @@
           "ratesPooled": false,
           "expected": 2420.1,
           "missing": -17.7,
-          "expectedRegistered": 2802.3,
-          "expectedFromRegistered": 2346.1
+          "expectedRegistered": 2802.3
         },
         {
           "age": 68,
@@ -695,8 +644,7 @@
           "ratesPooled": false,
           "expected": 2313.9,
           "missing": 20.8,
-          "expectedRegistered": 2679.4,
-          "expectedFromRegistered": 2268.7
+          "expectedRegistered": 2679.4
         },
         {
           "age": 69,
@@ -708,8 +656,7 @@
           "ratesPooled": false,
           "expected": 2253.5,
           "missing": 169.1,
-          "expectedRegistered": 2609.5,
-          "expectedFromRegistered": 2372.8
+          "expectedRegistered": 2609.5
         },
         {
           "age": 70,
@@ -721,8 +668,7 @@
           "ratesPooled": false,
           "expected": 2131.3,
           "missing": 90.1,
-          "expectedRegistered": 2468.0,
-          "expectedFromRegistered": 2191.1
+          "expectedRegistered": 2468.0
         },
         {
           "age": 71,
@@ -734,8 +680,7 @@
           "ratesPooled": false,
           "expected": 2065.3,
           "missing": 77.5,
-          "expectedRegistered": 2391.5,
-          "expectedFromRegistered": 2095.5
+          "expectedRegistered": 2391.5
         },
         {
           "age": 72,
@@ -747,8 +692,7 @@
           "ratesPooled": false,
           "expected": 1932.1,
           "missing": -15.8,
-          "expectedRegistered": 2237.3,
-          "expectedFromRegistered": 1891.3
+          "expectedRegistered": 2237.3
         },
         {
           "age": 73,
@@ -760,8 +704,7 @@
           "ratesPooled": false,
           "expected": 1857.4,
           "missing": 33.6,
-          "expectedRegistered": 2150.7,
-          "expectedFromRegistered": 1875.1
+          "expectedRegistered": 2150.7
         },
         {
           "age": 74,
@@ -773,8 +716,7 @@
           "ratesPooled": false,
           "expected": 1840.6,
           "missing": 88.4,
-          "expectedRegistered": 2131.4,
-          "expectedFromRegistered": 1916.5
+          "expectedRegistered": 2131.4
         },
         {
           "age": 75,
@@ -786,8 +728,7 @@
           "ratesPooled": false,
           "expected": 1927.6,
           "missing": 25.1,
-          "expectedRegistered": 2232.1,
-          "expectedFromRegistered": 1938.7
+          "expectedRegistered": 2232.1
         },
         {
           "age": 76,
@@ -799,8 +740,7 @@
           "ratesPooled": false,
           "expected": 1357.8,
           "missing": 46.1,
-          "expectedRegistered": 1572.2,
-          "expectedFromRegistered": 1349.6
+          "expectedRegistered": 1572.2
         },
         {
           "age": 77,
@@ -812,8 +752,7 @@
           "ratesPooled": false,
           "expected": 1292.5,
           "missing": 56.3,
-          "expectedRegistered": 1496.7,
-          "expectedFromRegistered": 1319.9
+          "expectedRegistered": 1496.7
         },
         {
           "age": 78,
@@ -825,8 +764,7 @@
           "ratesPooled": false,
           "expected": 1203.0,
           "missing": 42.5,
-          "expectedRegistered": 1393.0,
-          "expectedFromRegistered": 1203.1
+          "expectedRegistered": 1393.0
         },
         {
           "age": 79,
@@ -838,8 +776,7 @@
           "ratesPooled": false,
           "expected": 1244.7,
           "missing": 54.1,
-          "expectedRegistered": 1441.3,
-          "expectedFromRegistered": 1313.2
+          "expectedRegistered": 1441.3
         },
         {
           "age": 80,
@@ -851,8 +788,7 @@
           "ratesPooled": true,
           "expected": 1041.9,
           "missing": -10.7,
-          "expectedRegistered": 1206.4,
-          "expectedFromRegistered": 1048.5
+          "expectedRegistered": 1206.4
         },
         {
           "age": 81,
@@ -864,8 +800,7 @@
           "ratesPooled": true,
           "expected": 920.9,
           "missing": -9.4,
-          "expectedRegistered": 1066.3,
-          "expectedFromRegistered": 926.7
+          "expectedRegistered": 1066.3
         },
         {
           "age": 82,
@@ -877,8 +812,7 @@
           "ratesPooled": true,
           "expected": 828.9,
           "missing": -8.5,
-          "expectedRegistered": 959.8,
-          "expectedFromRegistered": 834.1
+          "expectedRegistered": 959.8
         },
         {
           "age": 83,
@@ -890,8 +824,7 @@
           "ratesPooled": true,
           "expected": 755.0,
           "missing": -7.7,
-          "expectedRegistered": 874.3,
-          "expectedFromRegistered": 759.8
+          "expectedRegistered": 874.3
         },
         {
           "age": 84,
@@ -903,8 +836,7 @@
           "ratesPooled": true,
           "expected": 690.6,
           "missing": -7.1,
-          "expectedRegistered": 799.6,
-          "expectedFromRegistered": 694.9
+          "expectedRegistered": 799.6
         },
         {
           "age": 85,
@@ -916,8 +848,7 @@
           "ratesPooled": true,
           "expected": 606.9,
           "missing": -87.1,
-          "expectedRegistered": 702.8,
-          "expectedFromRegistered": 562.7
+          "expectedRegistered": 702.8
         },
         {
           "age": 86,
@@ -929,8 +860,7 @@
           "ratesPooled": true,
           "expected": 546.0,
           "missing": -78.4,
-          "expectedRegistered": 632.2,
-          "expectedFromRegistered": 506.2
+          "expectedRegistered": 632.2
         },
         {
           "age": 87,
@@ -942,8 +872,7 @@
           "ratesPooled": true,
           "expected": 488.4,
           "missing": -70.1,
-          "expectedRegistered": 565.5,
-          "expectedFromRegistered": 452.8
+          "expectedRegistered": 565.5
         },
         {
           "age": 88,
@@ -955,8 +884,7 @@
           "ratesPooled": true,
           "expected": 408.2,
           "missing": -58.6,
-          "expectedRegistered": 472.6,
-          "expectedFromRegistered": 378.5
+          "expectedRegistered": 472.6
         },
         {
           "age": 89,
@@ -968,8 +896,7 @@
           "ratesPooled": true,
           "expected": 365.3,
           "missing": -52.4,
-          "expectedRegistered": 423.0,
-          "expectedFromRegistered": 338.7
+          "expectedRegistered": 423.0
         },
         {
           "age": 90,
@@ -981,8 +908,7 @@
           "ratesPooled": true,
           "expected": 318.5,
           "missing": -45.7,
-          "expectedRegistered": 368.8,
-          "expectedFromRegistered": 295.3
+          "expectedRegistered": 368.8
         },
         {
           "age": 91,
@@ -994,8 +920,7 @@
           "ratesPooled": true,
           "expected": 273.6,
           "missing": -39.3,
-          "expectedRegistered": 316.8,
-          "expectedFromRegistered": 253.7
+          "expectedRegistered": 316.8
         },
         {
           "age": 92,
@@ -1007,8 +932,7 @@
           "ratesPooled": true,
           "expected": 231.0,
           "missing": -33.1,
-          "expectedRegistered": 267.5,
-          "expectedFromRegistered": 214.2
+          "expectedRegistered": 267.5
         },
         {
           "age": 93,
@@ -1020,8 +944,7 @@
           "ratesPooled": true,
           "expected": 185.4,
           "missing": -26.6,
-          "expectedRegistered": 214.7,
-          "expectedFromRegistered": 171.9
+          "expectedRegistered": 214.7
         },
         {
           "age": 94,
@@ -1033,8 +956,7 @@
           "ratesPooled": true,
           "expected": 151.4,
           "missing": -21.7,
-          "expectedRegistered": 175.3,
-          "expectedFromRegistered": 140.4
+          "expectedRegistered": 175.3
         },
         {
           "age": 95,
@@ -1046,8 +968,7 @@
           "ratesPooled": true,
           "expected": 118.5,
           "missing": -17.0,
-          "expectedRegistered": 137.2,
-          "expectedFromRegistered": 109.8
+          "expectedRegistered": 137.2
         },
         {
           "age": 96,
@@ -1059,8 +980,7 @@
           "ratesPooled": true,
           "expected": 88.5,
           "missing": -12.7,
-          "expectedRegistered": 102.5,
-          "expectedFromRegistered": 82.1
+          "expectedRegistered": 102.5
         },
         {
           "age": 97,
@@ -1072,8 +992,7 @@
           "ratesPooled": true,
           "expected": 66.8,
           "missing": -9.6,
-          "expectedRegistered": 77.3,
-          "expectedFromRegistered": 61.9
+          "expectedRegistered": 77.3
         },
         {
           "age": 98,
@@ -1085,8 +1004,7 @@
           "ratesPooled": true,
           "expected": 47.6,
           "missing": -6.9,
-          "expectedRegistered": 55.1,
-          "expectedFromRegistered": 44.1
+          "expectedRegistered": 55.1
         },
         {
           "age": 99,
@@ -1098,8 +1016,7 @@
           "ratesPooled": true,
           "expected": 32.9,
           "missing": -4.7,
-          "expectedRegistered": 38.1,
-          "expectedFromRegistered": 30.5
+          "expectedRegistered": 38.1
         },
         {
           "age": 100,
@@ -1111,8 +1028,7 @@
           "ratesPooled": true,
           "expected": 54.1,
           "missing": -7.7,
-          "expectedRegistered": 62.7,
-          "expectedFromRegistered": 50.2
+          "expectedRegistered": 62.7
         }
       ]
     },
@@ -1120,9 +1036,8 @@
       "avgTurnout": 65.21,
       "over65Turnout": 74.62,
       "over65Registration": 80.24,
-      "over65ShowUp": 93.0,
       "registrationGap": 16702.4,
-      "showUpGap": 7910.3,
+      "registeredNotVoted": 20139.2,
       "totalCvap": 242052.0,
       "totalVotes": 157849.2,
       "crossoverAge": 62,
@@ -1138,8 +1053,7 @@
           "ratesPooled": false,
           "expected": 3184.7,
           "missing": -1595.1,
-          "expectedRegistered": 3424.5,
-          "expectedFromRegistered": 1744.8
+          "expectedRegistered": 3424.5
         },
         {
           "age": 19,
@@ -1151,8 +1065,7 @@
           "ratesPooled": false,
           "expected": 3108.3,
           "missing": -1194.6,
-          "expectedRegistered": 3342.4,
-          "expectedFromRegistered": 2278.6
+          "expectedRegistered": 3342.4
         },
         {
           "age": 20,
@@ -1164,8 +1077,7 @@
           "ratesPooled": false,
           "expected": 3048.0,
           "missing": -1227.4,
-          "expectedRegistered": 3277.5,
-          "expectedFromRegistered": 2153.0
+          "expectedRegistered": 3277.5
         },
         {
           "age": 21,
@@ -1177,8 +1089,7 @@
           "ratesPooled": false,
           "expected": 3131.1,
           "missing": -1158.6,
-          "expectedRegistered": 3366.9,
-          "expectedFromRegistered": 2253.3
+          "expectedRegistered": 3366.9
         },
         {
           "age": 22,
@@ -1190,8 +1101,7 @@
           "ratesPooled": false,
           "expected": 2983.4,
           "missing": -858.8,
-          "expectedRegistered": 3208.1,
-          "expectedFromRegistered": 2347.1
+          "expectedRegistered": 3208.1
         },
         {
           "age": 23,
@@ -1203,8 +1113,7 @@
           "ratesPooled": false,
           "expected": 3035.5,
           "missing": -816.9,
-          "expectedRegistered": 3264.1,
-          "expectedFromRegistered": 2471.9
+          "expectedRegistered": 3264.1
         },
         {
           "age": 24,
@@ -1216,8 +1125,7 @@
           "ratesPooled": false,
           "expected": 3012.2,
           "missing": -888.5,
-          "expectedRegistered": 3239.1,
-          "expectedFromRegistered": 2387.1
+          "expectedRegistered": 3239.1
         },
         {
           "age": 25,
@@ -1229,8 +1137,7 @@
           "ratesPooled": false,
           "expected": 2981.6,
           "missing": -928.4,
-          "expectedRegistered": 3206.2,
-          "expectedFromRegistered": 2387.7
+          "expectedRegistered": 3206.2
         },
         {
           "age": 26,
@@ -1242,8 +1149,7 @@
           "ratesPooled": false,
           "expected": 2901.9,
           "missing": -670.5,
-          "expectedRegistered": 3120.5,
-          "expectedFromRegistered": 2420.8
+          "expectedRegistered": 3120.5
         },
         {
           "age": 27,
@@ -1255,8 +1161,7 @@
           "ratesPooled": false,
           "expected": 2937.0,
           "missing": -864.4,
-          "expectedRegistered": 3158.2,
-          "expectedFromRegistered": 2373.4
+          "expectedRegistered": 3158.2
         },
         {
           "age": 28,
@@ -1268,8 +1173,7 @@
           "ratesPooled": false,
           "expected": 2999.0,
           "missing": -783.5,
-          "expectedRegistered": 3224.9,
-          "expectedFromRegistered": 2486.1
+          "expectedRegistered": 3224.9
         },
         {
           "age": 29,
@@ -1281,8 +1185,7 @@
           "ratesPooled": false,
           "expected": 2924.6,
           "missing": -613.0,
-          "expectedRegistered": 3144.8,
-          "expectedFromRegistered": 2591.0
+          "expectedRegistered": 3144.8
         },
         {
           "age": 30,
@@ -1294,8 +1197,7 @@
           "ratesPooled": false,
           "expected": 3086.4,
           "missing": -687.1,
-          "expectedRegistered": 3318.8,
-          "expectedFromRegistered": 2680.3
+          "expectedRegistered": 3318.8
         },
         {
           "age": 31,
@@ -1307,8 +1209,7 @@
           "ratesPooled": false,
           "expected": 3101.2,
           "missing": -676.3,
-          "expectedRegistered": 3334.8,
-          "expectedFromRegistered": 2719.9
+          "expectedRegistered": 3334.8
         },
         {
           "age": 32,
@@ -1320,8 +1221,7 @@
           "ratesPooled": false,
           "expected": 3153.9,
           "missing": -700.9,
-          "expectedRegistered": 3391.4,
-          "expectedFromRegistered": 2773.7
+          "expectedRegistered": 3391.4
         },
         {
           "age": 33,
@@ -1333,8 +1233,7 @@
           "ratesPooled": false,
           "expected": 3175.3,
           "missing": -644.9,
-          "expectedRegistered": 3414.4,
-          "expectedFromRegistered": 2756.2
+          "expectedRegistered": 3414.4
         },
         {
           "age": 34,
@@ -1346,8 +1245,7 @@
           "ratesPooled": false,
           "expected": 3174.3,
           "missing": -696.8,
-          "expectedRegistered": 3413.3,
-          "expectedFromRegistered": 2733.6
+          "expectedRegistered": 3413.3
         },
         {
           "age": 35,
@@ -1359,8 +1257,7 @@
           "ratesPooled": false,
           "expected": 3091.2,
           "missing": -715.6,
-          "expectedRegistered": 3324.0,
-          "expectedFromRegistered": 2626.6
+          "expectedRegistered": 3324.0
         },
         {
           "age": 36,
@@ -1372,8 +1269,7 @@
           "ratesPooled": false,
           "expected": 3045.0,
           "missing": -563.4,
-          "expectedRegistered": 3274.3,
-          "expectedFromRegistered": 2662.2
+          "expectedRegistered": 3274.3
         },
         {
           "age": 37,
@@ -1385,8 +1281,7 @@
           "ratesPooled": false,
           "expected": 2971.0,
           "missing": -408.0,
-          "expectedRegistered": 3194.8,
-          "expectedFromRegistered": 2760.2
+          "expectedRegistered": 3194.8
         },
         {
           "age": 38,
@@ -1398,8 +1293,7 @@
           "ratesPooled": false,
           "expected": 2934.9,
           "missing": -433.8,
-          "expectedRegistered": 3156.0,
-          "expectedFromRegistered": 2619.3
+          "expectedRegistered": 3156.0
         },
         {
           "age": 39,
@@ -1411,8 +1305,7 @@
           "ratesPooled": false,
           "expected": 2855.9,
           "missing": -384.6,
-          "expectedRegistered": 3071.0,
-          "expectedFromRegistered": 2604.5
+          "expectedRegistered": 3071.0
         },
         {
           "age": 40,
@@ -1424,8 +1317,7 @@
           "ratesPooled": false,
           "expected": 2889.7,
           "missing": -344.5,
-          "expectedRegistered": 3107.4,
-          "expectedFromRegistered": 2694.8
+          "expectedRegistered": 3107.4
         },
         {
           "age": 41,
@@ -1437,8 +1329,7 @@
           "ratesPooled": false,
           "expected": 2933.6,
           "missing": -292.8,
-          "expectedRegistered": 3154.6,
-          "expectedFromRegistered": 2750.6
+          "expectedRegistered": 3154.6
         },
         {
           "age": 42,
@@ -1450,8 +1341,7 @@
           "ratesPooled": false,
           "expected": 2868.6,
           "missing": -429.5,
-          "expectedRegistered": 3084.6,
-          "expectedFromRegistered": 2642.9
+          "expectedRegistered": 3084.6
         },
         {
           "age": 43,
@@ -1463,8 +1353,7 @@
           "ratesPooled": false,
           "expected": 2819.8,
           "missing": -355.9,
-          "expectedRegistered": 3032.1,
-          "expectedFromRegistered": 2651.5
+          "expectedRegistered": 3032.1
         },
         {
           "age": 44,
@@ -1476,8 +1365,7 @@
           "ratesPooled": false,
           "expected": 2860.8,
           "missing": -378.3,
-          "expectedRegistered": 3076.3,
-          "expectedFromRegistered": 2627.9
+          "expectedRegistered": 3076.3
         },
         {
           "age": 45,
@@ -1489,8 +1377,7 @@
           "ratesPooled": false,
           "expected": 2758.3,
           "missing": -192.3,
-          "expectedRegistered": 2966.0,
-          "expectedFromRegistered": 2702.3
+          "expectedRegistered": 2966.0
         },
         {
           "age": 46,
@@ -1502,8 +1389,7 @@
           "ratesPooled": false,
           "expected": 2669.9,
           "missing": -157.9,
-          "expectedRegistered": 2871.0,
-          "expectedFromRegistered": 2635.6
+          "expectedRegistered": 2871.0
         },
         {
           "age": 47,
@@ -1515,8 +1401,7 @@
           "ratesPooled": false,
           "expected": 2644.3,
           "missing": -270.4,
-          "expectedRegistered": 2843.5,
-          "expectedFromRegistered": 2471.9
+          "expectedRegistered": 2843.5
         },
         {
           "age": 48,
@@ -1528,8 +1413,7 @@
           "ratesPooled": false,
           "expected": 2587.9,
           "missing": -229.6,
-          "expectedRegistered": 2782.8,
-          "expectedFromRegistered": 2454.5
+          "expectedRegistered": 2782.8
         },
         {
           "age": 49,
@@ -1541,8 +1425,7 @@
           "ratesPooled": false,
           "expected": 2510.9,
           "missing": -202.5,
-          "expectedRegistered": 2700.0,
-          "expectedFromRegistered": 2371.0
+          "expectedRegistered": 2700.0
         },
         {
           "age": 50,
@@ -1554,8 +1437,7 @@
           "ratesPooled": false,
           "expected": 2583.6,
           "missing": -307.9,
-          "expectedRegistered": 2778.1,
-          "expectedFromRegistered": 2345.3
+          "expectedRegistered": 2778.1
         },
         {
           "age": 51,
@@ -1567,8 +1449,7 @@
           "ratesPooled": false,
           "expected": 2591.2,
           "missing": -133.8,
-          "expectedRegistered": 2786.4,
-          "expectedFromRegistered": 2532.7
+          "expectedRegistered": 2786.4
         },
         {
           "age": 52,
@@ -1580,8 +1461,7 @@
           "ratesPooled": false,
           "expected": 2729.9,
           "missing": -245.7,
-          "expectedRegistered": 2935.5,
-          "expectedFromRegistered": 2572.2
+          "expectedRegistered": 2935.5
         },
         {
           "age": 53,
@@ -1593,8 +1473,7 @@
           "ratesPooled": false,
           "expected": 2889.9,
           "missing": -261.8,
-          "expectedRegistered": 3107.6,
-          "expectedFromRegistered": 2711.9
+          "expectedRegistered": 3107.6
         },
         {
           "age": 54,
@@ -1606,8 +1485,7 @@
           "ratesPooled": false,
           "expected": 2918.7,
           "missing": -122.9,
-          "expectedRegistered": 3138.5,
-          "expectedFromRegistered": 2830.7
+          "expectedRegistered": 3138.5
         },
         {
           "age": 55,
@@ -1619,8 +1497,7 @@
           "ratesPooled": false,
           "expected": 2772.2,
           "missing": -162.9,
-          "expectedRegistered": 2981.0,
-          "expectedFromRegistered": 2694.0
+          "expectedRegistered": 2981.0
         },
         {
           "age": 56,
@@ -1632,8 +1509,7 @@
           "ratesPooled": false,
           "expected": 2693.8,
           "missing": -78.4,
-          "expectedRegistered": 2896.7,
-          "expectedFromRegistered": 2607.1
+          "expectedRegistered": 2896.7
         },
         {
           "age": 57,
@@ -1645,8 +1521,7 @@
           "ratesPooled": false,
           "expected": 2687.5,
           "missing": -233.2,
-          "expectedRegistered": 2889.9,
-          "expectedFromRegistered": 2520.9
+          "expectedRegistered": 2889.9
         },
         {
           "age": 58,
@@ -1658,8 +1533,7 @@
           "ratesPooled": false,
           "expected": 2731.6,
           "missing": -116.7,
-          "expectedRegistered": 2937.4,
-          "expectedFromRegistered": 2645.7
+          "expectedRegistered": 2937.4
         },
         {
           "age": 59,
@@ -1671,8 +1545,7 @@
           "ratesPooled": false,
           "expected": 2963.4,
           "missing": -182.8,
-          "expectedRegistered": 3186.6,
-          "expectedFromRegistered": 2838.9
+          "expectedRegistered": 3186.6
         },
         {
           "age": 60,
@@ -1684,8 +1557,7 @@
           "ratesPooled": false,
           "expected": 2957.4,
           "missing": -210.2,
-          "expectedRegistered": 3180.1,
-          "expectedFromRegistered": 2843.6
+          "expectedRegistered": 3180.1
         },
         {
           "age": 61,
@@ -1697,8 +1569,7 @@
           "ratesPooled": false,
           "expected": 2972.2,
           "missing": -190.1,
-          "expectedRegistered": 3196.1,
-          "expectedFromRegistered": 2862.7
+          "expectedRegistered": 3196.1
         },
         {
           "age": 62,
@@ -1710,8 +1581,7 @@
           "ratesPooled": false,
           "expected": 2964.7,
           "missing": 1.0,
-          "expectedRegistered": 3188.0,
-          "expectedFromRegistered": 2964.0
+          "expectedRegistered": 3188.0
         },
         {
           "age": 63,
@@ -1723,8 +1593,7 @@
           "ratesPooled": false,
           "expected": 2982.4,
           "missing": -89.7,
-          "expectedRegistered": 3207.0,
-          "expectedFromRegistered": 2954.6
+          "expectedRegistered": 3207.0
         },
         {
           "age": 64,
@@ -1736,8 +1605,7 @@
           "ratesPooled": false,
           "expected": 2986.1,
           "missing": -81.4,
-          "expectedRegistered": 3211.0,
-          "expectedFromRegistered": 2938.0
+          "expectedRegistered": 3211.0
         },
         {
           "age": 65,
@@ -1749,8 +1617,7 @@
           "ratesPooled": false,
           "expected": 2895.2,
           "missing": -85.0,
-          "expectedRegistered": 3113.3,
-          "expectedFromRegistered": 2811.7
+          "expectedRegistered": 3113.3
         },
         {
           "age": 66,
@@ -1762,8 +1629,7 @@
           "ratesPooled": false,
           "expected": 2860.1,
           "missing": 51.2,
-          "expectedRegistered": 3075.5,
-          "expectedFromRegistered": 2881.1
+          "expectedRegistered": 3075.5
         },
         {
           "age": 67,
@@ -1775,8 +1641,7 @@
           "ratesPooled": false,
           "expected": 2769.1,
           "missing": -10.3,
-          "expectedRegistered": 2977.6,
-          "expectedFromRegistered": 2757.4
+          "expectedRegistered": 2977.6
         },
         {
           "age": 68,
@@ -1788,8 +1653,7 @@
           "ratesPooled": false,
           "expected": 2697.7,
           "missing": 3.0,
-          "expectedRegistered": 2900.9,
-          "expectedFromRegistered": 2667.3
+          "expectedRegistered": 2900.9
         },
         {
           "age": 69,
@@ -1801,8 +1665,7 @@
           "ratesPooled": false,
           "expected": 2615.6,
           "missing": 30.3,
-          "expectedRegistered": 2812.6,
-          "expectedFromRegistered": 2624.7
+          "expectedRegistered": 2812.6
         },
         {
           "age": 70,
@@ -1814,8 +1677,7 @@
           "ratesPooled": false,
           "expected": 2528.4,
           "missing": 1.3,
-          "expectedRegistered": 2718.8,
-          "expectedFromRegistered": 2552.8
+          "expectedRegistered": 2718.8
         },
         {
           "age": 71,
@@ -1827,8 +1689,7 @@
           "ratesPooled": false,
           "expected": 2420.0,
           "missing": -11.9,
-          "expectedRegistered": 2602.3,
-          "expectedFromRegistered": 2400.0
+          "expectedRegistered": 2602.3
         },
         {
           "age": 72,
@@ -1840,8 +1701,7 @@
           "ratesPooled": false,
           "expected": 2306.1,
           "missing": 63.0,
-          "expectedRegistered": 2479.8,
-          "expectedFromRegistered": 2338.6
+          "expectedRegistered": 2479.8
         },
         {
           "age": 73,
@@ -1853,8 +1713,7 @@
           "ratesPooled": false,
           "expected": 2185.2,
           "missing": 82.9,
-          "expectedRegistered": 2349.7,
-          "expectedFromRegistered": 2242.2
+          "expectedRegistered": 2349.7
         },
         {
           "age": 74,
@@ -1866,8 +1725,7 @@
           "ratesPooled": false,
           "expected": 2056.4,
           "missing": 73.5,
-          "expectedRegistered": 2211.3,
-          "expectedFromRegistered": 2123.5
+          "expectedRegistered": 2211.3
         },
         {
           "age": 75,
@@ -1879,8 +1737,7 @@
           "ratesPooled": false,
           "expected": 1972.6,
           "missing": 20.5,
-          "expectedRegistered": 2121.2,
-          "expectedFromRegistered": 1976.3
+          "expectedRegistered": 2121.2
         },
         {
           "age": 76,
@@ -1892,8 +1749,7 @@
           "ratesPooled": false,
           "expected": 1913.2,
           "missing": 60.1,
-          "expectedRegistered": 2057.3,
-          "expectedFromRegistered": 1944.6
+          "expectedRegistered": 2057.3
         },
         {
           "age": 77,
@@ -1905,8 +1761,7 @@
           "ratesPooled": false,
           "expected": 2011.4,
           "missing": 81.7,
-          "expectedRegistered": 2162.9,
-          "expectedFromRegistered": 2068.7
+          "expectedRegistered": 2162.9
         },
         {
           "age": 78,
@@ -1918,8 +1773,7 @@
           "ratesPooled": false,
           "expected": 1408.6,
           "missing": 8.4,
-          "expectedRegistered": 1514.7,
-          "expectedFromRegistered": 1450.4
+          "expectedRegistered": 1514.7
         },
         {
           "age": 79,
@@ -1931,8 +1785,7 @@
           "ratesPooled": false,
           "expected": 1323.2,
           "missing": -2.2,
-          "expectedRegistered": 1422.9,
-          "expectedFromRegistered": 1348.9
+          "expectedRegistered": 1422.9
         },
         {
           "age": 80,
@@ -1944,8 +1797,7 @@
           "ratesPooled": true,
           "expected": 1261.5,
           "missing": 7.7,
-          "expectedRegistered": 1356.5,
-          "expectedFromRegistered": 1274.3
+          "expectedRegistered": 1356.5
         },
         {
           "age": 81,
@@ -1957,8 +1809,7 @@
           "ratesPooled": true,
           "expected": 1246.9,
           "missing": 7.6,
-          "expectedRegistered": 1340.8,
-          "expectedFromRegistered": 1259.5
+          "expectedRegistered": 1340.8
         },
         {
           "age": 82,
@@ -1970,8 +1821,7 @@
           "ratesPooled": true,
           "expected": 1040.9,
           "missing": 6.4,
-          "expectedRegistered": 1119.3,
-          "expectedFromRegistered": 1051.5
+          "expectedRegistered": 1119.3
         },
         {
           "age": 83,
@@ -1983,8 +1833,7 @@
           "ratesPooled": true,
           "expected": 907.9,
           "missing": 5.6,
-          "expectedRegistered": 976.3,
-          "expectedFromRegistered": 917.1
+          "expectedRegistered": 976.3
         },
         {
           "age": 84,
@@ -1996,8 +1845,7 @@
           "ratesPooled": true,
           "expected": 805.6,
           "missing": 4.9,
-          "expectedRegistered": 866.3,
-          "expectedFromRegistered": 813.8
+          "expectedRegistered": 866.3
         },
         {
           "age": 85,
@@ -2009,8 +1857,7 @@
           "ratesPooled": true,
           "expected": 716.6,
           "missing": -62.2,
-          "expectedRegistered": 770.5,
-          "expectedFromRegistered": 673.1
+          "expectedRegistered": 770.5
         },
         {
           "age": 86,
@@ -2022,8 +1869,7 @@
           "ratesPooled": true,
           "expected": 644.5,
           "missing": -55.9,
-          "expectedRegistered": 693.0,
-          "expectedFromRegistered": 605.4
+          "expectedRegistered": 693.0
         },
         {
           "age": 87,
@@ -2035,8 +1881,7 @@
           "ratesPooled": true,
           "expected": 551.1,
           "missing": -47.8,
-          "expectedRegistered": 592.6,
-          "expectedFromRegistered": 517.7
+          "expectedRegistered": 592.6
         },
         {
           "age": 88,
@@ -2048,8 +1893,7 @@
           "ratesPooled": true,
           "expected": 485.9,
           "missing": -42.1,
-          "expectedRegistered": 522.5,
-          "expectedFromRegistered": 456.5
+          "expectedRegistered": 522.5
         },
         {
           "age": 89,
@@ -2061,8 +1905,7 @@
           "ratesPooled": true,
           "expected": 425.2,
           "missing": -36.9,
-          "expectedRegistered": 457.2,
-          "expectedFromRegistered": 399.4
+          "expectedRegistered": 457.2
         },
         {
           "age": 90,
@@ -2074,8 +1917,7 @@
           "ratesPooled": true,
           "expected": 346.3,
           "missing": -30.0,
-          "expectedRegistered": 372.4,
-          "expectedFromRegistered": 325.4
+          "expectedRegistered": 372.4
         },
         {
           "age": 91,
@@ -2087,8 +1929,7 @@
           "ratesPooled": true,
           "expected": 302.5,
           "missing": -26.2,
-          "expectedRegistered": 325.3,
-          "expectedFromRegistered": 284.1
+          "expectedRegistered": 325.3
         },
         {
           "age": 92,
@@ -2100,8 +1941,7 @@
           "ratesPooled": true,
           "expected": 255.6,
           "missing": -22.1,
-          "expectedRegistered": 274.9,
-          "expectedFromRegistered": 240.1
+          "expectedRegistered": 274.9
         },
         {
           "age": 93,
@@ -2113,8 +1953,7 @@
           "ratesPooled": true,
           "expected": 212.7,
           "missing": -18.4,
-          "expectedRegistered": 228.8,
-          "expectedFromRegistered": 199.8
+          "expectedRegistered": 228.8
         },
         {
           "age": 94,
@@ -2126,8 +1965,7 @@
           "ratesPooled": true,
           "expected": 173.7,
           "missing": -15.0,
-          "expectedRegistered": 186.8,
-          "expectedFromRegistered": 163.2
+          "expectedRegistered": 186.8
         },
         {
           "age": 95,
@@ -2139,8 +1977,7 @@
           "ratesPooled": true,
           "expected": 134.3,
           "missing": -11.7,
-          "expectedRegistered": 144.4,
-          "expectedFromRegistered": 126.2
+          "expectedRegistered": 144.4
         },
         {
           "age": 96,
@@ -2152,8 +1989,7 @@
           "ratesPooled": true,
           "expected": 105.4,
           "missing": -9.1,
-          "expectedRegistered": 113.4,
-          "expectedFromRegistered": 99.0
+          "expectedRegistered": 113.4
         },
         {
           "age": 97,
@@ -2165,8 +2001,7 @@
           "ratesPooled": true,
           "expected": 79.2,
           "missing": -6.9,
-          "expectedRegistered": 85.1,
-          "expectedFromRegistered": 74.4
+          "expectedRegistered": 85.1
         },
         {
           "age": 98,
@@ -2178,8 +2013,7 @@
           "ratesPooled": true,
           "expected": 56.2,
           "missing": -4.8,
-          "expectedRegistered": 60.5,
-          "expectedFromRegistered": 52.8
+          "expectedRegistered": 60.5
         },
         {
           "age": 99,
@@ -2191,8 +2025,7 @@
           "ratesPooled": true,
           "expected": 40.7,
           "missing": -3.5,
-          "expectedRegistered": 43.8,
-          "expectedFromRegistered": 38.3
+          "expectedRegistered": 43.8
         },
         {
           "age": 100,
@@ -2204,8 +2037,7 @@
           "ratesPooled": true,
           "expected": 70.1,
           "missing": -6.1,
-          "expectedRegistered": 75.4,
-          "expectedFromRegistered": 65.8
+          "expectedRegistered": 75.4
         }
       ]
     }

@@ -12,7 +12,6 @@ export interface AgeRow {
   registered: number; // thousands (cvap x CPS self-reported registration rate)
   registeredRate: number; // percent of cvap
   expectedRegistered: number; // cvap x this cycle's 65+ registration rate, thousands
-  expectedFromRegistered: number; // registered x this cycle's 65+ show-up rate (votes per registered), thousands
   /** True for ages 80+ - Census's source only reports a turnout/citizen-
    * share rate pooled across the whole 80-84 or 85+ bucket, so these rows
    * share their rate with their bucket-mates even though the population
@@ -24,14 +23,12 @@ export interface AgeCycle {
   avgTurnout: number; // percent - true national average; kept for CPS reconciliation, not the chart's benchmark
   over65Turnout: number; // percent - votes/cvap for ages 65+ only. The chart's benchmark line.
   over65Registration: number; // percent - registered/cvap for ages 65+
-  over65ShowUp: number; // percent - votes/registered for ages 65+
   /** Thousands of people short of the 65+ registration rate (sum of
    * expectedRegistered - registered where positive). */
   registrationGap: number;
-  /** Thousands of votes short of the 65+ show-up rate among the registered
-   * (sum of expectedFromRegistered - votes where positive). Different unit
-   * from registrationGap - the two never sum. */
-  showUpGap: number;
+  /** Thousands of registered people who didn't vote, all ages (sum of
+   * registered - votes). Not the other half of registrationGap - never sum. */
+  registeredNotVoted: number;
   totalCvap: number; // thousands
   totalVotes: number; // thousands
   crossoverAge: number | null; // first age (ascending) whose own turnout reaches over65Turnout

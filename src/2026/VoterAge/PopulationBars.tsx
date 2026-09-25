@@ -31,8 +31,6 @@ export interface PopulationBarRow {
   registered?: number;
   /** cvap x the 65+ registration rate - the registration standard's line. */
   expectedRegistered?: number;
-  /** registered x the 65+ show-up rate - the show-up standard's line. */
-  expectedFromRegistered?: number;
 }
 
 interface Props {
@@ -57,14 +55,11 @@ interface Props {
   /** Opacity 0-1 of the registered bar, drawn between the eligible track
    * and the votes bar. Omit on charts whose rows carry no `registered`. */
   registeredOpacity?: number;
-  /** Two more 65+ standards, one per hurdle ("age" variant only). Each is
-   * a dotted line plus a gold gap measured against the bar it sits on:
-   *   registration - line at expectedRegistered, gap down to registered
-   *   showUp       - line at expectedFromRegistered, gap down to votes
-   * `line`/`gap` are opacities, so a caller can dim a previous step's
-   * standard rather than drop it. */
+  /** The 65+ registration standard ("age" variant only): a dotted line at
+   * expectedRegistered plus a gold gap down to the registered bar. `line`/
+   * `gap` are opacities. The other hurdle needs no layer of its own - the
+   * registered bar showing above the votes bar is registered non-voters. */
   registrationStandard?: { line: number; gap: number };
-  showUpStandard?: { line: number; gap: number };
   /** Legend copy for the gold swatch. The dotted-line label is
    * `expectedLineLabel`. Both are one entry each, relabelled by the caller
    * as the active standard changes, so the legend never reflows. */
@@ -86,7 +81,13 @@ interface Props {
    * Never mounts or unmounts once passed: `opacity` fades the whole block
    * in and `deltaOpacity` the third line, so both reserve their space from
    * first paint and neither arrival can nudge the chart above it. */
-  heroGap?: { figure: string; label: string; delta: string; opacity?: number; deltaOpacity: number };
+  heroGap?: {
+    /** One figure, or two side by side. Keep labels short enough not to
+     * wrap - the block's height must not change when the count does. */
+    items: { figure: string; label: string; delta: string; swatch: "gap" | "registered" }[];
+    opacity?: number;
+    deltaOpacity: number;
+  };
   /** Extra content layered over the plot (e.g. a scroll-position year
    * stamp) - absolutely positioned, doesn't affect layout. Pass a function
    * to pin something to a data value: `yPct(v)` is v's height on the y-axis
@@ -124,7 +125,6 @@ export default function PopulationBars({
   showGap = false,
   registeredOpacity = 0,
   registrationStandard,
-  showUpStandard,
   gapLegendLabel = "Shortfall",
   yDomain: yDomainProp,
   directLabelMissing = false,
@@ -220,10 +220,8 @@ export default function PopulationBars({
       clipped.append("g").attr("class", "pb-votes");
       clipped.append("g").attr("class", "pb-gaps");
       clipped.append("g").attr("class", "pb-gaps-reg");
-      clipped.append("g").attr("class", "pb-gaps-showup");
       clipped.append("path").attr("class", "pb-expected-line");
       clipped.append("path").attr("class", "pb-expected-line pb-line-reg");
-      clipped.append("path").attr("class", "pb-expected-line pb-line-showup");
       root.append("g").attr("class", "pb-expected-ticks");
       root.append("g").attr("class", "pb-missing-labels");
       clipped.append("g").attr("class", "pb-hits");
@@ -407,14 +405,8 @@ export default function PopulationBars({
       (d) => (registrationStandard ? d.expectedRegistered : undefined),
       registrationStandard?.gap ?? 0
     );
-    drawGapLayer(
-      "pb-gaps-showup",
-      (d) => d.votes,
-      (d) => (showUpStandard ? d.expectedFromRegistered : undefined),
-      showUpStandard?.gap ?? 0
-    );
 
-    // The two hurdle standards' dotted lines - same style as the expected
+    // The registration standard's dotted line - same style as the expected
     // line, age variant only.
     const drawStandardLine = (cls: string, value: (d: PopulationBarRow) => number | undefined, opacity: number) => {
       const path = root.select<SVGPathElement>(`path.${cls}`);
@@ -430,7 +422,6 @@ export default function PopulationBars({
       anim(path.datum(lineRows).style("opacity", opacity)).attr("d", gen);
     };
     drawStandardLine("pb-line-reg", (d) => d.expectedRegistered, registrationStandard?.line ?? 0);
-    drawStandardLine("pb-line-showup", (d) => d.expectedFromRegistered, showUpStandard?.line ?? 0);
 
     // Expected-turnout marker. Age variant: one dotted path through every
     // bar's expected value - since cvap varies smoothly by age, this
@@ -438,7 +429,7 @@ export default function PopulationBars({
     // Category variant: categories aren't ordered, so a connecting line
     // would imply a false adjacency - draw a short dashed tick per bar
     // instead (a bullet-chart target marker).
-    const expectedLine = root.select<SVGPathElement>("path.pb-expected-line:not(.pb-line-reg):not(.pb-line-showup)");
+    const expectedLine = root.select<SVGPathElement>("path.pb-expected-line:not(.pb-line-reg)");
     const expectedTicks = root.select<SVGGElement>("g.pb-expected-ticks");
     if (xKind === "age") {
       expectedTicks.selectAll("*").remove();
@@ -523,8 +514,6 @@ export default function PopulationBars({
     registeredOpacity,
     registrationStandard?.line,
     registrationStandard?.gap,
-    showUpStandard?.line,
-    showUpStandard?.gap,
     shortRows,
     yDomainProp,
     directLabelMissing,
@@ -535,8 +524,8 @@ export default function PopulationBars({
 
   // One dotted entry and one gold entry, shared by whichever standard is
   // active (the caller relabels them), so the legend never reflows.
-  const lineLegendOn = showExpected || (registrationStandard?.line ?? 0) > 0.5 || (showUpStandard?.line ?? 0) > 0.5;
-  const gapLegendOn = showGap || (registrationStandard?.gap ?? 0) > 0.5 || (showUpStandard?.gap ?? 0) > 0.5;
+  const lineLegendOn = showExpected || (registrationStandard?.line ?? 0) > 0.5;
+  const gapLegendOn = showGap || (registrationStandard?.gap ?? 0) > 0.5;
   const hasRegistered = rows.some((r) => r.registered !== undefined);
 
   return (
@@ -594,18 +583,26 @@ export default function PopulationBars({
       {heroGap && (
         <div className="pb-gap-summary pb-gap-summary--hero" style={{ opacity: heroGap.opacity ?? 1 }}>
           <span className="pb-gap-marker" aria-hidden="true" />
-          <div className="pb-gap-hero">
-            <div className="pb-gap-hero-figure">{heroGap.figure}</div>
-            <div className="pb-gap-hero-label">{heroGap.label}</div>
-            {/* Always mounted so its arrival can't nudge the figure/label
-                above it - only opacity fades in near the end of the morph. */}
-            <div
-              className="pb-gap-hero-delta"
-              style={{ opacity: heroGap.deltaOpacity }}
-              aria-hidden={heroGap.deltaOpacity < 0.01 || undefined}
-            >
-              {heroGap.delta}
-            </div>
+          <div className="pb-gap-hero-row">
+            {heroGap.items.map((item) => (
+              <div className="pb-gap-hero" key={item.label}>
+                <div className="pb-gap-hero-figure">{item.figure}</div>
+                <div className="pb-gap-hero-label">
+                  <span className={`voa-legend-swatch pb-legend-${item.swatch}`} aria-hidden="true" /> {item.label}
+                </div>
+                {/* Always mounted so its arrival can't nudge the figure/label
+                    above it - only opacity fades in near the end of the morph. */}
+                <div
+                  className="pb-gap-hero-delta"
+                  style={{ opacity: heroGap.deltaOpacity }}
+                  aria-hidden={heroGap.deltaOpacity < 0.01 || undefined}
+                >
+                  {/* A non-breaking space keeps an empty delta's line box, so
+                      the block is the same height with or without one. */}
+                  {item.delta || "\u00a0"}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

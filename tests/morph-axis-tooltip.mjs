@@ -7,7 +7,7 @@ import { chromium } from "playwright";
 
 const BASE = process.env.BASE_URL || "http://localhost:4321";
 const H = 900;
-const MORPH_STEP = 6; // AgeBeats.tsx
+const MORPH_STEP = 5; // AgeBeats.tsx
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1000, height: H } });

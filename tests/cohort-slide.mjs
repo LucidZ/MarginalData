@@ -23,7 +23,7 @@ await page.waitForSelector(".voa-root h1");
 // step elements themselves (progress MORPH_STEP+0.15 .. MORPH_STEP+0.85),
 // scanning a little past both ends so the true endpoints are reached
 // regardless of how step heights map to scroll position.
-const MORPH_STEP = 6; // AgeBeats.tsx
+const MORPH_STEP = 5; // AgeBeats.tsx
 const window_ = await page.evaluate(
   ({ i, h }) => {
     const steps = [...document.querySelectorAll(".voa-beat .voa-step")];

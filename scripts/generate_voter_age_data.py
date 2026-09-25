@@ -263,30 +263,22 @@ def finalize_age_cycle(rows):
     over65_registered = sum(r["registered"] for r in rows if r["age"] >= OVER65_AGE)
     over65_reg_rate = over65_registered / over65_cvap
 
-    over65_show_up = over65_votes / over65_registered
 
-    # Two more 65+ standards, one per hurdle, each measured against the bar
-    # it sits on so both gaps are literal counts, not a counterfactual split:
-    #   expectedRegistered     = cvap x 65+ registration rate. Gap down to
-    #                            `registered` = people missing from the rolls.
-    #   expectedFromRegistered = registered x 65+ show-up rate (votes per
-    #                            registered 65+). Gap down to `votes` =
-    #                            registered people who didn't vote.
-    # The two gaps are in different units (people vs votes) and do NOT sum to
-    # the single shortfall against `expected` - never add them together.
-    # Only shortfalls are totalled; an age above a standard contributes 0,
-    # same no-surplus rule as the gold wedge.
+    # The registration standard: cvap x the 65+ registration rate. Its gap
+    # down to `registered` is people missing from the rolls (only shortfalls
+    # totalled - an age above the line contributes 0, same no-surplus rule
+    # as the gold wedge). The other hurdle needs no standard of its own:
+    # registered minus votes, the space between the two green bars, is
+    # already the count of registered people who didn't vote.
     reg_gap = 0.0
-    show_up_gap = 0.0
+    reg_not_voted = 0.0
     for r in rows:
         exp_reg = r["cvap"] * over65_reg_rate
-        exp_from_reg = r["registered"] * over65_show_up
         reg_gap += max(0.0, exp_reg - r["registered"])
-        show_up_gap += max(0.0, exp_from_reg - r["votes"])
+        reg_not_voted += max(0.0, r["registered"] - r["votes"])
         r["expected"] = round(r["cvap"] * over65_turnout, 1)
         r["missing"] = round(r["votes"] - r["expected"], 1)
         r["expectedRegistered"] = round(exp_reg, 1)
-        r["expectedFromRegistered"] = round(exp_from_reg, 1)
         r["cvap"] = round(r["cvap"], 1)
         r["votes"] = round(r["votes"], 1)
         r["registered"] = round(r["registered"], 1)
@@ -306,12 +298,11 @@ def finalize_age_cycle(rows):
         "avgTurnout": round(100 * avg_turnout, 2),
         "over65Turnout": round(100 * over65_turnout, 2),
         "over65Registration": round(100 * over65_reg_rate, 2),
-        "over65ShowUp": round(100 * over65_show_up, 2),
-        # Thousands. People short of the 65+ registration rate, and votes
-        # short of the 65+ show-up rate among the registered. Different
-        # units - not two halves of anything.
+        # Thousands. People short of the 65+ registration rate, and
+        # registered people who didn't vote (all ages). Not two halves of
+        # any one total - never add them.
         "registrationGap": round(reg_gap, 1),
-        "showUpGap": round(show_up_gap, 1),
+        "registeredNotVoted": round(reg_not_voted, 1),
         "totalCvap": round(total_cvap, 1),
         "totalVotes": round(total_votes, 1),
         "crossoverAge": crossover,
@@ -555,8 +546,8 @@ def main():
             f"avg turnout {cycle['avgTurnout']}%  crossover age {cycle['crossoverAge']}"
         )
         print(
-            f"         65+ registered {cycle['over65Registration']}%  show-up {cycle['over65ShowUp']}%  "
-            f"gaps: {cycle['registrationGap']:,.0f}k unregistered, {cycle['showUpGap']:,.0f}k registered non-voters"
+            f"         65+ registered {cycle['over65Registration']}%  "
+            f"{cycle['registrationGap']:,.0f}k short of it, {cycle['registeredNotVoted']:,.0f}k registered non-voters"
         )
 
     print("Parsing CPS Table 5 (education, 2024)...")
@@ -610,7 +601,7 @@ def main():
                 f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
             ] + [PEP_URL, COLORADO["url"]],
             "retrieved": "2026-09-16",
-            "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, expectedFromRegistered, registrationGap, showUpGap); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration, over65ShowUp); percentage points (effectPp, sePp)",
+            "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration); percentage points (effectPp, sePp)",
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
                 "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "

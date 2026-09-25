@@ -85,14 +85,14 @@ export interface AgeBeatsVals {
   under35Missing: string;
   shortfall2024Pct: string;
   reg65: string; // 2024 65+ registration rate
-  showUp65: string; // 2024 share of registered 65+ who voted
+  reg65_2022: string;
   youthReg: string; // 2024 18-24 registration rate
   youthShowUp: string; // 2024 share of registered 18-24s who voted
   youthShowUp2022: string;
   regGap2024: string; // people short of the 65+ registration rate
-  showUpGap2024: string; // votes short of the 65+ show-up rate among the registered
+  notVoted2024: string; // registered people who didn't vote, all ages
   regGap2022: string;
-  showUpGap2022: string;
+  notVoted2022: string;
   /** Step 9's turnout-by-age table, rendered by AgeBeats.tsx (it's data
    * presentation, not prose) and embedded here so the surrounding paragraphs
    * stay in one place with it. */
@@ -139,10 +139,26 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
+    heading: "People 65-and-over vote the most",
+    body: (v) => (
+      <>
+        <p>
+          The highest participation rate ({v.bench}) belongs to those 65-and-over, perhaps because most are retired
+          and have more time. The dotted line is how many votes every age would cast at that rate. If everyone voted
+          like the 65+ crowd there would be <strong>{v.shortfall2024} more votes</strong>, representing{" "}
+          <strong>{v.shortfall2024Pct}</strong> of the population.
+        </p>
+        <div className="voa-callout">
+          In elections where the margins of victory tends to be small, this can be significant.
+        </div>
+      </>
+    ),
+  },
+  {
     heading: "First, you have to register",
     body: () => (
       <p>
-        Before anyone can vote, they have to register. The paler green is everyone who{" "}
+        Part of the gap opens before election day. The paler green is everyone who{" "}
         <Gloss
           note={
             <>
@@ -154,7 +170,8 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
         >
           says they're registered
         </Gloss>
-        . Like voting, it climbs with age.
+        ; the part showing above each votes bar is registered people who didn't vote. Like voting, registering
+        climbs with age.
       </p>
     ),
   },
@@ -164,35 +181,9 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
       <p>
         {v.reg65} of people 65-and-over are registered, compared with {v.youthReg} of 18-to-24-year-olds. The dotted
         line is how many would be registered at every age if everyone matched the 65+ rate. The gold between that
-        line and the paler bars is people who aren't on the rolls: <strong>{v.regGap2024}</strong> in 2024.
+        line and the paler bars is people who aren't on the rolls: <strong>{v.regGap2024}</strong>. Add the{" "}
+        {v.notVoted2024} registered people who didn't vote, and those are the two hurdles.
       </p>
-    ),
-  },
-  {
-    heading: "The show-up gap",
-    body: (v) => (
-      <p>
-        Being registered isn't the same as voting. {v.showUp65} of registered 65-and-overs voted; among registered
-        18-to-24-year-olds it was {v.youthShowUp}. This dotted line is how many votes each age's registered voters
-        would cast at the 65+ rate. The gold down to the votes bar is registered people who didn't vote:{" "}
-        <strong>{v.showUpGap2024}</strong>.
-      </p>
-    ),
-  },
-  {
-    heading: "How the shortfalls add up",
-    body: (v) => (
-      <>
-        <p>
-          Put both hurdles together and people 65-and-over have the highest turnout of any age ({v.bench}), perhaps
-          because most are retired and have more time. If everyone voted at the same rate as the 65+ crowd there would
-          be <strong>{v.shortfall2024} more votes</strong>, representing <strong>{v.shortfall2024Pct}</strong> of the
-          population.
-        </p>
-        <div className="voa-callout">
-          In elections where the margins of victory tends to be small, this can be significant.
-        </div>
-      </>
     ),
   },
   {
@@ -205,7 +196,7 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
-    heading: "2022: even the standard slips",
+    heading: "2022: registered, but staying home",
     body: (v) => (
       <>
         <p>
@@ -213,14 +204,12 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
           clean off the chart: 2024's 18- and 19-year-olds weren't old enough to vote in 2022 at all.
         </p>
         <p>
-          Watch the dotted line, not just the bars — it isn't fixed. It traces what 65-and-overs manage in each
-          election on its own terms, the same way it did a moment ago: {v.bench} in 2024, down to {v.bench2022} in a
-          midterm. Even the most reliable voters in the country turn out less without a president on the ballot — but
-          only by eight points.
+          The dotted line still traces the 65-and-over registration rate, which barely slips in a midterm ({v.reg65}{" "}
+          to {v.reg65_2022}). The gold, people not registered, grows from {v.regGap2024} to {v.regGap2022}.
         </p>
         <p>
-          What doesn't slip by eight points is everyone else. Watch how much further the bars themselves fall against
-          that lower line.
+          The bigger change is the paler green: registered people who didn't vote. It doubles, from{" "}
+          {v.notVoted2024} to <strong>{v.notVoted2022}</strong>.
         </p>
       </>
     ),
@@ -236,10 +225,8 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
           regardless of what's on the ballot; younger voters mostly show up for president.
         </p>
         <p>
-          Both hurdles get worse in a midterm, but not equally. The registration gap grows from {v.regGap2024} to{" "}
-          {v.regGap2022} people. The show-up gap more than doubles, from {v.showUpGap2024} to{" "}
-          <strong>{v.showUpGap2022}</strong> votes: only {v.youthShowUp2022} of registered 18-to-24-year-olds voted in
-          2022, down from {v.youthShowUp}.
+          Fewer young people say they're registered in a midterm too, but the steeper drop is among those who are.
+          Of registered 18-to-24-year-olds, {v.youthShowUp} voted in 2024; in 2022 only {v.youthShowUp2022} did.
         </p>
       </>
     ),

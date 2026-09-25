@@ -16,24 +16,30 @@ import type { VoterAgeData, AgeRow } from "./types";
  * chart leave and come back unchanged, and then read "this is the same chart
  * from beat one" underneath it. Beat 2's whole move is "hold this chart
  * still and change the election", which only lands if it is the same
- * physical element: one sticky pane spanning ten steps, with beat 2's
+ * physical element: one sticky pane spanning eight steps, with beat 2's
  * heading riding up the text column while the chart stays put.
  *
- * Steps 0-5 accumulate the 2024 chart layer by layer, off a rounded step
+ * Steps 0-4 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
- * 700ms tween): eligible, votes, registered, then one 65+ standard per
- * hurdle (registration, then show-up among the registered), then the
- * single 65+ turnout standard and its total. The hurdle layers are off
- * again from step 5 on - the morph only carries the single standard. Steps 6-8 morph it to 2022 continuously off the raw scroll
+ * 700ms tween): eligible, votes, the 65+ turnout standard and its total
+ * shortfall, then the "why" - the registered bar, and the 65+
+ * registration standard with its gap. That last view is what the morph
+ * carries: gold (not registered) and the registered bar showing above
+ * the votes bar (registered, didn't vote) are the two hurdles, and beat 2
+ * is watching both change. Steps 5-7 morph it to 2022 continuously off the raw scroll
  * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
  * and .claude/voter-age-morph-honesty-spec.md.
  */
 
-const STEP_COUNT = 9;
+const STEP_COUNT = 8;
 /** Index of beat 2's first step - the morph is measured from here. */
-const MORPH_STEP = 6;
-/** Beat 1's last step, where the shortfall total is added up. */
-const TOTAL_STEP = MORPH_STEP - 1;
+const MORPH_STEP = 5;
+/** The single 65+ turnout standard and its total shortfall. */
+const TOTAL_STEP = 2;
+/** The registered bar arrives; the turnout standard goes. */
+const REG_STEP = 3;
+/** The 65+ registration standard and its gap - held through the morph. */
+const REG_GAP_STEP = 4;
 /** Past this point the chart is scroll-driven, so d3's time tween is off. */
 const TWEEN_UNTIL = MORPH_STEP - 0.6;
 
@@ -63,7 +69,6 @@ function toBarRow(row: AgeRow): PopulationBarRow {
     ratesPooled: row.ratesPooled,
     registered: row.registered,
     expectedRegistered: row.expectedRegistered,
-    expectedFromRegistered: row.expectedFromRegistered,
   };
 }
 
@@ -157,7 +162,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         missing: lerp(r.missing, target.missing, t),
         registered: lerp(r.registered!, target.registered!, t),
         expectedRegistered: lerp(r.expectedRegistered!, target.expectedRegistered!, t),
-        expectedFromRegistered: lerp(r.expectedFromRegistered!, target.expectedFromRegistered!, t),
         turnout: lerp(r.turnout, target.turnout, t),
       };
     });
@@ -188,9 +192,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   }, [cycle2024, cycle2022]);
 
   const shortfall2024 = shortfallOf(rows2024);
-  const shortfall2022 = shortfallOf(rows2022);
-  const shortfallShown = shownYear2022 ? shortfall2022 : shortfall2024;
-  const deltaVs2024 = shortfall2022 - shortfall2024;
 
   const under35Missing = shortfallOf(cycle2024.rows.filter((r) => r.age < 35));
 
@@ -216,7 +217,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       const real = shownRowsByKey.get(row.key);
       if (!real) return null; // a cohort that has slid off the chart
       const year = shownYear2022 ? "2022" : "2024";
-      const hurdles = step >= 2 && step < TOTAL_STEP;
+      const didntVote = real.registered! - real.votes;
       return (
         <>
           <div className="voa-tooltip__head">
@@ -224,25 +225,31 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             {real.ratesPooled ? " (rate shared across 80-84/85+)" : ""}
           </div>
           {fmtM(real.cvap)} eligible
-          {hurdles ? ` · ${fmtM(real.registered!)} registered` : ""}
+          {step >= REG_STEP ? ` · ${fmtM(real.registered!)} registered` : ""}
           {` · ${fmtM(real.votes)} voted (${fmtPct(real.turnout)})`}
           <br />
-          {step === 3 ? (
-            <>At the 65+ registration rate: {fmtM(real.expectedRegistered!)} registered</>
-          ) : step === 4 ? (
-            <>At the 65+ show-up rate: {fmtM(real.expectedFromRegistered!)} votes from its registered</>
-          ) : (
+          {step < REG_STEP ? (
             <>
               Expected at {fmtPct(shownCycle.over65Turnout)} (the {year} 65+ rate): {fmtM(real.expected)}
+              <div className="voa-tooltip__note">{fmtMSigned(real.missing)} vs. that benchmark</div>
+            </>
+          ) : (
+            <>
+              {step >= REG_GAP_STEP && (
+                <>
+                  At the {year} 65+ registration rate ({fmtPct(shownCycle.over65Registration)}):{" "}
+                  {fmtM(real.expectedRegistered!)} registered
+                  <br />
+                </>
+              )}
+              <div className="voa-tooltip__note">
+                {step >= REG_GAP_STEP
+                  ? `${fmtMSigned(real.registered! - real.expectedRegistered!)} registered vs. that standard · `
+                  : ""}
+                {fmtM(didntVote)} registered but didn't vote
+              </div>
             </>
           )}
-          <div className="voa-tooltip__note">
-            {step === 3
-              ? `${fmtMSigned(real.registered! - real.expectedRegistered!)} registered vs. that standard`
-              : step === 4
-                ? `${fmtMSigned(real.votes - real.expectedFromRegistered!)} votes vs. that standard`
-                : `${fmtMSigned(real.missing)} vs. that benchmark`}
-          </div>
         </>
       );
     },
@@ -285,14 +292,14 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     under35Missing: fmtM(under35Missing),
     shortfall2024Pct: fmtPct((shortfall2024 / cycle2024.totalVotes) * 100),
     reg65: fmtPct(cycle2024.over65Registration),
-    showUp65: fmtPct(cycle2024.over65ShowUp),
+    reg65_2022: fmtPct(cycle2022.over65Registration),
     youthReg: fmtPct(youth2024.registered),
     youthShowUp: fmtPct(youth2024.showUp),
     youthShowUp2022: fmtPct(youth2022.showUp),
     regGap2024: fmtM(cycle2024.registrationGap),
-    showUpGap2024: fmtM(cycle2024.showUpGap),
+    notVoted2024: fmtM(cycle2024.registeredNotVoted),
     regGap2022: fmtM(cycle2022.registrationGap),
-    showUpGap2022: fmtM(cycle2022.showUpGap),
+    notVoted2022: fmtM(cycle2022.registeredNotVoted),
     compareTable,
   };
 
@@ -308,37 +315,58 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             yLabel="People (millions)"
             showTrack
             showVotes={step >= 1}
-            registeredOpacity={step >= 2 && step < TOTAL_STEP ? 1 : 0}
-            registrationStandard={
-              step === 3 ? { line: 1, gap: 1 } : step === 4 ? { line: 0.3, gap: 0.3 } : { line: 0, gap: 0 }
-            }
-            showUpStandard={step === 4 ? { line: 1, gap: 1 } : { line: 0, gap: 0 }}
-            showExpected={step >= TOTAL_STEP}
-            showGap={step >= TOTAL_STEP}
+            registeredOpacity={step >= REG_STEP ? 1 : 0}
+            registrationStandard={step >= REG_GAP_STEP ? { line: 1, gap: 1 } : { line: 0, gap: 0 }}
+            showExpected={step === TOTAL_STEP}
+            showGap={step === TOTAL_STEP}
             expectedLineLabel={
-              step === 3
-                ? `at 65+ registration (${fmtPct(cycle2024.over65Registration)})`
-                : step === 4
-                  ? `at 65+ show-up (${fmtPct(cycle2024.over65ShowUp)} of registered)`
-                  : `at 65+ turnout (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`
+              step >= REG_GAP_STEP
+                ? `at 65+ registration (${fmtPct(shownCycle.over65Registration)})`
+                : `at 65+ turnout (${fmtPct(BENCH)})`
             }
-            gapLegendLabel={step === 3 ? "Not registered" : step === 4 ? "Registered, didn't vote" : "Votes short"}
-            heroGap={{
-              figure: fmtM(shortfallShown),
-              label: `votes short of the ${shownYear2022 ? "2022" : "2024"} 65+ standard`,
-              delta: fmtMSigned(deltaVs2024),
-              // Mounted from first paint (so the space it takes is reserved
-              // and its arrival moves nothing), faded in as the reader
-              // reaches the step that first adds the gold up.
-              // Dimmed with the plot mid-morph: it only ever prints a real
-              // year's figure, but a crisp number under a rewinding chart
-              // still invites reading it as the chart's.
-              opacity: clamp01((progress - (TOTAL_STEP - 0.45)) / 0.35) * (1 - 0.65 * rewindHaze(u)),
-              // Fades in over the morph's last ~15%. Keyed to raw `u`, the
-              // linear scroll signal, not the eased `t` (whose last 15% is a
-              // much narrower sliver of actual scroll distance).
-              deltaOpacity: clamp01((u - 0.85) / 0.15),
-            }}
+            gapLegendLabel={step >= REG_GAP_STEP ? "Not registered" : "Votes short"}
+            heroGap={
+              step < REG_STEP
+                ? {
+                    items: [
+                      { figure: fmtM(shortfall2024), label: "votes short of the 65+ standard", delta: "", swatch: "gap" },
+                    ],
+                    // Mounted from first paint (so the space it takes is
+                    // reserved and its arrival moves nothing), faded in as
+                    // the reader reaches the step that adds the gold up.
+                    opacity: clamp01((progress - (TOTAL_STEP - 0.45)) / 0.35),
+                    deltaOpacity: 0,
+                  }
+                : {
+                    // The two hurdles, carried through the morph. Each
+                    // prints only a real election's figure (`shownCycle`,
+                    // snapped at t=0.5), never one read off lerped rows.
+                    items: [
+                      {
+                        figure: fmtM(shownCycle.registrationGap),
+                        label: "not registered",
+                        delta: fmtMSigned(cycle2022.registrationGap - cycle2024.registrationGap),
+                        swatch: "gap",
+                      },
+                      {
+                        figure: fmtM(shownCycle.registeredNotVoted),
+                        label: "registered, didn't vote",
+                        delta: fmtMSigned(cycle2022.registeredNotVoted - cycle2024.registeredNotVoted),
+                        swatch: "registered",
+                      },
+                    ],
+                    // Hidden while only the registered bar is up (nothing
+                    // gold to total yet). Dimmed with the plot mid-morph: a
+                    // crisp number under a rewinding chart still invites
+                    // reading it as the chart's.
+                    opacity:
+                      clamp01((progress - (REG_GAP_STEP - 0.45)) / 0.35) * (1 - 0.65 * rewindHaze(u)),
+                    // Fades in over the morph's last ~15%. Keyed to raw `u`,
+                    // the linear scroll signal, not the eased `t` (whose last
+                    // 15% is a much narrower sliver of actual scroll distance).
+                    deltaOpacity: clamp01((u - 0.85) / 0.15),
+                  }
+            }
             yDomain={yDomain}
             // Off once the chart is scroll-driven: a time tween there fights
             // the scroll instead of following it.
