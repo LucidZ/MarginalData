@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import StickyViz from "./StickyViz";
 import RewindOverlay, { rewindHaze } from "./RewindOverlay";
-import { useStepProgress } from "./useStepProgress";
+import { readingLine, useStepProgress } from "./useStepProgress";
 import YearControl, { type YearOption } from "./YearControl";
 import { cohortRows, hopRows } from "./ageRows";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
@@ -41,8 +41,11 @@ import type { VoterAgeData, AgeRow } from "./types";
 
 /** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
 const MORPH_STEP = 5;
-/** Section 3's first step (heading, intro, and the chart resting on 2022).
- * Every later hop runs from one section-3 step to the next. */
+/** Section 3's first step: heading and intro, the chart still resting on
+ * 2022. Then one step per year from 2022 back, each holding just that
+ * year's card - kept apart from the intro so no card sits at the bottom of
+ * a step too tall for a phone's reading band. Every later hop runs from one
+ * year's step to the next. */
 const EXPLORER_STEP = 8;
 /** The single 65+ turnout standard and its total shortfall. */
 const TOTAL_STEP = 2;
@@ -55,9 +58,16 @@ const TWEEN_UNTIL = MORPH_STEP - 0.6;
 
 const COMPARE_AGES = [18, 22, 65, 79];
 
+/** Matches App.css's phone breakpoint, where the chart pins above the text. */
+const PHONE_QUERY = "(max-width: 720px)";
+
 /** Step whose centre each hop starts from: hop 0 (2024 -> 2022) is beat 2's;
- * hop h >= 1 runs between section 3's steps h-1 and h. */
-const hopStart = (h: number) => (h === 0 ? MORPH_STEP : EXPLORER_STEP + h - 1);
+ * hop h >= 1 runs from year h's card step to year h+1's. */
+const hopStart = (h: number) => (h === 0 ? MORPH_STEP : EXPLORER_STEP + h);
+/** The step resting on year index k (0 = 2024): beat 2's first step for
+ * 2024 (the full registration view, just before the first hop), else that
+ * year's card step. */
+const restStep = (k: number) => (k === 0 ? MORPH_STEP : EXPLORER_STEP + k);
 /** Scroll fraction of a hop's step span spent resting at each end: the hop
  * runs over the middle 70%, same as beat 2 has always used. */
 const HOP_MARGIN = 0.15;
@@ -93,9 +103,19 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   // goes one index further back.
   const years = useMemo(() => Object.keys(data.byAge).sort().reverse(), [data]);
   const hopCount = years.length - 1;
-  const stepCount = EXPLORER_STEP + hopCount;
+  const stepCount = EXPLORER_STEP + 1 + hopCount;
 
-  const { progress, activeStep: step, setStepRef } = useStepProgress(stepCount);
+  // On phones the chart is pinned across the top, so the text a reader can
+  // see is the band below it - measure steps against that band's middle.
+  const sectionRef = useRef<HTMLElement>(null);
+  const pinnedPane = () => sectionRef.current?.querySelector<HTMLElement>(".voa-scrolly-viz") ?? null;
+  const coveredTop = useCallback(() => {
+    if (!window.matchMedia(PHONE_QUERY).matches) return 0;
+    const pane = pinnedPane();
+    // `bottom`, not height: before the pane has stuck it covers less.
+    return pane ? Math.min(Math.max(0, pane.getBoundingClientRect().bottom), window.innerHeight * 0.75) : 0;
+  }, []);
+  const { progress, activeStep: step, setStepRef } = useStepProgress(stepCount, coveredTop);
   const stepEls = useRef<(HTMLElement | null)[]>([]);
   const cycle2024 = data.byAge["2024"];
   const cycle2022 = data.byAge["2022"];
@@ -168,18 +188,18 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     () => [...years].reverse().map((year) => ({ year, kind: data.byAge[year].kind })),
     [years, data]
   );
-  // The step that rests on each year: 2024 at beat 2's first step (the full
-  // registration view, just before the first hop), every other year at its
-  // section-3 step.
   const pickYear = useCallback(
     (year: string) => {
-      const idx = years.indexOf(year);
-      const el = stepEls.current[idx === 0 ? MORPH_STEP : EXPLORER_STEP + idx - 1];
+      const el = stepEls.current[restStep(years.indexOf(year))];
       if (!el) return;
       const r = el.getBoundingClientRect();
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      // Where the step will be read once there: on phones, below the pinned
+      // pane (stuck by then, so its full height), else mid-viewport.
+      const pane = pinnedPane();
+      const covered = window.matchMedia(PHONE_QUERY).matches && pane ? pane.getBoundingClientRect().height : 0;
       window.scrollTo({
-        top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2,
+        top: window.scrollY + r.top + r.height / 2 - readingLine(covered),
         behavior: reduce ? "auto" : "smooth",
       });
     },
@@ -316,7 +336,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   };
 
   return (
-    <section className="voa-beat">
+    <section className="voa-beat" ref={sectionRef}>
       <h2 className="voa-beat-title">{ageBeatsTitle}</h2>
       <div className="voa-scrolly">
         <StickyViz>
@@ -436,17 +456,17 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               </div>
             </div>
           ))}
+          <div className="voa-step" ref={stepRef(EXPLORER_STEP)}>
+            <div className="voa-step-inner">
+              <h2 className="voa-beat-title voa-beat-title--incolumn">{explorerCopy.title(explorerVals)}</h2>
+              {explorerCopy.intro(explorerVals)}
+            </div>
+          </div>
           {years.slice(1).map((year, k) => {
             const c = data.byAge[year];
             return (
-              <div className="voa-step" key={year} ref={stepRef(EXPLORER_STEP + k)}>
+              <div className="voa-step" key={year} ref={stepRef(restStep(k + 1))}>
                 <div className="voa-step-inner">
-                  {k === 0 && (
-                    <>
-                      <h2 className="voa-beat-title voa-beat-title--incolumn">{explorerCopy.title(explorerVals)}</h2>
-                      {explorerCopy.intro(explorerVals)}
-                    </>
-                  )}
                   <div
                     className={`voa-year-card voa-year-card--${c.kind}${year === restingYear ? " is-on" : ""}`}
                     data-year={year}

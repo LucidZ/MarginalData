@@ -111,6 +111,11 @@ interface Props {
 }
 
 const MARGIN_AGE = { top: 16, right: 16, bottom: 34, left: 58 };
+/** Below this width (a phone, where the chart is pinned above the text and
+ * every pixel of height it takes hides text) the age chart goes shorter and
+ * trims its left margin. */
+const COMPACT_W = 440;
+const MARGIN_AGE_COMPACT = { top: 12, right: 10, bottom: 30, left: 54 };
 const MARGIN_CATEGORY = { top: 28, right: 16, bottom: 60, left: 58 };
 
 function fmtK(v: number): string {
@@ -160,8 +165,14 @@ export default function PopulationBars({
     return () => obs.disconnect();
   }, []);
 
-  const margin = xKind === "age" ? MARGIN_AGE : MARGIN_CATEGORY;
-  const height = xKind === "age" ? Math.max(300, Math.min(width * 0.72, 420)) : Math.max(340, Math.min(width * 0.85, 460));
+  const compact = xKind === "age" && width < COMPACT_W;
+  const margin = xKind === "age" ? (compact ? MARGIN_AGE_COMPACT : MARGIN_AGE) : MARGIN_CATEGORY;
+  const height =
+    xKind === "age"
+      ? compact
+        ? Math.max(190, width * 0.62)
+        : Math.max(300, Math.min(width * 0.72, 420))
+      : Math.max(340, Math.min(width * 0.85, 460));
 
   // Same yDomain/range as the d3 effect below, for placing HTML overlays.
   // The svg scales uniformly via viewBox, so a %-of-height holds at any size.
@@ -289,7 +300,8 @@ export default function PopulationBars({
 
     root
       .select("text.pb-axis-label-y")
-      .attr("transform", `translate(${-margin.left + 16},${innerH / 2}) rotate(-90)`)
+      // Compact: pushed further left so the rotated label clears "4.0M".
+      .attr("transform", `translate(${-margin.left + (compact ? 9 : 16)},${innerH / 2}) rotate(-90)`)
       .text(yLabel);
 
     // Track bars (eligible citizens) - full bandwidth, light fill, always
@@ -515,6 +527,7 @@ export default function PopulationBars({
   }, [
     rows,
     xKind,
+    compact,
     width,
     height,
     showTrack,

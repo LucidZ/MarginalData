@@ -3,7 +3,8 @@
 // every year's printed figures against the JSON, the "locked in" signals
 // (timeline button, year card, crisp plot), cohorts followed across a later
 // hop, arriving old cohorts filling the right edge, the clock's direction
-// label, the timeline's click/keyboard jumps, and a 360px phone.
+// label, the timeline's click/keyboard jumps, and phones (the text band
+// under the pinned chart).
 // Run with: BASE_URL=http://localhost:5174 node tests/voter-age-explorer.mjs
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -201,6 +202,37 @@ if (fit.scrollWidth > 360) fail(`360px: scrollWidth ${fit.scrollWidth}`);
 for (const b of fit.boxes) if (b.left < 0 || b.right > 360 || b.w < 24 || b.clipped) fail(`360px: button ${JSON.stringify(b)}`);
 await phone.screenshot({ path: `${OUT}/voter-age-explorer-360.png` });
 console.log(`PASS: 360px fits (scrollWidth ${fit.scrollWidth}), labels ${fit.boxes.map((b) => b.text).join(" ")}`);
+
+// 8. Phones pin the chart over the top of the screen, so the step being
+// read must sit in the band below it: tapping a year should rest the chart
+// on it with that year's card fully visible under the pane.
+for (const vp of [{ width: 360, height: 800 }, { width: 375, height: 667 }]) {
+  const ph = await browser.newPage({ viewport: vp, hasTouch: true, isMobile: true });
+  await ph.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+  await ph.waitForSelector(".voa-year-card");
+  await ph.$eval('.voa-year-card[data-year="2020"]', (e) => e.closest(".voa-step").scrollIntoView({ block: "center" }));
+  await ph.waitForTimeout(400);
+  for (const year of ["2016", "2022"]) {
+    await ph.tap(`.voa-yc-btn[aria-label^="${year}"]`);
+    await ph.waitForFunction((y) => document.querySelector(".voa-morph-state").dataset.resting === y, year, { timeout: 8000 });
+    await ph.waitForTimeout(700); // let the smooth scroll finish settling
+    const m = await ph.evaluate((y) => {
+      const pane = document.querySelector(".voa-scrolly-viz").getBoundingClientRect();
+      const card = document.querySelector(`.voa-year-card[data-year="${y}"]`).getBoundingClientRect();
+      return { paneBottom: Math.round(pane.bottom), cardTop: Math.round(card.top), cardBottom: Math.round(card.bottom), vh: innerHeight,
+        resting: document.querySelector(".voa-morph-state").dataset.resting };
+    }, year);
+    if (m.resting !== year || m.cardTop < m.paneBottom || m.cardBottom > m.vh) {
+      fail(`${vp.width}x${vp.height}: after tapping ${year}, card should be fully visible below the pinned chart ${JSON.stringify(m)}`);
+    }
+    // The band left for text under the pane; a year card is ~100px, a
+    // beat step's paragraph ~150-200px.
+    if (m.vh - m.paneBottom < 250) fail(`${vp.width}x${vp.height}: only ${m.vh - m.paneBottom}px left under the pinned pane`);
+  }
+  await ph.screenshot({ path: `${OUT}/voter-age-explorer-phone-${vp.width}x${vp.height}.png` });
+  console.log(`PASS: ${vp.width}x${vp.height}: tapping a year rests the chart on it with its card visible below the pane`);
+  await ph.close();
+}
 
 await browser.close();
 console.log("All section 3 checks passed.");

@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+/** Viewport y of the line a step's centre must cross to count as current:
+ * the middle of whatever part of the viewport isn't covered at the top. */
+export const readingLine = (coveredTop: number) => coveredTop + (window.innerHeight - coveredTop) / 2;
+
 /**
  * Continuous sibling to useActiveStep: instead of "which step is active",
  * returns a fractional step index - 0.0 when step 0 is centered, 1.0 when
@@ -12,13 +16,26 @@ import { useEffect, useRef, useState } from "react";
  * feeds back into layout - a cached center goes stale on resize and on
  * the ResizeObserver pass in StickyViz.
  */
-export function useStepProgress(count: number): {
+/**
+ * `coveredTop`: px at the top of the viewport hidden behind something pinned
+ * there (the chart, on phones). Progress is then measured at the centre of
+ * the visible area below it rather than the viewport's centre, so the step
+ * counted as current is the one the reader can actually see. Omit (or
+ * return 0) for the desktop layout, where the chart sits beside the text.
+ */
+export function useStepProgress(
+  count: number,
+  coveredTop?: () => number
+): {
   progress: number;
   activeStep: number;
   setStepRef: (i: number) => (el: HTMLElement | null) => void;
 } {
   const [progress, setProgress] = useState(0);
   const elsRef = useRef<(HTMLElement | null)[]>(new Array(count).fill(null));
+  // Read through a ref so a new function identity doesn't resubscribe.
+  const coveredRef = useRef(coveredTop);
+  coveredRef.current = coveredTop;
 
   useEffect(() => {
     let frame = 0;
@@ -26,7 +43,7 @@ export function useStepProgress(count: number): {
       frame = 0;
       const els = elsRef.current;
       if (els.length < 2 || els.some((el) => !el)) return;
-      const y = window.scrollY + window.innerHeight / 2;
+      const y = window.scrollY + readingLine(coveredRef.current?.() ?? 0);
       const centers = els.map((el) => {
         const r = el!.getBoundingClientRect();
         return r.top + window.scrollY + r.height / 2;

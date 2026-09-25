@@ -166,18 +166,86 @@
   .voa-scrolly {
     flex-direction: column;
   }
+  /* Pinned across the top, sized to its content (a fixed height here used
+     to be overflowed and hid the text under it). Everything inside is
+     compacted below so the pane takes a bit over half an 800px screen,
+     and the step text reads in the band beneath it - which is where
+     useStepProgress measures from on phones (AgeBeats `coveredTop`). */
   .voa-scrolly-viz {
     position: sticky;
     top: 0; /* overrides the desktop centering offset - mobile pins flush to the top */
     width: 100%;
-    height: min(48vh, 380px);
     z-index: 1;
     background: var(--page);
-    padding-bottom: 0.5rem;
+    padding: 0.3rem 0 0.35rem;
+    border-bottom: 1px solid var(--gridline);
   }
+  /* Tall enough that the band under the pane shows one step at a time, and
+     each hop gets a real stretch of scroll. */
   .voa-step {
-    min-height: auto;
-    padding: 1.2rem 0;
+    min-height: 42vh;
+    padding: 1rem 0;
+  }
+  .voa-step:last-child {
+    min-height: 42vh;
+  }
+  .voa-scrolly-viz .voa-chart-surface {
+    padding: 0.3rem 0.3rem 0.4rem;
+  }
+  .voa-scrolly-viz .voa-legend {
+    font-size: 0.7rem;
+    gap: 0.15rem 0.3rem;
+    margin: 0 0.2rem 0.2rem;
+  }
+  /* PopulationBars sets 0.9rem gaps inline; phones need them tighter. */
+  .voa-scrolly-viz .voa-legend > span {
+    margin-left: 0.5rem !important;
+  }
+  .voa-scrolly-viz .voa-legend > span:first-child {
+    margin-left: 0 !important;
+  }
+  .voa-scrolly-viz .voa-legend-swatch {
+    width: 10px;
+    height: 10px;
+  }
+  .voa-scrolly-viz .voa-axis-label-x {
+    font-size: 11px;
+    margin-top: 0;
+  }
+  .voa-scrolly-viz .pb-gap-summary--hero {
+    margin-top: 0.2rem;
+    padding-top: 0.3rem;
+    gap: 0;
+  }
+  .voa-scrolly-viz .pb-gap-hero-row {
+    gap: 1.2rem;
+  }
+  .voa-scrolly-viz .pb-gap-hero-figure {
+    font-size: 1.35rem;
+  }
+  .voa-scrolly-viz .pb-gap-hero-label {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+  .voa-scrolly-viz .pb-gap-hero-delta {
+    font-size: 0.72rem;
+    margin-top: 0.1rem;
+  }
+  /* The year cards say "Midterm"/"Presidential" in words, so the dashed-
+     outline key can go on phones. (Scoped to the pane so these beat the
+     timeline's own rules, which come later in this file.) */
+  .voa-scrolly-viz .voa-yc {
+    margin-bottom: 0.3rem;
+  }
+  .voa-scrolly-viz .voa-yc-key {
+    display: none;
+  }
+  .voa-scrolly-viz .voa-yc-btn {
+    padding: 0.25rem 0;
+    font-size: 0.8rem;
+  }
+  .voa-scrolly-viz .voa-yc-row {
+    padding-bottom: 9px;
   }
 }
 
