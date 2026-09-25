@@ -226,6 +226,10 @@
 .pb-legend-gap {
   background: var(--gap);
 }
+/* Legend entries arrive with the layer they name. */
+.voa-legend > span {
+  transition: opacity 300ms;
+}
 .pb-legend-expected {
   display: inline-flex;
   align-items: center;

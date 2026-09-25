@@ -261,7 +261,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             showTrack
             showVotes={step >= 1}
             showExpected={step >= 2}
-            expectedLineLabel={`expected at the 65+ rate (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`}
+            expectedLineLabel={`at 65+ turnout (${fmtPct(shownYear2022 ? BENCH_2022 : BENCH)})`}
             showGap={step >= 3}
             heroGap={{
               figure: fmtM(shortfallShown),
@@ -286,7 +286,15 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             tooltipFor={tooltipFor}
             // Clock centred on the 1M gridline: low enough to leave the
             // under-35 shortfall and the 60s bulge in view as it passes.
-            plotOverlay={({ yPct }) => <RewindOverlay u={u} clockTop={`${yPct(1000)}%`} />}
+            // Scrubber fades in as beat 2's heading comes up, fully there
+            // (resting on 2024) before the dot starts moving at u=0.
+            plotOverlay={({ yPct }) => (
+              <RewindOverlay
+                u={u}
+                clockTop={`${yPct(1000)}%`}
+                scrubberOpacity={clamp01((progress - (MORPH_STEP - 0.45)) / 0.35)}
+              />
+            )}
             plotHaze={rewindHaze(u)}
           />
         </StickyViz>

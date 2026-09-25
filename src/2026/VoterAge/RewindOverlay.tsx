@@ -27,8 +27,18 @@ export const rewindHaze = (u: number) => clamp01(Math.min(u, 1 - u) / 0.15);
 /** Minute-hand revolutions across the whole morph. */
 const SPINS = 6;
 
-/** `clockTop`: CSS top for the clock face's centre, within the plot. */
-export default function RewindOverlay({ u, clockTop = "45%" }: { u: number; clockTop?: string }) {
+/** `clockTop`: CSS top for the clock face's centre, within the plot.
+ * `scrubberOpacity`: lets the caller hold the scrubber back until beat 2
+ * arrives - through beat 1 there is only one year, so a timeline is noise. */
+export default function RewindOverlay({
+  u,
+  clockTop = "45%",
+  scrubberOpacity = 1,
+}: {
+  u: number;
+  clockTop?: string;
+  scrubberOpacity?: number;
+}) {
   const haze = rewindHaze(u);
   const at2022 = u >= 0.999;
   const at2024 = u <= 0.001;
@@ -37,7 +47,7 @@ export default function RewindOverlay({ u, clockTop = "45%" }: { u: number; cloc
 
   return (
     <>
-      <div className="voa-scrubber" data-u={u.toFixed(4)} aria-hidden="true">
+      <div className="voa-scrubber" data-u={u.toFixed(4)} style={{ opacity: scrubberOpacity }} aria-hidden="true">
         <span className={`voa-scrubber-year${at2022 ? " is-on" : ""}`}>2022</span>
         <span className="voa-scrubber-track">
           <span className={`voa-scrubber-end voa-scrubber-end--left${at2022 ? " is-on" : ""}`} />

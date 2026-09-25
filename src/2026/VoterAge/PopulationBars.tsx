@@ -435,7 +435,11 @@ export default function PopulationBars({
         <span className="pb-legend-entry">
           <span className="voa-legend-swatch pb-legend-track" /> Eligible citizens
         </span>
-        <span className="pb-legend-entry" style={{ marginLeft: "0.9rem" }}>
+        <span
+          className="pb-legend-entry"
+          style={{ marginLeft: "0.9rem", opacity: showVotes ? 1 : 0 }}
+          aria-hidden={!showVotes || undefined}
+        >
           <span className="voa-legend-swatch pb-legend-votes" /> Votes cast
         </span>
         <span
@@ -453,7 +457,7 @@ export default function PopulationBars({
           style={{ marginLeft: "0.9rem", opacity: showGap ? 1 : 0 }}
           aria-hidden={!showGap || undefined}
         >
-          <span className="voa-legend-swatch pb-legend-gap" /> Votes short of it
+          <span className="voa-legend-swatch pb-legend-gap" /> Shortfall
         </span>
       </div>
       <div className="pb-plot-wrap">
