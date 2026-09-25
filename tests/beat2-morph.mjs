@@ -46,7 +46,11 @@ const N = 40;
 
 async function scrollTo(y) {
   await page.evaluate((yy) => window.scrollTo(0, yy), y);
-  await page.waitForTimeout(60);
+  // Wait for useStepProgress's rAF measure and React's re-render, not a
+  // fixed 60ms - one frame costs 100-200ms in headless Chromium, so a fixed
+  // short wait sometimes read the previous sample's state.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await page.waitForTimeout(30);
 }
 
 // Beats 1 and 2 render one chart between them, so `.voa-beat:first-of-type`
@@ -56,9 +60,12 @@ async function scrollTo(y) {
 async function readState() {
   return page.evaluate(() => {
     const section = document.querySelector(".voa-beat");
-    const scrub = section.querySelector(".voa-scrubber");
-    const u = scrub ? parseFloat(scrub.dataset.u) : null;
-    const endsOn = scrub ? [...scrub.querySelectorAll(".voa-scrubber-end")].map((e) => e.classList.contains("is-on")) : null;
+    const state = section.querySelector(".voa-morph-state");
+    const u = state ? parseFloat(state.dataset.u0) : null;
+    // The timeline's 2022 and 2024 buttons stand in for the old two-year
+    // scrubber's end circles: filled only while resting on that year.
+    const btn = (y) => section.querySelector(`.voa-yc-btn[aria-label^="${y}"]`);
+    const endsOn = [btn("2022"), btn("2024")].map((e) => e.classList.contains("is-on"));
     const plotOpacity = parseFloat(getComputedStyle(section.querySelector(".pb-plot-wrap svg")).opacity);
     const heroFigEl = section.querySelector(".pb-gap-hero-figure");
     const heroFig = heroFigEl ? parseFloat(heroFigEl.textContent) : null;
@@ -93,19 +100,19 @@ if (Math.min(...us) > 0.05) throw new Error(`FAIL: never reached near u=0 (min u
 if (Math.max(...us) < 0.95) throw new Error(`FAIL: never reached near u=1 (max u=${Math.max(...us).toFixed(3)})`);
 console.log(`PASS: scan spans u=${Math.min(...us).toFixed(3)}..${Math.max(...us).toFixed(3)}`);
 
-// 2. Scrubber: an end circle is filled only while resting on that real
-// year (left = 2022, right = 2024), and the plot is only undimmed there.
+// 2. Timeline: a year's button is filled only while resting on that real
+// year, and the plot is only undimmed there.
 for (const s of samples) {
   const [on2022, on2024] = s.endsOn;
-  if (on2022 !== s.u >= 0.999 || on2024 !== s.u <= 0.001) {
-    throw new Error(`FAIL: scrubber ends [2022=${on2022}, 2024=${on2024}] wrong at u=${s.u}`);
+  if (on2022 !== s.u >= 0.999 || on2024 !== s.u <= 0.001) { console.log(JSON.stringify(s.endsOn), s.y);
+    throw new Error(`FAIL: timeline buttons [2022=${on2022}, 2024=${on2024}] wrong at u=${s.u}`);
   }
   const atRealYear = s.u <= 0.001 || s.u >= 0.999;
   if (atRealYear !== (s.plotOpacity > 0.99)) {
     throw new Error(`FAIL: plot opacity ${s.plotOpacity} at u=${s.u} - should be dimmed iff between years`);
   }
 }
-console.log("PASS: scrubber ends fill only at a real year; plot dimmed only between years");
+console.log("PASS: timeline buttons fill only at a real year; plot dimmed only between years");
 
 // 3. The printed gold figure only ever takes one of the two real values -
 // never something in between, which would describe an election that never
@@ -142,11 +149,15 @@ console.log("PASS: delta line stays hidden until the very end of the morph, then
 // each cycle now has its OWN 65+ line, a handful of ages sit on different
 // sides of "short" in 2024 vs. 2022, so a few gap rects enter/exit as the
 // bars cross their own cycle's line. That's real geometry, not a printed
-// number, so a small spread here is expected - a large one would mean
-// something unrelated is mounting/unmounting.
+// number, so a small spread here is expected. The other is cohorts crossing
+// the chart's edges (ageRows.ts hopRows): the two oldest 2022 cohorts mount
+// mid-hop to slide in from the right, and the two youngest 2024 cohorts
+// unmount once the chart settles on 2022 - up to 5 elements each (track,
+// registered, votes, gap, hit), so up to 20 more. Anything beyond that
+// means something unrelated is mounting/unmounting.
 const counts = samples.map((s) => s.nodeCount);
 const countSpread = Math.max(...counts) - Math.min(...counts);
-if (countSpread > 10) throw new Error(`FAIL: DOM node count swung by ${countSpread} across the morph (${Math.min(...counts)}-${Math.max(...counts)}) - more than the expected few gap rects crossing threshold`);
+if (countSpread > 30) throw new Error(`FAIL: DOM node count swung by ${countSpread} across the morph (${Math.min(...counts)}-${Math.max(...counts)}) - more than gap rects crossing threshold plus cohorts crossing the edges`);
 console.log(`PASS: DOM node count stays within a small band across the morph (${Math.min(...counts)}-${Math.max(...counts)})`);
 
 // 7. Chart surface height identical at both true endpoints (spec S5

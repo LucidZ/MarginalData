@@ -25,7 +25,7 @@ const { from, to } = await page.evaluate(
 const span = to - from;
 
 const scrollTo = async (y) => { await page.evaluate((yy) => scrollTo(0, yy), y); await page.waitForTimeout(250); };
-const u = () => page.evaluate(() => parseFloat(document.querySelector(".voa-beat .voa-scrubber").dataset.u));
+const u = () => page.evaluate(() => parseFloat(document.querySelector(".voa-beat .voa-morph-state").dataset.u0));
 const ticks = () => page.evaluate(() =>
   [...document.querySelector(".voa-beat").querySelectorAll(".pb-axis-x .tick")].map((t) => {
     // Compare rounded px: a tween-written transform and a directly-set one
@@ -37,8 +37,8 @@ const ticks = () => page.evaluate(() =>
 // Hover the bar column under age slot 40, then report whether a tooltip shows.
 async function hoverTooltip() {
   const box = await page.evaluate(() => {
-    const hits = [...document.querySelectorAll(".voa-beat rect.pb-hit")];
-    const r = hits[22].getBoundingClientRect();
+    // Bars are keyed by birth cohort: c-1984 is 2024's age 40.
+    const r = document.querySelector('.voa-beat rect.pb-hit[data-key="c-1984"]').getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
   });
   await page.mouse.move(box.x, box.y + 5);

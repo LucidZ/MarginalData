@@ -1,11 +1,12 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import StickyViz from "./StickyViz";
 import RewindOverlay, { rewindHaze } from "./RewindOverlay";
 import { useStepProgress } from "./useStepProgress";
-import { toBarRow } from "./ageRows";
+import YearControl, { type YearOption } from "./YearControl";
+import { cohortRows, hopRows } from "./ageRows";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
-import { ageBeatsSteps, ageBeatsTitle, midtermsTitle, type AgeBeatsVals } from "./copy";
+import { ageBeatsSteps, ageBeatsTitle, explorerCopy, midtermsTitle, type AgeBeatsVals } from "./copy";
 import type { VoterAgeData, AgeRow } from "./types";
 
 /**
@@ -30,11 +31,19 @@ import type { VoterAgeData, AgeRow } from "./types";
  * is watching both change. Steps 5-7 morph it to 2022 continuously off the raw scroll
  * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
  * and .claude/voter-age-morph-honesty-spec.md.
+ *
+ * Section 3 keeps the same pinned chart and keeps going back: one step per
+ * election, 2022 -> 2020 -> ... -> 2012, each hop the same morph as beat 2
+ * (cohorts slide two years, values lerp, printed numbers snap). Scrolling up
+ * plays it forward. Bars are keyed by birth cohort (ageRows.ts), so the same
+ * people keep the same element across all six hops.
  */
 
-const STEP_COUNT = 8;
-/** Index of beat 2's first step - the morph is measured from here. */
+/** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
 const MORPH_STEP = 5;
+/** Section 3's first step (heading, intro, and the chart resting on 2022).
+ * Every later hop runs from one section-3 step to the next. */
+const EXPLORER_STEP = 8;
 /** The single 65+ turnout standard and its total shortfall. */
 const TOTAL_STEP = 2;
 /** The registered bar arrives; the turnout standard goes. */
@@ -46,8 +55,17 @@ const TWEEN_UNTIL = MORPH_STEP - 0.6;
 
 const COMPARE_AGES = [18, 22, 65, 79];
 
+/** Step whose centre each hop starts from: hop 0 (2024 -> 2022) is beat 2's;
+ * hop h >= 1 runs between section 3's steps h-1 and h. */
+const hopStart = (h: number) => (h === 0 ? MORPH_STEP : EXPLORER_STEP + h - 1);
+/** Scroll fraction of a hop's step span spent resting at each end: the hop
+ * runs over the middle 70%, same as beat 2 has always used. */
+const HOP_MARGIN = 0.15;
+/** Minimum move (in hops) before the clock's label flips direction, so a
+ * small wobble in the scroll doesn't make it flicker. */
+const DIRECTION_DEADZONE = 0.02;
+
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
 // Steepened ease-in-out: flat shoulders, fast middle, so the chart rests at
 // the two real states and crosses between them quickly - a reader can still
@@ -71,7 +89,14 @@ const shortfallOf = (rows: { missing: number }[]) =>
   Math.abs(rows.reduce((s, r) => s + Math.min(0, r.missing), 0));
 
 export default function AgeBeats({ data }: { data: VoterAgeData }) {
-  const { progress, activeStep: step, setStepRef } = useStepProgress(STEP_COUNT);
+  // Newest first: index 0 is 2024, the chart beat 1 builds; each scroll hop
+  // goes one index further back.
+  const years = useMemo(() => Object.keys(data.byAge).sort().reverse(), [data]);
+  const hopCount = years.length - 1;
+  const stepCount = EXPLORER_STEP + hopCount;
+
+  const { progress, activeStep: step, setStepRef } = useStepProgress(stepCount);
+  const stepEls = useRef<(HTMLElement | null)[]>([]);
   const cycle2024 = data.byAge["2024"];
   const cycle2022 = data.byAge["2022"];
 
@@ -81,102 +106,94 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   const BENCH = cycle2024.over65Turnout; // 74.62
   const BENCH_2022 = cycle2022.over65Turnout; // 66.79
 
-  const rows2024 = useMemo(() => cycle2024.rows.map(toBarRow), [cycle2024]);
-  const rows2022 = useMemo(() => cycle2022.rows.map(toBarRow), [cycle2022]);
+  // Rest state per year, keyed by cohort. Memoized so the d3 effect sees the
+  // very same array for as long as the chart rests on a year - through all of
+  // beat 1 that stops it re-firing a 700ms tween on every scroll quantum.
+  const restRows = useMemo(() => years.map((y) => cohortRows(data.byAge[y], Number(y))), [data, years]);
 
   // Three independent channels driven off the same scroll span - do not
   // unify them (morph spec S2):
-  //   u  - raw linear fraction, drives the RewindOverlay scrubber/clock and
-  //        the chart haze (wants to read as a progress indicator: starts
-  //        moving immediately, settles exactly when the morph completes).
+  //   u  - raw linear fraction within the current hop, drives the clock,
+  //        the timeline dot and the chart haze (wants to read as a progress
+  //        indicator: starts moving immediately, settles exactly when the
+  //        hop completes).
   //   t  - eased version of u, drives bar/line geometry (steep middle so a
-  //        reader crosses quickly and rests at the two real states).
-  //   printed numbers - snap off `shown` (t<0.5), never off the lerped rows.
-  const u = clamp01((progress - MORPH_STEP - 0.15) / 0.7);
+  //        reader crosses quickly and rests at the real years).
+  //   printed numbers - snap off `shownIdx` (t<0.5), never off the lerped rows.
+  // `pos` is how many hops back the chart is, continuously: 0 = 2024,
+  // 1 = 2022, ..., hopCount = 2012. Hop spans never overlap, so summing
+  // them is exact.
+  // Rounded so float noise at a hop's edge (progress - start - margin
+  // coming out 1e-16, not 0) can't read as "mid-hop" while the chart is
+  // visibly at rest - every consumer tests u against exactly 0 and 1.
+  const hopU = (h: number) =>
+    Math.round(clamp01((progress - hopStart(h) - HOP_MARGIN) / (1 - 2 * HOP_MARGIN)) * 1e6) / 1e6;
+  let pos = 0;
+  for (let h = 0; h < hopCount; h++) pos += hopU(h);
+  const hop = Math.min(Math.floor(pos), hopCount - 1);
+  const u = pos - hop;
   const t = ease(u);
+  /** Beat 2's own hop - its delta line belongs to 2024 -> 2022 only. */
+  const u0 = hopU(0);
 
-  /** 2024 -> 2022: the same cohort is two years younger. */
-  const SHIFT_YEARS = 2;
-
-  const rows2022ByAge = useMemo(() => new Map(rows2022.map((r) => [Number(r.x), r])), [rows2022]);
-
-  // The t=1 resting state, memoized so the d3 effect doesn't re-run on every
-  // scroll quantum once the morph has settled - same reason `rows2024` is
-  // returned by identity at t=0.
-  const rowsSettled2022 = useMemo(
-    () =>
-      rows2024.map((r) => {
-        const age = Number(r.x);
-        const target = rows2022ByAge.get(age - SHIFT_YEARS);
-        const xPos = age - SHIFT_YEARS;
-        // Cohorts 18 and 19 were 16 and 17 in 2022 - below voting age, so
-        // Census has no row for them. They slide off the left edge holding
-        // their real 2024 heights rather than lerping toward a number that
-        // doesn't exist. (The mirror of this: slots 99 and 100 end up empty,
-        // because filling them would need 2024 ages 101-102. Those bars are
-        // ~1px tall and worth 0.013M of the 36.1M gold total - the printed
-        // figure is still the full-year one.)
-        if (!target) return { ...r, xPos, opacity: 0 };
-        // Keep the slot's own x/label: the axis ticks are placed by key and
-        // labelled by x, so taking target's (2-years-younger) x here would
-        // print "20" under the 2024 age-22 slot - every tick shifted right by
-        // the cohort slide the bars just made. Only the data fields move.
-        return { ...target, key: r.key, x: r.x, label: r.label, xPos };
-      }),
-    [rows2024, rows2022ByAge]
-  );
-
-  // Identity-stable at both ends: through all of beat 1 this returns the
-  // very same `rows2024` array, so the d3 effect doesn't re-run (and re-fire
-  // a 700ms tween) on every one of the ~200 scroll quanta the progress hook
-  // reports across the beat.
   const activeRows = useMemo(() => {
-    if (t <= 0) return rows2024;
-    if (t >= 1) return rowsSettled2022;
-    return rows2024.map((r) => {
-      const age = Number(r.x);
-      const target = rows2022ByAge.get(age - SHIFT_YEARS);
-      const xPos = age - SHIFT_YEARS * t;
-      if (!target) return { ...r, xPos, opacity: clamp01(1 - t / 0.4) };
-      return {
-        ...r,
-        xPos,
-        cvap: lerp(r.cvap, target.cvap, t),
-        votes: lerp(r.votes, target.votes, t),
-        expected: lerp(r.expected, target.expected, t),
-        missing: lerp(r.missing, target.missing, t),
-        registered: lerp(r.registered!, target.registered!, t),
-        expectedRegistered: lerp(r.expectedRegistered!, target.expectedRegistered!, t),
-        turnout: lerp(r.turnout, target.turnout, t),
-      };
-    });
-  }, [rows2024, rows2022ByAge, rowsSettled2022, t]);
+    if (t <= 0) return restRows[hop];
+    if (t >= 1) return restRows[hop + 1];
+    return hopRows(restRows[hop], restRows[hop + 1], t);
+  }, [restRows, hop, t]);
 
   // Which real election the LABELS describe. Everything printed reads from
   // this, never from activeRows (which mid-morph describes no election that
   // ever happened). See morph spec S2/S4c.
-  const shownYear2022 = t >= 0.5;
-  const shownCycle = shownYear2022 ? cycle2022 : cycle2024;
-  // Cohort-aware: once 2022 is showing, bar `age-a` displays 2022's age
-  // a-2 (the cohort slide), not 2022's own age a.
-  const shownRowsByKey = useMemo(() => {
-    if (!shownYear2022) return new Map(rows2024.map((r) => [r.key, r]));
-    const m = new Map<string, PopulationBarRow>();
-    for (const r of rows2024) {
-      const target = rows2022ByAge.get(Number(r.x) - SHIFT_YEARS);
-      if (target) m.set(r.key, target);
-    }
-    return m;
-  }, [shownYear2022, rows2024, rows2022ByAge]);
+  const shownIdx = hop + (t >= 0.5 ? 1 : 0);
+  const shownYear = years[shownIdx];
+  const shownCycle = data.byAge[shownYear];
+  const restingYear = u <= 0 ? years[hop] : u >= 1 ? years[hop + 1] : null;
+  // Cohort keys make this a plain lookup: a hovered bar is the same people
+  // in whichever year is shown, or nobody (a cohort not yet old enough).
+  const shownRowsByKey = useMemo(() => new Map(restRows[shownIdx].map((r) => [r.key, r])), [restRows, shownIdx]);
 
-  // Pinned across both cycles from first paint, so the axis never rescales -
-  // not at a beat-1 layer reveal, and not under the morph.
+  // Which way time is running, for the clock's label: scrolling down goes
+  // back, scrolling up comes forward.
+  const [direction, setDirection] = useState<"back" | "forward">("back");
+  const lastPos = useRef(pos);
+  useEffect(() => {
+    const d = pos - lastPos.current;
+    if (Math.abs(d) < DIRECTION_DEADZONE) return;
+    setDirection(d > 0 ? "back" : "forward");
+    lastPos.current = pos;
+  }, [pos]);
+
+  const yearOptions: YearOption[] = useMemo(
+    () => [...years].reverse().map((year) => ({ year, kind: data.byAge[year].kind })),
+    [years, data]
+  );
+  // The step that rests on each year: 2024 at beat 2's first step (the full
+  // registration view, just before the first hop), every other year at its
+  // section-3 step.
+  const pickYear = useCallback(
+    (year: string) => {
+      const idx = years.indexOf(year);
+      const el = stepEls.current[idx === 0 ? MORPH_STEP : EXPLORER_STEP + idx - 1];
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({
+        top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2,
+        behavior: reduce ? "auto" : "smooth",
+      });
+    },
+    [years]
+  );
+
+  // Pinned across every cycle from first paint, so the axis never rescales -
+  // not at a beat-1 layer reveal, and not under any hop.
   const yDomain = useMemo((): [number, number] => {
-    const maxCvap = Math.max(...cycle2024.rows.map((r) => r.cvap), ...cycle2022.rows.map((r) => r.cvap));
+    const maxCvap = Math.max(...Object.values(data.byAge).flatMap((c) => c.rows.map((r) => r.cvap)));
     return [0, maxCvap * 1.08];
-  }, [cycle2024, cycle2022]);
+  }, [data]);
 
-  const shortfall2024 = shortfallOf(rows2024);
+  const shortfall2024 = shortfallOf(cycle2024.rows);
 
   const under35Missing = shortfallOf(cycle2024.rows.filter((r) => r.age < 35));
 
@@ -201,7 +218,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       if (morphing) return null;
       const real = shownRowsByKey.get(row.key);
       if (!real) return null; // a cohort that has slid off the chart
-      const year = shownYear2022 ? "2022" : "2024";
+      const year = shownYear;
       const didntVote = real.registered! - real.votes;
       return (
         <>
@@ -238,7 +255,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         </>
       );
     },
-    [morphing, shownRowsByKey, shownYear2022, shownCycle, step]
+    [morphing, shownRowsByKey, shownYear, shownCycle, step]
   );
 
   const youth2024 = bracketRates(cycle2024.rows, 18, 24);
@@ -267,6 +284,16 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     </table>
   );
 
+  // Fades in as beat 2's heading comes up, fully there (resting on 2024)
+  // before the first hop starts - through beat 1 there is only one year, so
+  // a timeline is noise.
+  const timelineOpacity = clamp01((progress - (MORPH_STEP - 0.45)) / 0.35);
+  const explorerVals = { firstYear: years[years.length - 1] };
+  const stepRef = (i: number) => (el: HTMLElement | null) => {
+    setStepRef(i)(el);
+    stepEls.current[i] = el;
+  };
+
   const copyVals: AgeBeatsVals = {
     age25cvap: fmtM(age25.cvap),
     age75cvap: fmtM(age75.cvap),
@@ -293,6 +320,28 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       <h2 className="voa-beat-title">{ageBeatsTitle}</h2>
       <div className="voa-scrolly">
         <StickyViz>
+          {/* Mounted from first paint and only faded, like every other
+              arriving layer, so its arrival can't move the chart. */}
+          {/* Scroll state for tests: pos = hops back from 2024, u = within the
+              current hop, u0 = within beat 2's hop (2024 -> 2022) only. */}
+          <span
+            className="voa-morph-state"
+            data-pos={pos.toFixed(4)}
+            data-u={u.toFixed(4)}
+            data-u0={u0.toFixed(4)}
+            data-shown={shownYear}
+            data-resting={restingYear ?? ""}
+            hidden
+          />
+          <YearControl
+            options={yearOptions}
+            shown={shownYear}
+            resting={restingYear}
+            dotPos={hopCount - pos}
+            dotOpacity={rewindHaze(u)}
+            opacity={timelineOpacity}
+            onPick={pickYear}
+          />
           <PopulationBars
             rows={activeRows}
             xKind="age"
@@ -323,7 +372,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
                     deltaOpacity: 0,
                   }
                 : {
-                    // The two hurdles, carried through the morph. Each
+                    // The two hurdles, carried through every hop. Each
                     // prints only a real election's figure (`shownCycle`,
                     // snapped at t=0.5), never one read off lerped rows.
                     items: [
@@ -346,10 +395,13 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
                     // reading it as the chart's.
                     opacity:
                       clamp01((progress - (REG_GAP_STEP - 0.45)) / 0.35) * (1 - 0.65 * rewindHaze(u)),
-                    // Fades in over the morph's last ~15%. Keyed to raw `u`,
-                    // the linear scroll signal, not the eased `t` (whose last
-                    // 15% is a much narrower sliver of actual scroll distance).
-                    deltaOpacity: clamp01((u - 0.85) / 0.15),
+                    // Fades in over beat 2's hop's last ~15%. Keyed to raw
+                    // `u`, the linear scroll signal, not the eased `t` (whose
+                    // last 15% is a much narrower sliver of actual scroll
+                    // distance). These deltas are 2024 -> 2022 only: it fades
+                    // back out as the next hop starts, since a change vs. the
+                    // previous election would mix election types.
+                    deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01((pos - 1) / 0.15)),
                   }
             }
             yDomain={yDomain}
@@ -359,13 +411,11 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             tooltipFor={tooltipFor}
             // Clock centred on the 1M gridline: low enough to leave the
             // under-35 shortfall and the 60s bulge in view as it passes.
-            // Scrubber fades in as beat 2's heading comes up, fully there
-            // (resting on 2024) before the dot starts moving at u=0.
             plotOverlay={({ yPct }) => (
               <RewindOverlay
                 u={u}
+                label={direction === "back" ? explorerCopy.rewinding : explorerCopy.fastForwarding}
                 clockTop={`${yPct(1000)}%`}
-                scrubberOpacity={clamp01((progress - (MORPH_STEP - 0.45)) / 0.35)}
               />
             )}
             plotHaze={rewindHaze(u)}
@@ -373,7 +423,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         </StickyViz>
         <div className="voa-scrolly-steps">
           {ageBeatsSteps.map((s, i) => (
-            <div className="voa-step" key={i} ref={setStepRef(i)}>
+            <div className="voa-step" key={i} ref={stepRef(i)}>
               <div className="voa-step-inner">
                 {i === MORPH_STEP && (
                   // Beat 2 starts here. Its heading rides up the text column
@@ -386,6 +436,33 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               </div>
             </div>
           ))}
+          {years.slice(1).map((year, k) => {
+            const c = data.byAge[year];
+            return (
+              <div className="voa-step" key={year} ref={stepRef(EXPLORER_STEP + k)}>
+                <div className="voa-step-inner">
+                  {k === 0 && (
+                    <>
+                      <h2 className="voa-beat-title voa-beat-title--incolumn">{explorerCopy.title(explorerVals)}</h2>
+                      {explorerCopy.intro(explorerVals)}
+                    </>
+                  )}
+                  <div
+                    className={`voa-year-card voa-year-card--${c.kind}${year === restingYear ? " is-on" : ""}`}
+                    data-year={year}
+                  >
+                    <div className="voa-year-card__head">
+                      <span className="voa-year-card__year">{year}</span>
+                      <span className="voa-year-card__kind">
+                        {c.kind === "midterm" ? explorerCopy.midterm : explorerCopy.presidential}
+                      </span>
+                    </div>
+                    <p>{explorerCopy.yearCard({ year, kind: c.kind, turnout: fmtPct(c.avgTurnout) })}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -27,6 +27,11 @@ export interface PopulationBarRow {
   /** Per-row opacity multiplier, 0-1. Defaults to 1. Used by the cohort
    * morph to fade out bars that have no counterpart in the target year. */
   opacity?: number;
+  /** "age" variant only - drawn (at `xPos`) but not one of the axis slots:
+   * left out of the band domain, the ticks and the age range. For a cohort
+   * sliding in from past the right edge mid-morph, which has no slot in the
+   * year being morphed from. The plot's clip hides it until it's in range. */
+  offAxis?: boolean;
   /** Registration layer, "age" variant only (VoterAge beat 1). Thousands. */
   registered?: number;
   /** cvap x the 65+ registration rate - the registration standard's line. */
@@ -173,7 +178,10 @@ export default function PopulationBars({
     const innerH = height - margin.top - margin.bottom;
     svg.attr("viewBox", `0 0 ${width} ${height}`);
 
-    const domainKeys = rows.map((r) => r.key);
+    // Slots come from the on-axis rows only; an offAxis row is positioned
+    // by xPos against those slots.
+    const slotRows = rows.filter((r) => !r.offAxis);
+    const domainKeys = slotRows.map((r) => r.key);
     const xScale = scaleBand<string>()
       .domain(domainKeys)
       .range([0, innerW])
@@ -184,7 +192,7 @@ export default function PopulationBars({
     // an integer age lands exactly on xScale(key). Lets a bar animate
     // *between* slots without leaving the scale.
     const x0 = xScale(domainKeys[0]) ?? 0;
-    const ageLo = xKind === "age" ? Math.min(...rows.map((r) => Number(r.x))) : 0;
+    const ageLo = xKind === "age" ? Math.min(...slotRows.map((r) => Number(r.x))) : 0;
     const xOf = (d: PopulationBarRow) =>
       xKind === "age" ? x0 + ((d.xPos ?? Number(d.x)) - ageLo) * xScale.step() : xScale(d.key) ?? 0;
 
@@ -248,13 +256,13 @@ export default function PopulationBars({
       // bare numbers used for the label - scaleBand(key) is undefined
       // for anything outside its exact domain, which silently produces
       // a NaN tick position rather than a visible error otherwise.
-      const lo = Math.min(...rows.map((r) => Number(r.x)));
-      const hi = Math.max(...rows.map((r) => Number(r.x)));
-      const tickAges = rows.filter((r) => Number(r.x) % 10 === 0).map((r) => Number(r.x));
+      const lo = Math.min(...slotRows.map((r) => Number(r.x)));
+      const hi = Math.max(...slotRows.map((r) => Number(r.x)));
+      const tickAges = slotRows.filter((r) => Number(r.x) % 10 === 0).map((r) => Number(r.x));
       if (lo % 10 !== 0 && Math.min(...tickAges.map((a) => Math.abs(a - lo))) >= 5) tickAges.unshift(lo);
       if (hi % 10 !== 0 && !tickAges.includes(hi)) tickAges.push(hi);
-      const ageToKey = new Map(rows.map((r) => [Number(r.x), r.key]));
-      const keyToAge = new Map(rows.map((r) => [r.key, r.label ?? String(r.x)]));
+      const ageToKey = new Map(slotRows.map((r) => [Number(r.x), r.key]));
+      const keyToAge = new Map(slotRows.map((r) => [r.key, r.label ?? String(r.x)]));
       anim(xAxisSel).call(
           axisBottom(xScale)
             .tickValues(tickAges.map((a) => ageToKey.get(a)!))
@@ -301,6 +309,7 @@ export default function PopulationBars({
       .attr("height", 0)
       .merge(tracks as any)
       .attr("class", (d) => `pb-track${d.ratesPooled ? " pb-pooled" : ""}`)
+      .attr("data-key", (d: PopulationBarRow) => d.key)
       .style("opacity", (d: PopulationBarRow) => (showTrack ? 1 : 0) * (d.opacity ?? 1));
     anim(tracksMerged)
       .attr("x", (d: PopulationBarRow) => xOf(d))
@@ -485,6 +494,7 @@ export default function PopulationBars({
       .append("rect")
       .attr("class", "pb-hit")
       .merge(hits as any)
+      .attr("data-key", (d: PopulationBarRow) => d.key)
       .attr("x", (d) => xOf(d))
       .attr("width", xScale.bandwidth())
       .attr("y", 0)

@@ -14,13 +14,11 @@ await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.1));
 await page.waitForTimeout(500);
 await page.screenshot({ path: "tests/screenshots/voter-age-dark-beat1.png" });
 
-// Explorer, on a midterm so the selected button's dashed border is checked
-// against the dark fill too.
-const explorer = await page.$(".voa-explorer");
-await explorer.scrollIntoViewIfNeeded();
-await explorer.$('.voa-yc-btn[aria-label^="2018"]').then((b) => b.click());
-await page.waitForTimeout(900);
-await explorer.screenshot({ path: "tests/screenshots/voter-age-dark-explorer.png" });
+// Section 3 resting on a midterm, so the filled timeline button's dashed
+// border and the year card are checked against the dark page too.
+await page.$eval('.voa-year-card[data-year="2018"]', (e) => e.closest(".voa-step").scrollIntoView({ block: "center" }));
+await page.waitForTimeout(500);
+await page.screenshot({ path: "tests/screenshots/voter-age-dark-explorer.png" });
 
 const swatchBg =await page.$eval(".pb-legend-votes", (el) => getComputedStyle(el).backgroundColor);
 console.log("pb-legend-votes background-color in dark mode:", swatchBg);

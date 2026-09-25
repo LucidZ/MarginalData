@@ -13,7 +13,6 @@ const targets = [
   { beat: 0, step: 2, name: "gap-age-sum" },
   { beat: 0, step: 3, name: "gap-age-registered" },
   { beat: 0, step: 4, name: "gap-age-registration" },
-  { beat: 2, step: 1, name: "gap-category" },
 ];
 for (const t of targets) {
   await page.evaluate(({ beat, step }) => {

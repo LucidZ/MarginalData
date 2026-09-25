@@ -1,7 +1,6 @@
 import { useJsonData } from "../../hooks/useJsonData";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import AgeBeats from "./AgeBeats";
-import Explorer from "./Explorer";
 import { hero, loadErrorText, sourcesFootnote } from "./copy";
 import type { VoterAgeData } from "./types";
 import "./App.css";
@@ -32,7 +31,6 @@ export default function App() {
       </header>
 
       <AgeBeats data={data} />
-      <Explorer data={data} />
 
       <footer className="voa-sources">
         <strong>Sources:</strong>

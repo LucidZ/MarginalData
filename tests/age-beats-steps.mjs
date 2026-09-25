@@ -16,9 +16,9 @@ await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 await page.waitForTimeout(300);
 
-const STEPS = 8; // AgeBeats.tsx STEP_COUNT
+const STEPS = 14; // AgeBeats.tsx: 8 beat steps + one per earlier election (2022 ... 2012)
 
-// One section, one sticky pane, one chart for both beats.
+// One section, one sticky pane, one chart for beats 1-2 and section 3.
 const shape = await page.evaluate(() => {
   const section = document.querySelector(".voa-beat");
   return {
@@ -32,10 +32,10 @@ if (shape.steps !== STEPS) throw new Error(`FAIL: expected ${STEPS} steps in the
 if (shape.vizPanes !== 1 || shape.charts !== 1) {
   throw new Error(`FAIL: beats 1+2 must share one chart, found ${shape.vizPanes} sticky panes / ${shape.charts} charts`);
 }
-if (shape.titles.length !== 2 || !shape.titles[1].includes("Midterms")) {
-  throw new Error(`FAIL: beat 2's heading should live inside the merged section, got ${JSON.stringify(shape.titles)}`);
+if (shape.titles.length !== 3 || !shape.titles[1].includes("Midterms") || !shape.titles[2].includes("Every election")) {
+  throw new Error(`FAIL: beat 2's and section 3's headings should live inside the merged section, got ${JSON.stringify(shape.titles)}`);
 }
-console.log(`PASS: beats 1+2 are one section, one sticky pane, one chart (${shape.titles.join(" / ")})`);
+console.log(`PASS: beats 1-2 and section 3 are one section, one sticky pane, one chart (${shape.titles.join(" / ")})`);
 
 // Scroll a given step's center to viewport center - the same thing
 // useStepProgress measures, so `progress` lands on exactly i.

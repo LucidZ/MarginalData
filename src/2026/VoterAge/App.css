@@ -181,29 +181,89 @@
   }
 }
 
-/* ---------- Explorer (Explorer.tsx, YearControl.tsx) ---------- */
-.voa-explorer-intro p {
-  font-size: clamp(0.9rem, 1.6vw, 1rem);
-  line-height: 1.65;
-  color: var(--text-secondary);
-  max-width: 62ch;
-  margin: 0 0 0.8rem;
-}
-.voa-explorer-intro .voa-explorer-caveat {
+/* ---------- Section 3 timeline + year cards (YearControl.tsx, AgeBeats.tsx) ---------- */
+.voa-step-inner .voa-explorer-caveat {
   font-size: 0.85rem;
   color: var(--muted);
 }
-.voa-explorer-chart {
-  max-width: 640px;
-  margin: 0 auto;
+.voa-year-card {
+  margin-top: 0.4rem;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid var(--baseline);
+  border-radius: 8px;
+  background: var(--surface-1);
+  transition: border-color 200ms;
+}
+.voa-year-card--midterm {
+  border-style: dashed;
+}
+/* Resting on this year: the card's outline darkens with the timeline
+   button's fill, so the text column confirms the lock too. */
+.voa-year-card.is-on {
+  border-color: var(--text-primary);
+}
+.voa-year-card__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.voa-year-card__year {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.voa-year-card__kind {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.voa-step-inner .voa-year-card p {
+  margin: 0.3rem 0 0;
 }
 .voa-yc {
-  max-width: 640px;
-  margin: 1.2rem auto 0.8rem;
+  margin: 0 0 0.6rem;
 }
 .voa-yc-row {
+  --yc-gap: 0.35rem;
+  position: relative;
   display: flex;
-  gap: 0.35rem;
+  gap: var(--yc-gap);
+  padding-bottom: 12px; /* room for the track */
+}
+/* The track runs from the first button's centre to the last's. Equal-width
+   buttons put the centres evenly apart: slot width w = (100% - (n-1)gap)/n,
+   centre i = w/2 + i(w + gap). */
+.voa-yc-track {
+  --yc-w: calc((100% - (var(--yc-n) - 1) * var(--yc-gap)) / var(--yc-n));
+  position: absolute;
+  left: calc(var(--yc-w) / 2);
+  right: calc(var(--yc-w) / 2);
+  bottom: 3px;
+  height: 6px;
+  pointer-events: none;
+}
+.voa-yc-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1.5px solid var(--gridline);
+}
+/* Between years only (opacity = the chart haze): at a real year the button
+   fills instead, so the dot never stands in for a year. */
+.voa-yc-dot {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--yc-p) / (var(--yc-n) - 1) * 100%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  transform: translate(-50%, -50%);
 }
 .voa-yc-btn {
   flex: 1 1 0;
@@ -247,7 +307,7 @@
   display: flex;
   justify-content: center;
   gap: 1.2rem;
-  margin-top: 0.45rem;
+  margin-top: 0.15rem;
   font-size: 0.78rem;
   color: var(--text-secondary);
 }
@@ -274,7 +334,7 @@
     display: inline;
   }
   .voa-yc-row {
-    gap: 0.25rem;
+    --yc-gap: 0.25rem;
   }
 }
 
@@ -466,73 +526,10 @@
   touch-action: manipulation;
 }
 
-/* ---------- Year stamp (Beat 2 morph progress indicator) ---------- */
+/* ---------- Morph overlay (RewindOverlay.tsx) ---------- */
 .pb-plot-wrap {
   position: relative;
 }
-/* Beat 2 morph: 2022 o---*---o 2024 scrubber + backwards clock
-   (RewindOverlay.tsx). Ends fill only at a real year. */
-.voa-scrubber {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.6rem;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  pointer-events: none;
-  user-select: none;
-  font-size: 0.85rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.voa-scrubber-year {
-  color: var(--muted);
-  transition: color 200ms;
-}
-.voa-scrubber-year.is-on {
-  color: var(--text-primary);
-}
-.voa-scrubber-track {
-  position: relative;
-  width: 4.5rem;
-  height: 12px;
-}
-/* The line runs between the two end-circle centres. */
-.voa-scrubber-track::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  border-top: 1.5px solid var(--baseline);
-}
-.voa-scrubber-end,
-.voa-scrubber-dot {
-  position: absolute;
-  top: 50%;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.voa-scrubber-end {
-  width: 10px;
-  height: 10px;
-  box-sizing: border-box;
-  border: 1.5px solid var(--muted);
-  background: var(--surface-1);
-  transition: background 200ms, border-color 200ms;
-}
-.voa-scrubber-end--left { left: 0; }
-.voa-scrubber-end--right { left: 100%; }
-.voa-scrubber-end.is-on {
-  background: var(--text-primary);
-  border-color: var(--text-primary);
-}
-.voa-scrubber-dot {
-  width: 7px;
-  height: 7px;
-  background: var(--text-primary);
-}
-
 /* Sized to the clock face alone, so translate(-50%,-50%) centres the face
    (not face + label) on `top`; the label hangs below it. */
 .voa-rewind-clock {

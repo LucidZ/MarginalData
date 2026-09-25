@@ -42,24 +42,30 @@ const N = 30;
 
 async function scrollTo(y) {
   await page.evaluate((yy) => window.scrollTo(0, yy), y);
-  await page.waitForTimeout(60);
+  // Wait for useStepProgress's rAF measure and React's re-render, not a
+  // fixed 60ms - one frame costs 100-200ms in headless Chromium, so a fixed
+  // short wait sometimes read the previous sample's state.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await page.waitForTimeout(30);
 }
 
-// Age 40 (index 22, since rows start at age 18): an ordinary single-year
-// bar, not one of the two departing cohorts (18/19, index 0/1) and not a
-// pooled 80+ rate. Age 18 (index 0) is the departing-cohort probe.
-const TRACK_INDEX = 40 - 18;
-const DEPART_INDEX = 0;
+// Age 40 in 2024: an ordinary single-year bar, not one of the two departing
+// cohorts (18/19) and not a pooled 80+ rate. Age 18 is the departing-cohort
+// probe. Both tracked by cohort key.
+const TRACK_INDEX = "c-1984"; // 2024's age 40 (cohort key)
+const DEPART_INDEX = "c-2006"; // 2024's age 18
 
 async function readState() {
   return page.evaluate(
     ({ trackIdx, departIdx }) => {
       const section = document.querySelector(".voa-beat");
-      const scrub = section.querySelector(".voa-scrubber");
-      const u = scrub ? parseFloat(scrub.dataset.u) : null;
-      const tracks = [...section.querySelectorAll("rect.pb-track")];
-      const trackX = tracks[trackIdx] ? parseFloat(tracks[trackIdx].getAttribute("x")) : null;
-      const departTrack = tracks[departIdx];
+      const state = section.querySelector(".voa-morph-state");
+      const u = state ? parseFloat(state.dataset.u0) : null;
+      // By cohort key, not DOM index: departed cohorts leave the DOM once
+      // the chart settles on 2022, shifting every later bar's index.
+      const track = section.querySelector(`rect.pb-track[data-key="${trackIdx}"]`);
+      const trackX = track ? parseFloat(track.getAttribute("x")) : null;
+      const departTrack = section.querySelector(`rect.pb-track[data-key="${departIdx}"]`);
       const departOpacity = departTrack ? parseFloat(getComputedStyle(departTrack).opacity) : null;
       return { u, trackX, departOpacity };
     },
@@ -127,9 +133,7 @@ for (const frac of [0, 0.25, 0.5, 0.75, 1]) {
 // carries - 2022's age 38. Hovering where a departed cohort sits shows no
 // tooltip (tooltipFor returns null for a key with no 2022 counterpart).
 const section = await page.$(".voa-beat");
-const hits = await section.$$("rect.pb-hit");
-
-const trackedHit = hits[TRACK_INDEX];
+const trackedHit = await section.$(`rect.pb-hit[data-key="${TRACK_INDEX}"]`);
 const tbox = await trackedHit.boundingBox();
 await page.mouse.move(tbox.x + tbox.width / 2, tbox.y + tbox.height / 2);
 await page.waitForTimeout(150);
@@ -142,13 +146,16 @@ console.log(`PASS: tooltip on the tracked bar at t=1 reads the cohort's real 202
 
 await page.mouse.move(10, 10);
 await page.waitForTimeout(150);
-const departHit = hits[DEPART_INDEX];
-const dbox = await departHit.boundingBox();
-await page.mouse.move(dbox.x + dbox.width / 2, dbox.y + dbox.height / 2);
-await page.waitForTimeout(150);
-const departTooltip = await page.$(".voa-tooltip");
-if (departTooltip) throw new Error("FAIL: a departed cohort (2024 age 18) still shows a tooltip at t=1");
-console.log("PASS: no tooltip where a departed cohort (2024 age 18) would be");
+// At rest the departed cohort has no row in 2022, so its bar has left the
+// DOM entirely; if it's still there, it must not claim a tooltip.
+const departHit = await section.$(`rect.pb-hit[data-key="${DEPART_INDEX}"]`);
+if (departHit) {
+  const dbox = await departHit.boundingBox();
+  await page.mouse.move(dbox.x + dbox.width / 2, dbox.y + dbox.height / 2);
+  await page.waitForTimeout(150);
+  if (await page.$(".voa-tooltip")) throw new Error("FAIL: a departed cohort (2024 age 18) still shows a tooltip at t=1");
+}
+console.log("PASS: no tooltip for a departed cohort (2024 age 18) at t=1");
 
 await browser.close();
 console.log("all checks passed");

@@ -234,11 +234,17 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Explorer (Explorer.tsx, YearControl.tsx) - every November election on record
+// Section 3 - every election, back to 2012 (AgeBeats.tsx steps 8+, YearControl.tsx)
 // ---------------------------------------------------------------------------
 
 export interface ExplorerVals {
   firstYear: string; // earliest cycle in byAge
+}
+
+export interface YearCardVals {
+  year: string;
+  kind: "presidential" | "midterm";
+  turnout: string; // fmtPct(avgTurnout)
 }
 
 export const explorerCopy = {
@@ -246,9 +252,9 @@ export const explorerCopy = {
   intro: (v: ExplorerVals) => (
     <>
       <p>
-        This is the same chart, for every November election since {v.firstYear}. Pick a year; midterms are marked
-        with a dashed outline. Each bar stays at its age, so switching years compares the same ages across
-        elections, not the same people.
+        Keep scrolling to go back one election at a time, to {v.firstYear}. The bars keep following each generation:
+        every step back, they slide two years younger. Scroll up to come forward again, or pick a year above the
+        chart.
       </p>
       <p className="voa-explorer-caveat">
         Population for {v.firstYear}–2018 comes from the Census Bureau's 2010–2020 intercensal estimates, which
@@ -260,6 +266,7 @@ export const explorerCopy = {
   controlLabel: "Election year",
   presidential: "Presidential",
   midterm: "Midterm",
-  heroNotRegistered: "not registered",
-  heroNotVoted: "registered, didn't vote",
+  yearCard: (v: YearCardVals) => <>{v.turnout} of eligible citizens voted.</>,
+  rewinding: "rewinding",
+  fastForwarding: "fast-forwarding",
 };
