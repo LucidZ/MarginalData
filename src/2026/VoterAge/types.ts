@@ -37,47 +37,6 @@ export interface AgeCycle {
   rows: AgeRow[];
 }
 
-export interface DimensionRow {
-  group: string;
-  cvap: number; // thousands
-  votes: number; // thousands
-  turnout: number; // percent
-  expected: number; // thousands
-  missing: number; // thousands
-}
-
-export interface Dimension {
-  label: string;
-  note?: string; // universe/coverage caveat, e.g. income's restricted-universe note
-  avgTurnout: number; // percent - this dimension's own counterfactual rate
-  rows: DimensionRow[];
-}
-
-export interface ColoradoSubgroupEffect {
-  group: string;
-  effectPp: number;
-  sePp: number;
-}
-
-export interface ColoradoData {
-  citation: string;
-  url: string;
-  license: string;
-  overall: { effectPp: number; sePp: number };
-  byDimension: {
-    education: ColoradoSubgroupEffect[];
-    income: ColoradoSubgroupEffect[];
-    race: ColoradoSubgroupEffect[];
-  };
-  age: {
-    youngestCohortEffectPp: number;
-    youngestCohortLabel: string;
-    relativeIncreasePct: number;
-    shapeNote: string;
-  };
-  confounds: string[];
-}
-
 export interface VoterAgeData {
   meta: {
     sources: string[];
@@ -90,10 +49,4 @@ export interface VoterAgeData {
   /** Keyed by election year as a string, every November election 2012-2024.
    * Beats 1-2 read "2024" and "2022" by key; the explorer reads them all. */
   byAge: Record<string, AgeCycle>;
-  byDimension: {
-    education: Dimension;
-    income: Dimension;
-    race: Dimension;
-  };
-  colorado: ColoradoData;
 }

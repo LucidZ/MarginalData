@@ -35,8 +35,7 @@ console.log("beat titles found:", beatTitles);
 const expectedTitleFragments = [
   "age of the electorate",
   "Midterms make it worse",
-  "isn't only about age",
-  "Does anything change",
+  "Every election since",
 ];
 for (const fragment of expectedTitleFragments) {
   const found = beatTitles.some((t) => t.includes(fragment));
@@ -44,10 +43,7 @@ for (const fragment of expectedTitleFragments) {
 }
 
 const barCount = await page.$$eval("rect.pb-track", (els) => els.length);
-console.log("PopulationBars track bars on last frame (category variant, beat 3 income = 10):", barCount);
-
-const dotCount = await page.$$eval("circle.cd-dot", (els) => els.length);
-console.log("ColoradoDots dots on last frame:", dotCount);
+console.log("PopulationBars track bars (beats 1-2 chart + explorer, 83 ages each = 166):", barCount);
 
 console.log("console/page errors:", errors.length ? errors : "none");
 

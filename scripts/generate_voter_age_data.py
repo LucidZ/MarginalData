@@ -30,9 +30,6 @@ Sources used:
   CPS Table 1  - national, single year of age (18-79 + 80-84/85+ pooled),
                  every November election 2012-2024 (beats 1-2 use
                  2022/2024; the explorer uses all seven).
-  CPS Table 2  - national, race/Hispanic origin (2024 only, beat 3).
-  CPS Table 5  - national, educational attainment (2024 only, beat 3).
-  CPS Table 7  - national, family income (2024 only, beat 3).
   PEP          - national, single year of age x sex: 2010-2020 intercensal
                  series for 2012-2018, Vintage 2024 for 2020-2024.
 
@@ -89,40 +86,6 @@ CYCLES = [
     (2024, "587", "vote01_2024.xlsx"),
 ]
 
-# Race/ethnicity variant files under the 2024 (587) directory - vote02_2024_N.xlsx.
-# N -> (json key, group label). Only the four spec v2 S4.1 groups plus "All Races"
-# (used to compute a residual "other/multiple races" row, S7.3) are fetched.
-RACE_VARIANTS = {
-    1: ("all", "All Races"),
-    3: ("whiteNonHispanic", "White alone, not Hispanic"),
-    4: ("black", "Black alone"),
-    5: ("asian", "Asian alone"),
-    6: ("hispanic", "Hispanic (any race)"),
-}
-
-EDUCATION_GROUPS = [
-    "Less than 9th grade",
-    "9th to 12th grade, no diploma",
-    "High school graduate",
-    "Some college or associate's degree",
-    "Bachelor's degree",
-    "Advanced degree",
-]
-
-INCOME_GROUPS = [
-    "Under $10,000",
-    "$10,000 to $14,999",
-    "$15,000 to $19,999",
-    "$20,000 to $29,999",
-    "$30,000 to $39,999",
-    "$40,000 to $49,999",
-    "$50,000 to $74,999",
-    "$75,000 to $99,999",
-    "$100,000 to $149,999",
-    "$150,000 and over",
-]
-
-
 def download(dest_name, url):
     dest = RAW_DIR / dest_name
     if dest.exists():
@@ -132,13 +95,6 @@ def download(dest_name, url):
     with urllib.request.urlopen(req) as resp, open(dest, "wb") as f:
         f.write(resp.read())
     return dest
-
-
-def load_sheet(path):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # openpyxl warns on Census's header/footer XML
-        wb = openpyxl.load_workbook(path, data_only=True)
-    return wb.active
 
 
 TABLE1_SHEET = "Table 1"
@@ -430,143 +386,6 @@ def validate_age_reconstruction(cycle, cps_published_cvap, cps_published_votes, 
         raise ValueError(f"age-18 2024 CVAP {row18['cvap']} outside expected range [4200, 4350]")
 
 
-# ---------------------------------------------------------------------------
-# byDimension: education / income / race, CPS levels only (2024)
-# ---------------------------------------------------------------------------
-
-def parse_grouped_table(path, group_labels, block_marker="BOTH SEXES", total_label="Total"):
-    """Generic parser for CPS Table 5 (education) and similar tables with a
-    BOTH SEXES block, a "Total" row, then one row per group label. Column
-    indices per spec v2 S5.4 #4: 2 = total pop, 3 = citizen pop, 10 = voted."""
-    ws = load_sheet(path)
-    rows = list(ws.iter_rows(values_only=True))
-    markers = [i for i, r in enumerate(rows) if r[0] and str(r[0]).strip() == block_marker]
-    if not markers:
-        raise ValueError(f"{path.name}: no {block_marker} marker row found")
-    lo = markers[0]
-    hi = lo + 1
-    while hi < len(rows) and not (rows[hi][0] and str(rows[hi][0]).strip() and str(rows[hi][0]).strip() != block_marker):
-        hi += 1
-
-    total = None
-    out = {}
-    for r in rows[lo:hi]:
-        label_a = str(r[0] or "").strip()
-        label_b = str(r[1] or "").strip()
-        try:
-            total_pop, cit_pop, voted = float(r[2]), float(r[3]), float(r[10])
-        except (TypeError, ValueError):
-            continue
-        if label_a == block_marker and label_b == total_label:
-            total = (total_pop, cit_pop, voted)
-        elif label_b in group_labels:
-            out[label_b] = (total_pop, cit_pop, voted)
-
-    missing = [g for g in group_labels if g not in out]
-    if missing:
-        raise ValueError(f"{path.name}: missing groups {missing}")
-    return total, out
-
-
-def parse_income_table(path, group_labels):
-    """CPS Table 7 has no BOTH SEXES marker - its top-level block is
-    "TOTAL 18 YEARS AND OVER" directly (family income is reported once,
-    not split by sex). Universe is family members only (spec v2 S8.4)."""
-    return parse_grouped_table(path, group_labels, block_marker="TOTAL 18 YEARS AND OVER")
-
-
-def dimension_from_groups(total, group_rows, group_labels, avg_turnout=None):
-    """Builds a byDimension entry. If avg_turnout is None, uses this
-    dimension's own total votes/cvap (education, race - full-population
-    tables). Pass an explicit rate for restricted-universe tables (income)."""
-    rows = []
-    for label in group_labels:
-        total_pop, cit_pop, voted = group_rows[label]
-        rows.append({"group": label, "cvap": round(cit_pop, 1), "votes": round(voted, 1), "turnout": round(100 * voted / cit_pop, 1)})
-
-    if avg_turnout is None:
-        total_cvap, total_votes = total[1], total[2]
-        avg_turnout = 100 * total_votes / total_cvap
-    else:
-        total_cvap = sum(r["cvap"] for r in rows)
-
-    for r in rows:
-        r["expected"] = round(r["cvap"] * avg_turnout / 100, 1)
-        r["missing"] = round(r["votes"] - r["expected"], 1)
-
-    return {"avgTurnout": round(avg_turnout, 2), "rows": rows}
-
-
-# ---------------------------------------------------------------------------
-# Colorado (Bonica, Grumbach, Hill & Jefferson 2021) - hardcoded citations
-# ---------------------------------------------------------------------------
-# Point estimates extracted by hand from the paper's appendix tables
-# (A4 income, A7 education, A8 race) and Table 1 (overall), 2026-09-16.
-# NOT reproduced from their figures - see spec v2 S4.3 on licensing.
-# The age breakdown (Figure 1) has no tabulated point estimates by
-# bracket, only the youngest-cohort headline figure quoted in the text -
-# see spec v2 S7.4. Do not invent bracket numbers to fill that gap.
-
-COLORADO = {
-    "citation": (
-        "Bonica, A., Grumbach, J.M., Hill, C., & Jefferson, H. (2021). "
-        "All-mail voting in Colorado increases turnout and reduces turnout "
-        "inequality. Electoral Studies, 72, 102363."
-    ),
-    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9756790/",
-    "license": (
-        "© 2021 Elsevier Ltd. Figures are not reproduced here; point "
-        "estimates were read from the paper's appendix tables (A4, A7, A8) "
-        "and Table 1, then redrawn in this story's own chart system."
-    ),
-    "overall": {"effectPp": 8.06, "sePp": 0.57},
-    "byDimension": {
-        "education": [
-            {"group": "Less than HS diploma", "effectPp": 8.53, "sePp": 0.75},
-            {"group": "HS diploma", "effectPp": 8.01, "sePp": 0.53},
-            {"group": "Some college", "effectPp": 8.03, "sePp": 0.62},
-            {"group": "Bachelor's degree", "effectPp": 7.36, "sePp": 0.56},
-            {"group": "Graduate degree", "effectPp": 5.88, "sePp": 0.50},
-        ],
-        "income": [
-            {"group": "$0–30K", "effectPp": 8.39, "sePp": 0.55},
-            {"group": "$30–60K", "effectPp": 8.30, "sePp": 0.60},
-            {"group": "$60–100K", "effectPp": 8.16, "sePp": 0.60},
-            {"group": "$100–150K", "effectPp": 7.84, "sePp": 0.64},
-            {"group": "$150K+", "effectPp": 7.21, "sePp": 0.65},
-        ],
-        "race": [
-            {"group": "White", "effectPp": 7.64, "sePp": 0.47},
-            {"group": "Latino", "effectPp": 8.83, "sePp": 1.68},
-            {"group": "Black", "effectPp": 9.27, "sePp": 0.82},
-            {"group": "Asian", "effectPp": 10.04, "sePp": 0.91},
-            {"group": "Other", "effectPp": 8.57, "sePp": 0.95},
-        ],
-    },
-    "age": {
-        "youngestCohortEffectPp": 10.1,
-        "youngestCohortLabel": "born after 1980",
-        "relativeIncreasePct": 26,
-        "shapeNote": (
-            "The effect trends smoothly down from the youngest cohorts "
-            "(born after 1980) toward those born around 1945, then "
-            "rebounds slightly among the oldest cohorts. The source "
-            "reports this shape via a continuous by-birth-year figure, "
-            "not a table of bracket point estimates - only the "
-            "youngest-cohort headline figure is a precise quote."
-        ),
-    },
-    "confounds": [
-        "Colorado adopted same-day registration at the same time as all-mail voting in 2013. "
-        "The authors exclude voters registered after 2010 to remove the direct SDR channel, "
-        "but concede a residual indirect effect (e.g. social pressure around Election Day).",
-        "n = 1 state, with unusually high baseline civic engagement - external validity to other states is untested.",
-        "A uniform turnout boost mechanically compresses relative inequality between groups, since low-turnout "
-        "groups start lower. The relevant claim is the differential across groups, not the uniform headline.",
-    ],
-}
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-download", action="store_true", help="Reuse cached files in data/voter_age/ without re-fetching")
@@ -584,23 +403,10 @@ def main():
         else:
             table1_paths[year] = RAW_DIR / dest_name
 
-    race_paths = {}
-    for n, (key, _label) in RACE_VARIANTS.items():
-        filename = f"vote02_2024_{n}.xlsx"
-        dest_name = f"2024_{filename}"
-        if not args.skip_download:
-            race_paths[key] = download(dest_name, f"{CPS_BASE}/587/{filename}")
-        else:
-            race_paths[key] = RAW_DIR / dest_name
-
     if not args.skip_download:
-        edu_path = download("2024_vote05_2024_1.xlsx", f"{CPS_BASE}/587/vote05_2024_1.xlsx")
-        income_path = download("2024_vote07_2024.xlsx", f"{CPS_BASE}/587/vote07_2024.xlsx")
         pep_path = download("nc-est2024-agesex-res.csv", PEP_URL)
         pep_intercensal_path = download("nc-est2020int-agesex-res.csv", PEP_INTERCENSAL_URL)
     else:
-        edu_path = RAW_DIR / "2024_vote05_2024_1.xlsx"
-        income_path = RAW_DIR / "2024_vote07_2024.xlsx"
         pep_path = RAW_DIR / "nc-est2024-agesex-res.csv"
         pep_intercensal_path = RAW_DIR / "nc-est2020int-agesex-res.csv"
 
@@ -637,60 +443,19 @@ def main():
             f"{cycle['registrationGap']:,.0f}k short of it, {cycle['registeredNotVoted']:,.0f}k registered non-voters"
         )
 
-    print("Parsing CPS Table 5 (education, 2024)...")
-    edu_total, edu_groups = parse_grouped_table(edu_path, EDUCATION_GROUPS)
-    education = dimension_from_groups(edu_total, edu_groups, EDUCATION_GROUPS)
-    print(f"  avg turnout {education['avgTurnout']}%  ({len(education['rows'])} groups)")
-
-    print("Parsing CPS Table 7 (family income, 2024)...")
-    income_total, income_groups = parse_income_table(income_path, INCOME_GROUPS)
-    income_avg = 100 * sum(income_groups[g][2] for g in INCOME_GROUPS) / sum(income_groups[g][1] for g in INCOME_GROUPS)
-    income = dimension_from_groups(income_total, income_groups, INCOME_GROUPS, avg_turnout=income_avg)
-    income_coverage_pct = 100 * sum(income_groups[g][1] for g in INCOME_GROUPS) / edu_total[1]
-    print(f"  restricted-universe avg turnout {income['avgTurnout']}%  coverage {income_coverage_pct:.1f}% of national CVAP")
-    if not (55 <= income_coverage_pct <= 65):
-        raise ValueError(f"income coverage {income_coverage_pct:.1f}% outside expected [55, 65]% - spec v2 S8.4 expects ~59.6%")
-
-    print("Parsing CPS Table 2 (race/ethnicity variants, 2024)...")
-    race_data = {}
-    race_all_total = None
-    for n, (key, label) in RACE_VARIANTS.items():
-        ws = load_sheet(race_paths[key])
-        rows = list(ws.iter_rows(values_only=True))
-        total_row = next(r for r in rows if r[0] == "BOTH SEXES" and str(r[1]).strip() == "Total 18 years and over")
-        total_pop, cit_pop, voted = float(total_row[2]), float(total_row[3]), float(total_row[10])
-        if key == "all":
-            race_all_total = (total_pop, cit_pop, voted)
-        else:
-            race_data[label] = (total_pop, cit_pop, voted)
-
-    race_group_labels = [RACE_VARIANTS[n][1] for n in (3, 4, 5, 6)]
-    race_cvap = sum(race_data[g][1] for g in race_group_labels)
-    race_votes = sum(race_data[g][2] for g in race_group_labels)
-    residual_cvap = race_all_total[1] - race_cvap
-    residual_votes = race_all_total[2] - race_votes
-    race_data["Other / multiple races"] = (float("nan"), residual_cvap, residual_votes)
-    race_group_labels_with_residual = race_group_labels + ["Other / multiple races"]
-    race = dimension_from_groups((None, race_all_total[1], race_all_total[2]), race_data, race_group_labels_with_residual)
-    coverage_pct = 100 * race_cvap / race_all_total[1]
-    print(f"  named groups cover {coverage_pct:.1f}% of CVAP, residual {residual_cvap:,.0f}k")
-    if not (96 <= coverage_pct <= 99):
-        raise ValueError(f"race named-group coverage {coverage_pct:.1f}% outside expected [96, 99]% - spec v2 S8's ~98% assumption")
-
     output = {
         "meta": {
             "sources": [
                 "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 "
-                "(2012, 2014, 2016, 2018, 2020, 2022, 2024) and Tables 2/5/7 (2024)",
+                "(2012, 2014, 2016, 2018, 2020, 2022, 2024)",
                 "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age "
                 "estimates: Vintage 2024 (2020-2024) and 2010-2020 intercensal (2012-2018)",
-                COLORADO["citation"],
             ],
             "sourceUrls": [
                 f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
-            ] + [PEP_URL, PEP_INTERCENSAL_URL, COLORADO["url"]],
+            ] + [PEP_URL, PEP_INTERCENSAL_URL],
             "retrieved": "2026-09-25",
-            "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration); percentage points (effectPp, sePp)",
+            "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration)",
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
                 "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "
@@ -712,27 +477,9 @@ def main():
                 "interview as voting, and Census counts non-response as not registered. Non-response "
                 "is highest among the young (~20% of 18-24s in 2024 vs ~12-13% of 65+), so youth "
                 "registration is likely understated somewhat - same convention as turnout.",
-                "income's avgTurnout/expected/missing use its own restricted-universe average "
-                "(family members with reported income only, ~60% of national CVAP), not the "
-                "national rate - see spec v2 S8.4.",
             ],
         },
         "byAge": by_age,
-        "byDimension": {
-            "education": {"label": "Educational attainment", **education},
-            "income": {
-                "label": "Family income",
-                "note": (
-                    "Covers family members with reported income only - about 60% of the citizen "
-                    "voting-age population. Excluded people (living alone, unrelated individuals, "
-                    "income not reported) skew younger, poorer and lower-turnout, so the true "
-                    "gradient by income is probably steeper than shown here."
-                ),
-                **income,
-            },
-            "race": {"label": "Race / Hispanic origin", **race},
-        },
-        "colorado": COLORADO,
     }
 
     with open(OUT_PATH, "w") as f:

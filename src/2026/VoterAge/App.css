@@ -91,7 +91,7 @@
   color: var(--muted);
 }
 
-/* ---------- Scrolly layout (shared by all four beats) ---------- */
+/* ---------- Scrolly layout (beats 1-2) ---------- */
 .voa-beat {
   margin-top: 2rem;
 }
@@ -583,54 +583,7 @@
   border-radius: 3px;
 }
 
-/* ---------- ColoradoDots (beat 4) ---------- */
-.cd-axis-zero {
-  stroke: var(--baseline);
-  stroke-width: 1;
-}
-.cd-overall-line {
-  stroke: var(--series-2);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 3;
-}
-.cd-overall-label {
-  fill: var(--series-2);
-  font-size: 10px;
-  font-weight: 600;
-}
-.cd-stem {
-  stroke: var(--gridline);
-  stroke-width: 1.5;
-}
-.cd-dot {
-  fill: var(--series-1);
-  stroke: var(--surface-1);
-  stroke-width: 1.5;
-}
-.cd-dot.cd-dot-emph {
-  fill: var(--series-2);
-}
-.cd-err {
-  stroke: var(--muted);
-  stroke-width: 1.5;
-}
-.cd-label {
-  fill: var(--text-secondary);
-  font-size: 11px;
-}
-.cd-value {
-  fill: var(--text-primary);
-  font-size: 11px;
-  font-weight: 600;
-}
-.cd-hit {
-  fill: transparent;
-  pointer-events: all;
-  touch-action: manipulation;
-  cursor: pointer;
-}
-
-/* ---------- Small helpers: compare table, dimension caption/note, Colorado age card, confound list ---------- */
+/* ---------- Small helpers: compare table, source list ---------- */
 .voa-compare-table {
   width: 100%;
   border-collapse: collapse;
@@ -657,39 +610,6 @@
 .voa-compare-big-drop {
   color: var(--diverge-bad);
   font-weight: 700;
-}
-.voa-dim-caption {
-  font-weight: 700;
-  font-size: 0.92rem;
-  margin: 0 0.3rem 0.4rem;
-  color: var(--text-primary);
-}
-.voa-dim-note {
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--muted);
-  margin: 0.5rem 0.3rem 0;
-}
-.voa-co-age-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-align: center;
-  align-items: center;
-  padding: 1.4rem 1rem;
-}
-.voa-co-age-figure {
-  font-size: clamp(2.2rem, 6vw, 3rem);
-  font-weight: 700;
-  color: var(--series-2);
-  line-height: 1;
-}
-.voa-confound-list {
-  margin: 0.5rem 0 0;
-  padding-left: 1.2rem;
-}
-.voa-confound-list li {
-  margin-bottom: 0.5rem;
 }
 .voa-source-list {
   margin: 0.3rem 0 0.6rem;

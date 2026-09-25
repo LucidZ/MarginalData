@@ -55,30 +55,6 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   const goneAfterLeave = await page.$(".voa-tooltip");
   console.log("Beat1 tooltip cleared after mouse leave:", !goneAfterLeave);
 
-  // Beat3 category bar hover (education panel, step 1)
-  section = await scrollBeatToStep(page, "isn't only about age", 1, 4);
-  const catHit = await section.$("rect.pb-hit");
-  const cbox = await catHit.boundingBox();
-  await page.mouse.move(cbox.x + cbox.width / 2, cbox.y + cbox.height / 2);
-  await page.waitForTimeout(200);
-  const catTooltip = await page.$(".voa-tooltip");
-  console.log("Beat3 (category bars) hover tooltip appeared:", !!catTooltip);
-  if (catTooltip) await page.screenshot({ path: `${OUT}/tooltip-beat3-hover.png` });
-
-  // Beat4 ColoradoDots hover
-  section = await scrollBeatToStep(page, "Does anything change", 0, 5);
-  const dotHit = await section.$("rect.cd-hit");
-  if (dotHit) {
-    const dbox = await dotHit.boundingBox();
-    await page.mouse.move(dbox.x + dbox.width / 2, dbox.y + dbox.height / 2);
-    await page.waitForTimeout(200);
-    const dotTooltip = await page.$(".voa-tooltip");
-    console.log("Beat4 (ColoradoDots) hover tooltip appeared:", !!dotTooltip);
-    if (dotTooltip) await page.screenshot({ path: `${OUT}/tooltip-beat4-hover.png` });
-  } else {
-    console.log("ColoradoDots hit target NOT FOUND");
-  }
-
   await browser.close();
 }
 

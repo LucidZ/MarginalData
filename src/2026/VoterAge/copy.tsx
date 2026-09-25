@@ -4,12 +4,12 @@ import type { VoterAgeData } from "./types";
 
 /**
  * Every hand-written sentence in the VoterAge story, in one file, so a copy
- * edit doesn't require hunting through four component files. Numbers still
+ * edit doesn't require hunting through the component files. Numbers still
  * come from the data via each `Vals` object the owning component builds -
  * per .claude/voter-age-spec-v2.md S9, no figure here is ever hand-typed.
  * What's NOT here: table markup, StickyViz panes, and any prose that's
- * itself pulled straight from the pipeline JSON (co.confounds, income.note,
- * co.age.shapeNote, etc.) - those are edited at the data layer, not here.
+ * itself pulled straight from the pipeline JSON (meta.construction etc.) -
+ * those are edited at the data layer, not here.
  */
 
 export interface StepCopy<V> {
@@ -263,146 +263,3 @@ export const explorerCopy = {
   heroNotRegistered: "not registered",
   heroNotVoted: "registered, didn't vote",
 };
-
-// ---------------------------------------------------------------------------
-// Beat 3 - "isn't only about age" (Beat3.tsx), 4 steps
-// ---------------------------------------------------------------------------
-
-export interface Beat3Vals {
-  eduLowTurnout: string;
-  eduHighTurnout: string;
-  hsOrLessMissing: string; // fmtM(Math.abs(...))
-  hsOrLessMissingSigned: string; // fmtMSigned(...)
-  hispanicMissing: string;
-  incomeLowTurnout: string;
-  incomeHighTurnout: string;
-  under50kMissing: string;
-}
-
-export const beat3Title = "3. It isn't only about age";
-
-export const beat3Steps: StepCopy<Beat3Vals>[] = [
-  {
-    heading: "Age, education, income and race are all tangled together",
-    body: () => (
-      <p>
-        This is a descriptive story, not a causal one — these four traits correlate heavily with each other, so none
-        of what follows isolates "the effect" of any one of them. The point is narrower: age isn't the only axis
-        where the electorate doesn't look like the country.
-      </p>
-    ),
-  },
-  {
-    heading: "Education is the biggest gap in the data",
-    body: (v) => (
-      <>
-        <p>
-          Turnout ranges from {v.eduLowTurnout} (less than 9th grade) to {v.eduHighTurnout} (advanced degree) — a
-          wider spread than age. High school or less accounts for nearly all of the gold here:{" "}
-          <strong>{v.hsOrLessMissing} missing votes</strong> across three groups.
-        </p>
-        <div className="voa-callout">
-          Largest single gap in this story: <strong>{v.hsOrLessMissingSigned}</strong> for high school or less.
-        </div>
-      </>
-    ),
-  },
-  {
-    heading: "Race and ethnicity",
-    body: (v) => (
-      <p>
-        Hispanic voters fall <strong>{v.hispanicMissing}</strong> short of the line — the largest single gap on this
-        chart. Black and Asian voters are short too, by smaller amounts, because those are smaller populations.
-        White, non-Hispanic voters are the one group above it.
-      </p>
-    ),
-  },
-  {
-    heading: "Income shows the same pattern, and comes with a caveat",
-    body: (v) => (
-      <p>
-        Family income runs a clean gradient from {v.incomeLowTurnout} to {v.incomeHighTurnout}. Households under $50k
-        cast <strong>{v.under50kMissing} fewer</strong> votes than proportional.
-      </p>
-    ),
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Beat 4 - "Does anything change this?" (Beat4.tsx), 5 steps
-// ---------------------------------------------------------------------------
-
-export interface Beat4Vals {
-  overallEffectPp: string; // co.overall.effectPp.toFixed(1)
-  bonicaUrl: string;
-}
-
-export const beat4Title = "4. Does anything change this?";
-
-/** Prose in the sticky pane itself, not a scrolly step. */
-export const beat4Sticky = {
-  dotLegend: (overallEffectPp: string) => (
-    <>Dashed line: overall effect (+{overallEffectPp}pp). Each dot is that group's own effect ± 1 standard error.</>
-  ),
-  ageCardBody: (relativeIncreasePct: number, youngestCohortLabel: string) => (
-    <>
-      for the youngest cohorts ({youngestCohortLabel}) — a {relativeIncreasePct}% relative increase over their 2010
-      turnout. The largest effect of any group in the study.
-    </>
-  ),
-  confoundsLabel: "Three caveats:",
-};
-
-export const beat4Steps: StepCopy<Beat4Vals>[] = [
-  {
-    heading: "Colorado moved to all-mail voting in 2014",
-    body: (v) => (
-      <p>
-        Every registered voter gets a ballot mailed to them automatically. A study tracking individual voters by
-        birth year and prior turnout found turnout rose about {v.overallEffectPp} points overall — and the gains
-        weren't even.{" "}
-        <a href={v.bonicaUrl} target="_blank" rel="noopener noreferrer">
-          Bonica, Grumbach, Hill &amp; Jefferson (2021)
-        </a>
-        .
-      </p>
-    ),
-  },
-  {
-    heading: "The rhyme: race",
-    body: () => (
-      <p>
-        Every group gained more than the least-affected group. Asian, Black and Latino voters — all underrepresented
-        in the national data you just saw — gained more than white voters did.
-      </p>
-    ),
-  },
-  {
-    heading: "And income",
-    body: () => (
-      <p>
-        Same shape. The lowest income bracket gained the most; the highest gained the least. It's not that all-mail
-        voting is a uniform +8 points everywhere — it's larger exactly where the gap was larger.
-      </p>
-    ),
-  },
-  {
-    heading: "Age shows the same pattern, biggest of all",
-    body: () => (
-      <p>
-        The youngest voters — the group furthest below the line in beat one — gained the most from switching to
-        all-mail ballots.
-      </p>
-    ),
-  },
-  {
-    heading: "What this doesn't prove",
-    body: () => (
-      <p>
-        This is one state, well-identified — not a randomized nationwide experiment. Read the pattern as{" "}
-        <em>consistent with</em> all-mail voting closing representation gaps, not as proof it would do the same
-        everywhere.
-      </p>
-    ),
-  },
-];
