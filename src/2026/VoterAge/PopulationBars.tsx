@@ -38,6 +38,43 @@ export interface PopulationBarRow {
   expectedRegistered?: number;
 }
 
+/** One election as a single stacked bar: the age chart's four segments
+ * summed over every age. Thousands. */
+export interface SummaryBar {
+  key: string; // election year
+  kind: "presidential" | "midterm";
+  /** Bottom-up, in the age chart's own vertical order - see stackSegments. */
+  segments: [number, number, number, number];
+}
+
+/** The four pieces one age column is drawn as, bottom-up: votes, registered
+ * but didn't vote, the gold registration shortfall, and the rest of the
+ * eligible track above whichever of registered/standard is higher. Summing
+ * these over every age is what a SummaryBar is, so the merge can fly each
+ * piece into its own slice of the total. */
+export function stackSegments(d: {
+  cvap: number;
+  votes: number;
+  registered?: number;
+  expectedRegistered?: number;
+}): [number, number, number, number] {
+  const reg = d.registered ?? d.votes;
+  const std = Math.max(reg, d.expectedRegistered ?? reg);
+  return [d.votes, reg - d.votes, std - reg, d.cvap - std];
+}
+
+const SEGMENT_CLASS = ["pb-seg--votes", "pb-seg--registered", "pb-seg--gap", "pb-seg--track"];
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+/** Fraction of the merge spent staggering: age i starts at i/n of this, so
+ * the youngest columns lead and the bar fills like a pour. */
+const MERGE_STAGGER = 0.45;
+/** Same, for the other elections' bars rising in left to right. */
+const REVEAL_STAGGER = 0.55;
+
 interface Props {
   rows: PopulationBarRow[];
   xKind: "age" | "category";
@@ -108,6 +145,35 @@ interface Props {
    * mid-flight. Default 700 keeps the step-to-step animation everywhere else. */
   transitionMs?: number;
   tooltipFor?: (row: PopulationBarRow) => ReactNode;
+  /** The age chart collapsing into one bar per election ("age" variant
+   * only). `merge` 0-1 flies every column's four segments (stackSegments)
+   * into its slice of the `from` election's bar, while the axes cross-fade
+   * to the totals scale; `reveal` 0-1 then raises the other elections' bars.
+   * Both driven by scroll, so pass transitionMs 0 alongside. At merge 0 this
+   * is the plain age chart. `rows` must be the `from` election at rest. */
+  summary?: {
+    bars: SummaryBar[];
+    from: string;
+    merge: number;
+    reveal: number;
+    /** Pulling segments out of the finished stacks, never resizing one:
+     * `others` is the opacity of every segment not featured (faded in place),
+     * and each featured segment slides whole from its spot in the stack
+     * (`drop` 0) onto the axis (`drop` 1). A featured segment with a `side`
+     * also moves over as it drops, into the left (-1) or right (1) half of
+     * a pair sharing the year's slot, by `split` 0-1. `zoom` 0-1 lerps the y-domain from
+     * the full stacks down to `zoomTo` (thousands) - pass one zoomTo for every
+     * focus step so their heights stay comparable. `label` direct-labels
+     * those segments' bars. Omit for the plain stacks. */
+    focus?: {
+      others: number;
+      featured: { seg: number; drop: number; opacity: number; side?: -1 | 1; split?: number }[];
+      zoom: number;
+      zoomTo: number;
+      label?: { segs: number[]; opacity: number };
+    };
+  };
+  summaryTooltip?: (bar: SummaryBar) => ReactNode;
 }
 
 const MARGIN_AGE = { top: 16, right: 16, bottom: 34, left: 58 };
@@ -143,6 +209,8 @@ export default function PopulationBars({
   plotHaze = 0,
   transitionMs = 700,
   tooltipFor,
+  summary,
+  summaryTooltip,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -155,6 +223,11 @@ export default function PopulationBars({
   // than keep describing the bar that used to be there. Next mousemove
   // re-targets it.
   useEffect(() => setHover(null), [rows]);
+  const [sumHover, setSumHover] = useState<{ bar: SummaryBar; clientX: number; clientY: number } | null>(null);
+  const summaryOn = (summary?.merge ?? 0) >= 1;
+  useEffect(() => {
+    if (!summaryOn) setSumHover(null);
+  }, [summaryOn]);
 
   useEffect(() => {
     const obs = new ResizeObserver((entries) => {
@@ -228,22 +301,31 @@ export default function PopulationBars({
       root = svg.append("g").attr("class", "pb-root");
       root.append("g").attr("class", "voa-axis pb-axis-x");
       root.append("g").attr("class", "voa-axis pb-axis-y");
+      root.append("g").attr("class", "voa-axis pb-axis-x2");
+      root.append("g").attr("class", "voa-axis pb-axis-y2");
       root.append("text").attr("class", "voa-axis-label pb-axis-label-y").attr("text-anchor", "middle");
       root.append("clipPath").attr("id", clipId).append("rect").attr("class", "pb-clip-rect");
       // Bars sliding past x=0 (cohort morph) must be cut at the y-axis, not
       // drawn over it. Axes, ticks and labels stay outside so a clipped tick
       // label never gets chopped.
       const clipped = root.append("g").attr("class", "pb-clipped").attr("clip-path", `url(#${clipId})`);
-      clipped.append("g").attr("class", "pb-tracks");
-      clipped.append("g").attr("class", "pb-registered");
-      clipped.append("g").attr("class", "pb-votes");
-      clipped.append("g").attr("class", "pb-gaps");
-      clipped.append("g").attr("class", "pb-gaps-reg");
-      clipped.append("path").attr("class", "pb-expected-line");
-      clipped.append("path").attr("class", "pb-expected-line pb-line-reg");
+      // The age chart proper, in one group so the summary can hide it whole.
+      const age = clipped.append("g").attr("class", "pb-age");
+      age.append("g").attr("class", "pb-tracks");
+      age.append("g").attr("class", "pb-registered");
+      age.append("g").attr("class", "pb-votes");
+      age.append("g").attr("class", "pb-gaps");
+      age.append("g").attr("class", "pb-gaps-reg");
+      age.append("path").attr("class", "pb-expected-line");
+      age.append("path").attr("class", "pb-expected-line pb-line-reg");
       root.append("g").attr("class", "pb-expected-ticks");
       root.append("g").attr("class", "pb-missing-labels");
-      clipped.append("g").attr("class", "pb-hits");
+      age.append("g").attr("class", "pb-hits");
+      clipped.append("g").attr("class", "pb-merge");
+      clipped.append("g").attr("class", "pb-summary");
+      clipped.append("g").attr("class", "pb-summary-outlines");
+      clipped.append("g").attr("class", "pb-summary-hits");
+      root.append("g").attr("class", "pb-summary-labels");
     }
     root.attr("transform", `translate(${margin.left},${margin.top})`);
     root
@@ -524,7 +606,195 @@ export default function PopulationBars({
       .on("mouseleave touchend", function () {
         setHover(null);
       });
+
+    // ---- Summary: the age columns merging into one bar per election ----
+    const m = summary ? clamp01(summary.merge) : 0;
+    root.select("g.pb-age").style("display", m > 0 ? "none" : "");
+    // Axes cross-fade with a dead zone in the middle, so the two scales
+    // never sit on top of each other.
+    const oldAxis = 1 - clamp01(m / 0.4);
+    const newAxis = clamp01((m - 0.6) / 0.4);
+    root.select("g.pb-axis-x").style("opacity", oldAxis);
+    root.select("g.pb-axis-y").style("opacity", oldAxis);
+    const xAxis2 = root.select<SVGGElement>("g.pb-axis-x2").attr("transform", `translate(0,${innerH})`);
+    const yAxis2 = root.select<SVGGElement>("g.pb-axis-y2");
+    const sumBars = summary?.bars ?? [];
+    const xs = scaleBand<string>().domain(sumBars.map((b) => b.key)).range([0, innerW]).padding(0.3);
+    const totalOf = (b: SummaryBar) => b.segments.reduce((a, v) => a + v, 0);
+    const focus = summary?.focus;
+    const fullTop = Math.max(1, ...sumBars.map(totalOf)) * 1.08;
+    const ys = scaleLinear()
+      .domain([0, focus ? lerp(fullTop, focus.zoomTo * 1.08, focus.zoom) : fullTop])
+      .range([innerH, 0]);
+    if (summary && m > 0) {
+      xAxis2.style("opacity", newAxis).style("display", "").call(axisBottom(xs) as any);
+      yAxis2.style("opacity", newAxis).style("display", "").call(axisLeft(ys).ticks(5).tickFormat(fmtK as any) as any);
+    } else {
+      xAxis2.style("display", "none");
+      yAxis2.style("display", "none");
+    }
+
+    type Piece = { key: string; seg: number; x: number; y: number; w: number; h: number; o?: number };
+
+    // Mid-merge: every column split into its four segments, each flying
+    // (in pixel space, so the y-scale change is part of the flight) from
+    // where the age chart draws it to its slice of the `from` bar. Slices
+    // stack by age within each segment, youngest at the bottom.
+    const pieces: Piece[] = [];
+    if (summary && m > 0 && m < 1) {
+      const cols = rows.filter((r) => !r.offAxis).sort((a, b) => Number(a.x) - Number(b.x));
+      const segs = cols.map(stackSegments);
+      const segTotals = [0, 1, 2, 3].map((s) => segs.reduce((a, v) => a + v[s], 0));
+      const segBase = segTotals.map((_, s) => segTotals.slice(0, s).reduce((a, v) => a + v, 0));
+      const offset = [0, 0, 0, 0];
+      const toX = xs(summary.from) ?? 0;
+      cols.forEach((d, i) => {
+        const k = easeInOut(clamp01((m - (i / cols.length) * MERGE_STAGGER) / (1 - MERGE_STAGGER)));
+        let below = 0;
+        segs[i].forEach((v, s) => {
+          const fromTop = yScale(below + v), fromBot = yScale(below);
+          const toTop = ys(segBase[s] + offset[s] + v), toBot = ys(segBase[s] + offset[s]);
+          below += v;
+          offset[s] += v;
+          if (v <= 0) return;
+          const top = lerp(fromTop, toTop, k);
+          // A hair of overlap so neighbouring same-colour slices don't
+          // show anti-aliased seams once they've packed together.
+          const h = lerp(fromBot, toBot, k) - top + 0.6 * k;
+          pieces.push({ key: `${d.key}-${s}`, seg: s, x: lerp(xOf(d), toX, k), w: lerp(xScale.bandwidth(), xs.bandwidth(), k), y: top, h });
+        });
+      });
+    }
+    const drawPieces = (group: string, data: Piece[]) => {
+      const sel = root
+        .select<SVGGElement>(`g.${group}`)
+        .selectAll<SVGRectElement, Piece>("rect.pb-seg")
+        .data(data, (d) => d.key);
+      sel.exit().remove();
+      sel
+        .enter()
+        .append("rect")
+        .merge(sel as any)
+        .attr("class", (d: Piece) => `pb-seg ${SEGMENT_CLASS[d.seg]}`)
+        .attr("x", (d: Piece) => d.x)
+        .attr("width", (d: Piece) => d.w)
+        .attr("y", (d: Piece) => d.y)
+        .attr("height", (d: Piece) => Math.max(0, d.h))
+        .style("opacity", (d: Piece) => d.o ?? 1);
+      // DOM order follows data order, so whatever is listed last paints on top.
+      root.select(`g.${group}`).selectAll<SVGRectElement, Piece>("rect.pb-seg").order();
+    };
+    drawPieces("pb-merge", pieces);
+
+    // Merged: one solid stack per election. `from` is already there; the
+    // rest rise from the baseline, left to right, as `reveal` runs.
+    const others = sumBars.filter((b) => b.key !== summary?.from);
+    const rise = (b: SummaryBar) => {
+      if (!summary || m < 1) return 0;
+      if (b.key === summary.from) return 1;
+      const i = others.indexOf(b);
+      return easeInOut(clamp01((summary.reveal - (i / others.length) * REVEAL_STAGGER) / (1 - REVEAL_STAGGER)));
+    };
+    // Segments are only ever drawn at their real height. Focusing fades the
+    // rest in place (`others`) and slides each featured segment, whole, from
+    // its spot in the stack (`drop` 0) down onto the axis (`drop` 1).
+    const featured = new Map((focus?.featured ?? []).map((ft) => [ft.seg, ft]));
+    const restOpacity = focus?.others ?? 1;
+    const stacks: Piece[] = [];
+    const lifted: Piece[] = [];
+    type Outline = { key: string; kind: string; x: number; w: number; y: number; h: number; o: number };
+    const outlineData: Outline[] = [];
+    // No "M": a pair splits one slot, too thin for "20.7M", and the axis
+    // already says millions. `narrow` (phones) gets a smaller face too.
+    const labels: { key: string; x: number; y: number; v: number; narrow: boolean }[] = [];
+    const shown = sumBars.map((b) => ({ b, f: rise(b) })).filter((d) => d.f > 0);
+    for (const { b, f } of shown) {
+      const x = xs(b.key) ?? 0;
+      let below = 0;
+      b.segments.forEach((v, s) => {
+        const h = v * f;
+        const ft = featured.get(s);
+        const base = ft ? lerp(below, 0, ft.drop) : below;
+        // A pair spans most of the slot's step (not just one bar's width),
+        // so each half stays readable.
+        let px = x, pw = xs.bandwidth();
+        if (ft?.side) {
+          const pairW = xs.step() * 0.9, gap = 3, halfW = (pairW - gap) / 2;
+          const centre = x + xs.bandwidth() / 2;
+          const k = ft.split ?? 0;
+          px = lerp(x, ft.side < 0 ? centre - pairW / 2 : centre + gap / 2, k);
+          pw = lerp(pw, halfW, k);
+        }
+        const piece = { key: `${b.key}-${s}`, seg: s, x: px, w: pw, y: ys(base + h), h: ys(base) - ys(base + h), o: ft ? ft.opacity : restOpacity };
+        if (piece.o > 0 && h > 0) (ft ? lifted : stacks).push(piece);
+        if (ft) outlineData.push({ key: piece.key, kind: b.kind, x: px, w: pw, y: piece.y, h: piece.h, o: ft.opacity * ft.drop });
+        if (focus?.label?.segs.includes(s)) labels.push({ key: piece.key, x: px + pw / 2, y: ys(base + h) - 6, v, narrow: pw < 18 });
+        below += h;
+      });
+      outlineData.push({ key: b.key, kind: b.kind, x, w: xs.bandwidth(), y: ys(below), h: innerH - ys(below), o: restOpacity });
+    }
+    // Featured last, so a sliding segment passes in front of the faded ones.
+    drawPieces("pb-summary", [...stacks, ...lifted]);
+
+    const labelSel = root
+      .select<SVGGElement>("g.pb-summary-labels")
+      .style("opacity", focus?.label?.opacity ?? 0)
+      .selectAll<SVGTextElement, (typeof labels)[number]>("text")
+      .data(labels, (d) => d.key);
+    labelSel.exit().remove();
+    labelSel
+      .enter()
+      .append("text")
+      .attr("text-anchor", "middle")
+      .merge(labelSel as any)
+      .attr("class", (d: (typeof labels)[number]) => `pb-sum-label${d.narrow ? " pb-sum-label--narrow" : ""}`)
+      .attr("x", (d: (typeof labels)[number]) => d.x)
+      .attr("y", (d: (typeof labels)[number]) => d.y)
+      .text((d: (typeof labels)[number]) => (d.v / 1000).toFixed(1));
+
+    // Presidential bars get a solid outline, midterms a dashed one - the
+    // timeline's key, carried onto the bars, and onto a featured segment
+    // once it has slid down on its own.
+    const outlines = root
+      .select<SVGGElement>("g.pb-summary-outlines")
+      .selectAll<SVGRectElement, Outline>("rect")
+      .data(outlineData.filter((d) => d.o > 0), (d) => d.key);
+    outlines.exit().remove();
+    outlines
+      .enter()
+      .append("rect")
+      .merge(outlines as any)
+      .attr("class", (d: Outline) => `pb-sum-outline pb-sum-outline--${d.kind}`)
+      .attr("x", (d: Outline) => d.x)
+      .attr("width", (d: Outline) => d.w)
+      .attr("y", (d: Outline) => d.y)
+      .attr("height", (d: Outline) => d.h)
+      .style("opacity", (d: Outline) => d.o);
+
+    const sumHits = root
+      .select<SVGGElement>("g.pb-summary-hits")
+      .selectAll<SVGRectElement, { b: SummaryBar; f: number }>("rect")
+      .data(shown.filter((d) => d.f >= 1), (d) => d.b.key);
+    sumHits.exit().remove();
+    sumHits
+      .enter()
+      .append("rect")
+      .attr("class", "pb-hit")
+      .merge(sumHits as any)
+      .attr("x", (d: { b: SummaryBar }) => xs(d.b.key) ?? 0)
+      .attr("width", xs.bandwidth())
+      .attr("y", 0)
+      .attr("height", innerH)
+      .style("cursor", summaryTooltip ? "pointer" : "default")
+      .on("mouseenter touchstart mousemove", function (event: any, d: { b: SummaryBar }) {
+        if (!summaryTooltip) return;
+        const p = event.touches ? event.touches[0] : event;
+        setSumHover({ bar: d.b, clientX: p.clientX, clientY: p.clientY });
+      })
+      .on("mouseleave touchend", () => setSumHover(null));
   }, [
+    summary,
+    summaryTooltip,
     rows,
     xKind,
     compact,
@@ -572,7 +842,7 @@ export default function PopulationBars({
             style={{ marginLeft: "0.9rem", opacity: registeredOpacity > 0.5 ? 1 : 0 }}
             aria-hidden={registeredOpacity <= 0.5 || undefined}
           >
-            <span className="voa-legend-swatch pb-legend-registered" /> Registered
+            <span className="voa-legend-swatch pb-legend-registered" /> Registered but didn't vote
           </span>
         )}
         <span
@@ -628,6 +898,9 @@ export default function PopulationBars({
             ))}
           </div>
         </div>
+      )}
+      {sumHover && summaryTooltip && (
+        <Tooltip content={summaryTooltip(sumHover.bar)} clientX={sumHover.clientX} clientY={sumHover.clientY} />
       )}
       {(() => {
         if (!hover || !tooltipFor) return null;

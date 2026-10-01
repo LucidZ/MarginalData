@@ -270,3 +270,30 @@ export const explorerCopy = {
   rewinding: "rewinding",
   fastForwarding: "fast-forwarding",
 };
+
+// Placeholder copy - the summary chart after section 3's rewind.
+export const summaryCopy = {
+  mergeHeading: "Every age, added up",
+  merge: (v: { year: string }) => (
+    <p>
+      [Placeholder] Stack every age column from {v.year} into a single bar: votes at the bottom, then registered
+      non-voters, then the registration shortfall, then everyone else.
+    </p>
+  ),
+  revealHeading: "Every election, side by side",
+  reveal: () => (
+    <p>
+      [Placeholder] Now every election from 2012 to 2024. Midterms (dashed) swell with registered people who stayed
+      home; the registration shortfall barely moves.
+    </p>
+  ),
+  focusHeading: "Two gaps, side by side",
+  focus: () => (
+    <p>
+      [Placeholder] Pull out just the two gaps. The registration shortfall (gold) barely moves; registered people
+      who didn't vote (green) swell every midterm.
+    </p>
+  ),
+  xLabel: "Election",
+  segmentLabels: ["voted", "registered but didn't vote", "registration shortfall", "other eligible citizens"],
+};

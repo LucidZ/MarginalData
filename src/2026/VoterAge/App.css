@@ -489,6 +489,40 @@
   opacity: 0.75;
 }
 
+/* Summary (one bar per election) and the merge into it: the same four
+   fills as the age chart, bottom-up. */
+.pb-seg--votes {
+  fill: var(--series-3);
+}
+.pb-seg--registered {
+  fill: var(--registered);
+}
+.pb-seg--gap {
+  fill: var(--gap);
+}
+.pb-seg--track {
+  fill: var(--gridline);
+}
+.pb-sum-outline {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.pb-sum-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.pb-sum-label--narrow {
+  font-size: 9px;
+  letter-spacing: -0.02em;
+}
+.pb-sum-outline--midterm {
+  stroke-dasharray: 4 3;
+}
+
 /* Shortfall block - a solid gold band sitting on top of the votes bar,
    capped by the dotted line. Only under-voting bars get one. */
 .pb-gap {
