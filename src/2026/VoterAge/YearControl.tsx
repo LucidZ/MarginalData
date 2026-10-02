@@ -29,7 +29,7 @@ interface Props {
 
 /**
  * The story's timeline, 2012 ... 2024, pinned above the chart. A radio group
- * (arrow keys, Home/End); midterms get a dashed outline and the key below
+ * (arrow keys, Home/End); midterms get a tinted fill and the key below
  * names both styles, so the distinction never rests on color. Under 400px
  * the labels shorten to '12 ... '24 so all seven fit a 360px screen; the
  * full year stays in aria-label.

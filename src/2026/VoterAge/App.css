@@ -19,7 +19,8 @@
      carry identity too. Dark value passes outright. */
   --registered: #6edbaf;
   --border: rgba(11, 11, 11, 0.1);
-
+  /* Midterm tint for the timeline's buttons, its key and the year cards. */
+  --midterm-band: #efeee8;
 
   max-width: 900px;
   margin: 0 auto;
@@ -47,7 +48,7 @@
     --gap-edge: #f8d68c;
     --registered: #12664a;
     --border: rgba(255, 255, 255, 0.1);
-
+    --midterm-band: #272725;
   }
 }
 
@@ -68,6 +69,7 @@
   --gap-edge: #f8d68c;
   --registered: #12664a;
   --border: rgba(255, 255, 255, 0.1);
+  --midterm-band: #272725;
 }
 
 /* ---------- Header ---------- */
@@ -231,8 +233,8 @@
     font-size: 0.72rem;
     margin-top: 0.1rem;
   }
-  /* The year cards say "Midterm"/"Presidential" in words, so the dashed-
-     outline key can go on phones. (Scoped to the pane so these beat the
+  /* The year cards say "Midterm"/"Presidential" in words, so the shaded-
+     button key can go on phones. (Scoped to the pane so these beat the
      timeline's own rules, which come later in this file.) */
   .voa-scrolly-viz .voa-yc {
     margin-bottom: 0.3rem;
@@ -263,7 +265,7 @@
   transition: border-color 200ms;
 }
 .voa-year-card--midterm {
-  border-style: dashed;
+  background: var(--midterm-band);
 }
 /* Resting on this year: the card's outline darkens with the timeline
    button's fill, so the text column confirms the lock too. */
@@ -348,7 +350,7 @@
   cursor: pointer;
 }
 .voa-yc-btn--midterm {
-  border-style: dashed;
+  background: var(--midterm-band);
 }
 .voa-yc-btn:hover {
   color: var(--text-primary);
@@ -358,11 +360,6 @@
   color: var(--page);
   background: var(--text-primary);
   border-color: var(--text-primary);
-}
-/* Keeps the dash visible on the filled midterm button: page-colored dashes
-   over the dark fill, which shows through the gaps. */
-.voa-yc-btn--midterm.is-on {
-  border-color: var(--page);
 }
 .voa-yc-btn:focus-visible {
   outline: 2px solid var(--series-1);
@@ -392,7 +389,7 @@
   border-radius: 3px;
 }
 .voa-yc-key-swatch--midterm {
-  border-style: dashed;
+  background: var(--midterm-band);
 }
 @media (max-width: 399px) {
   .voa-yc-full {
@@ -503,12 +500,6 @@
 .pb-seg--track {
   fill: var(--gridline);
 }
-.pb-sum-outline {
-  fill: none;
-  stroke: var(--muted);
-  stroke-width: 1.5;
-  pointer-events: none;
-}
 .pb-sum-label {
   font-size: 11px;
   font-weight: 700;
@@ -519,8 +510,9 @@
   font-size: 9px;
   letter-spacing: -0.02em;
 }
-.pb-sum-outline--midterm {
-  stroke-dasharray: 4 3;
+.voa-axis .pb-axis-sublabel {
+  font-size: 9.5px;
+  font-style: italic;
 }
 
 /* Shortfall block - a solid gold band sitting on top of the votes bar,

@@ -323,7 +323,6 @@ export default function PopulationBars({
       age.append("g").attr("class", "pb-hits");
       clipped.append("g").attr("class", "pb-merge");
       clipped.append("g").attr("class", "pb-summary");
-      clipped.append("g").attr("class", "pb-summary-outlines");
       clipped.append("g").attr("class", "pb-summary-hits");
       root.append("g").attr("class", "pb-summary-labels");
     }
@@ -626,14 +625,26 @@ export default function PopulationBars({
     const ys = scaleLinear()
       .domain([0, focus ? lerp(fullTop, focus.zoomTo * 1.08, focus.zoom) : fullTop])
       .range([innerH, 0]);
+    const kindOf = new Map(sumBars.map((b) => [b.key, b.kind]));
     if (summary && m > 0) {
       xAxis2.style("opacity", newAxis).style("display", "").call(axisBottom(xs) as any);
+      // Midterm years get a second line under the year. The axis call resets
+      // each label's text (dropping any tspan), so this re-adds it every pass.
+      xAxis2.selectAll<SVGGElement, string>("g.tick").each(function (key) {
+        if (kindOf.get(key) !== "midterm") return;
+        select(this)
+          .select("text")
+          .append("tspan")
+          .attr("class", "pb-axis-sublabel")
+          .attr("x", 0)
+          .attr("dy", "1.15em")
+          .text("midterm");
+      });
       yAxis2.style("opacity", newAxis).style("display", "").call(axisLeft(ys).ticks(5).tickFormat(fmtK as any) as any);
     } else {
       xAxis2.style("display", "none");
       yAxis2.style("display", "none");
     }
-
     type Piece = { key: string; seg: number; x: number; y: number; w: number; h: number; o?: number };
 
     // Mid-merge: every column split into its four segments, each flying
@@ -687,9 +698,10 @@ export default function PopulationBars({
     drawPieces("pb-merge", pieces);
 
     // Merged: one solid stack per election. `from` is already there; the
-    // rest rise from the baseline, left to right, as `reveal` runs.
+    // rest fade in at full height, left to right, as `reveal` runs. Fading
+    // rather than growing means no frame ever shows a bar at a false total.
     const others = sumBars.filter((b) => b.key !== summary?.from);
-    const rise = (b: SummaryBar) => {
+    const appear = (b: SummaryBar) => {
       if (!summary || m < 1) return 0;
       if (b.key === summary.from) return 1;
       const i = others.indexOf(b);
@@ -702,17 +714,15 @@ export default function PopulationBars({
     const restOpacity = focus?.others ?? 1;
     const stacks: Piece[] = [];
     const lifted: Piece[] = [];
-    type Outline = { key: string; kind: string; x: number; w: number; y: number; h: number; o: number };
-    const outlineData: Outline[] = [];
     // No "M": a pair splits one slot, too thin for "20.7M", and the axis
     // already says millions. `narrow` (phones) gets a smaller face too.
     const labels: { key: string; x: number; y: number; v: number; narrow: boolean }[] = [];
-    const shown = sumBars.map((b) => ({ b, f: rise(b) })).filter((d) => d.f > 0);
+    const shown = sumBars.map((b) => ({ b, f: appear(b) })).filter((d) => d.f > 0);
     for (const { b, f } of shown) {
       const x = xs(b.key) ?? 0;
       let below = 0;
       b.segments.forEach((v, s) => {
-        const h = v * f;
+        const h = v;
         const ft = featured.get(s);
         const base = ft ? lerp(below, 0, ft.drop) : below;
         // A pair spans most of the slot's step (not just one bar's width),
@@ -725,13 +735,11 @@ export default function PopulationBars({
           px = lerp(x, ft.side < 0 ? centre - pairW / 2 : centre + gap / 2, k);
           pw = lerp(pw, halfW, k);
         }
-        const piece = { key: `${b.key}-${s}`, seg: s, x: px, w: pw, y: ys(base + h), h: ys(base) - ys(base + h), o: ft ? ft.opacity : restOpacity };
+        const piece = { key: `${b.key}-${s}`, seg: s, x: px, w: pw, y: ys(base + h), h: ys(base) - ys(base + h), o: (ft ? ft.opacity : restOpacity) * f };
         if (piece.o > 0 && h > 0) (ft ? lifted : stacks).push(piece);
-        if (ft) outlineData.push({ key: piece.key, kind: b.kind, x: px, w: pw, y: piece.y, h: piece.h, o: ft.opacity * ft.drop });
         if (focus?.label?.segs.includes(s)) labels.push({ key: piece.key, x: px + pw / 2, y: ys(base + h) - 6, v, narrow: pw < 18 });
         below += h;
       });
-      outlineData.push({ key: b.key, kind: b.kind, x, w: xs.bandwidth(), y: ys(below), h: innerH - ys(below), o: restOpacity });
     }
     // Featured last, so a sliding segment passes in front of the faded ones.
     drawPieces("pb-summary", [...stacks, ...lifted]);
@@ -751,25 +759,6 @@ export default function PopulationBars({
       .attr("x", (d: (typeof labels)[number]) => d.x)
       .attr("y", (d: (typeof labels)[number]) => d.y)
       .text((d: (typeof labels)[number]) => (d.v / 1000).toFixed(1));
-
-    // Presidential bars get a solid outline, midterms a dashed one - the
-    // timeline's key, carried onto the bars, and onto a featured segment
-    // once it has slid down on its own.
-    const outlines = root
-      .select<SVGGElement>("g.pb-summary-outlines")
-      .selectAll<SVGRectElement, Outline>("rect")
-      .data(outlineData.filter((d) => d.o > 0), (d) => d.key);
-    outlines.exit().remove();
-    outlines
-      .enter()
-      .append("rect")
-      .merge(outlines as any)
-      .attr("class", (d: Outline) => `pb-sum-outline pb-sum-outline--${d.kind}`)
-      .attr("x", (d: Outline) => d.x)
-      .attr("width", (d: Outline) => d.w)
-      .attr("y", (d: Outline) => d.y)
-      .attr("height", (d: Outline) => d.h)
-      .style("opacity", (d: Outline) => d.o);
 
     const sumHits = root
       .select<SVGGElement>("g.pb-summary-hits")

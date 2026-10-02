@@ -283,7 +283,7 @@ export const summaryCopy = {
   revealHeading: "Every election, side by side",
   reveal: () => (
     <p>
-      [Placeholder] Now every election from 2012 to 2024. Midterms (dashed) swell with registered people who stayed
+      [Placeholder] Now every election from 2012 to 2024. Midterms swell with registered people who stayed
       home; the registration shortfall barely moves.
     </p>
   ),
