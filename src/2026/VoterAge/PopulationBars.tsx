@@ -72,7 +72,7 @@ const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x 
 /** Fraction of the merge spent staggering: age i starts at i/n of this, so
  * the youngest columns lead and the bar fills like a pour. */
 const MERGE_STAGGER = 0.45;
-/** Same, for the other elections' bars rising in left to right. */
+/** Same, for the other elections' bars fading in left to right. */
 const REVEAL_STAGGER = 0.55;
 
 interface Props {
@@ -148,7 +148,7 @@ interface Props {
   /** The age chart collapsing into one bar per election ("age" variant
    * only). `merge` 0-1 flies every column's four segments (stackSegments)
    * into its slice of the `from` election's bar, while the axes cross-fade
-   * to the totals scale; `reveal` 0-1 then raises the other elections' bars.
+   * to the totals scale; `reveal` 0-1 then fades in the other elections' bars.
    * Both driven by scroll, so pass transitionMs 0 alongside. At merge 0 this
    * is the plain age chart. `rows` must be the `from` election at rest. */
   summary?: {

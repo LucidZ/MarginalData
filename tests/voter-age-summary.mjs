@@ -1,6 +1,6 @@
 // The summary after section 3's rewind (AgeBeats.tsx, PopulationBars.tsx
 // `summary`): 2012's age columns merge into one stacked bar, then every
-// other election's bar rises beside it. Screenshots the merge and reveal at
+// other election's bar fades in beside it. Screenshots the merge and reveal at
 // several scroll fractions, checks the merged bars' segment heights against
 // the JSON (summed with the same stackSegments rule), and that scrolling back
 // up restores the plain age chart.

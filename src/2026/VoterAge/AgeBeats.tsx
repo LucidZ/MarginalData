@@ -40,7 +40,7 @@ import type { VoterAgeData, AgeRow } from "./types";
  *
  * Then the summary, two more steps on the same chart: 2012's age columns
  * merge into one stacked bar (each column's four segments flying into
- * their slice of the total), and the other elections' bars rise beside it.
+ * their slice of the total), and the other elections' bars fade in beside it.
  * Same colours, same vertical order, one bar per election.
  */
 
