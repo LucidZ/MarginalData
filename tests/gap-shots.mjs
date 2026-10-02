@@ -10,9 +10,9 @@ const sfx = dark ? "-dark" : "";
 
 // Scroll each named step into the middle of the viewport, then shoot the sticky chart.
 const targets = [
-  { beat: 0, step: 2, name: "gap-age-sum" },
-  { beat: 0, step: 3, name: "gap-age-registered" },
-  { beat: 0, step: 4, name: "gap-age-registration" },
+  { beat: 0, step: 3, name: "gap-age-sum" },
+  { beat: 0, step: 4, name: "gap-age-registered" },
+  { beat: 0, step: 5, name: "gap-age-registration" },
 ];
 for (const t of targets) {
   await page.evaluate(({ beat, step }) => {

@@ -13,7 +13,7 @@ import type { VoterAgeData } from "./types";
  */
 
 export interface StepCopy<V> {
-  heading: string;
+  heading: string | ((v: V) => string);
   body: (v: V) => ReactNode;
 }
 
@@ -78,7 +78,7 @@ export function sourcesFootnote(meta: VoterAgeData["meta"]): ReactNode {
 export interface AgeBeatsVals {
   age25cvap: string;
   age75cvap: string;
-  bench: string; // this cycle's 65+ rate, fmtPct'd - "the dotted line" (step 2, always 2024's)
+  bench: string; // this cycle's 65+ rate, fmtPct'd - "the dotted line" (steps 2-3, always 2024's)
   bench2022: string;
   crossoverAge: number | null;
   shortfall2024: string;
@@ -93,7 +93,7 @@ export interface AgeBeatsVals {
   notVoted2024: string; // registered people who didn't vote, all ages
   regGap2022: string;
   notVoted2022: string;
-  /** Step 9's turnout-by-age table, rendered by AgeBeats.tsx (it's data
+  /** The last beat step's turnout-by-age table, rendered by AgeBeats.tsx (it's data
    * presentation, not prose) and embedded here so the surrounding paragraphs
    * stay in one place with it. */
   compareTable: ReactNode;
@@ -104,7 +104,7 @@ export const midtermsTitle = "2. Midterms make it worse";
 
 export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
   {
-    heading: "The country skews younger",
+    heading: "The country skews younger.",
     body: () => (
       <p>
         Each bar is how many citizens of that age were{" "}
@@ -131,31 +131,33 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
-    heading: "Voters skew older",
+    heading: "But, voters skew older...",
     body: () => (
       <p>
-        A distinctly different shape appears among voters because older people tend to vote more than younger people.
       </p>
     ),
   },
   {
-    heading: "People 65-and-over vote the most",
+    heading: "with people 65-and-over voting the most.",
     body: (v) => (
+      <p>
+        The highest participation rate ({v.bench}) belongs to those 65-and-over, perhaps because most are retired and
+        have more time. The dotted line is how many votes every age would cast at that rate.
+      </p>
+    ),
+  },
+  {
+    heading: (v) => `This shortfall is ${v.shortfall2024Pct} of votes cast.`,
+    body: () => (
       <>
         <p>
-          The highest participation rate ({v.bench}) belongs to those 65-and-over, perhaps because most are retired
-          and have more time. The dotted line is how many votes every age would cast at that rate. If everyone voted
-          like the 65+ crowd there would be <strong>{v.shortfall2024} more votes</strong>, representing{" "}
-          <strong>{v.shortfall2024Pct}</strong> of the population.
-        </p>
-        <div className="voa-callout">
           In elections where the margins of victory tends to be small, this can be significant.
-        </div>
+        </p>
       </>
     ),
   },
   {
-    heading: "First, you have to register",
+    heading: "This shortfall can be split into two parts: a turnout shortfall...",
     body: () => (
       <p>
         Part of the gap opens before election day. The paler green is everyone who{" "}
@@ -168,15 +170,14 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
             </>
           }
         >
-          says they're registered
+          registered
         </Gloss>
-        ; the part showing above each votes bar is registered people who didn't vote. Like voting, registering
-        climbs with age.
+        {" "}but didn't vote.
       </p>
     ),
   },
   {
-    heading: "The registration gap",
+    heading: "and a registration shortfall",
     body: (v) => (
       <p>
         {v.reg65} of people 65-and-over are registered, compared with {v.youthReg} of 18-to-24-year-olds. The dotted

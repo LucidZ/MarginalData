@@ -12,7 +12,7 @@ const BASE = process.env.BASE_URL || "http://localhost:4321";
 const OUT = "tests/screenshots";
 mkdirSync(OUT, { recursive: true });
 
-const MORPH_STEP = 5; // AgeBeats.tsx - the step resting on 2024 just before the first hop
+const MORPH_STEP = 6; // AgeBeats.tsx - the step resting on 2024 just before the first hop
 const fmtM = (thousands, digits = 1) => `${(thousands / 1000).toFixed(digits)}M`;
 const fail = (msg) => {
   throw new Error(`FAIL: ${msg}`);

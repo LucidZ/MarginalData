@@ -27,7 +27,7 @@ await page.waitForSelector(".voa-root h1");
 // reached regardless of how step heights map to scroll position. We read `u`
 // back from the scrubber's data-u (RewindOverlay.tsx) rather than assume a
 // scrollY formula for it.
-const MORPH_STEP = 5; // AgeBeats.tsx
+const MORPH_STEP = 6; // AgeBeats.tsx
 const window_ = await page.evaluate(
   ({ i, h }) => {
     const steps = [...document.querySelectorAll(".voa-beat .voa-step")];

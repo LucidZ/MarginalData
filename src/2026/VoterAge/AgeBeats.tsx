@@ -21,14 +21,14 @@ import type { VoterAgeData, AgeRow } from "./types";
  * physical element: one sticky pane spanning eight steps, with beat 2's
  * heading riding up the text column while the chart stays put.
  *
- * Steps 0-4 accumulate the 2024 chart layer by layer, off a rounded step
+ * Steps 0-5 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
- * 700ms tween): eligible, votes, the 65+ turnout standard and its total
- * shortfall, then the "why" - the registered bar, and the 65+
+ * 700ms tween): eligible, votes, the 65+ turnout standard's line, then its
+ * gold shortfall and total, then the "why" - the registered bar, and the 65+
  * registration standard with its gap. That last view is what the morph
  * carries: gold (not registered) and the registered bar showing above
  * the votes bar (registered, didn't vote) are the two hurdles, and beat 2
- * is watching both change. Steps 5-7 morph it to 2022 continuously off the raw scroll
+ * is watching both change. Steps 6-8 morph it to 2022 continuously off the raw scroll
  * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
  * and .claude/voter-age-morph-honesty-spec.md.
  *
@@ -45,19 +45,21 @@ import type { VoterAgeData, AgeRow } from "./types";
  */
 
 /** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
-const MORPH_STEP = 5;
+const MORPH_STEP = 6;
 /** Section 3's first step: heading and intro, the chart still resting on
  * 2022. Then one step per year from 2022 back, each holding just that
  * year's card - kept apart from the intro so no card sits at the bottom of
  * a step too tall for a phone's reading band. Every later hop runs from one
  * year's step to the next. */
-const EXPLORER_STEP = 8;
-/** The single 65+ turnout standard and its total shortfall. */
-const TOTAL_STEP = 2;
+const EXPLORER_STEP = 9;
+/** The 65+ turnout standard's dotted line, on its own. */
+const LINE_STEP = 2;
+/** The gold shortfall under that line, and its total. */
+const TOTAL_STEP = 3;
 /** The registered bar arrives; the turnout standard goes. */
-const REG_STEP = 3;
+const REG_STEP = 4;
 /** The 65+ registration standard and its gap - held through the morph. */
-const REG_GAP_STEP = 4;
+const REG_GAP_STEP = 5;
 /** Past this point the chart is scroll-driven, so d3's time tween is off. */
 const TWEEN_UNTIL = MORPH_STEP - 0.6;
 
@@ -449,7 +451,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             registrationStandard={
               step >= REG_GAP_STEP ? { line: 1 - clamp01(mergeU / 0.3), gap: 1 } : { line: 0, gap: 0 }
             }
-            showExpected={step === TOTAL_STEP}
+            showExpected={step === LINE_STEP || step === TOTAL_STEP}
             showGap={step === TOTAL_STEP}
             expectedLineLabel={
               step >= REG_GAP_STEP
@@ -535,7 +537,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
                   // chart to its left is the same element and must not unstick.
                   <h2 className="voa-beat-title voa-beat-title--incolumn">{midtermsTitle}</h2>
                 )}
-                <h3>{s.heading}</h3>
+                <h3>{typeof s.heading === "function" ? s.heading(copyVals) : s.heading}</h3>
                 {s.body(copyVals)}
               </div>
             </div>
