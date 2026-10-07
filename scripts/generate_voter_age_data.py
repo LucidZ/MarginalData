@@ -301,24 +301,57 @@ def finalize_age_cycle(rows):
     over65_reg_rate = over65_registered / over65_cvap
 
 
-    # The registration standard: cvap x the 65+ registration rate. Its gap
-    # down to `registered` is people missing from the rolls (only shortfalls
-    # totalled - an age above the line contributes 0, same no-surplus rule
-    # as the gold wedge). The other hurdle needs no standard of its own:
-    # registered minus votes, the space between the two green bars, is
-    # already the count of registered people who didn't vote.
+    # The 65+ show-up rate: votes per registrant in the benchmark group.
+    over65_show_up = over65_turnout / over65_reg_rate
+
+    # The gold wedge (expected - votes) splits exactly into two parts, both
+    # in votes relative to the 65+ standard:
+    #   regShort  = (cvap*R - registered) * S  - votes lost to people missing
+    #               from the rolls (each would vote at the 65+ show-up rate)
+    #   turnShort = registered*S - votes       - votes lost because registrants
+    #               here show up less often than 65+ registrants do
+    # They sum to cvap*R*S - votes = cvap*T - votes = the gap. Where one goes
+    # negative (registration or show-up above the 65+ rate), clamp it to 0
+    # and give the whole gap to the other, so the two always fill the wedge.
+    # Ages with no gap get 0 for both - same no-surplus rule as the wedge.
+    #
+    # registrationGap / registeredNotVoted are head-counts kept for reference
+    # (footnotes, tooltip); they're not drawn and don't sum to anything.
     reg_gap = 0.0
     reg_not_voted = 0.0
+    reg_short_total = 0.0
+    turn_short_total = 0.0
+    gap_total = 0.0
     for r in rows:
         exp_reg = r["cvap"] * over65_reg_rate
         reg_gap += max(0.0, exp_reg - r["registered"])
         reg_not_voted += max(0.0, r["registered"] - r["votes"])
+        gap = r["cvap"] * over65_turnout - r["votes"]
+        if gap > 0:
+            reg_short = (exp_reg - r["registered"]) * over65_show_up
+            turn_short = r["registered"] * over65_show_up - r["votes"]
+            if reg_short < 0:
+                reg_short, turn_short = 0.0, gap
+            elif turn_short < 0:
+                reg_short, turn_short = gap, 0.0
+            gap_total += gap
+        else:
+            reg_short = turn_short = 0.0
+        reg_short_total += reg_short
+        turn_short_total += turn_short
         r["expected"] = round(r["cvap"] * over65_turnout, 1)
         r["missing"] = round(r["votes"] - r["expected"], 1)
-        r["expectedRegistered"] = round(exp_reg, 1)
+        r["regShort"] = round(reg_short, 1)
+        r["turnShort"] = round(turn_short, 1)
         r["cvap"] = round(r["cvap"], 1)
         r["votes"] = round(r["votes"], 1)
         r["registered"] = round(r["registered"], 1)
+
+    if abs(reg_short_total + turn_short_total - gap_total) >= 0.5:
+        raise ValueError(
+            f"shortfall split {reg_short_total:.1f} + {turn_short_total:.1f} doesn't sum to "
+            f"the gold wedge {gap_total:.1f} (tolerance 0.5k)"
+        )
 
     # Crossover: first age (ascending) whose own turnout reaches the 65+
     # benchmark. Decline: last age (descending) that still does - the 65+
@@ -335,9 +368,14 @@ def finalize_age_cycle(rows):
         "avgTurnout": round(100 * avg_turnout, 2),
         "over65Turnout": round(100 * over65_turnout, 2),
         "over65Registration": round(100 * over65_reg_rate, 2),
-        # Thousands. People short of the 65+ registration rate, and
-        # registered people who didn't vote (all ages). Not two halves of
-        # any one total - never add them.
+        "over65ShowUp": round(100 * over65_show_up, 2),
+        # Thousands of votes. The two parts of the voter shortfall; they
+        # sum to it (see the split above).
+        "registrationShortfall": round(reg_short_total, 1),
+        "turnoutShortfall": round(turn_short_total, 1),
+        # Thousands of people. Reference only, not drawn: people short of
+        # the 65+ registration rate, and registered people who didn't vote
+        # (all ages). Not two halves of any one total - never add them.
         "registrationGap": round(reg_gap, 1),
         "registeredNotVoted": round(reg_not_voted, 1),
         "totalCvap": round(total_cvap, 1),
@@ -440,7 +478,8 @@ def main():
         )
         print(
             f"         65+ registered {cycle['over65Registration']}%  "
-            f"{cycle['registrationGap']:,.0f}k short of it, {cycle['registeredNotVoted']:,.0f}k registered non-voters"
+            f"show-up {cycle['over65ShowUp']}%  shortfall split {cycle['registrationShortfall']:,.0f}k "
+            f"not registered + {cycle['turnoutShortfall']:,.0f}k registered, voted less"
         )
 
     output = {
@@ -455,7 +494,7 @@ def main():
                 f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
             ] + [PEP_URL, PEP_INTERCENSAL_URL],
             "retrieved": "2026-09-25",
-            "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration)",
+            "units": "thousands of people (cvap, votes, registered, expected, missing); thousands of votes short of the 65+ standard (regShort, turnShort, registrationShortfall, turnoutShortfall); thousands of people, reference only, not drawn (registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration, over65ShowUp)",
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
                 "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "

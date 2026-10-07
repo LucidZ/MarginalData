@@ -85,14 +85,16 @@ export interface AgeBeatsVals {
   under35Missing: string;
   shortfall2024Pct: string;
   reg65: string; // 2024 65+ registration rate
-  reg65_2022: string;
   youthReg: string; // 2024 18-24 registration rate
   youthShowUp: string; // 2024 share of registered 18-24s who voted
   youthShowUp2022: string;
-  regGap2024: string; // people short of the 65+ registration rate
-  notVoted2024: string; // registered people who didn't vote, all ages
-  regGap2022: string;
-  notVoted2022: string;
+  showUp65: string; // 2024 share of registered 65+ who voted
+  // The shortfall's two parts, in votes vs. the 65+ standard. Sum to shortfall.
+  regShort2024: string; // votes lost to people not registered
+  turnShort2024: string; // votes lost to registrants voting less often
+  regShort2022: string;
+  turnShort2022: string;
+  regGapPeople2024: string; // people (not votes) short of the 65+ registration rate - footnote only
   /** The last beat step's turnout-by-age table, rendered by AgeBeats.tsx (it's data
    * presentation, not prose) and embedded here so the surrounding paragraphs
    * stay in one place with it. */
@@ -158,9 +160,9 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
   },
   {
     heading: "This shortfall can be split into two parts: a turnout shortfall...",
-    body: () => (
+    body: (v) => (
       <p>
-        Part of the gap opens before election day. The paler green is everyone who{" "}
+        Some people are{" "}
         <Gloss
           note={
             <>
@@ -171,8 +173,9 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
           }
         >
           registered
-        </Gloss>
-        {" "}but didn't vote.
+        </Gloss>{" "}
+        but vote less often. Of registered people 65-and-over, {v.showUp65} voted. The lighter gold is the votes
+        lost because registered people at other ages didn't show up at that rate: <strong>{v.turnShort2024}</strong>.
       </p>
     ),
   },
@@ -180,10 +183,20 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     heading: "and a registration shortfall",
     body: (v) => (
       <p>
-        {v.reg65} of people 65-and-over are registered, compared with {v.youthReg} of 18-to-24-year-olds. The dotted
-        line is how many would be registered at every age if everyone matched the 65+ rate. The gold between that
-        line and the paler bars is people who aren't on the rolls: <strong>{v.regGap2024}</strong>. Add the{" "}
-        {v.notVoted2024} registered people who didn't vote, and those are the two hurdles.
+        The rest of the gap opens before election day. {v.reg65} of people 65-and-over are registered, compared with{" "}
+        {v.youthReg} of 18-to-24-year-olds. The deeper gold is the{" "}
+        <Gloss
+          note={
+            <>
+              This counts votes, not people. {v.regGapPeople2024} people fall short of the 65+ registration rate; if
+              they voted as often as registered 65+ voters do ({v.showUp65}), that's about {v.regShort2024} votes.
+            </>
+          }
+        >
+          votes lost
+        </Gloss>{" "}
+        because people aren't on the rolls: <strong>{v.regShort2024}</strong>. Together, the two parts make up the
+        whole {v.shortfall2024} shortfall, and in a presidential year registration is the bigger one.
       </p>
     ),
   },
@@ -205,12 +218,13 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
           clean off the chart: 2024's 18- and 19-year-olds weren't old enough to vote in 2022 at all.
         </p>
         <p>
-          The dotted line still traces the 65-and-over registration rate, which barely slips in a midterm ({v.reg65}{" "}
-          to {v.reg65_2022}). The gold, people not registered, grows from {v.regGap2024} to {v.regGap2022}.
+          The dotted line still traces the 65-and-over turnout rate, which drops in a midterm too ({v.bench} to{" "}
+          {v.bench2022}). The deeper gold, votes lost to registration, barely moves: {v.regShort2024} to{" "}
+          {v.regShort2022}.
         </p>
         <p>
-          The bigger change is the paler green: registered people who didn't vote. It doubles, from{" "}
-          {v.notVoted2024} to <strong>{v.notVoted2022}</strong>.
+          The big change is the lighter gold: registered people staying home. It more than doubles, from{" "}
+          {v.turnShort2024} to <strong>{v.turnShort2022}</strong>.
         </p>
       </>
     ),
@@ -277,24 +291,17 @@ export const summaryCopy = {
   mergeHeading: "Every age, added up",
   merge: (v: { year: string }) => (
     <p>
-      [Placeholder] Stack every age column from {v.year} into a single bar: votes at the bottom, then registered
-      non-voters, then the registration shortfall, then everyone else.
+      [Placeholder] Drop the 65+ yardstick and just count. Stack every age from {v.year} into a single bar: the
+      people who voted, then the people registered who didn't, then the eligible citizens who aren't registered
+      at all.
     </p>
   ),
   revealHeading: "Every election, side by side",
   reveal: () => (
     <p>
-      [Placeholder] Now every election from 2012 to 2024. Midterms swell with registered people who stayed
-      home; the registration shortfall barely moves.
-    </p>
-  ),
-  focusHeading: "Two gaps, side by side",
-  focus: () => (
-    <p>
-      [Placeholder] Pull out just the two gaps. The registration shortfall (gold) barely moves; registered people
-      who didn't vote (green) swell every midterm.
+      [Placeholder] Now every election from 2012 to 2024. The unregistered band barely moves. What swings is the
+      pale band: registered people who sit out the midterms.
     </p>
   ),
   xLabel: "Election",
-  segmentLabels: ["voted", "registered but didn't vote", "registration shortfall", "other eligible citizens"],
 };

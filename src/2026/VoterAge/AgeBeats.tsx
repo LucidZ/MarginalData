@@ -24,11 +24,11 @@ import type { VoterAgeData, AgeRow } from "./types";
  * Steps 0-5 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
  * 700ms tween): eligible, votes, the 65+ turnout standard's line, then its
- * gold shortfall and total, then the "why" - the registered bar, and the 65+
- * registration standard with its gap. That last view is what the morph
- * carries: gold (not registered) and the registered bar showing above
- * the votes bar (registered, didn't vote) are the two hurdles, and beat 2
- * is watching both change. Steps 6-8 morph it to 2022 continuously off the raw scroll
+ * gold shortfall and total, then the "why" - the gold splits into two
+ * shades, votes lost because people aren't registered and votes lost because
+ * registrants show up less often than 65+ registrants do. The two sum to the
+ * total exactly (see the pipeline), and that split view is what the morph
+ * carries: beat 2 is watching both change. Steps 6-8 morph it to 2022 continuously off the raw scroll
  * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
  * and .claude/voter-age-morph-honesty-spec.md.
  *
@@ -39,9 +39,10 @@ import type { VoterAgeData, AgeRow } from "./types";
  * people keep the same element across all six hops.
  *
  * Then the summary, two more steps on the same chart: 2012's age columns
- * merge into one stacked bar (each column's four segments flying into
- * their slice of the total), and the other elections' bars fade in beside it.
- * Same colours, same vertical order, one bar per election.
+ * recolour into three plain counts (votes, registered, eligible - no 65+
+ * standard) and merge into one stacked bar, each column's segments flying
+ * into their slice of the total; then the other elections' bars fade in
+ * beside it. One bar per election.
  */
 
 /** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
@@ -56,9 +57,9 @@ const EXPLORER_STEP = 9;
 const LINE_STEP = 2;
 /** The gold shortfall under that line, and its total. */
 const TOTAL_STEP = 3;
-/** The registered bar arrives; the turnout standard goes. */
+/** The gold splits into its turnout and registration parts. */
 const REG_STEP = 4;
-/** The 65+ registration standard and its gap - held through the morph. */
+/** Both parts' totals under the chart - held through the morph. */
 const REG_GAP_STEP = 5;
 /** Past this point the chart is scroll-driven, so d3's time tween is off. */
 const TWEEN_UNTIL = MORPH_STEP - 0.6;
@@ -113,10 +114,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   /** First summary step: the merged 2012 bar. The merge runs from the
    * 2012 card's step to this one, the reveal from this one to the next. */
   const SUMMARY_STEP = EXPLORER_STEP + 1 + hopCount;
-  /** Then the focus step: gold and registered non-voters pulled out of the
-   * stacks, side by side on the axis. */
-  const FOCUS_STEP = SUMMARY_STEP + 2;
-  const stepCount = FOCUS_STEP + 1;
+  const stepCount = SUMMARY_STEP + 2;
 
   // On phones the chart is pinned across the top, so the text a reader can
   // see is the band below it - measure steps against that band's middle.
@@ -173,7 +171,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     Math.round(clamp01((progress - from - HOP_MARGIN) / (1 - 2 * HOP_MARGIN)) * 1e6) / 1e6;
   const mergeU = spanU(SUMMARY_STEP - 1);
   const revealU = spanU(SUMMARY_STEP);
-  const focusU = spanU(FOCUS_STEP - 1);
 
   const activeRows = useMemo(() => {
     if (t <= 0) return restRows[hop];
@@ -239,37 +236,15 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     (): SummaryBar[] =>
       [...years].reverse().map((y) => {
         const c = data.byAge[y];
-        const segments: SummaryBar["segments"] = [0, 0, 0, 0];
+        const segments: SummaryBar["segments"] = [0, 0, 0];
         for (const r of c.rows) stackSegments(r).forEach((v, s) => (segments[s] += v));
         return { key: y, kind: c.kind, segments };
       }),
     [data, years]
   );
-  // One zoomed y-domain for both focus steps, so gold and light green are
-  // read against the same axis.
-  const focusMax = useMemo(() => Math.max(...summaryBars.flatMap((b) => [b.segments[1], b.segments[2]])), [summaryBars]);
-  const focus = useMemo(() => {
-    if (focusU <= 0) return undefined;
-    // Everything else fades where it stands while gold and light green each
-    // slide down whole and step apart, landing as a pair on the axis; then
-    // the axis zooms in. Nothing is ever drawn at a height it didn't have.
-    const fade = ease(clamp01(focusU / 0.4), 2);
-    const drop = ease(clamp01((focusU - 0.15) / 0.45), 2);
-    const zoom = ease(clamp01((focusU - 0.55) / 0.45), 2);
-    return {
-      others: 1 - fade,
-      featured: [
-        { seg: 2, drop, opacity: 1, side: -1 as const, split: drop },
-        { seg: 1, drop, opacity: 1, side: 1 as const, split: drop },
-      ],
-      zoom,
-      zoomTo: focusMax,
-      label: { segs: [2, 1], opacity: clamp01((focusU - 0.85) / 0.15) },
-    };
-  }, [focusU, focusMax]);
   const summary = useMemo(
-    () => ({ bars: summaryBars, from: firstYear, merge: mergeU, reveal: revealU, focus }),
-    [summaryBars, firstYear, mergeU, revealU, focus]
+    () => ({ bars: summaryBars, from: firstYear, merge: mergeU, reveal: revealU }),
+    [summaryBars, firstYear, mergeU, revealU]
   );
   const summaryTooltip = useCallback(
     (bar: SummaryBar) => (
@@ -277,12 +252,10 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         <div className="voa-tooltip__head">
           {bar.key} · {bar.kind === "midterm" ? explorerCopy.midterm : explorerCopy.presidential}
         </div>
-        {fmtM(bar.segments.reduce((a, v) => a + v, 0))} eligible
-        {bar.segments.map((v, s) => (
-          <div key={s}>
-            {fmtM(v)} {summaryCopy.segmentLabels[s]}
-          </div>
-        ))}
+        {/* Cumulative, top-down: each figure is a stack top, not a band. */}
+        <div>{fmtM(bar.segments[0] + bar.segments[1] + bar.segments[2])} eligible</div>
+        <div>{fmtM(bar.segments[0] + bar.segments[1])} registered</div>
+        <div>{fmtM(bar.segments[0])} voted</div>
       </>
     ),
     []
@@ -314,7 +287,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       const real = shownRowsByKey.get(row.key);
       if (!real) return null; // a cohort that has slid off the chart
       const year = shownYear;
-      const didntVote = real.registered! - real.votes;
+      const split = step >= REG_STEP && real.missing < 0;
       return (
         <>
           <div className="voa-tooltip__head">
@@ -325,27 +298,12 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
           {step >= REG_STEP ? ` · ${fmtM(real.registered!)} registered` : ""}
           {` · ${fmtM(real.votes)} voted (${fmtPct(real.turnout)})`}
           <br />
-          {step < REG_STEP ? (
-            <>
-              Expected at {fmtPct(shownCycle.over65Turnout)} (the {year} 65+ rate): {fmtM(real.expected)}
-              <div className="voa-tooltip__note">{fmtMSigned(real.missing)} vs. that benchmark</div>
-            </>
-          ) : (
-            <>
-              {step >= REG_GAP_STEP && (
-                <>
-                  At the {year} 65+ registration rate ({fmtPct(shownCycle.over65Registration)}):{" "}
-                  {fmtM(real.expectedRegistered!)} registered
-                  <br />
-                </>
-              )}
-              <div className="voa-tooltip__note">
-                {step >= REG_GAP_STEP
-                  ? `${fmtMSigned(real.registered! - real.expectedRegistered!)} registered vs. that standard · `
-                  : ""}
-                {fmtM(didntVote)} registered but didn't vote
-              </div>
-            </>
+          Expected at {fmtPct(shownCycle.over65Turnout)} (the {year} 65+ rate): {fmtM(real.expected)}
+          <div className="voa-tooltip__note">{fmtMSigned(real.missing)} vs. that benchmark</div>
+          {split && (
+            <div className="voa-tooltip__note">
+              {fmtM(real.turnShort!)} registered, voted less · {fmtM(real.regShort!)} not registered
+            </div>
           )}
         </>
       );
@@ -399,14 +357,15 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     under35Missing: fmtM(under35Missing),
     shortfall2024Pct: fmtPct((shortfall2024 / cycle2024.totalVotes) * 100),
     reg65: fmtPct(cycle2024.over65Registration),
-    reg65_2022: fmtPct(cycle2022.over65Registration),
     youthReg: fmtPct(youth2024.registered),
     youthShowUp: fmtPct(youth2024.showUp),
     youthShowUp2022: fmtPct(youth2022.showUp),
-    regGap2024: fmtM(cycle2024.registrationGap),
-    notVoted2024: fmtM(cycle2024.registeredNotVoted),
-    regGap2022: fmtM(cycle2022.registrationGap),
-    notVoted2022: fmtM(cycle2022.registeredNotVoted),
+    showUp65: fmtPct(cycle2024.over65ShowUp),
+    regShort2024: fmtM(cycle2024.registrationShortfall),
+    turnShort2024: fmtM(cycle2024.turnoutShortfall),
+    regShort2022: fmtM(cycle2022.registrationShortfall),
+    turnShort2022: fmtM(cycle2022.turnoutShortfall),
+    regGapPeople2024: fmtM(cycle2024.registrationGap),
     compareTable,
   };
 
@@ -445,20 +404,15 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             yLabel="People (millions)"
             showTrack
             showVotes={step >= 1}
-            registeredOpacity={step >= REG_STEP ? 1 : 0}
-            // The dotted line has no counterpart on the summary bars - its legend
-            // entry goes as the merge starts. The gold stays: it's a segment.
-            registrationStandard={
-              step >= REG_GAP_STEP ? { line: 1 - clamp01(mergeU / 0.3), gap: 1 } : { line: 0, gap: 0 }
-            }
-            showExpected={step === LINE_STEP || step === TOTAL_STEP}
-            showGap={step === TOTAL_STEP}
-            expectedLineLabel={
-              step >= REG_GAP_STEP
-                ? `at 65+ registration (${fmtPct(shownCycle.over65Registration)})`
-                : `at 65+ turnout (${fmtPct(BENCH)})`
-            }
-            gapLegendLabel={step >= REG_GAP_STEP ? "Registration shortfall" : "Voter shortfall"}
+            // The dotted line has no counterpart on the summary bars - it and its
+            // legend entry go as the merge starts. The golds stay: they're segments.
+            expectedOpacity={step >= LINE_STEP ? 1 - clamp01(mergeU / 0.3) : 0}
+            showGap={step >= TOTAL_STEP}
+            gapSplit={step >= REG_STEP ? 1 : 0}
+            // Traces whichever cycle is shown, so its rate follows the morph.
+            expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
+            gapLegendLabel={step >= REG_STEP ? "Registered, voted less" : "Voter shortfall"}
+            gapRegLegendLabel="Not registered"
             heroGap={
               step < REG_STEP
                 ? {
@@ -472,33 +426,34 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
                     deltaOpacity: 0,
                   }
                 : {
-                    // The two hurdles, carried through every hop. Each
-                    // prints only a real election's figure (`shownCycle`,
-                    // snapped at t=0.5), never one read off lerped rows.
+                    // The shortfall's two parts, carried through every hop -
+                    // they sum to the step-3 total. Each prints only a real
+                    // election's figure (`shownCycle`, snapped at t=0.5),
+                    // never one read off lerped rows.
                     items: [
                       {
-                        figure: fmtM(shownCycle.registrationGap),
-                        label: "registration shortfall",
-                        delta: fmtMSigned(cycle2022.registrationGap - cycle2024.registrationGap),
-                        swatch: "gap",
+                        figure: fmtM(shownCycle.turnoutShortfall),
+                        label: "registered, voted less",
+                        delta: fmtMSigned(cycle2022.turnoutShortfall - cycle2024.turnoutShortfall),
+                        swatch: "gap-turnout",
                       },
                       {
-                        figure: fmtM(shownCycle.registeredNotVoted),
-                        label: "registered but didn't vote",
-                        delta: fmtMSigned(cycle2022.registeredNotVoted - cycle2024.registeredNotVoted),
-                        swatch: "registered",
+                        figure: fmtM(shownCycle.registrationShortfall),
+                        label: "not registered",
+                        delta: fmtMSigned(cycle2022.registrationShortfall - cycle2024.registrationShortfall),
+                        swatch: "gap-reg",
                       },
                     ],
-                    // Hidden while only the registered bar is up (nothing
-                    // gold to total yet). Dimmed with the plot mid-morph: a
+                    // Hidden while the split first appears, so the reader
+                    // meets the shades before the numbers. Dimmed with the plot mid-morph: a
                     // crisp number under a rewinding chart still invites
                     // reading it as the chart's.
                     opacity:
                       clamp01((progress - (REG_GAP_STEP - 0.45)) / 0.35) *
                       (1 - 0.65 * rewindHaze(u)) *
-                      // Still 2012's figures through the merge (the bar is
-                      // 2012's); gone once other elections join it.
-                      (1 - clamp01(revealU / 0.3)),
+                      // Gone with the recolour: the summary drops the 65+
+                      // shortfall these figures measure.
+                      (1 - clamp01(mergeU / 0.15)),
                     // Fades in over beat 2's hop's last ~15%. Keyed to raw
                     // `u`, the linear scroll signal, not the eased `t` (whose
                     // last 15% is a much narrower sliver of actual scroll
@@ -579,12 +534,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             <div className="voa-step-inner">
               <h3>{summaryCopy.revealHeading}</h3>
               {summaryCopy.reveal()}
-            </div>
-          </div>
-          <div className="voa-step" ref={stepRef(FOCUS_STEP)}>
-            <div className="voa-step-inner">
-              <h3>{summaryCopy.focusHeading}</h3>
-              {summaryCopy.focus()}
             </div>
           </div>
         </div>

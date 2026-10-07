@@ -16,7 +16,7 @@ await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 await page.waitForTimeout(300);
 
-const STEPS = 19; // AgeBeats.tsx: 9 beat steps + section 3 intro + one per earlier election (2022 ... 2012) + 3 summary steps
+const STEPS = 18; // AgeBeats.tsx: 9 beat steps + section 3 intro + one per earlier election (2022 ... 2012) + 2 summary steps
 
 // One section, one sticky pane, one chart for beats 1-2 and section 3.
 const shape = await page.evaluate(() => {
@@ -51,9 +51,13 @@ async function toStep(i) {
   await page.waitForTimeout(900);
 }
 
+const heroFigs = () =>
+  page.evaluate(() => [...document.querySelectorAll(".voa-beat .pb-gap-hero-figure")].map((e) => parseFloat(e.textContent)));
 const seen = [];
+const hero = {};
 for (let i = 0; i < STEPS; i++) {
   await toStep(i);
+  if (i === 3 || i === 5) hero[i] = await heroFigs();
   await page.screenshot({ path: `${OUT}/age-beats-step-${i}.png` });
   seen.push(
     await page.evaluate(() => {
@@ -73,6 +77,14 @@ if (Math.max(...pinned) - Math.min(...pinned) > 2) {
   throw new Error(`FAIL: chart moved between steps (top ${Math.min(...pinned)}..${Math.max(...pinned)}) - it unstuck somewhere mid-story`);
 }
 console.log(`PASS: chart holds one position across the beat boundary (top=${pinned[0]}px at steps 0-${STEPS - 2})`);
+
+// The shortfall's two parts (step 5) sum to its total (step 3) - the gold
+// wedge splits, it doesn't change size.
+const partsSum = hero[5][0] + hero[5][1];
+if (hero[3].length !== 1 || hero[5].length !== 2 || Math.abs(partsSum - hero[3][0]) > 0.1 + 1e-9) {
+  throw new Error(`FAIL: step-5 parts ${JSON.stringify(hero[5])} should sum to the step-3 total ${JSON.stringify(hero[3])} (±0.1M)`);
+}
+console.log(`PASS: the two shortfall parts (${hero[5].join("M + ")}M) sum to the step-3 total (${hero[3][0]}M)`);
 
 // Height constant at every step including the last: the hero figure, the
 // delta line and the gap legend all fade in over space reserved from first

@@ -16,7 +16,7 @@
       "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/intercensal/national/asrh/nc-est2020int-agesex-res.csv"
     ],
     "retrieved": "2026-09-25",
-    "units": "thousands of people (cvap, votes, registered, expected, missing, expectedRegistered, registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration)",
+    "units": "thousands of people (cvap, votes, registered, expected, missing); thousands of votes short of the 65+ standard (regShort, turnShort, registrationShortfall, turnoutShortfall); thousands of people, reference only, not drawn (registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration, over65ShowUp)",
     "construction": "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). See spec v2 S5 for why levels come from PEP and rates from CPS.",
     "notes": [
       "Eligible population = citizen voting-age population (CVAP), not total voting-age population, to avoid confounding any gap with non-citizen population share.",
@@ -32,6 +32,9 @@
       "avgTurnout": 61.64,
       "over65Turnout": 71.87,
       "over65Registration": 79.37,
+      "over65ShowUp": 90.55,
+      "registrationShortfall": 16612.7,
+      "turnoutShortfall": 6567.9,
       "registrationGap": 18583.2,
       "registeredNotVoted": 20728.8,
       "totalCvap": 219946.5,
@@ -49,7 +52,8 @@
           "ratesPooled": false,
           "expected": 2971.0,
           "missing": -1589.7,
-          "expectedRegistered": 3281.1
+          "regShort": 1474.1,
+          "turnShort": 115.7
         },
         {
           "age": 19,
@@ -61,7 +65,8 @@
           "ratesPooled": false,
           "expected": 3041.6,
           "missing": -1507.8,
-          "expectedRegistered": 3359.0
+          "regShort": 1246.2,
+          "turnShort": 261.6
         },
         {
           "age": 20,
@@ -73,7 +78,8 @@
           "ratesPooled": false,
           "expected": 3118.7,
           "missing": -1284.5,
-          "expectedRegistered": 3444.2
+          "regShort": 994.8,
+          "turnShort": 289.6
         },
         {
           "age": 21,
@@ -85,7 +91,8 @@
           "ratesPooled": false,
           "expected": 3111.6,
           "missing": -1353.0,
-          "expectedRegistered": 3436.4
+          "regShort": 967.7,
+          "turnShort": 385.3
         },
         {
           "age": 22,
@@ -97,7 +104,8 @@
           "ratesPooled": false,
           "expected": 3091.1,
           "missing": -1184.5,
-          "expectedRegistered": 3413.7
+          "regShort": 757.0,
+          "turnShort": 427.5
         },
         {
           "age": 23,
@@ -109,7 +117,8 @@
           "ratesPooled": false,
           "expected": 2865.6,
           "missing": -1088.6,
-          "expectedRegistered": 3164.7
+          "regShort": 778.3,
+          "turnShort": 310.3
         },
         {
           "age": 24,
@@ -121,7 +130,8 @@
           "ratesPooled": false,
           "expected": 2778.2,
           "missing": -980.9,
-          "expectedRegistered": 3068.1
+          "regShort": 646.0,
+          "turnShort": 334.9
         },
         {
           "age": 25,
@@ -133,7 +143,8 @@
           "ratesPooled": false,
           "expected": 2715.0,
           "missing": -956.9,
-          "expectedRegistered": 2998.4
+          "regShort": 668.9,
+          "turnShort": 288.0
         },
         {
           "age": 26,
@@ -145,7 +156,8 @@
           "ratesPooled": false,
           "expected": 2673.1,
           "missing": -857.7,
-          "expectedRegistered": 2952.1
+          "regShort": 563.4,
+          "turnShort": 294.2
         },
         {
           "age": 27,
@@ -157,7 +169,8 @@
           "ratesPooled": false,
           "expected": 2688.9,
           "missing": -690.4,
-          "expectedRegistered": 2969.5
+          "regShort": 456.7,
+          "turnShort": 233.7
         },
         {
           "age": 28,
@@ -169,7 +182,8 @@
           "ratesPooled": false,
           "expected": 2563.5,
           "missing": -705.0,
-          "expectedRegistered": 2831.1
+          "regShort": 465.5,
+          "turnShort": 239.5
         },
         {
           "age": 29,
@@ -181,7 +195,8 @@
           "ratesPooled": false,
           "expected": 2651.6,
           "missing": -676.7,
-          "expectedRegistered": 2928.4
+          "regShort": 373.2,
+          "turnShort": 303.6
         },
         {
           "age": 30,
@@ -193,7 +208,8 @@
           "ratesPooled": false,
           "expected": 2591.8,
           "missing": -618.7,
-          "expectedRegistered": 2862.3
+          "regShort": 413.9,
+          "turnShort": 204.9
         },
         {
           "age": 31,
@@ -205,7 +221,8 @@
           "ratesPooled": false,
           "expected": 2593.1,
           "missing": -591.1,
-          "expectedRegistered": 2863.8
+          "regShort": 368.0,
+          "turnShort": 223.2
         },
         {
           "age": 32,
@@ -217,7 +234,8 @@
           "ratesPooled": false,
           "expected": 2647.3,
           "missing": -546.4,
-          "expectedRegistered": 2923.6
+          "regShort": 399.4,
+          "turnShort": 147.0
         },
         {
           "age": 33,
@@ -229,7 +247,8 @@
           "ratesPooled": false,
           "expected": 2466.1,
           "missing": -477.1,
-          "expectedRegistered": 2723.5
+          "regShort": 269.7,
+          "turnShort": 207.4
         },
         {
           "age": 34,
@@ -241,7 +260,8 @@
           "ratesPooled": false,
           "expected": 2457.8,
           "missing": -538.2,
-          "expectedRegistered": 2714.3
+          "regShort": 383.0,
+          "turnShort": 155.2
         },
         {
           "age": 35,
@@ -253,7 +273,8 @@
           "ratesPooled": false,
           "expected": 2389.4,
           "missing": -446.9,
-          "expectedRegistered": 2638.8
+          "regShort": 263.1,
+          "turnShort": 183.8
         },
         {
           "age": 36,
@@ -265,7 +286,8 @@
           "ratesPooled": false,
           "expected": 2344.7,
           "missing": -396.6,
-          "expectedRegistered": 2589.5
+          "regShort": 230.5,
+          "turnShort": 166.1
         },
         {
           "age": 37,
@@ -277,7 +299,8 @@
           "ratesPooled": false,
           "expected": 2382.9,
           "missing": -375.8,
-          "expectedRegistered": 2631.6
+          "regShort": 291.7,
+          "turnShort": 84.2
         },
         {
           "age": 38,
@@ -289,7 +312,8 @@
           "ratesPooled": false,
           "expected": 2369.1,
           "missing": -341.9,
-          "expectedRegistered": 2616.4
+          "regShort": 250.6,
+          "turnShort": 91.3
         },
         {
           "age": 39,
@@ -301,7 +325,8 @@
           "ratesPooled": false,
           "expected": 2387.9,
           "missing": -415.0,
-          "expectedRegistered": 2637.1
+          "regShort": 293.1,
+          "turnShort": 121.8
         },
         {
           "age": 40,
@@ -313,7 +338,8 @@
           "ratesPooled": false,
           "expected": 2545.6,
           "missing": -396.1,
-          "expectedRegistered": 2811.3
+          "regShort": 312.4,
+          "turnShort": 83.7
         },
         {
           "age": 41,
@@ -325,7 +351,8 @@
           "ratesPooled": false,
           "expected": 2749.6,
           "missing": -411.8,
-          "expectedRegistered": 3036.6
+          "regShort": 272.0,
+          "turnShort": 139.7
         },
         {
           "age": 42,
@@ -337,7 +364,8 @@
           "ratesPooled": false,
           "expected": 2742.5,
           "missing": -416.1,
-          "expectedRegistered": 3028.7
+          "regShort": 275.1,
+          "turnShort": 141.0
         },
         {
           "age": 43,
@@ -349,7 +377,8 @@
           "ratesPooled": false,
           "expected": 2661.4,
           "missing": -279.0,
-          "expectedRegistered": 2939.1
+          "regShort": 188.2,
+          "turnShort": 90.7
         },
         {
           "age": 44,
@@ -361,7 +390,8 @@
           "ratesPooled": false,
           "expected": 2620.0,
           "missing": -268.4,
-          "expectedRegistered": 2893.4
+          "regShort": 161.7,
+          "turnShort": 106.8
         },
         {
           "age": 45,
@@ -373,7 +403,8 @@
           "ratesPooled": false,
           "expected": 2638.3,
           "missing": -390.7,
-          "expectedRegistered": 2913.7
+          "regShort": 304.8,
+          "turnShort": 85.9
         },
         {
           "age": 46,
@@ -385,7 +416,8 @@
           "ratesPooled": false,
           "expected": 2679.9,
           "missing": -155.9,
-          "expectedRegistered": 2959.6
+          "regShort": 100.3,
+          "turnShort": 55.6
         },
         {
           "age": 47,
@@ -397,7 +429,8 @@
           "ratesPooled": false,
           "expected": 2888.5,
           "missing": -350.8,
-          "expectedRegistered": 3189.9
+          "regShort": 242.6,
+          "turnShort": 108.2
         },
         {
           "age": 48,
@@ -409,7 +442,8 @@
           "ratesPooled": false,
           "expected": 2949.8,
           "missing": -377.6,
-          "expectedRegistered": 3257.6
+          "regShort": 292.0,
+          "turnShort": 85.6
         },
         {
           "age": 49,
@@ -421,7 +455,8 @@
           "ratesPooled": false,
           "expected": 2954.1,
           "missing": -275.9,
-          "expectedRegistered": 3262.4
+          "regShort": 205.4,
+          "turnShort": 70.4
         },
         {
           "age": 50,
@@ -433,7 +468,8 @@
           "ratesPooled": false,
           "expected": 3005.1,
           "missing": -310.8,
-          "expectedRegistered": 3318.7
+          "regShort": 273.6,
+          "turnShort": 37.2
         },
         {
           "age": 51,
@@ -445,7 +481,8 @@
           "ratesPooled": false,
           "expected": 3088.2,
           "missing": -281.8,
-          "expectedRegistered": 3410.5
+          "regShort": 229.3,
+          "turnShort": 52.5
         },
         {
           "age": 52,
@@ -457,7 +494,8 @@
           "ratesPooled": false,
           "expected": 3101.3,
           "missing": -233.5,
-          "expectedRegistered": 3425.0
+          "regShort": 195.9,
+          "turnShort": 37.7
         },
         {
           "age": 53,
@@ -469,7 +507,8 @@
           "ratesPooled": false,
           "expected": 2997.6,
           "missing": -145.0,
-          "expectedRegistered": 3310.5
+          "regShort": 137.6,
+          "turnShort": 7.5
         },
         {
           "age": 54,
@@ -481,7 +520,8 @@
           "ratesPooled": false,
           "expected": 2999.1,
           "missing": -153.8,
-          "expectedRegistered": 3312.1
+          "regShort": 141.8,
+          "turnShort": 12.0
         },
         {
           "age": 55,
@@ -493,7 +533,8 @@
           "ratesPooled": false,
           "expected": 2999.6,
           "missing": -90.7,
-          "expectedRegistered": 3312.6
+          "regShort": 90.6,
+          "turnShort": 0.0
         },
         {
           "age": 56,
@@ -505,7 +546,8 @@
           "ratesPooled": false,
           "expected": 2898.8,
           "missing": -46.2,
-          "expectedRegistered": 3201.3
+          "regShort": 46.1,
+          "turnShort": 0.0
         },
         {
           "age": 57,
@@ -517,7 +559,8 @@
           "ratesPooled": false,
           "expected": 2843.7,
           "missing": -86.8,
-          "expectedRegistered": 3140.4
+          "regShort": 86.6,
+          "turnShort": 0.1
         },
         {
           "age": 58,
@@ -529,7 +572,8 @@
           "ratesPooled": false,
           "expected": 2757.9,
           "missing": -70.8,
-          "expectedRegistered": 3045.7
+          "regShort": 70.8,
+          "turnShort": 0.0
         },
         {
           "age": 59,
@@ -541,7 +585,8 @@
           "ratesPooled": false,
           "expected": 2667.2,
           "missing": -35.1,
-          "expectedRegistered": 2945.6
+          "regShort": 35.1,
+          "turnShort": 0.0
         },
         {
           "age": 60,
@@ -553,7 +598,8 @@
           "ratesPooled": false,
           "expected": 2552.9,
           "missing": -76.3,
-          "expectedRegistered": 2819.3
+          "regShort": 76.3,
+          "turnShort": 0.0
         },
         {
           "age": 61,
@@ -565,7 +611,8 @@
           "ratesPooled": false,
           "expected": 2508.9,
           "missing": -6.1,
-          "expectedRegistered": 2770.7
+          "regShort": 6.0,
+          "turnShort": 0.0
         },
         {
           "age": 62,
@@ -577,7 +624,8 @@
           "ratesPooled": false,
           "expected": 2446.3,
           "missing": -71.8,
-          "expectedRegistered": 2701.6
+          "regShort": 71.8,
+          "turnShort": 0.0
         },
         {
           "age": 63,
@@ -589,7 +637,8 @@
           "ratesPooled": false,
           "expected": 2390.8,
           "missing": -35.4,
-          "expectedRegistered": 2640.3
+          "regShort": 35.4,
+          "turnShort": 0.0
         },
         {
           "age": 64,
@@ -601,7 +650,8 @@
           "ratesPooled": false,
           "expected": 2399.9,
           "missing": 88.9,
-          "expectedRegistered": 2650.4
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 65,
@@ -613,7 +663,8 @@
           "ratesPooled": false,
           "expected": 2496.1,
           "missing": 16.9,
-          "expectedRegistered": 2756.6
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 66,
@@ -625,7 +676,8 @@
           "ratesPooled": false,
           "expected": 1844.3,
           "missing": 49.8,
-          "expectedRegistered": 2036.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 67,
@@ -637,7 +689,8 @@
           "ratesPooled": false,
           "expected": 1808.7,
           "missing": 87.4,
-          "expectedRegistered": 1997.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 68,
@@ -649,7 +702,8 @@
           "ratesPooled": false,
           "expected": 1793.7,
           "missing": 8.1,
-          "expectedRegistered": 1980.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 69,
@@ -661,7 +715,8 @@
           "ratesPooled": false,
           "expected": 1836.9,
           "missing": 55.4,
-          "expectedRegistered": 2028.6
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 70,
@@ -673,7 +728,8 @@
           "ratesPooled": false,
           "expected": 1585.7,
           "missing": 37.7,
-          "expectedRegistered": 1751.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 71,
@@ -685,7 +741,8 @@
           "ratesPooled": false,
           "expected": 1476.4,
           "missing": 50.3,
-          "expectedRegistered": 1630.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 72,
@@ -697,7 +754,8 @@
           "ratesPooled": false,
           "expected": 1398.3,
           "missing": 11.8,
-          "expectedRegistered": 1544.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 73,
@@ -709,7 +767,8 @@
           "ratesPooled": false,
           "expected": 1300.1,
           "missing": 25.8,
-          "expectedRegistered": 1435.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 74,
@@ -721,7 +780,8 @@
           "ratesPooled": false,
           "expected": 1260.9,
           "missing": 37.5,
-          "expectedRegistered": 1392.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 75,
@@ -733,7 +793,8 @@
           "ratesPooled": false,
           "expected": 1142.6,
           "missing": 26.8,
-          "expectedRegistered": 1261.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 76,
@@ -745,7 +806,8 @@
           "ratesPooled": false,
           "expected": 1104.3,
           "missing": 74.3,
-          "expectedRegistered": 1219.6
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 77,
@@ -757,7 +819,8 @@
           "ratesPooled": false,
           "expected": 1064.8,
           "missing": 55.0,
-          "expectedRegistered": 1175.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 78,
@@ -769,7 +832,8 @@
           "ratesPooled": false,
           "expected": 959.2,
           "missing": 31.4,
-          "expectedRegistered": 1059.4
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 79,
@@ -781,7 +845,8 @@
           "ratesPooled": false,
           "expected": 923.8,
           "missing": 22.9,
-          "expectedRegistered": 1020.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 80,
@@ -793,7 +858,8 @@
           "ratesPooled": true,
           "expected": 894.9,
           "missing": -14.2,
-          "expectedRegistered": 988.3
+          "regShort": 0.0,
+          "turnShort": 14.2
         },
         {
           "age": 81,
@@ -805,7 +871,8 @@
           "ratesPooled": true,
           "expected": 859.6,
           "missing": -13.7,
-          "expectedRegistered": 949.3
+          "regShort": 0.0,
+          "turnShort": 13.7
         },
         {
           "age": 82,
@@ -817,7 +884,8 @@
           "ratesPooled": true,
           "expected": 826.4,
           "missing": -13.1,
-          "expectedRegistered": 912.6
+          "regShort": 0.0,
+          "turnShort": 13.1
         },
         {
           "age": 83,
@@ -829,7 +897,8 @@
           "ratesPooled": true,
           "expected": 749.0,
           "missing": -11.9,
-          "expectedRegistered": 827.2
+          "regShort": 0.0,
+          "turnShort": 11.9
         },
         {
           "age": 84,
@@ -841,7 +910,8 @@
           "ratesPooled": true,
           "expected": 703.8,
           "missing": -11.2,
-          "expectedRegistered": 777.3
+          "regShort": 0.0,
+          "turnShort": 11.2
         },
         {
           "age": 85,
@@ -853,7 +923,8 @@
           "ratesPooled": true,
           "expected": 647.1,
           "missing": -84.1,
-          "expectedRegistered": 714.7
+          "regShort": 33.0,
+          "turnShort": 51.2
         },
         {
           "age": 86,
@@ -865,7 +936,8 @@
           "ratesPooled": true,
           "expected": 578.6,
           "missing": -75.2,
-          "expectedRegistered": 639.0
+          "regShort": 29.5,
+          "turnShort": 45.7
         },
         {
           "age": 87,
@@ -877,7 +949,8 @@
           "ratesPooled": true,
           "expected": 525.3,
           "missing": -68.3,
-          "expectedRegistered": 580.1
+          "regShort": 26.8,
+          "turnShort": 41.5
         },
         {
           "age": 88,
@@ -889,7 +962,8 @@
           "ratesPooled": true,
           "expected": 460.5,
           "missing": -59.8,
-          "expectedRegistered": 508.6
+          "regShort": 23.5,
+          "turnShort": 36.4
         },
         {
           "age": 89,
@@ -901,7 +975,8 @@
           "ratesPooled": true,
           "expected": 393.9,
           "missing": -51.2,
-          "expectedRegistered": 435.0
+          "regShort": 20.1,
+          "turnShort": 31.1
         },
         {
           "age": 90,
@@ -913,7 +988,8 @@
           "ratesPooled": true,
           "expected": 337.0,
           "missing": -43.8,
-          "expectedRegistered": 372.2
+          "regShort": 17.2,
+          "turnShort": 26.6
         },
         {
           "age": 91,
@@ -925,7 +1001,8 @@
           "ratesPooled": true,
           "expected": 280.5,
           "missing": -36.5,
-          "expectedRegistered": 309.7
+          "regShort": 14.3,
+          "turnShort": 22.2
         },
         {
           "age": 92,
@@ -937,7 +1014,8 @@
           "ratesPooled": true,
           "expected": 221.6,
           "missing": -28.8,
-          "expectedRegistered": 244.8
+          "regShort": 11.3,
+          "turnShort": 17.5
         },
         {
           "age": 93,
@@ -949,7 +1027,8 @@
           "ratesPooled": true,
           "expected": 163.8,
           "missing": -21.3,
-          "expectedRegistered": 180.9
+          "regShort": 8.3,
+          "turnShort": 13.0
         },
         {
           "age": 94,
@@ -961,7 +1040,8 @@
           "ratesPooled": true,
           "expected": 131.7,
           "missing": -17.2,
-          "expectedRegistered": 145.4
+          "regShort": 6.7,
+          "turnShort": 10.4
         },
         {
           "age": 95,
@@ -973,7 +1053,8 @@
           "ratesPooled": true,
           "expected": 94.3,
           "missing": -12.2,
-          "expectedRegistered": 104.2
+          "regShort": 4.8,
+          "turnShort": 7.5
         },
         {
           "age": 96,
@@ -985,7 +1066,8 @@
           "ratesPooled": true,
           "expected": 70.2,
           "missing": -9.1,
-          "expectedRegistered": 77.5
+          "regShort": 3.6,
+          "turnShort": 5.5
         },
         {
           "age": 97,
@@ -997,7 +1079,8 @@
           "ratesPooled": true,
           "expected": 51.1,
           "missing": -6.6,
-          "expectedRegistered": 56.5
+          "regShort": 2.6,
+          "turnShort": 4.0
         },
         {
           "age": 98,
@@ -1009,7 +1092,8 @@
           "ratesPooled": true,
           "expected": 35.3,
           "missing": -4.6,
-          "expectedRegistered": 39.0
+          "regShort": 1.8,
+          "turnShort": 2.8
         },
         {
           "age": 99,
@@ -1021,7 +1105,8 @@
           "ratesPooled": true,
           "expected": 23.8,
           "missing": -3.1,
-          "expectedRegistered": 26.2
+          "regShort": 1.2,
+          "turnShort": 1.9
         },
         {
           "age": 100,
@@ -1033,7 +1118,8 @@
           "ratesPooled": true,
           "expected": 38.5,
           "missing": -5.0,
-          "expectedRegistered": 42.5
+          "regShort": 2.0,
+          "turnShort": 3.0
         }
       ]
     },
@@ -1042,6 +1128,9 @@
       "avgTurnout": 41.71,
       "over65Turnout": 59.31,
       "over65Registration": 75.33,
+      "over65ShowUp": 78.73,
+      "registrationShortfall": 19593.3,
+      "turnoutShortfall": 20729.7,
       "registrationGap": 25019.6,
       "registeredNotVoted": 51141.2,
       "totalCvap": 225203.4,
@@ -1059,7 +1148,8 @@
           "ratesPooled": false,
           "expected": 2436.2,
           "missing": -1922.6,
-          "expectedRegistered": 3094.3
+          "regShort": 1609.2,
+          "turnShort": 313.4
         },
         {
           "age": 19,
@@ -1071,7 +1161,8 @@
           "ratesPooled": false,
           "expected": 2509.9,
           "missing": -1871.9,
-          "expectedRegistered": 3187.9
+          "regShort": 1360.1,
+          "turnShort": 511.7
         },
         {
           "age": 20,
@@ -1083,7 +1174,8 @@
           "ratesPooled": false,
           "expected": 2528.0,
           "missing": -1790.2,
-          "expectedRegistered": 3211.0
+          "regShort": 1085.1,
+          "turnShort": 705.1
         },
         {
           "age": 21,
@@ -1095,7 +1187,8 @@
           "ratesPooled": false,
           "expected": 2522.4,
           "missing": -1864.8,
-          "expectedRegistered": 3203.8
+          "regShort": 1068.6,
+          "turnShort": 796.3
         },
         {
           "age": 22,
@@ -1107,7 +1200,8 @@
           "ratesPooled": false,
           "expected": 2590.9,
           "missing": -1765.5,
-          "expectedRegistered": 3290.8
+          "regShort": 933.3,
+          "turnShort": 832.1
         },
         {
           "age": 23,
@@ -1119,7 +1213,8 @@
           "ratesPooled": false,
           "expected": 2527.1,
           "missing": -1690.1,
-          "expectedRegistered": 3209.8
+          "regShort": 901.4,
+          "turnShort": 788.7
         },
         {
           "age": 24,
@@ -1131,7 +1226,8 @@
           "ratesPooled": false,
           "expected": 2489.2,
           "missing": -1642.0,
-          "expectedRegistered": 3161.7
+          "regShort": 865.1,
+          "turnShort": 776.9
         },
         {
           "age": 25,
@@ -1143,7 +1239,8 @@
           "ratesPooled": false,
           "expected": 2371.8,
           "missing": -1538.8,
-          "expectedRegistered": 3012.5
+          "regShort": 760.2,
+          "turnShort": 778.6
         },
         {
           "age": 26,
@@ -1155,7 +1252,8 @@
           "ratesPooled": false,
           "expected": 2329.9,
           "missing": -1454.4,
-          "expectedRegistered": 2959.3
+          "regShort": 667.5,
+          "turnShort": 786.9
         },
         {
           "age": 27,
@@ -1167,7 +1265,8 @@
           "ratesPooled": false,
           "expected": 2163.7,
           "missing": -1366.8,
-          "expectedRegistered": 2748.2
+          "regShort": 700.6,
+          "turnShort": 666.2
         },
         {
           "age": 28,
@@ -1179,7 +1278,8 @@
           "ratesPooled": false,
           "expected": 2181.4,
           "missing": -1210.2,
-          "expectedRegistered": 2770.7
+          "regShort": 608.6,
+          "turnShort": 601.7
         },
         {
           "age": 29,
@@ -1191,7 +1291,8 @@
           "ratesPooled": false,
           "expected": 2257.6,
           "missing": -1196.8,
-          "expectedRegistered": 2867.5
+          "regShort": 585.6,
+          "turnShort": 611.2
         },
         {
           "age": 30,
@@ -1203,7 +1304,8 @@
           "ratesPooled": false,
           "expected": 2121.0,
           "missing": -1111.2,
-          "expectedRegistered": 2694.0
+          "regShort": 540.3,
+          "turnShort": 570.9
         },
         {
           "age": 31,
@@ -1215,7 +1317,8 @@
           "ratesPooled": false,
           "expected": 2216.3,
           "missing": -1107.3,
-          "expectedRegistered": 2815.0
+          "regShort": 461.7,
+          "turnShort": 645.6
         },
         {
           "age": 32,
@@ -1227,7 +1330,8 @@
           "ratesPooled": false,
           "expected": 2234.3,
           "missing": -1015.2,
-          "expectedRegistered": 2838.0
+          "regShort": 420.1,
+          "turnShort": 595.2
         },
         {
           "age": 33,
@@ -1239,7 +1343,8 @@
           "ratesPooled": false,
           "expected": 2197.8,
           "missing": -980.8,
-          "expectedRegistered": 2791.5
+          "regShort": 431.2,
+          "turnShort": 549.5
         },
         {
           "age": 34,
@@ -1251,7 +1356,8 @@
           "ratesPooled": false,
           "expected": 2240.7,
           "missing": -959.5,
-          "expectedRegistered": 2846.0
+          "regShort": 424.1,
+          "turnShort": 535.4
         },
         {
           "age": 35,
@@ -1263,7 +1369,8 @@
           "ratesPooled": false,
           "expected": 2029.1,
           "missing": -815.2,
-          "expectedRegistered": 2577.2
+          "regShort": 358.1,
+          "turnShort": 457.1
         },
         {
           "age": 36,
@@ -1275,7 +1382,8 @@
           "ratesPooled": false,
           "expected": 1994.1,
           "missing": -860.0,
-          "expectedRegistered": 2532.8
+          "regShort": 312.4,
+          "turnShort": 547.5
         },
         {
           "age": 37,
@@ -1287,7 +1395,8 @@
           "ratesPooled": false,
           "expected": 2037.4,
           "missing": -762.8,
-          "expectedRegistered": 2587.9
+          "regShort": 226.9,
+          "turnShort": 535.9
         },
         {
           "age": 38,
@@ -1299,7 +1408,8 @@
           "ratesPooled": false,
           "expected": 1993.0,
           "missing": -666.9,
-          "expectedRegistered": 2531.4
+          "regShort": 231.7,
+          "turnShort": 435.2
         },
         {
           "age": 39,
@@ -1311,7 +1421,8 @@
           "ratesPooled": false,
           "expected": 2071.1,
           "missing": -753.7,
-          "expectedRegistered": 2630.6
+          "regShort": 240.6,
+          "turnShort": 513.1
         },
         {
           "age": 40,
@@ -1323,7 +1434,8 @@
           "ratesPooled": false,
           "expected": 1993.6,
           "missing": -778.1,
-          "expectedRegistered": 2532.2
+          "regShort": 343.8,
+          "turnShort": 434.3
         },
         {
           "age": 41,
@@ -1335,7 +1447,8 @@
           "ratesPooled": false,
           "expected": 2027.2,
           "missing": -688.3,
-          "expectedRegistered": 2574.8
+          "regShort": 305.5,
+          "turnShort": 382.8
         },
         {
           "age": 42,
@@ -1347,7 +1460,8 @@
           "ratesPooled": false,
           "expected": 2084.0,
           "missing": -769.6,
-          "expectedRegistered": 2646.9
+          "regShort": 285.7,
+          "turnShort": 483.9
         },
         {
           "age": 43,
@@ -1359,7 +1473,8 @@
           "ratesPooled": false,
           "expected": 2272.2,
           "missing": -748.0,
-          "expectedRegistered": 2886.0
+          "regShort": 297.1,
+          "turnShort": 450.8
         },
         {
           "age": 44,
@@ -1371,7 +1486,8 @@
           "ratesPooled": false,
           "expected": 2326.8,
           "missing": -696.1,
-          "expectedRegistered": 2955.3
+          "regShort": 279.9,
+          "turnShort": 416.1
         },
         {
           "age": 45,
@@ -1383,7 +1499,8 @@
           "ratesPooled": false,
           "expected": 2165.2,
           "missing": -606.8,
-          "expectedRegistered": 2750.1
+          "regShort": 267.8,
+          "turnShort": 339.0
         },
         {
           "age": 46,
@@ -1395,7 +1512,8 @@
           "ratesPooled": false,
           "expected": 2145.3,
           "missing": -637.6,
-          "expectedRegistered": 2724.8
+          "regShort": 217.1,
+          "turnShort": 420.5
         },
         {
           "age": 47,
@@ -1407,7 +1525,8 @@
           "ratesPooled": false,
           "expected": 2127.5,
           "missing": -602.3,
-          "expectedRegistered": 2702.2
+          "regShort": 212.3,
+          "turnShort": 390.0
         },
         {
           "age": 48,
@@ -1419,7 +1538,8 @@
           "ratesPooled": false,
           "expected": 2208.8,
           "missing": -540.7,
-          "expectedRegistered": 2805.5
+          "regShort": 232.6,
+          "turnShort": 308.1
         },
         {
           "age": 49,
@@ -1431,7 +1551,8 @@
           "ratesPooled": false,
           "expected": 2379.9,
           "missing": -669.0,
-          "expectedRegistered": 3022.8
+          "regShort": 266.7,
+          "turnShort": 402.2
         },
         {
           "age": 50,
@@ -1443,7 +1564,8 @@
           "ratesPooled": false,
           "expected": 2402.0,
           "missing": -676.4,
-          "expectedRegistered": 3050.9
+          "regShort": 277.1,
+          "turnShort": 399.3
         },
         {
           "age": 51,
@@ -1455,7 +1577,8 @@
           "ratesPooled": false,
           "expected": 2455.4,
           "missing": -545.9,
-          "expectedRegistered": 3118.7
+          "regShort": 227.6,
+          "turnShort": 318.3
         },
         {
           "age": 52,
@@ -1467,7 +1590,8 @@
           "ratesPooled": false,
           "expected": 2443.9,
           "missing": -468.8,
-          "expectedRegistered": 3104.1
+          "regShort": 169.9,
+          "turnShort": 298.9
         },
         {
           "age": 53,
@@ -1479,7 +1603,8 @@
           "ratesPooled": false,
           "expected": 2494.7,
           "missing": -489.2,
-          "expectedRegistered": 3168.7
+          "regShort": 228.0,
+          "turnShort": 261.2
         },
         {
           "age": 54,
@@ -1491,7 +1616,8 @@
           "ratesPooled": false,
           "expected": 2576.5,
           "missing": -300.2,
-          "expectedRegistered": 3272.6
+          "regShort": 103.9,
+          "turnShort": 196.3
         },
         {
           "age": 55,
@@ -1503,7 +1629,8 @@
           "ratesPooled": false,
           "expected": 2478.8,
           "missing": -334.8,
-          "expectedRegistered": 3148.4
+          "regShort": 90.3,
+          "turnShort": 244.5
         },
         {
           "age": 56,
@@ -1515,7 +1642,8 @@
           "ratesPooled": false,
           "expected": 2486.0,
           "missing": -488.9,
-          "expectedRegistered": 3157.5
+          "regShort": 193.2,
+          "turnShort": 295.7
         },
         {
           "age": 57,
@@ -1527,7 +1655,8 @@
           "ratesPooled": false,
           "expected": 2476.0,
           "missing": -360.4,
-          "expectedRegistered": 3144.9
+          "regShort": 164.7,
+          "turnShort": 195.7
         },
         {
           "age": 58,
@@ -1539,7 +1668,8 @@
           "ratesPooled": false,
           "expected": 2381.2,
           "missing": -295.7,
-          "expectedRegistered": 3024.5
+          "regShort": 163.4,
+          "turnShort": 132.2
         },
         {
           "age": 59,
@@ -1551,7 +1681,8 @@
           "ratesPooled": false,
           "expected": 2346.2,
           "missing": -182.0,
-          "expectedRegistered": 2980.0
+          "regShort": 60.3,
+          "turnShort": 121.7
         },
         {
           "age": 60,
@@ -1563,7 +1694,8 @@
           "ratesPooled": false,
           "expected": 2249.1,
           "missing": -163.0,
-          "expectedRegistered": 2856.6
+          "regShort": 114.3,
+          "turnShort": 48.7
         },
         {
           "age": 61,
@@ -1575,7 +1707,8 @@
           "ratesPooled": false,
           "expected": 2202.7,
           "missing": -82.9,
-          "expectedRegistered": 2797.7
+          "regShort": 18.6,
+          "turnShort": 64.3
         },
         {
           "age": 62,
@@ -1587,7 +1720,8 @@
           "ratesPooled": false,
           "expected": 2136.7,
           "missing": -67.8,
-          "expectedRegistered": 2713.9
+          "regShort": 0.0,
+          "turnShort": 67.7
         },
         {
           "age": 63,
@@ -1599,7 +1733,8 @@
           "ratesPooled": false,
           "expected": 2035.9,
           "missing": 2.4,
-          "expectedRegistered": 2585.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 64,
@@ -1611,7 +1746,8 @@
           "ratesPooled": false,
           "expected": 2014.5,
           "missing": -92.2,
-          "expectedRegistered": 2558.8
+          "regShort": 49.0,
+          "turnShort": 43.2
         },
         {
           "age": 65,
@@ -1623,7 +1759,8 @@
           "ratesPooled": false,
           "expected": 1917.2,
           "missing": -12.9,
-          "expectedRegistered": 2435.1
+          "regShort": 0.0,
+          "turnShort": 12.9
         },
         {
           "age": 66,
@@ -1635,7 +1772,8 @@
           "ratesPooled": false,
           "expected": 1948.1,
           "missing": 39.2,
-          "expectedRegistered": 2474.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 67,
@@ -1647,7 +1785,8 @@
           "ratesPooled": false,
           "expected": 2031.5,
           "missing": 43.5,
-          "expectedRegistered": 2580.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 68,
@@ -1659,7 +1798,8 @@
           "ratesPooled": false,
           "expected": 1500.6,
           "missing": 85.7,
-          "expectedRegistered": 1906.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 69,
@@ -1671,7 +1811,8 @@
           "ratesPooled": false,
           "expected": 1466.4,
           "missing": 58.9,
-          "expectedRegistered": 1862.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 70,
@@ -1683,7 +1824,8 @@
           "ratesPooled": false,
           "expected": 1427.5,
           "missing": -8.5,
-          "expectedRegistered": 1813.2
+          "regShort": 8.6,
+          "turnShort": 0.0
         },
         {
           "age": 71,
@@ -1695,7 +1837,8 @@
           "ratesPooled": false,
           "expected": 1450.3,
           "missing": 100.3,
-          "expectedRegistered": 1842.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 72,
@@ -1707,7 +1850,8 @@
           "ratesPooled": false,
           "expected": 1286.3,
           "missing": 15.7,
-          "expectedRegistered": 1633.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 73,
@@ -1719,7 +1863,8 @@
           "ratesPooled": false,
           "expected": 1171.5,
           "missing": 86.1,
-          "expectedRegistered": 1487.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 74,
@@ -1731,7 +1876,8 @@
           "ratesPooled": false,
           "expected": 1095.2,
           "missing": 74.8,
-          "expectedRegistered": 1391.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 75,
@@ -1743,7 +1889,8 @@
           "ratesPooled": false,
           "expected": 1016.0,
           "missing": 35.6,
-          "expectedRegistered": 1290.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 76,
@@ -1755,7 +1902,8 @@
           "ratesPooled": false,
           "expected": 984.5,
           "missing": 29.7,
-          "expectedRegistered": 1250.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 77,
@@ -1767,7 +1915,8 @@
           "ratesPooled": false,
           "expected": 893.6,
           "missing": 13.5,
-          "expectedRegistered": 1135.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 78,
@@ -1779,7 +1928,8 @@
           "ratesPooled": false,
           "expected": 851.1,
           "missing": 26.6,
-          "expectedRegistered": 1081.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 79,
@@ -1791,7 +1941,8 @@
           "ratesPooled": false,
           "expected": 816.9,
           "missing": 82.6,
-          "expectedRegistered": 1037.6
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 80,
@@ -1803,7 +1954,8 @@
           "ratesPooled": true,
           "expected": 722.7,
           "missing": -13.9,
-          "expectedRegistered": 917.9
+          "regShort": 5.9,
+          "turnShort": 7.9
         },
         {
           "age": 81,
@@ -1815,7 +1967,8 @@
           "ratesPooled": true,
           "expected": 700.4,
           "missing": -13.4,
-          "expectedRegistered": 889.6
+          "regShort": 5.8,
+          "turnShort": 7.7
         },
         {
           "age": 82,
@@ -1827,7 +1980,8 @@
           "ratesPooled": true,
           "expected": 661.5,
           "missing": -12.7,
-          "expectedRegistered": 840.2
+          "regShort": 5.4,
+          "turnShort": 7.3
         },
         {
           "age": 83,
@@ -1839,7 +1993,8 @@
           "ratesPooled": true,
           "expected": 624.5,
           "missing": -12.0,
-          "expectedRegistered": 793.2
+          "regShort": 5.1,
+          "turnShort": 6.9
         },
         {
           "age": 84,
@@ -1851,7 +2006,8 @@
           "ratesPooled": true,
           "expected": 591.4,
           "missing": -11.3,
-          "expectedRegistered": 751.2
+          "regShort": 4.9,
+          "turnShort": 6.5
         },
         {
           "age": 85,
@@ -1863,7 +2019,8 @@
           "ratesPooled": true,
           "expected": 529.2,
           "missing": -93.0,
-          "expectedRegistered": 672.1
+          "regShort": 30.1,
+          "turnShort": 62.9
         },
         {
           "age": 86,
@@ -1875,7 +2032,8 @@
           "ratesPooled": true,
           "expected": 487.8,
           "missing": -85.7,
-          "expectedRegistered": 619.5
+          "regShort": 27.7,
+          "turnShort": 58.0
         },
         {
           "age": 87,
@@ -1887,7 +2045,8 @@
           "ratesPooled": true,
           "expected": 438.4,
           "missing": -77.1,
-          "expectedRegistered": 556.8
+          "regShort": 24.9,
+          "turnShort": 52.1
         },
         {
           "age": 88,
@@ -1899,7 +2058,8 @@
           "ratesPooled": true,
           "expected": 383.1,
           "missing": -67.3,
-          "expectedRegistered": 486.5
+          "regShort": 21.8,
+          "turnShort": 45.5
         },
         {
           "age": 89,
@@ -1911,7 +2071,8 @@
           "ratesPooled": true,
           "expected": 339.3,
           "missing": -59.6,
-          "expectedRegistered": 431.0
+          "regShort": 19.3,
+          "turnShort": 40.3
         },
         {
           "age": 90,
@@ -1923,7 +2084,8 @@
           "ratesPooled": true,
           "expected": 288.4,
           "missing": -50.6,
-          "expectedRegistered": 366.4
+          "regShort": 16.4,
+          "turnShort": 34.3
         },
         {
           "age": 91,
@@ -1935,7 +2097,8 @@
           "ratesPooled": true,
           "expected": 239.3,
           "missing": -42.0,
-          "expectedRegistered": 303.9
+          "regShort": 13.6,
+          "turnShort": 28.4
         },
         {
           "age": 92,
@@ -1947,7 +2110,8 @@
           "ratesPooled": true,
           "expected": 197.3,
           "missing": -34.6,
-          "expectedRegistered": 250.7
+          "regShort": 11.2,
+          "turnShort": 23.5
         },
         {
           "age": 93,
@@ -1959,7 +2123,8 @@
           "ratesPooled": true,
           "expected": 158.3,
           "missing": -27.8,
-          "expectedRegistered": 201.0
+          "regShort": 9.0,
+          "turnShort": 18.8
         },
         {
           "age": 94,
@@ -1971,7 +2136,8 @@
           "ratesPooled": true,
           "expected": 119.5,
           "missing": -21.0,
-          "expectedRegistered": 151.8
+          "regShort": 6.8,
+          "turnShort": 14.2
         },
         {
           "age": 95,
@@ -1983,7 +2149,8 @@
           "ratesPooled": true,
           "expected": 84.0,
           "missing": -14.7,
-          "expectedRegistered": 106.7
+          "regShort": 4.8,
+          "turnShort": 10.0
         },
         {
           "age": 96,
@@ -1995,7 +2162,8 @@
           "ratesPooled": true,
           "expected": 64.3,
           "missing": -11.3,
-          "expectedRegistered": 81.6
+          "regShort": 3.7,
+          "turnShort": 7.6
         },
         {
           "age": 97,
@@ -2007,7 +2175,8 @@
           "ratesPooled": true,
           "expected": 43.7,
           "missing": -7.7,
-          "expectedRegistered": 55.5
+          "regShort": 2.5,
+          "turnShort": 5.2
         },
         {
           "age": 98,
@@ -2019,7 +2188,8 @@
           "ratesPooled": true,
           "expected": 30.3,
           "missing": -5.3,
-          "expectedRegistered": 38.5
+          "regShort": 1.7,
+          "turnShort": 3.6
         },
         {
           "age": 99,
@@ -2031,7 +2201,8 @@
           "ratesPooled": true,
           "expected": 21.0,
           "missing": -3.7,
-          "expectedRegistered": 26.7
+          "regShort": 1.2,
+          "turnShort": 2.5
         },
         {
           "age": 100,
@@ -2043,7 +2214,8 @@
           "ratesPooled": true,
           "expected": 34.2,
           "missing": -6.0,
-          "expectedRegistered": 43.4
+          "regShort": 1.9,
+          "turnShort": 4.1
         }
       ]
     },
@@ -2052,6 +2224,9 @@
       "avgTurnout": 61.24,
       "over65Turnout": 70.79,
       "over65Registration": 77.99,
+      "over65ShowUp": 90.77,
+      "registrationShortfall": 16273.3,
+      "turnoutShortfall": 6244.9,
       "registrationGap": 18109.9,
       "registeredNotVoted": 20527.3,
       "totalCvap": 228702.6,
@@ -2069,7 +2244,8 @@
           "ratesPooled": false,
           "expected": 2908.8,
           "missing": -1493.5,
-          "expectedRegistered": 3204.5
+          "regShort": 1313.1,
+          "turnShort": 180.4
         },
         {
           "age": 19,
@@ -2081,7 +2257,8 @@
           "ratesPooled": false,
           "expected": 2982.4,
           "missing": -1319.5,
-          "expectedRegistered": 3285.6
+          "regShort": 984.9,
+          "turnShort": 334.6
         },
         {
           "age": 20,
@@ -2093,7 +2270,8 @@
           "ratesPooled": false,
           "expected": 2931.8,
           "missing": -1140.0,
-          "expectedRegistered": 3229.9
+          "regShort": 847.6,
+          "turnShort": 292.4
         },
         {
           "age": 21,
@@ -2105,7 +2283,8 @@
           "ratesPooled": false,
           "expected": 2889.0,
           "missing": -1132.9,
-          "expectedRegistered": 3182.7
+          "regShort": 790.7,
+          "turnShort": 342.2
         },
         {
           "age": 22,
@@ -2117,7 +2296,8 @@
           "ratesPooled": false,
           "expected": 2908.1,
           "missing": -1034.1,
-          "expectedRegistered": 3203.7
+          "regShort": 705.8,
+          "turnShort": 328.3
         },
         {
           "age": 23,
@@ -2129,7 +2309,8 @@
           "ratesPooled": false,
           "expected": 2913.3,
           "missing": -1027.0,
-          "expectedRegistered": 3209.5
+          "regShort": 717.0,
+          "turnShort": 310.1
         },
         {
           "age": 24,
@@ -2141,7 +2322,8 @@
           "ratesPooled": false,
           "expected": 2995.6,
           "missing": -965.1,
-          "expectedRegistered": 3300.1
+          "regShort": 634.0,
+          "turnShort": 331.0
         },
         {
           "age": 25,
@@ -2153,7 +2335,8 @@
           "ratesPooled": false,
           "expected": 3043.1,
           "missing": -964.7,
-          "expectedRegistered": 3352.5
+          "regShort": 707.1,
+          "turnShort": 257.6
         },
         {
           "age": 26,
@@ -2165,7 +2348,8 @@
           "ratesPooled": false,
           "expected": 2909.2,
           "missing": -853.9,
-          "expectedRegistered": 3204.9
+          "regShort": 572.9,
+          "turnShort": 281.0
         },
         {
           "age": 27,
@@ -2177,7 +2361,8 @@
           "ratesPooled": false,
           "expected": 2769.8,
           "missing": -838.8,
-          "expectedRegistered": 3051.4
+          "regShort": 591.3,
+          "turnShort": 247.5
         },
         {
           "age": 28,
@@ -2189,7 +2374,8 @@
           "ratesPooled": false,
           "expected": 2678.2,
           "missing": -719.4,
-          "expectedRegistered": 2950.4
+          "regShort": 494.9,
+          "turnShort": 224.5
         },
         {
           "age": 29,
@@ -2201,7 +2387,8 @@
           "ratesPooled": false,
           "expected": 2655.4,
           "missing": -678.7,
-          "expectedRegistered": 2925.4
+          "regShort": 411.1,
+          "turnShort": 267.7
         },
         {
           "age": 30,
@@ -2213,7 +2400,8 @@
           "ratesPooled": false,
           "expected": 2662.5,
           "missing": -621.2,
-          "expectedRegistered": 2933.2
+          "regShort": 418.4,
+          "turnShort": 202.8
         },
         {
           "age": 31,
@@ -2225,7 +2413,8 @@
           "ratesPooled": false,
           "expected": 2678.0,
           "missing": -525.7,
-          "expectedRegistered": 2950.2
+          "regShort": 416.9,
+          "turnShort": 108.8
         },
         {
           "age": 32,
@@ -2237,7 +2426,8 @@
           "ratesPooled": false,
           "expected": 2599.2,
           "missing": -616.9,
-          "expectedRegistered": 2863.4
+          "regShort": 436.9,
+          "turnShort": 180.0
         },
         {
           "age": 33,
@@ -2249,7 +2439,8 @@
           "ratesPooled": false,
           "expected": 2635.4,
           "missing": -509.3,
-          "expectedRegistered": 2903.3
+          "regShort": 362.3,
+          "turnShort": 147.0
         },
         {
           "age": 34,
@@ -2261,7 +2452,8 @@
           "ratesPooled": false,
           "expected": 2614.0,
           "missing": -471.2,
-          "expectedRegistered": 2879.8
+          "regShort": 313.2,
+          "turnShort": 158.1
         },
         {
           "age": 35,
@@ -2273,7 +2465,8 @@
           "ratesPooled": false,
           "expected": 2556.8,
           "missing": -487.0,
-          "expectedRegistered": 2816.7
+          "regShort": 360.6,
+          "turnShort": 126.3
         },
         {
           "age": 36,
@@ -2285,7 +2478,8 @@
           "ratesPooled": false,
           "expected": 2635.4,
           "missing": -478.1,
-          "expectedRegistered": 2903.3
+          "regShort": 313.8,
+          "turnShort": 164.3
         },
         {
           "age": 37,
@@ -2297,7 +2491,8 @@
           "ratesPooled": false,
           "expected": 2523.5,
           "missing": -354.9,
-          "expectedRegistered": 2780.1
+          "regShort": 218.7,
+          "turnShort": 136.3
         },
         {
           "age": 38,
@@ -2309,7 +2504,8 @@
           "ratesPooled": false,
           "expected": 2439.1,
           "missing": -338.7,
-          "expectedRegistered": 2687.0
+          "regShort": 261.1,
+          "turnShort": 77.6
         },
         {
           "age": 39,
@@ -2321,7 +2517,8 @@
           "ratesPooled": false,
           "expected": 2412.7,
           "missing": -344.3,
-          "expectedRegistered": 2658.0
+          "regShort": 264.8,
+          "turnShort": 79.5
         },
         {
           "age": 40,
@@ -2333,7 +2530,8 @@
           "ratesPooled": false,
           "expected": 2320.0,
           "missing": -376.6,
-          "expectedRegistered": 2555.8
+          "regShort": 245.0,
+          "turnShort": 131.6
         },
         {
           "age": 41,
@@ -2345,7 +2543,8 @@
           "ratesPooled": false,
           "expected": 2479.5,
           "missing": -313.9,
-          "expectedRegistered": 2731.6
+          "regShort": 228.5,
+          "turnShort": 85.4
         },
         {
           "age": 42,
@@ -2357,7 +2556,8 @@
           "ratesPooled": false,
           "expected": 2373.8,
           "missing": -355.5,
-          "expectedRegistered": 2615.1
+          "regShort": 245.1,
+          "turnShort": 110.4
         },
         {
           "age": 43,
@@ -2369,7 +2569,8 @@
           "ratesPooled": false,
           "expected": 2418.2,
           "missing": -238.3,
-          "expectedRegistered": 2664.1
+          "regShort": 173.2,
+          "turnShort": 65.1
         },
         {
           "age": 44,
@@ -2381,7 +2582,8 @@
           "ratesPooled": false,
           "expected": 2538.7,
           "missing": -393.9,
-          "expectedRegistered": 2796.8
+          "regShort": 285.1,
+          "turnShort": 108.8
         },
         {
           "age": 45,
@@ -2393,7 +2595,8 @@
           "ratesPooled": false,
           "expected": 2742.4,
           "missing": -196.8,
-          "expectedRegistered": 3021.2
+          "regShort": 153.5,
+          "turnShort": 43.3
         },
         {
           "age": 46,
@@ -2405,7 +2608,8 @@
           "ratesPooled": false,
           "expected": 2715.8,
           "missing": -207.0,
-          "expectedRegistered": 2991.9
+          "regShort": 173.8,
+          "turnShort": 33.2
         },
         {
           "age": 47,
@@ -2417,7 +2621,8 @@
           "ratesPooled": false,
           "expected": 2605.6,
           "missing": -158.4,
-          "expectedRegistered": 2870.5
+          "regShort": 135.6,
+          "turnShort": 22.8
         },
         {
           "age": 48,
@@ -2429,7 +2634,8 @@
           "ratesPooled": false,
           "expected": 2544.8,
           "missing": -233.2,
-          "expectedRegistered": 2803.5
+          "regShort": 216.0,
+          "turnShort": 17.2
         },
         {
           "age": 49,
@@ -2441,7 +2647,8 @@
           "ratesPooled": false,
           "expected": 2624.3,
           "missing": -262.2,
-          "expectedRegistered": 2891.2
+          "regShort": 180.6,
+          "turnShort": 81.6
         },
         {
           "age": 50,
@@ -2453,7 +2660,8 @@
           "ratesPooled": false,
           "expected": 2649.4,
           "missing": -252.5,
-          "expectedRegistered": 2918.8
+          "regShort": 199.2,
+          "turnShort": 53.2
         },
         {
           "age": 51,
@@ -2465,7 +2673,8 @@
           "ratesPooled": false,
           "expected": 2862.0,
           "missing": -189.5,
-          "expectedRegistered": 3153.0
+          "regShort": 189.5,
+          "turnShort": 0.0
         },
         {
           "age": 52,
@@ -2477,7 +2686,8 @@
           "ratesPooled": false,
           "expected": 2910.2,
           "missing": -159.4,
-          "expectedRegistered": 3206.1
+          "regShort": 93.3,
+          "turnShort": 66.2
         },
         {
           "age": 53,
@@ -2489,7 +2699,8 @@
           "ratesPooled": false,
           "expected": 2931.0,
           "missing": -254.7,
-          "expectedRegistered": 3229.0
+          "regShort": 197.4,
+          "turnShort": 57.3
         },
         {
           "age": 54,
@@ -2501,7 +2712,8 @@
           "ratesPooled": false,
           "expected": 2967.2,
           "missing": -216.9,
-          "expectedRegistered": 3268.9
+          "regShort": 177.6,
+          "turnShort": 39.2
         },
         {
           "age": 55,
@@ -2513,7 +2725,8 @@
           "ratesPooled": false,
           "expected": 2940.3,
           "missing": -224.9,
-          "expectedRegistered": 3239.2
+          "regShort": 180.9,
+          "turnShort": 44.0
         },
         {
           "age": 56,
@@ -2525,7 +2738,8 @@
           "ratesPooled": false,
           "expected": 3061.2,
           "missing": -234.4,
-          "expectedRegistered": 3372.4
+          "regShort": 195.6,
+          "turnShort": 38.8
         },
         {
           "age": 57,
@@ -2537,7 +2751,8 @@
           "ratesPooled": false,
           "expected": 2953.1,
           "missing": -136.2,
-          "expectedRegistered": 3253.4
+          "regShort": 117.4,
+          "turnShort": 18.9
         },
         {
           "age": 58,
@@ -2549,7 +2764,8 @@
           "ratesPooled": false,
           "expected": 2933.7,
           "missing": -110.7,
-          "expectedRegistered": 3231.9
+          "regShort": 104.4,
+          "turnShort": 6.3
         },
         {
           "age": 59,
@@ -2561,7 +2777,8 @@
           "ratesPooled": false,
           "expected": 2910.5,
           "missing": -84.1,
-          "expectedRegistered": 3206.4
+          "regShort": 84.1,
+          "turnShort": 0.0
         },
         {
           "age": 60,
@@ -2573,7 +2790,8 @@
           "ratesPooled": false,
           "expected": 2747.1,
           "missing": -189.4,
-          "expectedRegistered": 3026.4
+          "regShort": 169.3,
+          "turnShort": 20.1
         },
         {
           "age": 61,
@@ -2585,7 +2803,8 @@
           "ratesPooled": false,
           "expected": 2786.9,
           "missing": -93.6,
-          "expectedRegistered": 3070.2
+          "regShort": 93.6,
+          "turnShort": 0.0
         },
         {
           "age": 62,
@@ -2597,7 +2816,8 @@
           "ratesPooled": false,
           "expected": 2680.2,
           "missing": -61.8,
-          "expectedRegistered": 2952.7
+          "regShort": 61.8,
+          "turnShort": 0.0
         },
         {
           "age": 63,
@@ -2609,7 +2829,8 @@
           "ratesPooled": false,
           "expected": 2569.2,
           "missing": -7.9,
-          "expectedRegistered": 2830.4
+          "regShort": 7.9,
+          "turnShort": 0.0
         },
         {
           "age": 64,
@@ -2621,7 +2842,8 @@
           "ratesPooled": false,
           "expected": 2493.3,
           "missing": 16.1,
-          "expectedRegistered": 2746.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 65,
@@ -2633,7 +2855,8 @@
           "ratesPooled": false,
           "expected": 2402.5,
           "missing": 7.6,
-          "expectedRegistered": 2646.7
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 66,
@@ -2645,7 +2868,8 @@
           "ratesPooled": false,
           "expected": 2360.6,
           "missing": -19.5,
-          "expectedRegistered": 2600.6
+          "regShort": 19.5,
+          "turnShort": 0.0
         },
         {
           "age": 67,
@@ -2657,7 +2881,8 @@
           "ratesPooled": false,
           "expected": 2291.0,
           "missing": 41.9,
-          "expectedRegistered": 2524.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 68,
@@ -2669,7 +2894,8 @@
           "ratesPooled": false,
           "expected": 2247.8,
           "missing": 19.4,
-          "expectedRegistered": 2476.4
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 69,
@@ -2681,7 +2907,8 @@
           "ratesPooled": false,
           "expected": 2371.4,
           "missing": 96.9,
-          "expectedRegistered": 2612.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 70,
@@ -2693,7 +2920,8 @@
           "ratesPooled": false,
           "expected": 1695.2,
           "missing": 94.2,
-          "expectedRegistered": 1867.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 71,
@@ -2705,7 +2933,8 @@
           "ratesPooled": false,
           "expected": 1700.6,
           "missing": 28.9,
-          "expectedRegistered": 1873.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 72,
@@ -2717,7 +2946,8 @@
           "ratesPooled": false,
           "expected": 1664.9,
           "missing": 85.9,
-          "expectedRegistered": 1834.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 73,
@@ -2729,7 +2959,8 @@
           "ratesPooled": false,
           "expected": 1689.7,
           "missing": 115.4,
-          "expectedRegistered": 1861.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 74,
@@ -2741,7 +2972,8 @@
           "ratesPooled": false,
           "expected": 1453.4,
           "missing": 42.2,
-          "expectedRegistered": 1601.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 75,
@@ -2753,7 +2985,8 @@
           "ratesPooled": false,
           "expected": 1288.1,
           "missing": 32.2,
-          "expectedRegistered": 1419.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 76,
@@ -2765,7 +2998,8 @@
           "ratesPooled": false,
           "expected": 1232.1,
           "missing": -17.8,
-          "expectedRegistered": 1357.4
+          "regShort": 17.8,
+          "turnShort": 0.0
         },
         {
           "age": 77,
@@ -2777,7 +3011,8 @@
           "ratesPooled": false,
           "expected": 1140.8,
           "missing": 29.2,
-          "expectedRegistered": 1256.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 78,
@@ -2789,7 +3024,8 @@
           "ratesPooled": false,
           "expected": 1091.4,
           "missing": 13.1,
-          "expectedRegistered": 1202.4
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 79,
@@ -2801,7 +3037,8 @@
           "ratesPooled": false,
           "expected": 971.7,
           "missing": 44.6,
-          "expectedRegistered": 1070.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 80,
@@ -2813,7 +3050,8 @@
           "ratesPooled": true,
           "expected": 912.6,
           "missing": -18.9,
-          "expectedRegistered": 1005.3
+          "regShort": 3.5,
+          "turnShort": 15.3
         },
         {
           "age": 81,
@@ -2825,7 +3063,8 @@
           "ratesPooled": true,
           "expected": 871.9,
           "missing": -18.0,
-          "expectedRegistered": 960.6
+          "regShort": 3.4,
+          "turnShort": 14.7
         },
         {
           "age": 82,
@@ -2837,7 +3076,8 @@
           "ratesPooled": true,
           "expected": 765.6,
           "missing": -15.8,
-          "expectedRegistered": 843.5
+          "regShort": 3.0,
+          "turnShort": 12.9
         },
         {
           "age": 83,
@@ -2849,7 +3089,8 @@
           "ratesPooled": true,
           "expected": 727.2,
           "missing": -15.0,
-          "expectedRegistered": 801.1
+          "regShort": 2.8,
+          "turnShort": 12.2
         },
         {
           "age": 84,
@@ -2861,7 +3102,8 @@
           "ratesPooled": true,
           "expected": 676.5,
           "missing": -14.0,
-          "expectedRegistered": 745.3
+          "regShort": 2.6,
+          "turnShort": 11.4
         },
         {
           "age": 85,
@@ -2873,7 +3115,8 @@
           "ratesPooled": true,
           "expected": 639.3,
           "missing": -80.2,
-          "expectedRegistered": 704.2
+          "regShort": 26.4,
+          "turnShort": 53.8
         },
         {
           "age": 86,
@@ -2885,7 +3128,8 @@
           "ratesPooled": true,
           "expected": 594.5,
           "missing": -74.6,
-          "expectedRegistered": 654.9
+          "regShort": 24.5,
+          "turnShort": 50.0
         },
         {
           "age": 87,
@@ -2897,7 +3141,8 @@
           "ratesPooled": true,
           "expected": 518.3,
           "missing": -65.0,
-          "expectedRegistered": 571.0
+          "regShort": 21.4,
+          "turnShort": 43.6
         },
         {
           "age": 88,
@@ -2909,7 +3154,8 @@
           "ratesPooled": true,
           "expected": 467.9,
           "missing": -58.7,
-          "expectedRegistered": 515.4
+          "regShort": 19.3,
+          "turnShort": 39.4
         },
         {
           "age": 89,
@@ -2921,7 +3167,8 @@
           "ratesPooled": true,
           "expected": 410.3,
           "missing": -51.5,
-          "expectedRegistered": 452.0
+          "regShort": 16.9,
+          "turnShort": 34.5
         },
         {
           "age": 90,
@@ -2933,7 +3180,8 @@
           "ratesPooled": true,
           "expected": 347.4,
           "missing": -43.6,
-          "expectedRegistered": 382.7
+          "regShort": 14.3,
+          "turnShort": 29.2
         },
         {
           "age": 91,
@@ -2945,7 +3193,8 @@
           "ratesPooled": true,
           "expected": 299.1,
           "missing": -37.5,
-          "expectedRegistered": 329.5
+          "regShort": 12.4,
+          "turnShort": 25.2
         },
         {
           "age": 92,
@@ -2957,7 +3206,8 @@
           "ratesPooled": true,
           "expected": 245.9,
           "missing": -30.9,
-          "expectedRegistered": 270.8
+          "regShort": 10.2,
+          "turnShort": 20.7
         },
         {
           "age": 93,
@@ -2969,7 +3219,8 @@
           "ratesPooled": true,
           "expected": 196.2,
           "missing": -24.6,
-          "expectedRegistered": 216.2
+          "regShort": 8.1,
+          "turnShort": 16.5
         },
         {
           "age": 94,
@@ -2981,7 +3232,8 @@
           "ratesPooled": true,
           "expected": 155.0,
           "missing": -19.4,
-          "expectedRegistered": 170.8
+          "regShort": 6.4,
+          "turnShort": 13.0
         },
         {
           "age": 95,
@@ -2993,7 +3245,8 @@
           "ratesPooled": true,
           "expected": 118.2,
           "missing": -14.8,
-          "expectedRegistered": 130.2
+          "regShort": 4.9,
+          "turnShort": 9.9
         },
         {
           "age": 96,
@@ -3005,7 +3258,8 @@
           "ratesPooled": true,
           "expected": 84.4,
           "missing": -10.6,
-          "expectedRegistered": 93.0
+          "regShort": 3.5,
+          "turnShort": 7.1
         },
         {
           "age": 97,
@@ -3017,7 +3271,8 @@
           "ratesPooled": true,
           "expected": 57.9,
           "missing": -7.3,
-          "expectedRegistered": 63.8
+          "regShort": 2.4,
+          "turnShort": 4.9
         },
         {
           "age": 98,
@@ -3029,7 +3284,8 @@
           "ratesPooled": true,
           "expected": 40.6,
           "missing": -5.1,
-          "expectedRegistered": 44.8
+          "regShort": 1.7,
+          "turnShort": 3.4
         },
         {
           "age": 99,
@@ -3041,7 +3297,8 @@
           "ratesPooled": true,
           "expected": 26.0,
           "missing": -3.2,
-          "expectedRegistered": 28.7
+          "regShort": 1.1,
+          "turnShort": 2.2
         },
         {
           "age": 100,
@@ -3053,7 +3310,8 @@
           "ratesPooled": true,
           "expected": 44.2,
           "missing": -5.5,
-          "expectedRegistered": 48.7
+          "regShort": 1.8,
+          "turnShort": 3.7
         }
       ]
     },
@@ -3062,6 +3320,9 @@
       "avgTurnout": 53.28,
       "over65Turnout": 66.04,
       "over65Registration": 75.9,
+      "over65ShowUp": 87.0,
+      "registrationShortfall": 19062.4,
+      "turnoutShortfall": 11696.2,
       "registrationGap": 22054.3,
       "registeredNotVoted": 31435.6,
       "totalCvap": 233708.0,
@@ -3079,7 +3340,8 @@
           "ratesPooled": false,
           "expected": 2822.1,
           "missing": -1794.8,
-          "expectedRegistered": 3243.6
+          "regShort": 1578.2,
+          "turnShort": 216.6
         },
         {
           "age": 19,
@@ -3091,7 +3353,8 @@
           "ratesPooled": false,
           "expected": 2880.5,
           "missing": -1572.3,
-          "expectedRegistered": 3310.8
+          "regShort": 1216.9,
+          "turnShort": 355.4
         },
         {
           "age": 20,
@@ -3103,7 +3366,8 @@
           "ratesPooled": false,
           "expected": 2764.9,
           "missing": -1391.1,
-          "expectedRegistered": 3177.9
+          "regShort": 842.0,
+          "turnShort": 549.1
         },
         {
           "age": 21,
@@ -3115,7 +3379,8 @@
           "ratesPooled": false,
           "expected": 2761.6,
           "missing": -1390.5,
-          "expectedRegistered": 3174.1
+          "regShort": 887.1,
+          "turnShort": 503.3
         },
         {
           "age": 22,
@@ -3127,7 +3392,8 @@
           "ratesPooled": false,
           "expected": 2665.8,
           "missing": -1229.3,
-          "expectedRegistered": 3064.0
+          "regShort": 821.0,
+          "turnShort": 408.3
         },
         {
           "age": 23,
@@ -3139,7 +3405,8 @@
           "ratesPooled": false,
           "expected": 2667.2,
           "missing": -1216.8,
-          "expectedRegistered": 3065.7
+          "regShort": 721.5,
+          "turnShort": 495.3
         },
         {
           "age": 24,
@@ -3151,7 +3418,8 @@
           "ratesPooled": false,
           "expected": 2712.5,
           "missing": -1273.0,
-          "expectedRegistered": 3117.7
+          "regShort": 800.7,
+          "turnShort": 472.4
         },
         {
           "age": 25,
@@ -3163,7 +3431,8 @@
           "ratesPooled": false,
           "expected": 2650.8,
           "missing": -1165.5,
-          "expectedRegistered": 3046.8
+          "regShort": 741.0,
+          "turnShort": 424.5
         },
         {
           "age": 26,
@@ -3175,7 +3444,8 @@
           "ratesPooled": false,
           "expected": 2721.9,
           "missing": -1176.3,
-          "expectedRegistered": 3128.4
+          "regShort": 696.3,
+          "turnShort": 479.9
         },
         {
           "age": 27,
@@ -3187,7 +3457,8 @@
           "ratesPooled": false,
           "expected": 2730.0,
           "missing": -1041.6,
-          "expectedRegistered": 3137.8
+          "regShort": 595.9,
+          "turnShort": 445.7
         },
         {
           "age": 28,
@@ -3199,7 +3470,8 @@
           "ratesPooled": false,
           "expected": 2717.7,
           "missing": -1025.1,
-          "expectedRegistered": 3123.6
+          "regShort": 612.3,
+          "turnShort": 412.7
         },
         {
           "age": 29,
@@ -3211,7 +3483,8 @@
           "ratesPooled": false,
           "expected": 2580.2,
           "missing": -933.0,
-          "expectedRegistered": 2965.6
+          "regShort": 533.3,
+          "turnShort": 399.7
         },
         {
           "age": 30,
@@ -3223,7 +3496,8 @@
           "ratesPooled": false,
           "expected": 2525.9,
           "missing": -928.4,
-          "expectedRegistered": 2903.2
+          "regShort": 583.8,
+          "turnShort": 344.6
         },
         {
           "age": 31,
@@ -3235,7 +3509,8 @@
           "ratesPooled": false,
           "expected": 2501.9,
           "missing": -890.7,
-          "expectedRegistered": 2875.6
+          "regShort": 628.3,
+          "turnShort": 262.3
         },
         {
           "age": 32,
@@ -3247,7 +3522,8 @@
           "ratesPooled": false,
           "expected": 2482.7,
           "missing": -765.2,
-          "expectedRegistered": 2853.5
+          "regShort": 416.2,
+          "turnShort": 349.0
         },
         {
           "age": 33,
@@ -3259,7 +3535,8 @@
           "ratesPooled": false,
           "expected": 2521.6,
           "missing": -743.0,
-          "expectedRegistered": 2898.3
+          "regShort": 430.6,
+          "turnShort": 312.4
         },
         {
           "age": 34,
@@ -3271,7 +3548,8 @@
           "ratesPooled": false,
           "expected": 2464.2,
           "missing": -714.2,
-          "expectedRegistered": 2832.3
+          "regShort": 396.3,
+          "turnShort": 318.0
         },
         {
           "age": 35,
@@ -3283,7 +3561,8 @@
           "ratesPooled": false,
           "expected": 2466.8,
           "missing": -660.7,
-          "expectedRegistered": 2835.2
+          "regShort": 349.4,
+          "turnShort": 311.2
         },
         {
           "age": 36,
@@ -3295,7 +3574,8 @@
           "ratesPooled": false,
           "expected": 2485.2,
           "missing": -732.5,
-          "expectedRegistered": 2856.5
+          "regShort": 418.0,
+          "turnShort": 314.6
         },
         {
           "age": 37,
@@ -3307,7 +3587,8 @@
           "ratesPooled": false,
           "expected": 2504.9,
           "missing": -594.2,
-          "expectedRegistered": 2879.0
+          "regShort": 307.1,
+          "turnShort": 287.1
         },
         {
           "age": 38,
@@ -3319,7 +3600,8 @@
           "ratesPooled": false,
           "expected": 2535.1,
           "missing": -619.2,
-          "expectedRegistered": 2913.8
+          "regShort": 331.0,
+          "turnShort": 288.2
         },
         {
           "age": 39,
@@ -3331,7 +3613,8 @@
           "ratesPooled": false,
           "expected": 2408.7,
           "missing": -544.7,
-          "expectedRegistered": 2768.5
+          "regShort": 330.4,
+          "turnShort": 214.3
         },
         {
           "age": 40,
@@ -3343,7 +3626,8 @@
           "ratesPooled": false,
           "expected": 2235.3,
           "missing": -525.8,
-          "expectedRegistered": 2569.2
+          "regShort": 331.1,
+          "turnShort": 194.6
         },
         {
           "age": 41,
@@ -3355,7 +3639,8 @@
           "ratesPooled": false,
           "expected": 2311.8,
           "missing": -466.1,
-          "expectedRegistered": 2657.1
+          "regShort": 288.7,
+          "turnShort": 177.4
         },
         {
           "age": 42,
@@ -3367,7 +3652,8 @@
           "ratesPooled": false,
           "expected": 2211.7,
           "missing": -364.0,
-          "expectedRegistered": 2542.1
+          "regShort": 198.1,
+          "turnShort": 165.9
         },
         {
           "age": 43,
@@ -3379,7 +3665,8 @@
           "ratesPooled": false,
           "expected": 2279.1,
           "missing": -413.8,
-          "expectedRegistered": 2619.5
+          "regShort": 251.2,
+          "turnShort": 162.6
         },
         {
           "age": 44,
@@ -3391,7 +3678,8 @@
           "ratesPooled": false,
           "expected": 2259.1,
           "missing": -493.1,
-          "expectedRegistered": 2596.6
+          "regShort": 271.0,
+          "turnShort": 222.1
         },
         {
           "age": 45,
@@ -3403,7 +3691,8 @@
           "ratesPooled": false,
           "expected": 2224.2,
           "missing": -450.5,
-          "expectedRegistered": 2556.4
+          "regShort": 218.1,
+          "turnShort": 232.4
         },
         {
           "age": 46,
@@ -3415,7 +3704,8 @@
           "ratesPooled": false,
           "expected": 2397.8,
           "missing": -377.8,
-          "expectedRegistered": 2755.9
+          "regShort": 228.5,
+          "turnShort": 149.2
         },
         {
           "age": 47,
@@ -3427,7 +3717,8 @@
           "ratesPooled": false,
           "expected": 2561.6,
           "missing": -311.6,
-          "expectedRegistered": 2944.2
+          "regShort": 165.5,
+          "turnShort": 146.1
         },
         {
           "age": 48,
@@ -3439,7 +3730,8 @@
           "ratesPooled": false,
           "expected": 2606.8,
           "missing": -376.3,
-          "expectedRegistered": 2996.2
+          "regShort": 183.9,
+          "turnShort": 192.4
         },
         {
           "age": 49,
@@ -3451,7 +3743,8 @@
           "ratesPooled": false,
           "expected": 2524.8,
           "missing": -398.2,
-          "expectedRegistered": 2901.9
+          "regShort": 205.7,
+          "turnShort": 192.5
         },
         {
           "age": 50,
@@ -3463,7 +3756,8 @@
           "ratesPooled": false,
           "expected": 2384.7,
           "missing": -311.3,
-          "expectedRegistered": 2740.9
+          "regShort": 160.4,
+          "turnShort": 150.9
         },
         {
           "age": 51,
@@ -3475,7 +3769,8 @@
           "ratesPooled": false,
           "expected": 2424.4,
           "missing": -282.8,
-          "expectedRegistered": 2786.6
+          "regShort": 190.0,
+          "turnShort": 92.9
         },
         {
           "age": 52,
@@ -3487,7 +3782,8 @@
           "ratesPooled": false,
           "expected": 2538.5,
           "missing": -314.3,
-          "expectedRegistered": 2917.7
+          "regShort": 211.0,
+          "turnShort": 103.3
         },
         {
           "age": 53,
@@ -3499,7 +3795,8 @@
           "ratesPooled": false,
           "expected": 2662.4,
           "missing": -250.5,
-          "expectedRegistered": 3060.1
+          "regShort": 112.5,
+          "turnShort": 138.0
         },
         {
           "age": 54,
@@ -3511,7 +3808,8 @@
           "ratesPooled": false,
           "expected": 2761.9,
           "missing": -356.9,
-          "expectedRegistered": 3174.5
+          "regShort": 174.8,
+          "turnShort": 182.2
         },
         {
           "age": 55,
@@ -3523,7 +3821,8 @@
           "ratesPooled": false,
           "expected": 2658.9,
           "missing": -350.3,
-          "expectedRegistered": 3056.1
+          "regShort": 194.3,
+          "turnShort": 156.0
         },
         {
           "age": 56,
@@ -3535,7 +3834,8 @@
           "ratesPooled": false,
           "expected": 2767.3,
           "missing": -332.1,
-          "expectedRegistered": 3180.7
+          "regShort": 212.1,
+          "turnShort": 120.0
         },
         {
           "age": 57,
@@ -3547,7 +3847,8 @@
           "ratesPooled": false,
           "expected": 2819.0,
           "missing": -277.3,
-          "expectedRegistered": 3240.1
+          "regShort": 173.1,
+          "turnShort": 104.2
         },
         {
           "age": 58,
@@ -3559,7 +3860,8 @@
           "ratesPooled": false,
           "expected": 2840.5,
           "missing": -226.7,
-          "expectedRegistered": 3264.8
+          "regShort": 169.0,
+          "turnShort": 57.7
         },
         {
           "age": 59,
@@ -3571,7 +3873,8 @@
           "ratesPooled": false,
           "expected": 2727.4,
           "missing": -225.4,
-          "expectedRegistered": 3134.8
+          "regShort": 161.0,
+          "turnShort": 64.4
         },
         {
           "age": 60,
@@ -3583,7 +3886,8 @@
           "ratesPooled": false,
           "expected": 2648.9,
           "missing": -93.9,
-          "expectedRegistered": 3044.6
+          "regShort": 90.2,
+          "turnShort": 3.7
         },
         {
           "age": 61,
@@ -3595,7 +3899,8 @@
           "ratesPooled": false,
           "expected": 2690.6,
           "missing": -172.8,
-          "expectedRegistered": 3092.6
+          "regShort": 113.7,
+          "turnShort": 59.1
         },
         {
           "age": 62,
@@ -3607,7 +3912,8 @@
           "ratesPooled": false,
           "expected": 2578.9,
           "missing": -52.7,
-          "expectedRegistered": 2964.1
+          "regShort": 52.7,
+          "turnShort": 0.0
         },
         {
           "age": 63,
@@ -3619,7 +3925,8 @@
           "ratesPooled": false,
           "expected": 2586.3,
           "missing": -7.0,
-          "expectedRegistered": 2972.7
+          "regShort": 7.0,
+          "turnShort": 0.0
         },
         {
           "age": 64,
@@ -3631,7 +3938,8 @@
           "ratesPooled": false,
           "expected": 2486.0,
           "missing": 14.8,
-          "expectedRegistered": 2857.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 65,
@@ -3643,7 +3951,8 @@
           "ratesPooled": false,
           "expected": 2356.1,
           "missing": 76.6,
-          "expectedRegistered": 2708.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 66,
@@ -3655,7 +3964,8 @@
           "ratesPooled": false,
           "expected": 2304.1,
           "missing": 82.4,
-          "expectedRegistered": 2648.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 67,
@@ -3667,7 +3977,8 @@
           "ratesPooled": false,
           "expected": 2218.2,
           "missing": 136.7,
-          "expectedRegistered": 2549.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 68,
@@ -3679,7 +3990,8 @@
           "ratesPooled": false,
           "expected": 2186.6,
           "missing": 57.9,
-          "expectedRegistered": 2513.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 69,
@@ -3691,7 +4003,8 @@
           "ratesPooled": false,
           "expected": 2063.7,
           "missing": 112.4,
-          "expectedRegistered": 2371.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 70,
@@ -3703,7 +4016,8 @@
           "ratesPooled": false,
           "expected": 2009.5,
           "missing": -2.7,
-          "expectedRegistered": 2309.7
+          "regShort": 2.7,
+          "turnShort": 0.0
         },
         {
           "age": 71,
@@ -3715,7 +4029,8 @@
           "ratesPooled": false,
           "expected": 2109.4,
           "missing": 62.4,
-          "expectedRegistered": 2424.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 72,
@@ -3727,7 +4042,8 @@
           "ratesPooled": false,
           "expected": 1540.1,
           "missing": 16.4,
-          "expectedRegistered": 1770.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 73,
@@ -3739,7 +4055,8 @@
           "ratesPooled": false,
           "expected": 1504.7,
           "missing": 71.2,
-          "expectedRegistered": 1729.4
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 74,
@@ -3751,7 +4068,8 @@
           "ratesPooled": false,
           "expected": 1454.4,
           "missing": 19.8,
-          "expectedRegistered": 1671.6
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 75,
@@ -3763,7 +4081,8 @@
           "ratesPooled": false,
           "expected": 1463.5,
           "missing": 98.5,
-          "expectedRegistered": 1682.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 76,
@@ -3775,7 +4094,8 @@
           "ratesPooled": false,
           "expected": 1280.9,
           "missing": 101.5,
-          "expectedRegistered": 1472.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 77,
@@ -3787,7 +4107,8 @@
           "ratesPooled": false,
           "expected": 1146.4,
           "missing": 75.7,
-          "expectedRegistered": 1317.7
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 78,
@@ -3799,7 +4120,8 @@
           "ratesPooled": false,
           "expected": 1081.3,
           "missing": -39.5,
-          "expectedRegistered": 1242.8
+          "regShort": 18.8,
+          "turnShort": 20.7
         },
         {
           "age": 79,
@@ -3811,7 +4133,8 @@
           "ratesPooled": false,
           "expected": 966.6,
           "missing": 13.3,
-          "expectedRegistered": 1111.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 80,
@@ -3823,7 +4146,8 @@
           "ratesPooled": true,
           "expected": 912.4,
           "missing": -27.9,
-          "expectedRegistered": 1048.6
+          "regShort": 9.1,
+          "turnShort": 18.8
         },
         {
           "age": 81,
@@ -3835,7 +4159,8 @@
           "ratesPooled": true,
           "expected": 834.5,
           "missing": -25.5,
-          "expectedRegistered": 959.1
+          "regShort": 8.3,
+          "turnShort": 17.2
         },
         {
           "age": 82,
@@ -3847,7 +4172,8 @@
           "ratesPooled": true,
           "expected": 773.0,
           "missing": -23.6,
-          "expectedRegistered": 888.4
+          "regShort": 7.7,
+          "turnShort": 15.9
         },
         {
           "age": 83,
@@ -3859,7 +4185,8 @@
           "ratesPooled": true,
           "expected": 721.4,
           "missing": -22.0,
-          "expectedRegistered": 829.1
+          "regShort": 7.2,
+          "turnShort": 14.8
         },
         {
           "age": 84,
@@ -3871,7 +4198,8 @@
           "ratesPooled": true,
           "expected": 623.9,
           "missing": -19.1,
-          "expectedRegistered": 717.1
+          "regShort": 6.2,
+          "turnShort": 12.8
         },
         {
           "age": 85,
@@ -3883,7 +4211,8 @@
           "ratesPooled": true,
           "expected": 592.1,
           "missing": -112.4,
-          "expectedRegistered": 680.6
+          "regShort": 59.0,
+          "turnShort": 53.5
         },
         {
           "age": 86,
@@ -3895,7 +4224,8 @@
           "ratesPooled": true,
           "expected": 540.6,
           "missing": -102.7,
-          "expectedRegistered": 621.3
+          "regShort": 53.8,
+          "turnShort": 48.8
         },
         {
           "age": 87,
@@ -3907,7 +4237,8 @@
           "ratesPooled": true,
           "expected": 491.6,
           "missing": -93.4,
-          "expectedRegistered": 565.0
+          "regShort": 49.0,
+          "turnShort": 44.4
         },
         {
           "age": 88,
@@ -3919,7 +4250,8 @@
           "ratesPooled": true,
           "expected": 448.2,
           "missing": -85.1,
-          "expectedRegistered": 515.2
+          "regShort": 44.6,
+          "turnShort": 40.5
         },
         {
           "age": 89,
@@ -3931,7 +4263,8 @@
           "ratesPooled": true,
           "expected": 380.8,
           "missing": -72.3,
-          "expectedRegistered": 437.7
+          "regShort": 37.9,
+          "turnShort": 34.4
         },
         {
           "age": 90,
@@ -3943,7 +4276,8 @@
           "ratesPooled": true,
           "expected": 333.2,
           "missing": -63.3,
-          "expectedRegistered": 382.9
+          "regShort": 33.2,
+          "turnShort": 30.1
         },
         {
           "age": 91,
@@ -3955,7 +4289,8 @@
           "ratesPooled": true,
           "expected": 283.8,
           "missing": -53.9,
-          "expectedRegistered": 326.2
+          "regShort": 28.3,
+          "turnShort": 25.6
         },
         {
           "age": 92,
@@ -3967,7 +4302,8 @@
           "ratesPooled": true,
           "expected": 232.2,
           "missing": -44.1,
-          "expectedRegistered": 266.9
+          "regShort": 23.1,
+          "turnShort": 21.0
         },
         {
           "age": 93,
@@ -3979,7 +4315,8 @@
           "ratesPooled": true,
           "expected": 192.5,
           "missing": -36.5,
-          "expectedRegistered": 221.3
+          "regShort": 19.2,
+          "turnShort": 17.4
         },
         {
           "age": 94,
@@ -3991,7 +4328,8 @@
           "ratesPooled": true,
           "expected": 152.1,
           "missing": -28.9,
-          "expectedRegistered": 174.8
+          "regShort": 15.1,
+          "turnShort": 13.7
         },
         {
           "age": 95,
@@ -4003,7 +4341,8 @@
           "ratesPooled": true,
           "expected": 114.7,
           "missing": -21.8,
-          "expectedRegistered": 131.9
+          "regShort": 11.4,
+          "turnShort": 10.4
         },
         {
           "age": 96,
@@ -4015,7 +4354,8 @@
           "ratesPooled": true,
           "expected": 86.1,
           "missing": -16.4,
-          "expectedRegistered": 98.9
+          "regShort": 8.6,
+          "turnShort": 7.8
         },
         {
           "age": 97,
@@ -4027,7 +4367,8 @@
           "ratesPooled": true,
           "expected": 64.1,
           "missing": -12.2,
-          "expectedRegistered": 73.7
+          "regShort": 6.4,
+          "turnShort": 5.8
         },
         {
           "age": 98,
@@ -4039,7 +4380,8 @@
           "ratesPooled": true,
           "expected": 41.1,
           "missing": -7.8,
-          "expectedRegistered": 47.2
+          "regShort": 4.1,
+          "turnShort": 3.7
         },
         {
           "age": 99,
@@ -4051,7 +4393,8 @@
           "ratesPooled": true,
           "expected": 28.0,
           "missing": -5.4,
-          "expectedRegistered": 32.1
+          "regShort": 2.8,
+          "turnShort": 2.5
         },
         {
           "age": 100,
@@ -4063,7 +4406,8 @@
           "ratesPooled": true,
           "expected": 45.4,
           "missing": -8.6,
-          "expectedRegistered": 52.2
+          "regShort": 4.5,
+          "turnShort": 4.1
         }
       ]
     },
@@ -4072,6 +4416,9 @@
       "avgTurnout": 66.64,
       "over65Turnout": 74.43,
       "over65Registration": 78.52,
+      "over65ShowUp": 94.78,
+      "registrationShortfall": 13795.7,
+      "turnoutShortfall": 5505.8,
       "registrationGap": 14673.8,
       "registeredNotVoted": 14003.0,
       "totalCvap": 236124.3,
@@ -4089,7 +4436,8 @@
           "ratesPooled": false,
           "expected": 3050.1,
           "missing": -1337.7,
-          "expectedRegistered": 3218.0
+          "regShort": 1205.4,
+          "turnShort": 132.4
         },
         {
           "age": 19,
@@ -4101,7 +4449,8 @@
           "ratesPooled": false,
           "expected": 3078.6,
           "missing": -1044.7,
-          "expectedRegistered": 3248.0
+          "regShort": 852.0,
+          "turnShort": 192.6
         },
         {
           "age": 20,
@@ -4113,7 +4462,8 @@
           "ratesPooled": false,
           "expected": 3062.6,
           "missing": -932.9,
-          "expectedRegistered": 3231.1
+          "regShort": 697.1,
+          "turnShort": 235.8
         },
         {
           "age": 21,
@@ -4125,7 +4475,8 @@
           "ratesPooled": false,
           "expected": 2922.6,
           "missing": -953.1,
-          "expectedRegistered": 3083.5
+          "regShort": 694.7,
+          "turnShort": 258.4
         },
         {
           "age": 22,
@@ -4137,7 +4488,8 @@
           "ratesPooled": false,
           "expected": 2952.0,
           "missing": -788.2,
-          "expectedRegistered": 3114.5
+          "regShort": 496.1,
+          "turnShort": 292.1
         },
         {
           "age": 23,
@@ -4149,7 +4501,8 @@
           "ratesPooled": false,
           "expected": 2931.3,
           "missing": -678.2,
-          "expectedRegistered": 3092.6
+          "regShort": 479.5,
+          "turnShort": 198.7
         },
         {
           "age": 24,
@@ -4161,7 +4514,8 @@
           "ratesPooled": false,
           "expected": 2908.2,
           "missing": -740.9,
-          "expectedRegistered": 3068.3
+          "regShort": 588.4,
+          "turnShort": 152.6
         },
         {
           "age": 25,
@@ -4173,7 +4527,8 @@
           "ratesPooled": false,
           "expected": 2944.5,
           "missing": -758.3,
-          "expectedRegistered": 3106.6
+          "regShort": 547.5,
+          "turnShort": 210.8
         },
         {
           "age": 26,
@@ -4185,7 +4540,8 @@
           "ratesPooled": false,
           "expected": 3007.0,
           "missing": -811.9,
-          "expectedRegistered": 3172.5
+          "regShort": 618.5,
+          "turnShort": 193.4
         },
         {
           "age": 27,
@@ -4197,7 +4553,8 @@
           "ratesPooled": false,
           "expected": 3089.5,
           "missing": -614.1,
-          "expectedRegistered": 3259.6
+          "regShort": 394.2,
+          "turnShort": 219.8
         },
         {
           "age": 28,
@@ -4209,7 +4566,8 @@
           "ratesPooled": false,
           "expected": 3120.0,
           "missing": -702.8,
-          "expectedRegistered": 3291.7
+          "regShort": 447.7,
+          "turnShort": 255.1
         },
         {
           "age": 29,
@@ -4221,7 +4579,8 @@
           "ratesPooled": false,
           "expected": 3196.7,
           "missing": -600.9,
-          "expectedRegistered": 3372.6
+          "regShort": 445.3,
+          "turnShort": 155.6
         },
         {
           "age": 30,
@@ -4233,7 +4592,8 @@
           "ratesPooled": false,
           "expected": 3112.6,
           "missing": -584.1,
-          "expectedRegistered": 3283.9
+          "regShort": 370.3,
+          "turnShort": 213.9
         },
         {
           "age": 31,
@@ -4245,7 +4605,8 @@
           "ratesPooled": false,
           "expected": 3034.8,
           "missing": -531.8,
-          "expectedRegistered": 3201.8
+          "regShort": 339.7,
+          "turnShort": 192.1
         },
         {
           "age": 32,
@@ -4257,7 +4618,8 @@
           "ratesPooled": false,
           "expected": 2967.6,
           "missing": -293.4,
-          "expectedRegistered": 3131.0
+          "regShort": 175.4,
+          "turnShort": 117.9
         },
         {
           "age": 33,
@@ -4269,7 +4631,8 @@
           "ratesPooled": false,
           "expected": 2876.7,
           "missing": -414.2,
-          "expectedRegistered": 3035.0
+          "regShort": 282.8,
+          "turnShort": 131.4
         },
         {
           "age": 34,
@@ -4281,7 +4644,8 @@
           "ratesPooled": false,
           "expected": 2927.5,
           "missing": -452.5,
-          "expectedRegistered": 3088.7
+          "regShort": 276.1,
+          "turnShort": 176.4
         },
         {
           "age": 35,
@@ -4293,7 +4657,8 @@
           "ratesPooled": false,
           "expected": 2909.5,
           "missing": -451.4,
-          "expectedRegistered": 3069.7
+          "regShort": 283.6,
+          "turnShort": 167.8
         },
         {
           "age": 36,
@@ -4305,7 +4670,8 @@
           "ratesPooled": false,
           "expected": 2820.4,
           "missing": -385.0,
-          "expectedRegistered": 2975.6
+          "regShort": 246.4,
+          "turnShort": 138.5
         },
         {
           "age": 37,
@@ -4317,7 +4683,8 @@
           "ratesPooled": false,
           "expected": 2875.8,
           "missing": -387.5,
-          "expectedRegistered": 3034.1
+          "regShort": 306.2,
+          "turnShort": 81.3
         },
         {
           "age": 38,
@@ -4329,7 +4696,8 @@
           "ratesPooled": false,
           "expected": 2879.7,
           "missing": -251.3,
-          "expectedRegistered": 3038.2
+          "regShort": 95.6,
+          "turnShort": 155.7
         },
         {
           "age": 39,
@@ -4341,7 +4709,8 @@
           "ratesPooled": false,
           "expected": 2885.8,
           "missing": -339.1,
-          "expectedRegistered": 3044.6
+          "regShort": 204.0,
+          "turnShort": 135.1
         },
         {
           "age": 40,
@@ -4353,7 +4722,8 @@
           "ratesPooled": false,
           "expected": 2815.5,
           "missing": -387.4,
-          "expectedRegistered": 2970.4
+          "regShort": 296.6,
+          "turnShort": 90.7
         },
         {
           "age": 41,
@@ -4365,7 +4735,8 @@
           "ratesPooled": false,
           "expected": 2707.5,
           "missing": -362.1,
-          "expectedRegistered": 2856.5
+          "regShort": 269.7,
+          "turnShort": 92.4
         },
         {
           "age": 42,
@@ -4377,7 +4748,8 @@
           "ratesPooled": false,
           "expected": 2656.4,
           "missing": -312.8,
-          "expectedRegistered": 2802.6
+          "regShort": 245.3,
+          "turnShort": 67.4
         },
         {
           "age": 43,
@@ -4389,7 +4761,8 @@
           "ratesPooled": false,
           "expected": 2589.4,
           "missing": -248.5,
-          "expectedRegistered": 2731.9
+          "regShort": 183.5,
+          "turnShort": 65.1
         },
         {
           "age": 44,
@@ -4401,7 +4774,8 @@
           "ratesPooled": false,
           "expected": 2512.6,
           "missing": -336.6,
-          "expectedRegistered": 2650.9
+          "regShort": 219.3,
+          "turnShort": 117.3
         },
         {
           "age": 45,
@@ -4413,7 +4787,8 @@
           "ratesPooled": false,
           "expected": 2604.3,
           "missing": -291.9,
-          "expectedRegistered": 2747.7
+          "regShort": 248.1,
+          "turnShort": 43.8
         },
         {
           "age": 46,
@@ -4425,7 +4800,8 @@
           "ratesPooled": false,
           "expected": 2589.2,
           "missing": -237.0,
-          "expectedRegistered": 2731.8
+          "regShort": 158.7,
+          "turnShort": 78.3
         },
         {
           "age": 47,
@@ -4437,7 +4813,8 @@
           "ratesPooled": false,
           "expected": 2616.9,
           "missing": -251.0,
-          "expectedRegistered": 2761.0
+          "regShort": 157.4,
+          "turnShort": 93.6
         },
         {
           "age": 48,
@@ -4449,7 +4826,8 @@
           "ratesPooled": false,
           "expected": 2726.4,
           "missing": -208.7,
-          "expectedRegistered": 2876.5
+          "regShort": 124.1,
+          "turnShort": 84.6
         },
         {
           "age": 49,
@@ -4461,7 +4839,8 @@
           "ratesPooled": false,
           "expected": 2985.8,
           "missing": -250.1,
-          "expectedRegistered": 3150.2
+          "regShort": 227.1,
+          "turnShort": 23.0
         },
         {
           "age": 50,
@@ -4473,7 +4852,8 @@
           "ratesPooled": false,
           "expected": 2883.5,
           "missing": -109.0,
-          "expectedRegistered": 3042.2
+          "regShort": 107.5,
+          "turnShort": 1.5
         },
         {
           "age": 51,
@@ -4485,7 +4865,8 @@
           "ratesPooled": false,
           "expected": 2816.3,
           "missing": -230.3,
-          "expectedRegistered": 2971.3
+          "regShort": 135.0,
+          "turnShort": 95.3
         },
         {
           "age": 52,
@@ -4497,7 +4878,8 @@
           "ratesPooled": false,
           "expected": 2781.6,
           "missing": -126.9,
-          "expectedRegistered": 2934.7
+          "regShort": 101.5,
+          "turnShort": 25.5
         },
         {
           "age": 53,
@@ -4509,7 +4891,8 @@
           "ratesPooled": false,
           "expected": 2798.1,
           "missing": -128.6,
-          "expectedRegistered": 2952.1
+          "regShort": 72.0,
+          "turnShort": 56.6
         },
         {
           "age": 54,
@@ -4521,7 +4904,8 @@
           "ratesPooled": false,
           "expected": 2834.9,
           "missing": -166.1,
-          "expectedRegistered": 2991.0
+          "regShort": 119.8,
+          "turnShort": 46.4
         },
         {
           "age": 55,
@@ -4533,7 +4917,8 @@
           "ratesPooled": false,
           "expected": 2942.2,
           "missing": -156.5,
-          "expectedRegistered": 3104.1
+          "regShort": 139.6,
+          "turnShort": 16.9
         },
         {
           "age": 56,
@@ -4545,7 +4930,8 @@
           "ratesPooled": false,
           "expected": 3016.7,
           "missing": -114.5,
-          "expectedRegistered": 3182.7
+          "regShort": 86.1,
+          "turnShort": 28.4
         },
         {
           "age": 57,
@@ -4557,7 +4943,8 @@
           "ratesPooled": false,
           "expected": 3085.3,
           "missing": -46.0,
-          "expectedRegistered": 3255.1
+          "regShort": 0.0,
+          "turnShort": 46.0
         },
         {
           "age": 58,
@@ -4569,7 +4956,8 @@
           "ratesPooled": false,
           "expected": 3044.3,
           "missing": -108.5,
-          "expectedRegistered": 3211.9
+          "regShort": 82.6,
+          "turnShort": 25.9
         },
         {
           "age": 59,
@@ -4581,7 +4969,8 @@
           "ratesPooled": false,
           "expected": 3167.0,
           "missing": -118.9,
-          "expectedRegistered": 3341.4
+          "regShort": 89.3,
+          "turnShort": 29.7
         },
         {
           "age": 60,
@@ -4593,7 +4982,8 @@
           "ratesPooled": false,
           "expected": 3077.9,
           "missing": -81.6,
-          "expectedRegistered": 3247.3
+          "regShort": 81.6,
+          "turnShort": 0.0
         },
         {
           "age": 61,
@@ -4605,7 +4995,8 @@
           "ratesPooled": false,
           "expected": 3012.9,
           "missing": -175.5,
-          "expectedRegistered": 3178.7
+          "regShort": 175.5,
+          "turnShort": 0.0
         },
         {
           "age": 62,
@@ -4617,7 +5008,8 @@
           "ratesPooled": false,
           "expected": 3031.0,
           "missing": -30.7,
-          "expectedRegistered": 3197.8
+          "regShort": 19.5,
+          "turnShort": 11.2
         },
         {
           "age": 63,
@@ -4629,7 +5021,8 @@
           "ratesPooled": false,
           "expected": 2979.2,
           "missing": 118.5,
-          "expectedRegistered": 3143.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 64,
@@ -4641,7 +5034,8 @@
           "ratesPooled": false,
           "expected": 2803.0,
           "missing": 25.9,
-          "expectedRegistered": 2957.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 65,
@@ -4653,7 +5047,8 @@
           "ratesPooled": false,
           "expected": 2741.1,
           "missing": 25.0,
-          "expectedRegistered": 2892.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 66,
@@ -4665,7 +5060,8 @@
           "ratesPooled": false,
           "expected": 2676.2,
           "missing": 61.5,
-          "expectedRegistered": 2823.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 67,
@@ -4677,7 +5073,8 @@
           "ratesPooled": false,
           "expected": 2565.0,
           "missing": 36.9,
-          "expectedRegistered": 2706.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 68,
@@ -4689,7 +5086,8 @@
           "ratesPooled": false,
           "expected": 2457.9,
           "missing": 40.6,
-          "expectedRegistered": 2593.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 69,
@@ -4701,7 +5099,8 @@
           "ratesPooled": false,
           "expected": 2386.8,
           "missing": 51.2,
-          "expectedRegistered": 2518.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 70,
@@ -4713,7 +5112,8 @@
           "ratesPooled": false,
           "expected": 2225.1,
           "missing": -9.4,
-          "expectedRegistered": 2347.5
+          "regShort": 9.3,
+          "turnShort": 0.0
         },
         {
           "age": 71,
@@ -4725,7 +5125,8 @@
           "ratesPooled": false,
           "expected": 2205.9,
           "missing": 27.2,
-          "expectedRegistered": 2327.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 72,
@@ -4737,7 +5138,8 @@
           "ratesPooled": false,
           "expected": 2142.4,
           "missing": 114.0,
-          "expectedRegistered": 2260.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 73,
@@ -4749,7 +5151,8 @@
           "ratesPooled": false,
           "expected": 2283.9,
           "missing": 121.7,
-          "expectedRegistered": 2409.6
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 74,
@@ -4761,7 +5164,8 @@
           "ratesPooled": false,
           "expected": 1600.1,
           "missing": 23.5,
-          "expectedRegistered": 1688.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 75,
@@ -4773,7 +5177,8 @@
           "ratesPooled": false,
           "expected": 1559.1,
           "missing": 56.6,
-          "expectedRegistered": 1644.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 76,
@@ -4785,7 +5190,8 @@
           "ratesPooled": false,
           "expected": 1490.3,
           "missing": 70.3,
-          "expectedRegistered": 1572.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 77,
@@ -4797,7 +5203,8 @@
           "ratesPooled": false,
           "expected": 1517.5,
           "missing": 49.2,
-          "expectedRegistered": 1601.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 78,
@@ -4809,7 +5216,8 @@
           "ratesPooled": false,
           "expected": 1293.3,
           "missing": 90.6,
-          "expectedRegistered": 1364.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 79,
@@ -4821,7 +5229,8 @@
           "ratesPooled": false,
           "expected": 1161.3,
           "missing": -3.1,
-          "expectedRegistered": 1225.2
+          "regShort": 0.0,
+          "turnShort": 3.1
         },
         {
           "age": 80,
@@ -4833,7 +5242,8 @@
           "ratesPooled": true,
           "expected": 1036.2,
           "missing": -19.1,
-          "expectedRegistered": 1093.2
+          "regShort": 0.0,
+          "turnShort": 19.1
         },
         {
           "age": 81,
@@ -4845,7 +5255,8 @@
           "ratesPooled": true,
           "expected": 958.4,
           "missing": -17.6,
-          "expectedRegistered": 1011.2
+          "regShort": 0.0,
+          "turnShort": 17.7
         },
         {
           "age": 82,
@@ -4857,7 +5268,8 @@
           "ratesPooled": true,
           "expected": 891.0,
           "missing": -16.5,
-          "expectedRegistered": 940.0
+          "regShort": 0.0,
+          "turnShort": 16.4
         },
         {
           "age": 83,
@@ -4869,7 +5281,8 @@
           "ratesPooled": true,
           "expected": 790.5,
           "missing": -14.5,
-          "expectedRegistered": 834.0
+          "regShort": 0.0,
+          "turnShort": 14.6
         },
         {
           "age": 84,
@@ -4881,7 +5294,8 @@
           "ratesPooled": true,
           "expected": 724.9,
           "missing": -13.4,
-          "expectedRegistered": 764.8
+          "regShort": 0.0,
+          "turnShort": 13.4
         },
         {
           "age": 85,
@@ -4893,7 +5307,8 @@
           "ratesPooled": true,
           "expected": 672.3,
           "missing": -103.0,
-          "expectedRegistered": 709.3
+          "regShort": 61.1,
+          "turnShort": 41.9
         },
         {
           "age": 86,
@@ -4905,7 +5320,8 @@
           "ratesPooled": true,
           "expected": 575.5,
           "missing": -88.2,
-          "expectedRegistered": 607.2
+          "regShort": 52.3,
+          "turnShort": 35.9
         },
         {
           "age": 87,
@@ -4917,7 +5333,8 @@
           "ratesPooled": true,
           "expected": 527.0,
           "missing": -80.7,
-          "expectedRegistered": 556.0
+          "regShort": 47.9,
+          "turnShort": 32.9
         },
         {
           "age": 88,
@@ -4929,7 +5346,8 @@
           "ratesPooled": true,
           "expected": 472.9,
           "missing": -72.5,
-          "expectedRegistered": 498.9
+          "regShort": 43.0,
+          "turnShort": 29.5
         },
         {
           "age": 89,
@@ -4941,7 +5359,8 @@
           "ratesPooled": true,
           "expected": 418.6,
           "missing": -64.1,
-          "expectedRegistered": 441.6
+          "regShort": 38.0,
+          "turnShort": 26.1
         },
         {
           "age": 90,
@@ -4953,7 +5372,8 @@
           "ratesPooled": true,
           "expected": 364.9,
           "missing": -55.9,
-          "expectedRegistered": 385.0
+          "regShort": 33.2,
+          "turnShort": 22.7
         },
         {
           "age": 91,
@@ -4965,7 +5385,8 @@
           "ratesPooled": true,
           "expected": 303.5,
           "missing": -46.5,
-          "expectedRegistered": 320.2
+          "regShort": 27.6,
+          "turnShort": 18.9
         },
         {
           "age": 92,
@@ -4977,7 +5398,8 @@
           "ratesPooled": true,
           "expected": 257.4,
           "missing": -39.5,
-          "expectedRegistered": 271.5
+          "regShort": 23.4,
+          "turnShort": 16.0
         },
         {
           "age": 93,
@@ -4989,7 +5411,8 @@
           "ratesPooled": true,
           "expected": 209.7,
           "missing": -32.1,
-          "expectedRegistered": 221.3
+          "regShort": 19.1,
+          "turnShort": 13.1
         },
         {
           "age": 94,
@@ -5001,7 +5424,8 @@
           "ratesPooled": true,
           "expected": 164.5,
           "missing": -25.2,
-          "expectedRegistered": 173.6
+          "regShort": 14.9,
+          "turnShort": 10.3
         },
         {
           "age": 95,
@@ -5013,7 +5437,8 @@
           "ratesPooled": true,
           "expected": 129.5,
           "missing": -19.8,
-          "expectedRegistered": 136.7
+          "regShort": 11.8,
+          "turnShort": 8.1
         },
         {
           "age": 96,
@@ -5025,7 +5450,8 @@
           "ratesPooled": true,
           "expected": 97.3,
           "missing": -14.9,
-          "expectedRegistered": 102.6
+          "regShort": 8.8,
+          "turnShort": 6.1
         },
         {
           "age": 97,
@@ -5037,7 +5463,8 @@
           "ratesPooled": true,
           "expected": 70.8,
           "missing": -10.8,
-          "expectedRegistered": 74.7
+          "regShort": 6.4,
+          "turnShort": 4.4
         },
         {
           "age": 98,
@@ -5049,7 +5476,8 @@
           "ratesPooled": true,
           "expected": 49.6,
           "missing": -7.6,
-          "expectedRegistered": 52.3
+          "regShort": 4.5,
+          "turnShort": 3.1
         },
         {
           "age": 99,
@@ -5061,7 +5489,8 @@
           "ratesPooled": true,
           "expected": 34.7,
           "missing": -5.3,
-          "expectedRegistered": 36.6
+          "regShort": 3.2,
+          "turnShort": 2.2
         },
         {
           "age": 100,
@@ -5073,7 +5502,8 @@
           "ratesPooled": true,
           "expected": 55.1,
           "missing": -8.4,
-          "expectedRegistered": 58.2
+          "regShort": 5.0,
+          "turnShort": 3.4
         }
       ]
     },
@@ -5082,6 +5512,9 @@
       "avgTurnout": 51.95,
       "over65Turnout": 66.79,
       "over65Registration": 77.34,
+      "over65ShowUp": 86.36,
+      "registrationShortfall": 17616.0,
+      "turnoutShortfall": 18476.8,
       "registrationGap": 20554.3,
       "registeredNotVoted": 40473.8,
       "totalCvap": 238206.1,
@@ -5099,7 +5532,8 @@
           "ratesPooled": false,
           "expected": 2780.1,
           "missing": -1964.2,
-          "expectedRegistered": 3219.2
+          "regShort": 1678.4,
+          "turnShort": 285.7
         },
         {
           "age": 19,
@@ -5111,7 +5545,8 @@
           "ratesPooled": false,
           "expected": 2685.6,
           "missing": -1701.0,
-          "expectedRegistered": 3109.8
+          "regShort": 1178.0,
+          "turnShort": 523.0
         },
         {
           "age": 20,
@@ -5123,7 +5558,8 @@
           "ratesPooled": false,
           "expected": 2713.1,
           "missing": -1511.2,
-          "expectedRegistered": 3141.6
+          "regShort": 900.6,
+          "turnShort": 610.5
         },
         {
           "age": 21,
@@ -5135,7 +5571,8 @@
           "ratesPooled": false,
           "expected": 2720.5,
           "missing": -1514.6,
-          "expectedRegistered": 3150.2
+          "regShort": 808.0,
+          "turnShort": 706.6
         },
         {
           "age": 22,
@@ -5147,7 +5584,8 @@
           "ratesPooled": false,
           "expected": 2722.3,
           "missing": -1504.5,
-          "expectedRegistered": 3152.2
+          "regShort": 780.5,
+          "turnShort": 724.0
         },
         {
           "age": 23,
@@ -5159,7 +5597,8 @@
           "ratesPooled": false,
           "expected": 2638.2,
           "missing": -1533.2,
-          "expectedRegistered": 3055.0
+          "regShort": 791.2,
+          "turnShort": 742.0
         },
         {
           "age": 24,
@@ -5171,7 +5610,8 @@
           "ratesPooled": false,
           "expected": 2642.4,
           "missing": -1394.0,
-          "expectedRegistered": 3059.8
+          "regShort": 800.8,
+          "turnShort": 593.2
         },
         {
           "age": 25,
@@ -5183,7 +5623,8 @@
           "ratesPooled": false,
           "expected": 2591.9,
           "missing": -1270.6,
-          "expectedRegistered": 3001.3
+          "regShort": 686.5,
+          "turnShort": 584.1
         },
         {
           "age": 26,
@@ -5195,7 +5636,8 @@
           "ratesPooled": false,
           "expected": 2668.4,
           "missing": -1299.1,
-          "expectedRegistered": 3089.9
+          "regShort": 676.7,
+          "turnShort": 622.5
         },
         {
           "age": 27,
@@ -5207,7 +5649,8 @@
           "ratesPooled": false,
           "expected": 2677.0,
           "missing": -1240.5,
-          "expectedRegistered": 3099.8
+          "regShort": 566.2,
+          "turnShort": 674.3
         },
         {
           "age": 28,
@@ -5219,7 +5662,8 @@
           "ratesPooled": false,
           "expected": 2671.7,
           "missing": -1146.1,
-          "expectedRegistered": 3093.7
+          "regShort": 548.1,
+          "turnShort": 598.0
         },
         {
           "age": 29,
@@ -5231,7 +5675,8 @@
           "ratesPooled": false,
           "expected": 2713.8,
           "missing": -1141.7,
-          "expectedRegistered": 3142.4
+          "regShort": 560.1,
+          "turnShort": 581.6
         },
         {
           "age": 30,
@@ -5243,7 +5688,8 @@
           "ratesPooled": false,
           "expected": 2712.4,
           "missing": -1202.9,
-          "expectedRegistered": 3140.8
+          "regShort": 552.3,
+          "turnShort": 650.6
         },
         {
           "age": 31,
@@ -5255,7 +5701,8 @@
           "ratesPooled": false,
           "expected": 2744.4,
           "missing": -940.6,
-          "expectedRegistered": 3177.9
+          "regShort": 382.1,
+          "turnShort": 558.5
         },
         {
           "age": 32,
@@ -5267,7 +5714,8 @@
           "ratesPooled": false,
           "expected": 2844.9,
           "missing": -993.9,
-          "expectedRegistered": 3294.3
+          "regShort": 429.4,
+          "turnShort": 564.5
         },
         {
           "age": 33,
@@ -5279,7 +5727,8 @@
           "ratesPooled": false,
           "expected": 2748.1,
           "missing": -894.6,
-          "expectedRegistered": 3182.2
+          "regShort": 343.6,
+          "turnShort": 551.0
         },
         {
           "age": 34,
@@ -5291,7 +5740,8 @@
           "ratesPooled": false,
           "expected": 2571.2,
           "missing": -862.8,
-          "expectedRegistered": 2977.3
+          "regShort": 360.0,
+          "turnShort": 502.9
         },
         {
           "age": 35,
@@ -5303,7 +5753,8 @@
           "ratesPooled": false,
           "expected": 2605.6,
           "missing": -854.5,
-          "expectedRegistered": 3017.2
+          "regShort": 389.7,
+          "turnShort": 464.8
         },
         {
           "age": 36,
@@ -5315,7 +5766,8 @@
           "ratesPooled": false,
           "expected": 2660.0,
           "missing": -686.7,
-          "expectedRegistered": 3080.2
+          "regShort": 254.6,
+          "turnShort": 432.1
         },
         {
           "age": 37,
@@ -5327,7 +5779,8 @@
           "ratesPooled": false,
           "expected": 2628.6,
           "missing": -766.5,
-          "expectedRegistered": 3043.8
+          "regShort": 339.0,
+          "turnShort": 427.5
         },
         {
           "age": 38,
@@ -5339,7 +5792,8 @@
           "ratesPooled": false,
           "expected": 2517.3,
           "missing": -836.1,
-          "expectedRegistered": 2914.9
+          "regShort": 281.4,
+          "turnShort": 554.7
         },
         {
           "age": 39,
@@ -5351,7 +5805,8 @@
           "ratesPooled": false,
           "expected": 2576.9,
           "missing": -694.0,
-          "expectedRegistered": 2984.0
+          "regShort": 237.7,
+          "turnShort": 456.4
         },
         {
           "age": 40,
@@ -5363,7 +5818,8 @@
           "ratesPooled": false,
           "expected": 2576.2,
           "missing": -568.0,
-          "expectedRegistered": 2983.1
+          "regShort": 193.7,
+          "turnShort": 374.3
         },
         {
           "age": 41,
@@ -5375,7 +5831,8 @@
           "ratesPooled": false,
           "expected": 2571.1,
           "missing": -621.7,
-          "expectedRegistered": 2977.2
+          "regShort": 220.1,
+          "turnShort": 401.6
         },
         {
           "age": 42,
@@ -5387,7 +5844,8 @@
           "ratesPooled": false,
           "expected": 2537.2,
           "missing": -684.2,
-          "expectedRegistered": 2938.0
+          "regShort": 267.1,
+          "turnShort": 417.1
         },
         {
           "age": 43,
@@ -5399,7 +5857,8 @@
           "ratesPooled": false,
           "expected": 2474.2,
           "missing": -524.4,
-          "expectedRegistered": 2865.0
+          "regShort": 249.5,
+          "turnShort": 274.8
         },
         {
           "age": 44,
@@ -5411,7 +5870,8 @@
           "ratesPooled": false,
           "expected": 2396.2,
           "missing": -524.3,
-          "expectedRegistered": 2774.6
+          "regShort": 234.4,
+          "turnShort": 289.9
         },
         {
           "age": 45,
@@ -5423,7 +5883,8 @@
           "ratesPooled": false,
           "expected": 2368.7,
           "missing": -526.4,
-          "expectedRegistered": 2742.9
+          "regShort": 295.0,
+          "turnShort": 231.5
         },
         {
           "age": 46,
@@ -5435,7 +5896,8 @@
           "ratesPooled": false,
           "expected": 2294.4,
           "missing": -479.4,
-          "expectedRegistered": 2656.8
+          "regShort": 147.2,
+          "turnShort": 332.2
         },
         {
           "age": 47,
@@ -5447,7 +5909,8 @@
           "ratesPooled": false,
           "expected": 2284.5,
           "missing": -381.4,
-          "expectedRegistered": 2645.4
+          "regShort": 172.7,
+          "turnShort": 208.7
         },
         {
           "age": 48,
@@ -5459,7 +5922,8 @@
           "ratesPooled": false,
           "expected": 2307.3,
           "missing": -534.4,
-          "expectedRegistered": 2671.7
+          "regShort": 209.0,
+          "turnShort": 325.4
         },
         {
           "age": 49,
@@ -5471,7 +5935,8 @@
           "ratesPooled": false,
           "expected": 2340.3,
           "missing": -431.5,
-          "expectedRegistered": 2709.9
+          "regShort": 79.9,
+          "turnShort": 351.6
         },
         {
           "age": 50,
@@ -5483,7 +5948,8 @@
           "ratesPooled": false,
           "expected": 2390.9,
           "missing": -373.9,
-          "expectedRegistered": 2768.6
+          "regShort": 104.0,
+          "turnShort": 270.0
         },
         {
           "age": 51,
@@ -5495,7 +5961,8 @@
           "ratesPooled": false,
           "expected": 2645.1,
           "missing": -524.6,
-          "expectedRegistered": 3062.9
+          "regShort": 185.2,
+          "turnShort": 339.5
         },
         {
           "age": 52,
@@ -5507,7 +5974,8 @@
           "ratesPooled": false,
           "expected": 2573.4,
           "missing": -365.8,
-          "expectedRegistered": 2979.9
+          "regShort": 97.5,
+          "turnShort": 268.4
         },
         {
           "age": 53,
@@ -5519,7 +5987,8 @@
           "ratesPooled": false,
           "expected": 2548.7,
           "missing": -358.1,
-          "expectedRegistered": 2951.2
+          "regShort": 109.8,
+          "turnShort": 248.3
         },
         {
           "age": 54,
@@ -5531,7 +6000,8 @@
           "ratesPooled": false,
           "expected": 2462.0,
           "missing": -430.3,
-          "expectedRegistered": 2850.9
+          "regShort": 180.7,
+          "turnShort": 249.7
         },
         {
           "age": 55,
@@ -5543,7 +6013,8 @@
           "ratesPooled": false,
           "expected": 2416.5,
           "missing": -252.8,
-          "expectedRegistered": 2798.2
+          "regShort": 126.7,
+          "turnShort": 126.0
         },
         {
           "age": 56,
@@ -5555,7 +6026,8 @@
           "ratesPooled": false,
           "expected": 2509.4,
           "missing": -395.5,
-          "expectedRegistered": 2905.8
+          "regShort": 197.8,
+          "turnShort": 197.8
         },
         {
           "age": 57,
@@ -5567,7 +6039,8 @@
           "ratesPooled": false,
           "expected": 2626.1,
           "missing": -352.1,
-          "expectedRegistered": 3040.9
+          "regShort": 142.7,
+          "turnShort": 209.4
         },
         {
           "age": 58,
@@ -5579,7 +6052,8 @@
           "ratesPooled": false,
           "expected": 2729.3,
           "missing": -161.0,
-          "expectedRegistered": 3160.4
+          "regShort": 59.0,
+          "turnShort": 102.0
         },
         {
           "age": 59,
@@ -5591,7 +6065,8 @@
           "ratesPooled": false,
           "expected": 2702.1,
           "missing": -112.6,
-          "expectedRegistered": 3128.9
+          "regShort": 52.1,
+          "turnShort": 60.5
         },
         {
           "age": 60,
@@ -5603,7 +6078,8 @@
           "ratesPooled": false,
           "expected": 2769.2,
           "missing": -333.8,
-          "expectedRegistered": 3206.5
+          "regShort": 212.0,
+          "turnShort": 121.7
         },
         {
           "age": 61,
@@ -5615,7 +6091,8 @@
           "ratesPooled": false,
           "expected": 2665.7,
           "missing": -159.0,
-          "expectedRegistered": 3086.7
+          "regShort": 106.6,
+          "turnShort": 52.4
         },
         {
           "age": 62,
@@ -5627,7 +6104,8 @@
           "ratesPooled": false,
           "expected": 2688.0,
           "missing": -80.0,
-          "expectedRegistered": 3112.6
+          "regShort": 5.3,
+          "turnShort": 74.7
         },
         {
           "age": 63,
@@ -5639,7 +6117,8 @@
           "ratesPooled": false,
           "expected": 2645.6,
           "missing": -132.4,
-          "expectedRegistered": 3063.5
+          "regShort": 49.6,
+          "turnShort": 82.8
         },
         {
           "age": 64,
@@ -5651,7 +6130,8 @@
           "ratesPooled": false,
           "expected": 2633.4,
           "missing": -106.4,
-          "expectedRegistered": 3049.3
+          "regShort": 50.3,
+          "turnShort": 56.1
         },
         {
           "age": 65,
@@ -5663,7 +6143,8 @@
           "ratesPooled": false,
           "expected": 2580.2,
           "missing": 21.8,
-          "expectedRegistered": 2987.7
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 66,
@@ -5675,7 +6156,8 @@
           "ratesPooled": false,
           "expected": 2476.2,
           "missing": -77.2,
-          "expectedRegistered": 2867.3
+          "regShort": 0.0,
+          "turnShort": 77.2
         },
         {
           "age": 67,
@@ -5687,7 +6169,8 @@
           "ratesPooled": false,
           "expected": 2420.1,
           "missing": -17.7,
-          "expectedRegistered": 2802.3
+          "regShort": 17.7,
+          "turnShort": 0.0
         },
         {
           "age": 68,
@@ -5699,7 +6182,8 @@
           "ratesPooled": false,
           "expected": 2313.9,
           "missing": 20.8,
-          "expectedRegistered": 2679.4
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 69,
@@ -5711,7 +6195,8 @@
           "ratesPooled": false,
           "expected": 2253.5,
           "missing": 169.1,
-          "expectedRegistered": 2609.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 70,
@@ -5723,7 +6208,8 @@
           "ratesPooled": false,
           "expected": 2131.3,
           "missing": 90.1,
-          "expectedRegistered": 2468.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 71,
@@ -5735,7 +6221,8 @@
           "ratesPooled": false,
           "expected": 2065.3,
           "missing": 77.5,
-          "expectedRegistered": 2391.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 72,
@@ -5747,7 +6234,8 @@
           "ratesPooled": false,
           "expected": 1932.1,
           "missing": -15.8,
-          "expectedRegistered": 2237.3
+          "regShort": 15.8,
+          "turnShort": 0.0
         },
         {
           "age": 73,
@@ -5759,7 +6247,8 @@
           "ratesPooled": false,
           "expected": 1857.4,
           "missing": 33.6,
-          "expectedRegistered": 2150.7
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 74,
@@ -5771,7 +6260,8 @@
           "ratesPooled": false,
           "expected": 1840.6,
           "missing": 88.4,
-          "expectedRegistered": 2131.4
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 75,
@@ -5783,7 +6273,8 @@
           "ratesPooled": false,
           "expected": 1927.6,
           "missing": 25.1,
-          "expectedRegistered": 2232.1
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 76,
@@ -5795,7 +6286,8 @@
           "ratesPooled": false,
           "expected": 1357.8,
           "missing": 46.1,
-          "expectedRegistered": 1572.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 77,
@@ -5807,7 +6299,8 @@
           "ratesPooled": false,
           "expected": 1292.5,
           "missing": 56.3,
-          "expectedRegistered": 1496.7
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 78,
@@ -5819,7 +6312,8 @@
           "ratesPooled": false,
           "expected": 1203.0,
           "missing": 42.5,
-          "expectedRegistered": 1393.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 79,
@@ -5831,7 +6325,8 @@
           "ratesPooled": false,
           "expected": 1244.7,
           "missing": 54.1,
-          "expectedRegistered": 1441.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 80,
@@ -5843,7 +6338,8 @@
           "ratesPooled": true,
           "expected": 1041.9,
           "missing": -10.7,
-          "expectedRegistered": 1206.4
+          "regShort": 0.0,
+          "turnShort": 10.7
         },
         {
           "age": 81,
@@ -5855,7 +6351,8 @@
           "ratesPooled": true,
           "expected": 920.9,
           "missing": -9.4,
-          "expectedRegistered": 1066.3
+          "regShort": 0.0,
+          "turnShort": 9.4
         },
         {
           "age": 82,
@@ -5867,7 +6364,8 @@
           "ratesPooled": true,
           "expected": 828.9,
           "missing": -8.5,
-          "expectedRegistered": 959.8
+          "regShort": 0.0,
+          "turnShort": 8.5
         },
         {
           "age": 83,
@@ -5879,7 +6377,8 @@
           "ratesPooled": true,
           "expected": 755.0,
           "missing": -7.7,
-          "expectedRegistered": 874.3
+          "regShort": 0.0,
+          "turnShort": 7.7
         },
         {
           "age": 84,
@@ -5891,7 +6390,8 @@
           "ratesPooled": true,
           "expected": 690.6,
           "missing": -7.1,
-          "expectedRegistered": 799.6
+          "regShort": 0.0,
+          "turnShort": 7.1
         },
         {
           "age": 85,
@@ -5903,7 +6403,8 @@
           "ratesPooled": true,
           "expected": 606.9,
           "missing": -87.1,
-          "expectedRegistered": 702.8
+          "regShort": 44.2,
+          "turnShort": 42.9
         },
         {
           "age": 86,
@@ -5915,7 +6416,8 @@
           "ratesPooled": true,
           "expected": 546.0,
           "missing": -78.4,
-          "expectedRegistered": 632.2
+          "regShort": 39.7,
+          "turnShort": 38.6
         },
         {
           "age": 87,
@@ -5927,7 +6429,8 @@
           "ratesPooled": true,
           "expected": 488.4,
           "missing": -70.1,
-          "expectedRegistered": 565.5
+          "regShort": 35.5,
+          "turnShort": 34.5
         },
         {
           "age": 88,
@@ -5939,7 +6442,8 @@
           "ratesPooled": true,
           "expected": 408.2,
           "missing": -58.6,
-          "expectedRegistered": 472.6
+          "regShort": 29.7,
+          "turnShort": 28.9
         },
         {
           "age": 89,
@@ -5951,7 +6455,8 @@
           "ratesPooled": true,
           "expected": 365.3,
           "missing": -52.4,
-          "expectedRegistered": 423.0
+          "regShort": 26.6,
+          "turnShort": 25.8
         },
         {
           "age": 90,
@@ -5963,7 +6468,8 @@
           "ratesPooled": true,
           "expected": 318.5,
           "missing": -45.7,
-          "expectedRegistered": 368.8
+          "regShort": 23.2,
+          "turnShort": 22.5
         },
         {
           "age": 91,
@@ -5975,7 +6481,8 @@
           "ratesPooled": true,
           "expected": 273.6,
           "missing": -39.3,
-          "expectedRegistered": 316.8
+          "regShort": 19.9,
+          "turnShort": 19.4
         },
         {
           "age": 92,
@@ -5987,7 +6494,8 @@
           "ratesPooled": true,
           "expected": 231.0,
           "missing": -33.1,
-          "expectedRegistered": 267.5
+          "regShort": 16.8,
+          "turnShort": 16.3
         },
         {
           "age": 93,
@@ -5999,7 +6507,8 @@
           "ratesPooled": true,
           "expected": 185.4,
           "missing": -26.6,
-          "expectedRegistered": 214.7
+          "regShort": 13.5,
+          "turnShort": 13.1
         },
         {
           "age": 94,
@@ -6011,7 +6520,8 @@
           "ratesPooled": true,
           "expected": 151.4,
           "missing": -21.7,
-          "expectedRegistered": 175.3
+          "regShort": 11.0,
+          "turnShort": 10.7
         },
         {
           "age": 95,
@@ -6023,7 +6533,8 @@
           "ratesPooled": true,
           "expected": 118.5,
           "missing": -17.0,
-          "expectedRegistered": 137.2
+          "regShort": 8.6,
+          "turnShort": 8.4
         },
         {
           "age": 96,
@@ -6035,7 +6546,8 @@
           "ratesPooled": true,
           "expected": 88.5,
           "missing": -12.7,
-          "expectedRegistered": 102.5
+          "regShort": 6.4,
+          "turnShort": 6.3
         },
         {
           "age": 97,
@@ -6047,7 +6559,8 @@
           "ratesPooled": true,
           "expected": 66.8,
           "missing": -9.6,
-          "expectedRegistered": 77.3
+          "regShort": 4.9,
+          "turnShort": 4.7
         },
         {
           "age": 98,
@@ -6059,7 +6572,8 @@
           "ratesPooled": true,
           "expected": 47.6,
           "missing": -6.9,
-          "expectedRegistered": 55.1
+          "regShort": 3.5,
+          "turnShort": 3.4
         },
         {
           "age": 99,
@@ -6071,7 +6585,8 @@
           "ratesPooled": true,
           "expected": 32.9,
           "missing": -4.7,
-          "expectedRegistered": 38.1
+          "regShort": 2.4,
+          "turnShort": 2.3
         },
         {
           "age": 100,
@@ -6083,7 +6598,8 @@
           "ratesPooled": true,
           "expected": 54.1,
           "missing": -7.7,
-          "expectedRegistered": 62.7
+          "regShort": 3.9,
+          "turnShort": 3.8
         }
       ]
     },
@@ -6092,6 +6608,9 @@
       "avgTurnout": 65.21,
       "over65Turnout": 74.62,
       "over65Registration": 80.24,
+      "over65ShowUp": 93.0,
+      "registrationShortfall": 15483.6,
+      "turnoutShortfall": 7806.9,
       "registrationGap": 16702.4,
       "registeredNotVoted": 20139.2,
       "totalCvap": 242052.0,
@@ -6109,7 +6628,8 @@
           "ratesPooled": false,
           "expected": 3184.7,
           "missing": -1595.1,
-          "expectedRegistered": 3424.5
+          "regShort": 1439.9,
+          "turnShort": 155.2
         },
         {
           "age": 19,
@@ -6121,7 +6641,8 @@
           "ratesPooled": false,
           "expected": 3108.3,
           "missing": -1194.6,
-          "expectedRegistered": 3342.4
+          "regShort": 829.7,
+          "turnShort": 365.0
         },
         {
           "age": 20,
@@ -6133,7 +6654,8 @@
           "ratesPooled": false,
           "expected": 3048.0,
           "missing": -1227.4,
-          "expectedRegistered": 3277.5
+          "regShort": 894.9,
+          "turnShort": 332.4
         },
         {
           "age": 21,
@@ -6145,7 +6667,8 @@
           "ratesPooled": false,
           "expected": 3131.1,
           "missing": -1158.6,
-          "expectedRegistered": 3366.9
+          "regShort": 877.8,
+          "turnShort": 280.8
         },
         {
           "age": 22,
@@ -6157,7 +6680,8 @@
           "ratesPooled": false,
           "expected": 2983.4,
           "missing": -858.8,
-          "expectedRegistered": 3208.1
+          "regShort": 636.3,
+          "turnShort": 222.5
         },
         {
           "age": 23,
@@ -6169,7 +6693,8 @@
           "ratesPooled": false,
           "expected": 3035.5,
           "missing": -816.9,
-          "expectedRegistered": 3264.1
+          "regShort": 563.7,
+          "turnShort": 253.2
         },
         {
           "age": 24,
@@ -6181,7 +6706,8 @@
           "ratesPooled": false,
           "expected": 3012.2,
           "missing": -888.5,
-          "expectedRegistered": 3239.1
+          "regShort": 625.1,
+          "turnShort": 263.4
         },
         {
           "age": 25,
@@ -6193,7 +6719,8 @@
           "ratesPooled": false,
           "expected": 2981.6,
           "missing": -928.4,
-          "expectedRegistered": 3206.2
+          "regShort": 593.9,
+          "turnShort": 334.6
         },
         {
           "age": 26,
@@ -6205,7 +6732,8 @@
           "ratesPooled": false,
           "expected": 2901.9,
           "missing": -670.5,
-          "expectedRegistered": 3120.5
+          "regShort": 481.1,
+          "turnShort": 189.4
         },
         {
           "age": 27,
@@ -6217,7 +6745,8 @@
           "ratesPooled": false,
           "expected": 2937.0,
           "missing": -864.4,
-          "expectedRegistered": 3158.2
+          "regShort": 563.6,
+          "turnShort": 300.8
         },
         {
           "age": 28,
@@ -6229,7 +6758,8 @@
           "ratesPooled": false,
           "expected": 2999.0,
           "missing": -783.5,
-          "expectedRegistered": 3224.9
+          "regShort": 512.9,
+          "turnShort": 270.6
         },
         {
           "age": 29,
@@ -6241,7 +6771,8 @@
           "ratesPooled": false,
           "expected": 2924.6,
           "missing": -613.0,
-          "expectedRegistered": 3144.8
+          "regShort": 333.5,
+          "turnShort": 279.5
         },
         {
           "age": 30,
@@ -6253,7 +6784,8 @@
           "ratesPooled": false,
           "expected": 3086.4,
           "missing": -687.1,
-          "expectedRegistered": 3318.8
+          "regShort": 406.1,
+          "turnShort": 281.0
         },
         {
           "age": 31,
@@ -6265,7 +6797,8 @@
           "ratesPooled": false,
           "expected": 3101.2,
           "missing": -676.3,
-          "expectedRegistered": 3334.8
+          "regShort": 381.3,
+          "turnShort": 295.0
         },
         {
           "age": 32,
@@ -6277,7 +6810,8 @@
           "ratesPooled": false,
           "expected": 3153.9,
           "missing": -700.9,
-          "expectedRegistered": 3391.4
+          "regShort": 380.1,
+          "turnShort": 320.7
         },
         {
           "age": 33,
@@ -6289,7 +6823,8 @@
           "ratesPooled": false,
           "expected": 3175.3,
           "missing": -644.9,
-          "expectedRegistered": 3414.4
+          "regShort": 419.1,
+          "turnShort": 225.7
         },
         {
           "age": 34,
@@ -6301,7 +6836,8 @@
           "ratesPooled": false,
           "expected": 3174.3,
           "missing": -696.8,
-          "expectedRegistered": 3413.3
+          "regShort": 440.6,
+          "turnShort": 256.1
         },
         {
           "age": 35,
@@ -6313,7 +6849,8 @@
           "ratesPooled": false,
           "expected": 3091.2,
           "missing": -715.6,
-          "expectedRegistered": 3324.0
+          "regShort": 464.6,
+          "turnShort": 251.0
         },
         {
           "age": 36,
@@ -6325,7 +6862,8 @@
           "ratesPooled": false,
           "expected": 3045.0,
           "missing": -563.4,
-          "expectedRegistered": 3274.3
+          "regShort": 382.8,
+          "turnShort": 180.6
         },
         {
           "age": 37,
@@ -6337,7 +6875,8 @@
           "ratesPooled": false,
           "expected": 2971.0,
           "missing": -408.0,
-          "expectedRegistered": 3194.8
+          "regShort": 210.8,
+          "turnShort": 197.2
         },
         {
           "age": 38,
@@ -6349,7 +6888,8 @@
           "ratesPooled": false,
           "expected": 2934.9,
           "missing": -433.8,
-          "expectedRegistered": 3156.0
+          "regShort": 315.6,
+          "turnShort": 118.2
         },
         {
           "age": 39,
@@ -6361,7 +6901,8 @@
           "ratesPooled": false,
           "expected": 2855.9,
           "missing": -384.6,
-          "expectedRegistered": 3071.0
+          "regShort": 251.4,
+          "turnShort": 133.1
         },
         {
           "age": 40,
@@ -6373,7 +6914,8 @@
           "ratesPooled": false,
           "expected": 2889.7,
           "missing": -344.5,
-          "expectedRegistered": 3107.4
+          "regShort": 194.9,
+          "turnShort": 149.6
         },
         {
           "age": 41,
@@ -6385,7 +6927,8 @@
           "ratesPooled": false,
           "expected": 2933.6,
           "missing": -292.8,
-          "expectedRegistered": 3154.6
+          "regShort": 183.0,
+          "turnShort": 109.8
         },
         {
           "age": 42,
@@ -6397,7 +6940,8 @@
           "ratesPooled": false,
           "expected": 2868.6,
           "missing": -429.5,
-          "expectedRegistered": 3084.6
+          "regShort": 225.7,
+          "turnShort": 203.7
         },
         {
           "age": 43,
@@ -6409,7 +6953,8 @@
           "ratesPooled": false,
           "expected": 2819.8,
           "missing": -355.9,
-          "expectedRegistered": 3032.1
+          "regShort": 168.3,
+          "turnShort": 187.6
         },
         {
           "age": 44,
@@ -6421,7 +6966,8 @@
           "ratesPooled": false,
           "expected": 2860.8,
           "missing": -378.3,
-          "expectedRegistered": 3076.3
+          "regShort": 233.0,
+          "turnShort": 145.3
         },
         {
           "age": 45,
@@ -6433,7 +6979,8 @@
           "ratesPooled": false,
           "expected": 2758.3,
           "missing": -192.3,
-          "expectedRegistered": 2966.0
+          "regShort": 55.9,
+          "turnShort": 136.4
         },
         {
           "age": 46,
@@ -6445,7 +6992,8 @@
           "ratesPooled": false,
           "expected": 2669.9,
           "missing": -157.9,
-          "expectedRegistered": 2871.0
+          "regShort": 34.4,
+          "turnShort": 123.6
         },
         {
           "age": 47,
@@ -6457,7 +7005,8 @@
           "ratesPooled": false,
           "expected": 2644.3,
           "missing": -270.4,
-          "expectedRegistered": 2843.5
+          "regShort": 172.4,
+          "turnShort": 98.0
         },
         {
           "age": 48,
@@ -6469,7 +7018,8 @@
           "ratesPooled": false,
           "expected": 2587.9,
           "missing": -229.6,
-          "expectedRegistered": 2782.8
+          "regShort": 133.4,
+          "turnShort": 96.2
         },
         {
           "age": 49,
@@ -6481,7 +7031,8 @@
           "ratesPooled": false,
           "expected": 2510.9,
           "missing": -202.5,
-          "expectedRegistered": 2700.0
+          "regShort": 139.9,
+          "turnShort": 62.7
         },
         {
           "age": 50,
@@ -6493,7 +7044,8 @@
           "ratesPooled": false,
           "expected": 2583.6,
           "missing": -307.9,
-          "expectedRegistered": 2778.1
+          "regShort": 238.3,
+          "turnShort": 69.6
         },
         {
           "age": 51,
@@ -6505,7 +7057,8 @@
           "ratesPooled": false,
           "expected": 2591.2,
           "missing": -133.8,
-          "expectedRegistered": 2786.4
+          "regShort": 58.5,
+          "turnShort": 75.3
         },
         {
           "age": 52,
@@ -6517,7 +7070,8 @@
           "ratesPooled": false,
           "expected": 2729.9,
           "missing": -245.7,
-          "expectedRegistered": 2935.5
+          "regShort": 157.6,
+          "turnShort": 88.1
         },
         {
           "age": 53,
@@ -6529,7 +7083,8 @@
           "ratesPooled": false,
           "expected": 2889.9,
           "missing": -261.8,
-          "expectedRegistered": 3107.6
+          "regShort": 178.0,
+          "turnShort": 83.8
         },
         {
           "age": 54,
@@ -6541,7 +7096,8 @@
           "ratesPooled": false,
           "expected": 2918.7,
           "missing": -122.9,
-          "expectedRegistered": 3138.5
+          "regShort": 88.0,
+          "turnShort": 34.9
         },
         {
           "age": 55,
@@ -6553,7 +7109,8 @@
           "ratesPooled": false,
           "expected": 2772.2,
           "missing": -162.9,
-          "expectedRegistered": 2981.0
+          "regShort": 78.2,
+          "turnShort": 84.7
         },
         {
           "age": 56,
@@ -6565,7 +7122,8 @@
           "ratesPooled": false,
           "expected": 2693.8,
           "missing": -78.4,
-          "expectedRegistered": 2896.7
+          "regShort": 78.4,
+          "turnShort": 0.0
         },
         {
           "age": 57,
@@ -6577,7 +7135,8 @@
           "ratesPooled": false,
           "expected": 2687.5,
           "missing": -233.2,
-          "expectedRegistered": 2889.9
+          "regShort": 166.5,
+          "turnShort": 66.6
         },
         {
           "age": 58,
@@ -6589,7 +7148,8 @@
           "ratesPooled": false,
           "expected": 2731.6,
           "missing": -116.7,
-          "expectedRegistered": 2937.4
+          "regShort": 86.0,
+          "turnShort": 30.7
         },
         {
           "age": 59,
@@ -6601,7 +7161,8 @@
           "ratesPooled": false,
           "expected": 2963.4,
           "missing": -182.8,
-          "expectedRegistered": 3186.6
+          "regShort": 124.6,
+          "turnShort": 58.3
         },
         {
           "age": 60,
@@ -6613,7 +7174,8 @@
           "ratesPooled": false,
           "expected": 2957.4,
           "missing": -210.2,
-          "expectedRegistered": 3180.1
+          "regShort": 113.8,
+          "turnShort": 96.4
         },
         {
           "age": 61,
@@ -6625,7 +7187,8 @@
           "ratesPooled": false,
           "expected": 2972.2,
           "missing": -190.1,
-          "expectedRegistered": 3196.1
+          "regShort": 109.5,
+          "turnShort": 80.6
         },
         {
           "age": 62,
@@ -6637,7 +7200,8 @@
           "ratesPooled": false,
           "expected": 2964.7,
           "missing": 1.0,
-          "expectedRegistered": 3188.0
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 63,
@@ -6649,7 +7213,8 @@
           "ratesPooled": false,
           "expected": 2982.4,
           "missing": -89.7,
-          "expectedRegistered": 3207.0
+          "regShort": 27.8,
+          "turnShort": 61.8
         },
         {
           "age": 64,
@@ -6661,7 +7226,8 @@
           "ratesPooled": false,
           "expected": 2986.1,
           "missing": -81.4,
-          "expectedRegistered": 3211.0
+          "regShort": 48.1,
+          "turnShort": 33.3
         },
         {
           "age": 65,
@@ -6673,7 +7239,8 @@
           "ratesPooled": false,
           "expected": 2895.2,
           "missing": -85.0,
-          "expectedRegistered": 3113.3
+          "regShort": 83.5,
+          "turnShort": 1.5
         },
         {
           "age": 66,
@@ -6685,7 +7252,8 @@
           "ratesPooled": false,
           "expected": 2860.1,
           "missing": 51.2,
-          "expectedRegistered": 3075.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 67,
@@ -6697,7 +7265,8 @@
           "ratesPooled": false,
           "expected": 2769.1,
           "missing": -10.3,
-          "expectedRegistered": 2977.6
+          "regShort": 10.2,
+          "turnShort": 0.0
         },
         {
           "age": 68,
@@ -6709,7 +7278,8 @@
           "ratesPooled": false,
           "expected": 2697.7,
           "missing": 3.0,
-          "expectedRegistered": 2900.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 69,
@@ -6721,7 +7291,8 @@
           "ratesPooled": false,
           "expected": 2615.6,
           "missing": 30.3,
-          "expectedRegistered": 2812.6
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 70,
@@ -6733,7 +7304,8 @@
           "ratesPooled": false,
           "expected": 2528.4,
           "missing": 1.3,
-          "expectedRegistered": 2718.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 71,
@@ -6745,7 +7317,8 @@
           "ratesPooled": false,
           "expected": 2420.0,
           "missing": -11.9,
-          "expectedRegistered": 2602.3
+          "regShort": 11.9,
+          "turnShort": 0.0
         },
         {
           "age": 72,
@@ -6757,7 +7330,8 @@
           "ratesPooled": false,
           "expected": 2306.1,
           "missing": 63.0,
-          "expectedRegistered": 2479.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 73,
@@ -6769,7 +7343,8 @@
           "ratesPooled": false,
           "expected": 2185.2,
           "missing": 82.9,
-          "expectedRegistered": 2349.7
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 74,
@@ -6781,7 +7356,8 @@
           "ratesPooled": false,
           "expected": 2056.4,
           "missing": 73.5,
-          "expectedRegistered": 2211.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 75,
@@ -6793,7 +7369,8 @@
           "ratesPooled": false,
           "expected": 1972.6,
           "missing": 20.5,
-          "expectedRegistered": 2121.2
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 76,
@@ -6805,7 +7382,8 @@
           "ratesPooled": false,
           "expected": 1913.2,
           "missing": 60.1,
-          "expectedRegistered": 2057.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 77,
@@ -6817,7 +7395,8 @@
           "ratesPooled": false,
           "expected": 2011.4,
           "missing": 81.7,
-          "expectedRegistered": 2162.9
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 78,
@@ -6829,7 +7408,8 @@
           "ratesPooled": false,
           "expected": 1408.6,
           "missing": 8.4,
-          "expectedRegistered": 1514.7
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 79,
@@ -6841,7 +7421,8 @@
           "ratesPooled": false,
           "expected": 1323.2,
           "missing": -2.2,
-          "expectedRegistered": 1422.9
+          "regShort": 0.0,
+          "turnShort": 2.3
         },
         {
           "age": 80,
@@ -6853,7 +7434,8 @@
           "ratesPooled": true,
           "expected": 1261.5,
           "missing": 7.7,
-          "expectedRegistered": 1356.5
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 81,
@@ -6865,7 +7447,8 @@
           "ratesPooled": true,
           "expected": 1246.9,
           "missing": 7.6,
-          "expectedRegistered": 1340.8
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 82,
@@ -6877,7 +7460,8 @@
           "ratesPooled": true,
           "expected": 1040.9,
           "missing": 6.4,
-          "expectedRegistered": 1119.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 83,
@@ -6889,7 +7473,8 @@
           "ratesPooled": true,
           "expected": 907.9,
           "missing": 5.6,
-          "expectedRegistered": 976.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 84,
@@ -6901,7 +7486,8 @@
           "ratesPooled": true,
           "expected": 805.6,
           "missing": 4.9,
-          "expectedRegistered": 866.3
+          "regShort": 0.0,
+          "turnShort": 0.0
         },
         {
           "age": 85,
@@ -6913,7 +7499,8 @@
           "ratesPooled": true,
           "expected": 716.6,
           "missing": -62.2,
-          "expectedRegistered": 770.5
+          "regShort": 43.4,
+          "turnShort": 18.7
         },
         {
           "age": 86,
@@ -6925,7 +7512,8 @@
           "ratesPooled": true,
           "expected": 644.5,
           "missing": -55.9,
-          "expectedRegistered": 693.0
+          "regShort": 39.1,
+          "turnShort": 16.8
         },
         {
           "age": 87,
@@ -6937,7 +7525,8 @@
           "ratesPooled": true,
           "expected": 551.1,
           "missing": -47.8,
-          "expectedRegistered": 592.6
+          "regShort": 33.4,
+          "turnShort": 14.4
         },
         {
           "age": 88,
@@ -6949,7 +7538,8 @@
           "ratesPooled": true,
           "expected": 485.9,
           "missing": -42.1,
-          "expectedRegistered": 522.5
+          "regShort": 29.5,
+          "turnShort": 12.7
         },
         {
           "age": 89,
@@ -6961,7 +7551,8 @@
           "ratesPooled": true,
           "expected": 425.2,
           "missing": -36.9,
-          "expectedRegistered": 457.2
+          "regShort": 25.8,
+          "turnShort": 11.1
         },
         {
           "age": 90,
@@ -6973,7 +7564,8 @@
           "ratesPooled": true,
           "expected": 346.3,
           "missing": -30.0,
-          "expectedRegistered": 372.4
+          "regShort": 21.0,
+          "turnShort": 9.0
         },
         {
           "age": 91,
@@ -6985,7 +7577,8 @@
           "ratesPooled": true,
           "expected": 302.5,
           "missing": -26.2,
-          "expectedRegistered": 325.3
+          "regShort": 18.3,
+          "turnShort": 7.9
         },
         {
           "age": 92,
@@ -6997,7 +7590,8 @@
           "ratesPooled": true,
           "expected": 255.6,
           "missing": -22.1,
-          "expectedRegistered": 274.9
+          "regShort": 15.5,
+          "turnShort": 6.7
         },
         {
           "age": 93,
@@ -7009,7 +7603,8 @@
           "ratesPooled": true,
           "expected": 212.7,
           "missing": -18.4,
-          "expectedRegistered": 228.8
+          "regShort": 12.9,
+          "turnShort": 5.5
         },
         {
           "age": 94,
@@ -7021,7 +7616,8 @@
           "ratesPooled": true,
           "expected": 173.7,
           "missing": -15.0,
-          "expectedRegistered": 186.8
+          "regShort": 10.5,
+          "turnShort": 4.5
         },
         {
           "age": 95,
@@ -7033,7 +7629,8 @@
           "ratesPooled": true,
           "expected": 134.3,
           "missing": -11.7,
-          "expectedRegistered": 144.4
+          "regShort": 8.1,
+          "turnShort": 3.5
         },
         {
           "age": 96,
@@ -7045,7 +7642,8 @@
           "ratesPooled": true,
           "expected": 105.4,
           "missing": -9.1,
-          "expectedRegistered": 113.4
+          "regShort": 6.4,
+          "turnShort": 2.8
         },
         {
           "age": 97,
@@ -7057,7 +7655,8 @@
           "ratesPooled": true,
           "expected": 79.2,
           "missing": -6.9,
-          "expectedRegistered": 85.1
+          "regShort": 4.8,
+          "turnShort": 2.1
         },
         {
           "age": 98,
@@ -7069,7 +7668,8 @@
           "ratesPooled": true,
           "expected": 56.2,
           "missing": -4.8,
-          "expectedRegistered": 60.5
+          "regShort": 3.4,
+          "turnShort": 1.5
         },
         {
           "age": 99,
@@ -7081,7 +7681,8 @@
           "ratesPooled": true,
           "expected": 40.7,
           "missing": -3.5,
-          "expectedRegistered": 43.8
+          "regShort": 2.5,
+          "turnShort": 1.1
         },
         {
           "age": 100,
@@ -7093,7 +7694,8 @@
           "ratesPooled": true,
           "expected": 70.1,
           "missing": -6.1,
-          "expectedRegistered": 75.4
+          "regShort": 4.2,
+          "turnShort": 1.8
         }
       ]
     }

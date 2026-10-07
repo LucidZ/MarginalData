@@ -74,7 +74,7 @@ async function readState() {
     const surface = section.querySelector(".pb-surface");
     const nodeCount = surface ? surface.querySelectorAll("*").length : null;
     const surfaceHeight = surface ? surface.getBoundingClientRect().height : null;
-    const d = section.querySelector("path.pb-line-reg")?.getAttribute("d") ?? null;
+    const d = section.querySelector(".pb-plot-wrap path.pb-expected-line")?.getAttribute("d") ?? null;
     return { u, endsOn, plotOpacity, heroFig, deltaOpacity, nodeCount, surfaceHeight, d };
   });
 }
@@ -119,20 +119,21 @@ console.log("PASS: timeline buttons fill only at a real year; plot dimmed only b
 // happened. Both years' shortfalls are measured against their OWN 65+ rate
 // (23.3M / 36.1M), not a value pinned to 2024's rate (that was 54.0M in the
 // earlier pinned-benchmark version of this beat - see spec addendum).
-// First hero figure is now the registration gap (people not registered),
-// the view beat 1 hands to the morph since the 2026-09-25 simplification.
-const ALLOWED = [16.7, 20.6];
+// First hero figure is the turnout part of the shortfall (votes lost to
+// registrants voting less than 65+ registrants do), the view beat 1 hands to
+// the morph since the 2026-10-02 shortfall split.
+const ALLOWED = [7.8, 18.5];
 for (const s of samples) {
   const nearest = ALLOWED.reduce((a, b) => (Math.abs(b - s.heroFig) < Math.abs(a - s.heroFig) ? b : a));
   if (Math.abs(s.heroFig - nearest) > 0.05) {
-    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 16.7M nor 20.6M`);
+    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 7.8M nor 18.5M`);
   }
 }
 const below = samples.filter((s) => s.u < 0.45);
 const above = samples.filter((s) => s.u > 0.55);
-if (!below.every((s) => Math.abs(s.heroFig - 16.7) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 16.7M before the flip");
-if (!above.every((s) => Math.abs(s.heroFig - 20.6) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 20.6M after the flip");
-console.log("PASS: gold figure snaps between the two real values only (16.7M / 20.6M), never a blend");
+if (!below.every((s) => Math.abs(s.heroFig - 7.8) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 7.8M before the flip");
+if (!above.every((s) => Math.abs(s.heroFig - 18.5) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 18.5M after the flip");
+console.log("PASS: gold figure snaps between the two real values only (7.8M / 18.5M), never a blend");
 
 // 4. Delta line stays invisible until deep in the morph (last ~15% of u),
 // then fades in - reserved space, never a mount (spec S5/S7).
@@ -145,19 +146,20 @@ console.log("PASS: delta line stays hidden until the very end of the morph, then
 // 6. DOM node count under the chart surface stays within a small band.
 // Legend/hero/year-stamp elements are always-mounted (opacity-only, spec
 // S5) so they contribute zero variance. The one legitimate source of
-// mount/unmount left is the gold gap `<rect>` per bar (`showGap`): since
+// mount/unmount left is the gold gap `<rect>`s per bar (the single wedge and
+// its two split shades): since
 // each cycle now has its OWN 65+ line, a handful of ages sit on different
 // sides of "short" in 2024 vs. 2022, so a few gap rects enter/exit as the
 // bars cross their own cycle's line. That's real geometry, not a printed
 // number, so a small spread here is expected. The other is cohorts crossing
 // the chart's edges (ageRows.ts hopRows): the two oldest 2022 cohorts mount
 // mid-hop to slide in from the right, and the two youngest 2024 cohorts
-// unmount once the chart settles on 2022 - up to 5 elements each (track,
-// registered, votes, gap, hit), so up to 20 more. Anything beyond that
+// unmount once the chart settles on 2022 - up to 6 elements each (track,
+// votes, gap, two split shades, hit), so up to 24 more. Anything beyond that
 // means something unrelated is mounting/unmounting.
 const counts = samples.map((s) => s.nodeCount);
 const countSpread = Math.max(...counts) - Math.min(...counts);
-if (countSpread > 30) throw new Error(`FAIL: DOM node count swung by ${countSpread} across the morph (${Math.min(...counts)}-${Math.max(...counts)}) - more than gap rects crossing threshold plus cohorts crossing the edges`);
+if (countSpread > 40) throw new Error(`FAIL: DOM node count swung by ${countSpread} across the morph (${Math.min(...counts)}-${Math.max(...counts)}) - more than gap rects crossing threshold plus cohorts crossing the edges`);
 console.log(`PASS: DOM node count stays within a small band across the morph (${Math.min(...counts)}-${Math.max(...counts)})`);
 
 // 7. Chart surface height identical at both true endpoints (spec S5
@@ -174,10 +176,8 @@ const firstYs = lineYs(samples[0].d);
 const lastYs = lineYs(samples[samples.length - 1].d);
 const midIdx = Math.floor(firstYs.length / 2);
 const lineDrift = lastYs[midIdx] - firstYs[midIdx];
-// The morph now carries the registration line (80.24% -> 77.34%), a much
-// smaller drop than the turnout line's 74.62% -> 66.79%.
-if (lineDrift < 3) throw new Error(`FAIL: registration dotted line only moved ${lineDrift.toFixed(1)}px at a middle age - expected a visible drop from 80.24% to 77.34%`);
-console.log(`PASS: registration dotted line drops from the 2024 rate to the 2022 rate (${lineDrift.toFixed(2)}px at a middle age)`);
+if (lineDrift < 3) throw new Error(`FAIL: dotted line only moved ${lineDrift.toFixed(1)}px at a middle age - expected a visible drop from 74.62% to 66.79%`);
+console.log(`PASS: dotted line drops from the 2024 rate to the 2022 rate (${lineDrift.toFixed(2)}px at a middle age)`);
 
 // 9. Reversibility - revisit descending, expect the same u->figure map.
 const descSamples = [];

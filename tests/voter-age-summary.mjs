@@ -30,15 +30,14 @@ const years = Object.keys(data.byAge).sort();
 const segmentsOf = (y) =>
   data.byAge[y].rows.reduce(
     (acc, r) => {
-      const std = Math.max(r.registered, r.expectedRegistered);
-      [r.votes, r.registered - r.votes, std - r.registered, r.cvap - std].forEach((v, s) => (acc[s] += v));
+      [r.votes, r.registered - r.votes, r.cvap - r.registered].forEach((v, s) => (acc[s] += v));
       return acc;
     },
-    [0, 0, 0, 0]
+    [0, 0, 0]
   );
 
 /** Steps counted from the 2012 card: 0 card, 1 merged bar, 2 every
- * election, 3 shortfall alone, 4 registered non-voters alone. Scrolls
+ * election. Scrolls
  * `frac` of the way from step a to step a+1. */
 async function scrollBetweenLast(a, frac) {
   await page.evaluate(
@@ -67,13 +66,13 @@ const counts = () =>
   }));
 
 // Merge, at several fractions.
-for (const f of [0, 0.3, 0.5, 0.7, 1]) {
+for (const f of [0, 0.2, 0.3, 0.5, 0.7, 1]) {
   await scrollBetweenLast(0, f);
   await plot().screenshot({ path: `${OUT}/voter-age-summary-merge-${Math.round(f * 100)}.png` });
   console.log("merge", f, await counts());
 }
 let c = await counts();
-if (c.summary !== 4) fail(`merged view should be one 4-segment bar, got ${c.summary} rects`);
+if (c.summary !== 3) fail(`merged view should be one 3-segment bar, got ${c.summary} rects`);
 
 // Reveal.
 for (const f of [0.4, 0.7, 1]) {
@@ -82,44 +81,20 @@ for (const f of [0.4, 0.7, 1]) {
   console.log("reveal", f, await counts());
 }
 c = await counts();
-if (c.summary !== years.length * 4) fail(`every election should be a 4-segment bar, got ${c.summary} rects`);
+if (c.summary !== years.length * 3) fail(`every election should be a 3-segment bar, got ${c.summary} rects`);
 
 // Segment heights proportional to the JSON's sums (pixel ratio vs the 2012 total).
 const heights = await page.evaluate(() =>
   [...document.querySelectorAll("g.pb-summary rect")].map((r) => +r.getAttribute("height"))
 );
-const pxPerK = heights.slice(0, 4).reduce((a, v) => a + v, 0) / segmentsOf(years[0]).reduce((a, v) => a + v, 0);
+const pxPerK = heights.slice(0, 3).reduce((a, v) => a + v, 0) / segmentsOf(years[0]).reduce((a, v) => a + v, 0);
 years.forEach((y, i) =>
   segmentsOf(y).forEach((v, s) => {
-    const got = heights[i * 4 + s] / pxPerK;
+    const got = heights[i * 3 + s] / pxPerK;
     if (Math.abs(got - v) > 50) fail(`${y} segment ${s}: drew ${got.toFixed(0)}k, data ${v.toFixed(0)}k`);
   })
 );
 console.log("segment heights match the data");
-
-// Focus step: gold and light green pulled out side by side on the axis,
-// each direct-labelled with its value.
-for (const f of [0.2, 0.4, 0.55, 0.7, 1]) {
-  await scrollBetweenLast(2, f);
-  await plot().screenshot({ path: `${OUT}/voter-age-summary-focus-${Math.round(f * 100)}.png` });
-}
-{
-  const got = await page.evaluate(() => [...document.querySelectorAll("g.pb-summary-labels text")].map((t) => t.textContent));
-  const want = years.flatMap((y) => [1, 2].map((s) => (segmentsOf(y)[s] / 1000).toFixed(1)));
-  if (JSON.stringify([...got].sort()) !== JSON.stringify([...want].sort())) fail(`focus labels ${got} != ${want}`);
-  const rects = await page.evaluate(() =>
-    [...document.querySelectorAll("g.pb-summary rect")].map((r) => ({ x: +r.getAttribute("x"), w: +r.getAttribute("width"), y: +r.getAttribute("y"), h: +r.getAttribute("height") }))
-  );
-  if (rects.length !== years.length * 2) fail(`focus: expected two segments per bar, got ${rects.length}`);
-  // Both on the axis, and no pair overlapping.
-  const base = Math.max(...rects.map((r) => r.y + r.h));
-  if (rects.some((r) => Math.abs(r.y + r.h - base) > 0.5)) fail("focus: every segment should sit on the axis");
-  const sorted = [...rects].sort((a, b) => a.x - b.x);
-  sorted.slice(1).forEach((r, i) => {
-    if (r.x < sorted[i].x + sorted[i].w - 0.5) fail(`focus: bars overlap at x=${r.x}`);
-  });
-  console.log(`focus: ${got.join(" ")}`);
-}
 
 // Back up: plain age chart again.
 await scrollBetweenLast(0, 0);

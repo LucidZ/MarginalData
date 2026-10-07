@@ -34,41 +34,43 @@ export interface PopulationBarRow {
   offAxis?: boolean;
   /** Registration layer, "age" variant only (VoterAge beat 1). Thousands. */
   registered?: number;
-  /** cvap x the 65+ registration rate - the registration standard's line. */
-  expectedRegistered?: number;
+  /** The gold wedge's two parts, thousands of votes ("age" variant only):
+   * votes lost because registrants here show up less often than the
+   * benchmark group's, and votes lost to people not registered. They sum to
+   * expected - votes where that's positive, else both are 0. */
+  turnShort?: number;
+  regShort?: number;
 }
 
-/** One election as a single stacked bar: the age chart's four segments
- * summed over every age. Thousands. */
+/** One election as a single stacked bar: every age's three segments
+ * summed. Thousands. */
 export interface SummaryBar {
   key: string; // election year
   kind: "presidential" | "midterm";
-  /** Bottom-up, in the age chart's own vertical order - see stackSegments. */
-  segments: [number, number, number, number];
+  /** Bottom-up - see stackSegments. */
+  segments: [number, number, number];
 }
 
-/** The four pieces one age column is drawn as, bottom-up: votes, registered
- * but didn't vote, the gold registration shortfall, and the rest of the
- * eligible track above whichever of registered/standard is higher. Summing
- * these over every age is what a SummaryBar is, so the merge can fly each
- * piece into its own slice of the total. */
-export function stackSegments(d: {
-  cvap: number;
-  votes: number;
-  registered?: number;
-  expectedRegistered?: number;
-}): [number, number, number, number] {
+/** The three nested counts one age column splits into, bottom-up: votes,
+ * registered people who didn't vote, and eligible citizens who aren't
+ * registered. So the stack's tops read as votes, registered and eligible.
+ * Summing these over every age is what a SummaryBar is, so the merge can fly
+ * each piece into its own slice of the total. No 65+ standard here - the
+ * summary drops the shortfall framing for the plain counts. */
+export function stackSegments(d: { cvap: number; votes: number; registered?: number }): [number, number, number] {
   const reg = d.registered ?? d.votes;
-  const std = Math.max(reg, d.expectedRegistered ?? reg);
-  return [d.votes, reg - d.votes, std - reg, d.cvap - std];
+  return [d.votes, reg - d.votes, d.cvap - reg];
 }
 
-const SEGMENT_CLASS = ["pb-seg--votes", "pb-seg--registered", "pb-seg--gap", "pb-seg--track"];
+const SEGMENT_CLASS = ["pb-seg--votes", "pb-seg--registered", "pb-seg--track"];
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
+/** Fraction of the merge spent recolouring the age columns in place, from
+ * the shortfall view into the three plain counts, before anything moves. */
+const RECOLOR = 0.25;
 /** Fraction of the merge spent staggering: age i starts at i/n of this, so
  * the youngest columns lead and the bar fills like a pour. */
 const MERGE_STAGGER = 0.45;
@@ -86,6 +88,9 @@ interface Props {
   showTrack?: boolean;
   showVotes?: boolean;
   showExpected?: boolean;
+  /** Opacity 0-1 of the expected line, overriding showExpected - for a line
+   * that fades out under a scroll-driven transition. */
+  expectedOpacity?: number;
   /** Legend copy for the expected line, e.g. "expected at 65+ turnout". */
   expectedLineLabel?: string;
   /** Draws the gold shortfall layer: for each bar that falls under the
@@ -94,18 +99,18 @@ interface Props {
    * isn't voting, and shading a "surplus" would imply some groups should
    * participate less. */
   showGap?: boolean;
-  /** Opacity 0-1 of the registered bar, drawn between the eligible track
-   * and the votes bar. Omit on charts whose rows carry no `registered`. */
-  registeredOpacity?: number;
-  /** The 65+ registration standard ("age" variant only): a dotted line at
-   * expectedRegistered plus a gold gap down to the registered bar. `line`/
-   * `gap` are opacities. The other hurdle needs no layer of its own - the
-   * registered bar showing above the votes bar is registered non-voters. */
-  registrationStandard?: { line: number; gap: number };
-  /** Legend copy for the gold swatch. The dotted-line label is
-   * `expectedLineLabel`. Both are one entry each, relabelled by the caller
-   * as the active standard changes, so the legend never reflows. */
+  /** Opacity 0-1 of the gold wedge split into its two parts ("age" variant
+   * only, rows must carry turnShort/regShort): the turnout shade from the
+   * votes bar up, the registration shade from there to the dotted line.
+   * Drawn over the single wedge, so the two always fill exactly its shape. */
+  gapSplit?: number;
+  /** Legend copy for the gold swatch (the turnout shade once split - the
+   * same colour as the single wedge). The dotted-line label is
+   * `expectedLineLabel`. */
   gapLegendLabel?: string;
+  /** Legend copy for the registration shade, shown once gapSplit > 0.5.
+   * Always mounted, so its arrival doesn't reflow the legend. */
+  gapRegLegendLabel?: string;
   /** Fixes the y-domain - pass the same domain across a dataset swap (e.g.
    * 2024 -> 2022) so the transition reads as "the bars dropped", not "the
    * axis rescaled under them". Computed from the data if omitted. */
@@ -126,7 +131,7 @@ interface Props {
   heroGap?: {
     /** One figure, or two side by side. Keep labels short enough not to
      * wrap - the block's height must not change when the count does. */
-    items: { figure: string; label: string; delta: string; swatch: "gap" | "registered" }[];
+    items: { figure: string; label: string; delta: string; swatch: "gap" | "gap-turnout" | "gap-reg" }[];
     opacity?: number;
     deltaOpacity: number;
   };
@@ -146,8 +151,9 @@ interface Props {
   transitionMs?: number;
   tooltipFor?: (row: PopulationBarRow) => ReactNode;
   /** The age chart collapsing into one bar per election ("age" variant
-   * only). `merge` 0-1 flies every column's four segments (stackSegments)
-   * into its slice of the `from` election's bar, while the axes cross-fade
+   * only). `merge` 0-RECOLOR fades every column into its three segments
+   * (stackSegments) where it stands; the rest of `merge` flies them into
+   * their slices of the `from` election's bar, while the axes cross-fade
    * to the totals scale; `reveal` 0-1 then fades in the other elections' bars.
    * Both driven by scroll, so pass transitionMs 0 alongside. At merge 0 this
    * is the plain age chart. `rows` must be the `from` election at rest. */
@@ -156,22 +162,6 @@ interface Props {
     from: string;
     merge: number;
     reveal: number;
-    /** Pulling segments out of the finished stacks, never resizing one:
-     * `others` is the opacity of every segment not featured (faded in place),
-     * and each featured segment slides whole from its spot in the stack
-     * (`drop` 0) onto the axis (`drop` 1). A featured segment with a `side`
-     * also moves over as it drops, into the left (-1) or right (1) half of
-     * a pair sharing the year's slot, by `split` 0-1. `zoom` 0-1 lerps the y-domain from
-     * the full stacks down to `zoomTo` (thousands) - pass one zoomTo for every
-     * focus step so their heights stay comparable. `label` direct-labels
-     * those segments' bars. Omit for the plain stacks. */
-    focus?: {
-      others: number;
-      featured: { seg: number; drop: number; opacity: number; side?: -1 | 1; split?: number }[];
-      zoom: number;
-      zoomTo: number;
-      label?: { segs: number[]; opacity: number };
-    };
   };
   summaryTooltip?: (bar: SummaryBar) => ReactNode;
 }
@@ -197,11 +187,12 @@ export default function PopulationBars({
   showTrack = true,
   showVotes = true,
   showExpected = true,
+  expectedOpacity,
   expectedLineLabel = "expected at average turnout",
   showGap = false,
-  registeredOpacity = 0,
-  registrationStandard,
+  gapSplit = 0,
   gapLegendLabel = "Shortfall",
+  gapRegLegendLabel = "",
   yDomain: yDomainProp,
   directLabelMissing = false,
   heroGap,
@@ -295,6 +286,7 @@ export default function PopulationBars({
     const yDomain: [number, number] =
       yDomainProp ?? [0, Math.max(1, ...rows.map((r) => r.cvap)) * 1.08];
     const yScale = scaleLinear().domain(yDomain).range([innerH, 0]);
+    const lineOpacity = expectedOpacity ?? (showExpected ? 1 : 0);
 
     let root = svg.select<SVGGElement>("g.pb-root");
     if (root.empty()) {
@@ -312,19 +304,17 @@ export default function PopulationBars({
       // The age chart proper, in one group so the summary can hide it whole.
       const age = clipped.append("g").attr("class", "pb-age");
       age.append("g").attr("class", "pb-tracks");
-      age.append("g").attr("class", "pb-registered");
       age.append("g").attr("class", "pb-votes");
       age.append("g").attr("class", "pb-gaps");
+      age.append("g").attr("class", "pb-gaps-turnout");
       age.append("g").attr("class", "pb-gaps-reg");
       age.append("path").attr("class", "pb-expected-line");
-      age.append("path").attr("class", "pb-expected-line pb-line-reg");
       root.append("g").attr("class", "pb-expected-ticks");
       root.append("g").attr("class", "pb-missing-labels");
       age.append("g").attr("class", "pb-hits");
       clipped.append("g").attr("class", "pb-merge");
       clipped.append("g").attr("class", "pb-summary");
       clipped.append("g").attr("class", "pb-summary-hits");
-      root.append("g").attr("class", "pb-summary-labels");
     }
     root.attr("transform", `translate(${margin.left},${margin.top})`);
     root
@@ -410,32 +400,6 @@ export default function PopulationBars({
       .attr("y", (d: PopulationBarRow) => yScale(d.cvap))
       .attr("height", (d: PopulationBarRow) => innerH - yScale(d.cvap));
 
-    // Registered bars - between the track and the votes bar, so the three
-    // read as one funnel: eligible, registered, voted.
-    const registeredRows = rows.filter((r) => r.registered !== undefined);
-    const regBars = root
-      .select<SVGGElement>("g.pb-registered")
-      .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-registered")
-      .data(registeredRows, (d) => d.key);
-    regBars.exit().remove();
-    const regClass = (d: PopulationBarRow) => `pb-registered${d.ratesPooled ? " pb-pooled" : ""}`;
-    const regMerged = regBars
-      .enter()
-      .append("rect")
-      .attr("class", regClass)
-      .attr("x", (d) => xOf(d))
-      .attr("width", xScale.bandwidth())
-      .attr("y", innerH)
-      .attr("height", 0)
-      .merge(regBars as any)
-      .attr("class", regClass)
-      .style("opacity", (d: PopulationBarRow) => registeredOpacity * (d.opacity ?? 1));
-    anim(regMerged)
-      .attr("x", (d: PopulationBarRow) => xOf(d))
-      .attr("width", xScale.bandwidth())
-      .attr("y", (d: PopulationBarRow) => yScale(d.registered!))
-      .attr("height", (d: PopulationBarRow) => innerH - yScale(d.registered!));
-
     // Votes bars - same x/width as the track, shorter height, drawn on
     // top so the visible remainder above it (up to the track's height)
     // reads directly as the gap between eligible and voted.
@@ -471,13 +435,14 @@ export default function PopulationBars({
       group: string,
       bottom: (d: PopulationBarRow) => number | undefined,
       top: (d: PopulationBarRow) => number | undefined,
-      opacity: number
+      opacity: number,
+      cls = "pb-gap"
     ) => {
       const data = rows.filter((d) => {
         const b = bottom(d), t = top(d);
         return b !== undefined && t !== undefined && b < t;
       });
-      const gapClass = (d: PopulationBarRow) => `pb-gap${d.ratesPooled ? " pb-pooled" : ""}`;
+      const gapClass = (d: PopulationBarRow) => `pb-gap ${cls}${d.ratesPooled ? " pb-pooled" : ""}`;
       const sel = root
         .select<SVGGElement>(`g.${group}`)
         .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-gap")
@@ -501,29 +466,13 @@ export default function PopulationBars({
         .attr("height", (d: PopulationBarRow) => yScale(bottom(d)!) - yScale(top(d)!));
     };
     drawGapLayer("pb-gaps", (d) => d.votes, (d) => d.expected, showGap ? 1 : 0);
-    drawGapLayer(
-      "pb-gaps-reg",
-      (d) => d.registered,
-      (d) => (registrationStandard ? d.expectedRegistered : undefined),
-      registrationStandard?.gap ?? 0
-    );
-
-    // The registration standard's dotted line - same style as the expected
-    // line, age variant only.
-    const drawStandardLine = (cls: string, value: (d: PopulationBarRow) => number | undefined, opacity: number) => {
-      const path = root.select<SVGPathElement>(`path.${cls}`);
-      const lineRows = rows.filter((d) => value(d) !== undefined);
-      if (xKind !== "age" || !lineRows.length) {
-        path.style("opacity", 0).attr("d", null);
-        return;
-      }
-      const gen = d3line<PopulationBarRow>()
-        .x((d) => xOf(d) + xScale.bandwidth() / 2)
-        .y((d) => yScale(value(d)!))
-        .curve(curveLinear);
-      anim(path.datum(lineRows).style("opacity", opacity)).attr("d", gen);
-    };
-    drawStandardLine("pb-line-reg", (d) => d.expectedRegistered, registrationStandard?.line ?? 0);
+    // The split, over the single wedge. The seam is capped at the dotted
+    // line: mid-morph the lerped parts can overshoot a lerped gap that's
+    // crossing zero, and the two shades must never spill past the wedge.
+    const seam = (d: PopulationBarRow) =>
+      d.turnShort === undefined ? undefined : Math.min(d.votes + d.turnShort, d.expected);
+    drawGapLayer("pb-gaps-turnout", (d) => d.votes, seam, gapSplit, "pb-gap--turnout");
+    drawGapLayer("pb-gaps-reg", seam, (d) => (d.regShort === undefined ? undefined : d.expected), gapSplit, "pb-gap--reg");
 
     // Expected-turnout marker. Age variant: one dotted path through every
     // bar's expected value - since cvap varies smoothly by age, this
@@ -531,7 +480,7 @@ export default function PopulationBars({
     // Category variant: categories aren't ordered, so a connecting line
     // would imply a false adjacency - draw a short dashed tick per bar
     // instead (a bullet-chart target marker).
-    const expectedLine = root.select<SVGPathElement>("path.pb-expected-line:not(.pb-line-reg)");
+    const expectedLine = root.select<SVGPathElement>("path.pb-expected-line");
     const expectedTicks = root.select<SVGGElement>("g.pb-expected-ticks");
     if (xKind === "age") {
       expectedTicks.selectAll("*").remove();
@@ -539,7 +488,7 @@ export default function PopulationBars({
         .x((d) => xOf(d) + xScale.bandwidth() / 2)
         .y((d) => yScale(d.expected))
         .curve(curveLinear);
-      anim(expectedLine.datum(rows).style("opacity", showExpected ? 1 : 0)).attr("d", lineGen);
+      anim(expectedLine.datum(rows).style("opacity", lineOpacity)).attr("d", lineGen);
     } else {
       expectedLine.style("opacity", 0);
       const ticks = expectedTicks.selectAll<SVGLineElement, PopulationBarRow>("line.pb-expected-tick").data(rows, (d) => d.key);
@@ -549,7 +498,7 @@ export default function PopulationBars({
         .append("line")
         .attr("class", "pb-expected-tick")
         .merge(ticks as any)
-        .style("opacity", showExpected ? 1 : 0);
+        .style("opacity", lineOpacity);
       anim(ticksMerged)
         .attr("x1", (d: PopulationBarRow) => xScale(d.key) ?? 0)
         .attr("x2", (d: PopulationBarRow) => (xScale(d.key) ?? 0) + xScale.bandwidth())
@@ -608,11 +557,15 @@ export default function PopulationBars({
 
     // ---- Summary: the age columns merging into one bar per election ----
     const m = summary ? clamp01(summary.merge) : 0;
-    root.select("g.pb-age").style("display", m > 0 ? "none" : "");
+    // Recolour first (the new pieces fade in over the age chart, at the
+    // columns' own heights), then fly.
+    const recolor = clamp01(m / RECOLOR);
+    const fly = clamp01((m - RECOLOR) / (1 - RECOLOR));
+    root.select("g.pb-age").style("display", fly > 0 ? "none" : "");
     // Axes cross-fade with a dead zone in the middle, so the two scales
     // never sit on top of each other.
-    const oldAxis = 1 - clamp01(m / 0.4);
-    const newAxis = clamp01((m - 0.6) / 0.4);
+    const oldAxis = 1 - clamp01(fly / 0.4);
+    const newAxis = clamp01((fly - 0.6) / 0.4);
     root.select("g.pb-axis-x").style("opacity", oldAxis);
     root.select("g.pb-axis-y").style("opacity", oldAxis);
     const xAxis2 = root.select<SVGGElement>("g.pb-axis-x2").attr("transform", `translate(0,${innerH})`);
@@ -620,10 +573,8 @@ export default function PopulationBars({
     const sumBars = summary?.bars ?? [];
     const xs = scaleBand<string>().domain(sumBars.map((b) => b.key)).range([0, innerW]).padding(0.3);
     const totalOf = (b: SummaryBar) => b.segments.reduce((a, v) => a + v, 0);
-    const focus = summary?.focus;
-    const fullTop = Math.max(1, ...sumBars.map(totalOf)) * 1.08;
     const ys = scaleLinear()
-      .domain([0, focus ? lerp(fullTop, focus.zoomTo * 1.08, focus.zoom) : fullTop])
+      .domain([0, Math.max(1, ...sumBars.map(totalOf)) * 1.08])
       .range([innerH, 0]);
     const kindOf = new Map(sumBars.map((b) => [b.key, b.kind]));
     if (summary && m > 0) {
@@ -647,7 +598,7 @@ export default function PopulationBars({
     }
     type Piece = { key: string; seg: number; x: number; y: number; w: number; h: number; o?: number };
 
-    // Mid-merge: every column split into its four segments, each flying
+    // Mid-merge: every column split into its three segments, each flying
     // (in pixel space, so the y-scale change is part of the flight) from
     // where the age chart draws it to its slice of the `from` bar. Slices
     // stack by age within each segment, youngest at the bottom.
@@ -655,12 +606,12 @@ export default function PopulationBars({
     if (summary && m > 0 && m < 1) {
       const cols = rows.filter((r) => !r.offAxis).sort((a, b) => Number(a.x) - Number(b.x));
       const segs = cols.map(stackSegments);
-      const segTotals = [0, 1, 2, 3].map((s) => segs.reduce((a, v) => a + v[s], 0));
+      const segTotals = [0, 1, 2].map((s) => segs.reduce((a, v) => a + v[s], 0));
       const segBase = segTotals.map((_, s) => segTotals.slice(0, s).reduce((a, v) => a + v, 0));
-      const offset = [0, 0, 0, 0];
+      const offset = [0, 0, 0];
       const toX = xs(summary.from) ?? 0;
       cols.forEach((d, i) => {
-        const k = easeInOut(clamp01((m - (i / cols.length) * MERGE_STAGGER) / (1 - MERGE_STAGGER)));
+        const k = easeInOut(clamp01((fly - (i / cols.length) * MERGE_STAGGER) / (1 - MERGE_STAGGER)));
         let below = 0;
         segs[i].forEach((v, s) => {
           const fromTop = yScale(below + v), fromBot = yScale(below);
@@ -672,7 +623,7 @@ export default function PopulationBars({
           // A hair of overlap so neighbouring same-colour slices don't
           // show anti-aliased seams once they've packed together.
           const h = lerp(fromBot, toBot, k) - top + 0.6 * k;
-          pieces.push({ key: `${d.key}-${s}`, seg: s, x: lerp(xOf(d), toX, k), w: lerp(xScale.bandwidth(), xs.bandwidth(), k), y: top, h });
+          pieces.push({ key: `${d.key}-${s}`, seg: s, x: lerp(xOf(d), toX, k), w: lerp(xScale.bandwidth(), xs.bandwidth(), k), y: top, h, o: recolor });
         });
       });
     }
@@ -707,58 +658,17 @@ export default function PopulationBars({
       const i = others.indexOf(b);
       return easeInOut(clamp01((summary.reveal - (i / others.length) * REVEAL_STAGGER) / (1 - REVEAL_STAGGER)));
     };
-    // Segments are only ever drawn at their real height. Focusing fades the
-    // rest in place (`others`) and slides each featured segment, whole, from
-    // its spot in the stack (`drop` 0) down onto the axis (`drop` 1).
-    const featured = new Map((focus?.featured ?? []).map((ft) => [ft.seg, ft]));
-    const restOpacity = focus?.others ?? 1;
     const stacks: Piece[] = [];
-    const lifted: Piece[] = [];
-    // No "M": a pair splits one slot, too thin for "20.7M", and the axis
-    // already says millions. `narrow` (phones) gets a smaller face too.
-    const labels: { key: string; x: number; y: number; v: number; narrow: boolean }[] = [];
     const shown = sumBars.map((b) => ({ b, f: appear(b) })).filter((d) => d.f > 0);
     for (const { b, f } of shown) {
       const x = xs(b.key) ?? 0;
       let below = 0;
       b.segments.forEach((v, s) => {
-        const h = v;
-        const ft = featured.get(s);
-        const base = ft ? lerp(below, 0, ft.drop) : below;
-        // A pair spans most of the slot's step (not just one bar's width),
-        // so each half stays readable.
-        let px = x, pw = xs.bandwidth();
-        if (ft?.side) {
-          const pairW = xs.step() * 0.9, gap = 3, halfW = (pairW - gap) / 2;
-          const centre = x + xs.bandwidth() / 2;
-          const k = ft.split ?? 0;
-          px = lerp(x, ft.side < 0 ? centre - pairW / 2 : centre + gap / 2, k);
-          pw = lerp(pw, halfW, k);
-        }
-        const piece = { key: `${b.key}-${s}`, seg: s, x: px, w: pw, y: ys(base + h), h: ys(base) - ys(base + h), o: (ft ? ft.opacity : restOpacity) * f };
-        if (piece.o > 0 && h > 0) (ft ? lifted : stacks).push(piece);
-        if (focus?.label?.segs.includes(s)) labels.push({ key: piece.key, x: px + pw / 2, y: ys(base + h) - 6, v, narrow: pw < 18 });
-        below += h;
+        if (v > 0) stacks.push({ key: `${b.key}-${s}`, seg: s, x, w: xs.bandwidth(), y: ys(below + v), h: ys(below) - ys(below + v), o: f });
+        below += v;
       });
     }
-    // Featured last, so a sliding segment passes in front of the faded ones.
-    drawPieces("pb-summary", [...stacks, ...lifted]);
-
-    const labelSel = root
-      .select<SVGGElement>("g.pb-summary-labels")
-      .style("opacity", focus?.label?.opacity ?? 0)
-      .selectAll<SVGTextElement, (typeof labels)[number]>("text")
-      .data(labels, (d) => d.key);
-    labelSel.exit().remove();
-    labelSel
-      .enter()
-      .append("text")
-      .attr("text-anchor", "middle")
-      .merge(labelSel as any)
-      .attr("class", (d: (typeof labels)[number]) => `pb-sum-label${d.narrow ? " pb-sum-label--narrow" : ""}`)
-      .attr("x", (d: (typeof labels)[number]) => d.x)
-      .attr("y", (d: (typeof labels)[number]) => d.y)
-      .text((d: (typeof labels)[number]) => (d.v / 1000).toFixed(1));
+    drawPieces("pb-summary", stacks);
 
     const sumHits = root
       .select<SVGGElement>("g.pb-summary-hits")
@@ -792,10 +702,9 @@ export default function PopulationBars({
     showTrack,
     showVotes,
     showExpected,
+    expectedOpacity,
     showGap,
-    registeredOpacity,
-    registrationStandard?.line,
-    registrationStandard?.gap,
+    gapSplit,
     shortRows,
     yDomainProp,
     directLabelMissing,
@@ -804,11 +713,15 @@ export default function PopulationBars({
     transitionMs,
   ]);
 
-  // One dotted entry and one gold entry, shared by whichever standard is
-  // active (the caller relabels them), so the legend never reflows.
-  const lineLegendOn = showExpected || (registrationStandard?.line ?? 0) > 0.5;
-  const gapLegendOn = showGap || (registrationStandard?.gap ?? 0) > 0.5;
-  const hasRegistered = rows.some((r) => r.registered !== undefined);
+  // One dotted entry and the gold entries, relabelled by the caller rather
+  // than swapped, so the legend never reflows.
+  // Once the summary's recolour is half done, the gold entry becomes
+  // "Registered" and the not-registered gold goes (that share is the grey
+  // track again, now counted down from the registered line, not the 65+ one).
+  const sumLegend = (summary?.merge ?? 0) >= RECOLOR / 2;
+  const lineLegendOn = !sumLegend && (expectedOpacity ?? (showExpected ? 1 : 0)) > 0.5;
+  const regLegendOn = !sumLegend && gapSplit > 0.5;
+  const hasSplit = rows.some((r) => r.regShort !== undefined);
 
   return (
     <div ref={wrapRef} className="voa-chart-surface pb-surface">
@@ -823,17 +736,6 @@ export default function PopulationBars({
         >
           <span className="voa-legend-swatch pb-legend-votes" /> Votes cast
         </span>
-        {/* After votes, not between eligible and votes: it drops out again at
-            the total step, and a hole at the end of the row goes unnoticed. */}
-        {hasRegistered && (
-          <span
-            className="pb-legend-entry"
-            style={{ marginLeft: "0.9rem", opacity: registeredOpacity > 0.5 ? 1 : 0 }}
-            aria-hidden={registeredOpacity <= 0.5 || undefined}
-          >
-            <span className="voa-legend-swatch pb-legend-registered" /> Registered but didn't vote
-          </span>
-        )}
         <span
           className="pb-legend-expected"
           style={{ marginLeft: "0.9rem", opacity: lineLegendOn ? 1 : 0 }}
@@ -846,11 +748,21 @@ export default function PopulationBars({
         </span>
         <span
           className="pb-legend-entry"
-          style={{ marginLeft: "0.9rem", opacity: gapLegendOn ? 1 : 0 }}
-          aria-hidden={!gapLegendOn || undefined}
+          style={{ marginLeft: "0.9rem", opacity: showGap || sumLegend ? 1 : 0 }}
+          aria-hidden={!(showGap || sumLegend) || undefined}
         >
-          <span className="voa-legend-swatch pb-legend-gap" /> {gapLegendLabel}
+          <span className={`voa-legend-swatch ${sumLegend ? "pb-legend-registered" : "pb-legend-gap"}`} />{" "}
+          {sumLegend ? "Registered" : gapLegendLabel}
         </span>
+        {hasSplit && (
+          <span
+            className="pb-legend-entry"
+            style={{ marginLeft: "0.9rem", opacity: regLegendOn ? 1 : 0 }}
+            aria-hidden={!regLegendOn || undefined}
+          >
+            <span className="voa-legend-swatch pb-legend-gap-reg" /> {gapRegLegendLabel}
+          </span>
+        )}
       </div>
       <div className="pb-plot-wrap">
         <svg

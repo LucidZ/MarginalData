@@ -98,9 +98,9 @@ for (const year of [...years].reverse()) {
   if (year !== "2024" && !lock.cardOn) fail(`${year}: year card not marked as resting`);
   if (lock.plotOpacity < 0.99 || lock.dotOpacity > 0.01) fail(`${year}: plot should be crisp and dot hidden at rest ${JSON.stringify(lock)}`);
   const c = data.byAge[year];
-  const want = [fmtM(c.registrationGap), fmtM(c.registeredNotVoted)];
+  const want = [fmtM(c.turnoutShortfall), fmtM(c.registrationShortfall)];
   if (JSON.stringify(lock.hero) !== JSON.stringify(want)) fail(`${year}: hero ${JSON.stringify(lock.hero)}, want ${JSON.stringify(want)}`);
-  if (!lock.legend.includes(`${c.over65Registration.toFixed(1)}%`)) fail(`${year}: legend "${lock.legend}" lacks its own 65+ rate`);
+  if (!lock.legend.includes(`${c.over65Turnout.toFixed(1)}%`)) fail(`${year}: legend "${lock.legend}" lacks its own 65+ rate`);
   const ticks = await yTicks();
   if (firstTicks === null) firstTicks = ticks;
   else if (ticks !== firstTicks) fail(`${year}: y ticks changed ${ticks} vs ${firstTicks}`);

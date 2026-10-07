@@ -21,7 +21,8 @@ export function toBarRow(row: AgeRow): PopulationBarRow {
     turnout: row.turnout,
     ratesPooled: row.ratesPooled,
     registered: row.registered,
-    expectedRegistered: row.expectedRegistered,
+    regShort: row.regShort,
+    turnShort: row.turnShort,
   };
 }
 
@@ -70,7 +71,8 @@ export function hopRows(from: PopulationBarRow[], to: PopulationBarRow[], t: num
       expected: lerp(r.expected, target.expected, t),
       missing: lerp(r.missing, target.missing, t),
       registered: lerp(r.registered!, target.registered!, t),
-      expectedRegistered: lerp(r.expectedRegistered!, target.expectedRegistered!, t),
+      regShort: lerp(r.regShort!, target.regShort!, t),
+      turnShort: lerp(r.turnShort!, target.turnShort!, t),
       turnout: lerp(r.turnout, target.turnout, t),
     };
   });

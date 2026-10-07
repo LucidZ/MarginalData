@@ -13,11 +13,17 @@
   --diverge-bad: #e34948;
   --gap: #e0a11c;
   --gap-edge: #a97407;
-  /* Registered bar - paler step of the votes green. Squeezed between the
-     gray track and --series-3; best tasteful separation from both is
-     ~14.8 OKLab dE, a hair under the 15 floor, so the legend + tooltip
-     carry identity too. Dark value passes outright. */
-  --registered: #6edbaf;
+  /* The shortfall's two parts. Turnout = the single wedge's gold, so the
+     split reads as its upper part deepening; registration = a deeper ochre.
+     Validated (dataviz validate_palette.js) with --series-3: light passes
+     every check; dark passes CVD/normal-vision/contrast, and its gold sits
+     above the lightness band, as --gap always has - a gold dim enough to
+     fit goes muddy on the dark surface. */
+  --gap-turnout: var(--gap);
+  --gap-reg: #a8640a;
+  /* Summary bars' registered-but-didn't-vote band. Mixed from the votes
+     green and the surface, so dark mode follows without its own value. */
+  --registered: color-mix(in srgb, var(--series-3) 38%, var(--surface-1));
   --border: rgba(11, 11, 11, 0.1);
   /* Midterm tint for the timeline's buttons, its key and the year cards. */
   --midterm-band: #efeee8;
@@ -46,7 +52,7 @@
     --diverge-bad: #e66767;
     --gap: #f0b942;
     --gap-edge: #f8d68c;
-    --registered: #12664a;
+    --gap-reg: #bf7a18;
     --border: rgba(255, 255, 255, 0.1);
     --midterm-band: #272725;
   }
@@ -67,7 +73,7 @@
   --diverge-bad: #e66767;
   --gap: #f0b942;
   --gap-edge: #f8d68c;
-  --registered: #12664a;
+  --gap-reg: #bf7a18;
   --border: rgba(255, 255, 255, 0.1);
   --midterm-band: #272725;
 }
@@ -470,14 +476,11 @@
 .pb-track.pb-pooled {
   opacity: 0.6;
 }
-.pb-registered {
-  fill: var(--registered);
+.pb-legend-gap-turnout {
+  background: var(--gap-turnout);
 }
-.pb-registered.pb-pooled {
-  opacity: 0.75;
-}
-.pb-legend-registered {
-  background: var(--registered);
+.pb-legend-gap-reg {
+  background: var(--gap-reg);
 }
 .pb-votes {
   fill: var(--series-3);
@@ -486,29 +489,20 @@
   opacity: 0.75;
 }
 
-/* Summary (one bar per election) and the merge into it: the same four
-   fills as the age chart, bottom-up. */
+/* Summary (one bar per election) and the merge into it: votes, registered
+   but didn't vote (a pale tint of the votes green - the same people, minus
+   the voting), then the eligible track, bottom-up. */
 .pb-seg--votes {
   fill: var(--series-3);
 }
 .pb-seg--registered {
   fill: var(--registered);
 }
-.pb-seg--gap {
-  fill: var(--gap);
+.pb-legend-registered {
+  background: var(--registered);
 }
 .pb-seg--track {
   fill: var(--gridline);
-}
-.pb-sum-label {
-  font-size: 11px;
-  font-weight: 700;
-  fill: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-.pb-sum-label--narrow {
-  font-size: 9px;
-  letter-spacing: -0.02em;
 }
 .voa-axis .pb-axis-sublabel {
   font-size: 9.5px;
@@ -519,6 +513,12 @@
    capped by the dotted line. Only under-voting bars get one. */
 .pb-gap {
   fill: var(--gap);
+}
+.pb-gap--turnout {
+  fill: var(--gap-turnout);
+}
+.pb-gap--reg {
+  fill: var(--gap-reg);
 }
 .pb-gap.pb-pooled {
   opacity: 0.75;
