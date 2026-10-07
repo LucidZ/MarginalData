@@ -114,7 +114,7 @@ for (const s of samples) {
 }
 console.log("PASS: timeline buttons fill only at a real year; plot dimmed only between years");
 
-// 3. The printed gold figure only ever takes one of the two real values -
+// 3. The printed registered-didn't-vote figure only ever takes one of the two real values -
 // never something in between, which would describe an election that never
 // happened. Both years' shortfalls are measured against their OWN 65+ rate
 // (23.3M / 36.1M), not a value pinned to 2024's rate (that was 54.0M in the
@@ -122,18 +122,18 @@ console.log("PASS: timeline buttons fill only at a real year; plot dimmed only b
 // First hero figure is the turnout part of the shortfall (votes lost to
 // registrants voting less than 65+ registrants do), the view beat 1 hands to
 // the morph since the 2026-10-02 shortfall split.
-const ALLOWED = [7.8, 18.5];
+const ALLOWED = [20.1, 40.5];
 for (const s of samples) {
   const nearest = ALLOWED.reduce((a, b) => (Math.abs(b - s.heroFig) < Math.abs(a - s.heroFig) ? b : a));
   if (Math.abs(s.heroFig - nearest) > 0.05) {
-    throw new Error(`FAIL: gold figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 7.8M nor 18.5M`);
+    throw new Error(`FAIL: figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 20.1M nor 40.5M`);
   }
 }
 const below = samples.filter((s) => s.u < 0.45);
 const above = samples.filter((s) => s.u > 0.55);
-if (!below.every((s) => Math.abs(s.heroFig - 7.8) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 7.8M before the flip");
-if (!above.every((s) => Math.abs(s.heroFig - 18.5) < 0.05)) throw new Error("FAIL: gold figure isn't pinned to 18.5M after the flip");
-console.log("PASS: gold figure snaps between the two real values only (7.8M / 18.5M), never a blend");
+if (!below.every((s) => Math.abs(s.heroFig - 20.1) < 0.05)) throw new Error("FAIL: figure isn't pinned to 20.1M before the flip");
+if (!above.every((s) => Math.abs(s.heroFig - 40.5) < 0.05)) throw new Error("FAIL: figure isn't pinned to 40.5M after the flip");
+console.log("PASS: figure snaps between the two real values only (20.1M / 40.5M), never a blend");
 
 // 4. Delta line stays invisible until deep in the morph (last ~15% of u),
 // then fades in - reserved space, never a mount (spec S5/S7).
@@ -146,16 +146,11 @@ console.log("PASS: delta line stays hidden until the very end of the morph, then
 // 6. DOM node count under the chart surface stays within a small band.
 // Legend/hero/year-stamp elements are always-mounted (opacity-only, spec
 // S5) so they contribute zero variance. The one legitimate source of
-// mount/unmount left is the gold gap `<rect>`s per bar (the single wedge and
-// its two split shades): since
-// each cycle now has its OWN 65+ line, a handful of ages sit on different
-// sides of "short" in 2024 vs. 2022, so a few gap rects enter/exit as the
-// bars cross their own cycle's line. That's real geometry, not a printed
-// number, so a small spread here is expected. The other is cohorts crossing
+// mount/unmount left is cohorts crossing
 // the chart's edges (ageRows.ts hopRows): the two oldest 2022 cohorts mount
 // mid-hop to slide in from the right, and the two youngest 2024 cohorts
-// unmount once the chart settles on 2022 - up to 6 elements each (track,
-// votes, gap, two split shades, hit), so up to 24 more. Anything beyond that
+// unmount once the chart settles on 2022 - up to 4 elements each (track,
+// registered, votes, hit), so up to 16 more. Anything beyond that
 // means something unrelated is mounting/unmounting.
 const counts = samples.map((s) => s.nodeCount);
 const countSpread = Math.max(...counts) - Math.min(...counts);
@@ -199,7 +194,7 @@ for (let i = 0; i < samples.length; i++) {
     throw new Error(`FAIL: reversal mismatch at sample ${i} (u=${samples[i].u})`);
   }
 }
-console.log("PASS: reversing the scroll retraces the same gold figure at every point (away from the exact flip boundary)");
+console.log("PASS: reversing the scroll retraces the same figure at every point (away from the exact flip boundary)");
 
 // 10. Stability - hold a midpoint, confirm no drift after a long wait
 // (transitionMs={0}, so nothing should be mid-tween).
@@ -208,7 +203,7 @@ await page.waitForTimeout(200);
 const heldFirst = await readState();
 await page.waitForTimeout(1500);
 const heldLater = await readState();
-if (heldFirst.heroFig !== heldLater.heroFig) throw new Error("FAIL: gold figure drifted while held");
+if (heldFirst.heroFig !== heldLater.heroFig) throw new Error("FAIL: figure drifted while held");
 console.log(`PASS: value stable while held (${heldLater.heroFig}M)`);
 
 await browser.close();

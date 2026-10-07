@@ -498,6 +498,12 @@
 .pb-seg--registered {
   fill: var(--registered);
 }
+.pb-registered {
+  fill: var(--registered);
+}
+.pb-registered.pb-pooled {
+  opacity: 0.75;
+}
 .pb-legend-registered {
   background: var(--registered);
 }

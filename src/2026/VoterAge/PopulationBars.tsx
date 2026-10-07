@@ -111,6 +111,11 @@ interface Props {
   /** Legend copy for the registration shade, shown once gapSplit > 0.5.
    * Always mounted, so its arrival doesn't reflow the legend. */
   gapRegLegendLabel?: string;
+  /** Opacity 0-1 of the registered bar ("age" variant only, rows must carry
+   * `registered`): drawn between the eligible track and the votes bar, so
+   * the three nested counts read straight off the column - votes, then
+   * registered but didn't vote, then eligible but not registered. */
+  registeredOpacity?: number;
   /** Fixes the y-domain - pass the same domain across a dataset swap (e.g.
    * 2024 -> 2022) so the transition reads as "the bars dropped", not "the
    * axis rescaled under them". Computed from the data if omitted. */
@@ -131,7 +136,12 @@ interface Props {
   heroGap?: {
     /** One figure, or two side by side. Keep labels short enough not to
      * wrap - the block's height must not change when the count does. */
-    items: { figure: string; label: string; delta: string; swatch: "gap" | "gap-turnout" | "gap-reg" }[];
+    items: {
+      figure: string;
+      label: string;
+      delta: string;
+      swatch?: "gap" | "gap-turnout" | "gap-reg" | "registered" | "track";
+    }[];
     opacity?: number;
     deltaOpacity: number;
   };
@@ -191,8 +201,9 @@ export default function PopulationBars({
   expectedLineLabel = "expected at average turnout",
   showGap = false,
   gapSplit = 0,
-  gapLegendLabel = "Shortfall",
+  gapLegendLabel = "",
   gapRegLegendLabel = "",
+  registeredOpacity = 0,
   yDomain: yDomainProp,
   directLabelMissing = false,
   heroGap,
@@ -304,6 +315,7 @@ export default function PopulationBars({
       // The age chart proper, in one group so the summary can hide it whole.
       const age = clipped.append("g").attr("class", "pb-age");
       age.append("g").attr("class", "pb-tracks");
+      age.append("g").attr("class", "pb-registered");
       age.append("g").attr("class", "pb-votes");
       age.append("g").attr("class", "pb-gaps");
       age.append("g").attr("class", "pb-gaps-turnout");
@@ -399,6 +411,32 @@ export default function PopulationBars({
       .attr("width", xScale.bandwidth())
       .attr("y", (d: PopulationBarRow) => yScale(d.cvap))
       .attr("height", (d: PopulationBarRow) => innerH - yScale(d.cvap));
+
+    // Registered bars - between the track and the votes bar, so the pale
+    // band above the votes is registered people who didn't vote and the grey
+    // above that is eligible citizens who aren't registered.
+    const registered = root
+      .select<SVGGElement>("g.pb-registered")
+      .selectAll<SVGRectElement, PopulationBarRow>("rect.pb-registered")
+      .data(rows.filter((r) => r.registered !== undefined), (d) => d.key);
+    anim(registered.exit()).attr("y", innerH).attr("height", 0).remove();
+    const registeredClass = (d: PopulationBarRow) => `pb-registered${d.ratesPooled ? " pb-pooled" : ""}`;
+    const registeredMerged = registered
+      .enter()
+      .append("rect")
+      .attr("class", registeredClass)
+      .attr("x", (d) => xOf(d))
+      .attr("width", xScale.bandwidth())
+      .attr("y", (d) => yScale(d.votes))
+      .attr("height", (d) => innerH - yScale(d.votes))
+      .merge(registered as any)
+      .attr("class", registeredClass)
+      .style("opacity", (d: PopulationBarRow) => registeredOpacity * (d.opacity ?? 1));
+    anim(registeredMerged)
+      .attr("x", (d: PopulationBarRow) => xOf(d))
+      .attr("width", xScale.bandwidth())
+      .attr("y", (d: PopulationBarRow) => yScale(d.registered!))
+      .attr("height", (d: PopulationBarRow) => innerH - yScale(d.registered!));
 
     // Votes bars - same x/width as the track, shorter height, drawn on
     // top so the visible remainder above it (up to the track's height)
@@ -705,6 +743,7 @@ export default function PopulationBars({
     expectedOpacity,
     showGap,
     gapSplit,
+    registeredOpacity,
     shortRows,
     yDomainProp,
     directLabelMissing,
@@ -713,15 +752,14 @@ export default function PopulationBars({
     transitionMs,
   ]);
 
-  // One dotted entry and the gold entries, relabelled by the caller rather
-  // than swapped, so the legend never reflows.
-  // Once the summary's recolour is half done, the gold entry becomes
-  // "Registered" and the not-registered gold goes (that share is the grey
-  // track again, now counted down from the registered line, not the 65+ one).
+  // Entries arrive with their layer and are only faded, never mounted, so
+  // the legend never reflows. Once the summary's recolour is half done the
+  // registered entry is on whatever the step: the summary bars carry it.
   const sumLegend = (summary?.merge ?? 0) >= RECOLOR / 2;
   const lineLegendOn = !sumLegend && (expectedOpacity ?? (showExpected ? 1 : 0)) > 0.5;
+  const registeredLegendOn = sumLegend || registeredOpacity > 0.5;
   const regLegendOn = !sumLegend && gapSplit > 0.5;
-  const hasSplit = rows.some((r) => r.regShort !== undefined);
+  const hasSplit = !!gapRegLegendLabel && rows.some((r) => r.regShort !== undefined);
 
   return (
     <div ref={wrapRef} className="voa-chart-surface pb-surface">
@@ -729,6 +767,15 @@ export default function PopulationBars({
         <span className="pb-legend-entry">
           <span className="voa-legend-swatch pb-legend-track" /> Eligible citizens
         </span>
+        {rows.some((r) => r.registered !== undefined) && (
+          <span
+            className="pb-legend-entry"
+            style={{ marginLeft: "0.9rem", opacity: registeredLegendOn ? 1 : 0 }}
+            aria-hidden={!registeredLegendOn || undefined}
+          >
+            <span className="voa-legend-swatch pb-legend-registered" /> Registered
+          </span>
+        )}
         <span
           className="pb-legend-entry"
           style={{ marginLeft: "0.9rem", opacity: showVotes ? 1 : 0 }}
@@ -746,14 +793,15 @@ export default function PopulationBars({
           </svg>{" "}
           {expectedLineLabel}
         </span>
-        <span
-          className="pb-legend-entry"
-          style={{ marginLeft: "0.9rem", opacity: showGap || sumLegend ? 1 : 0 }}
-          aria-hidden={!(showGap || sumLegend) || undefined}
-        >
-          <span className={`voa-legend-swatch ${sumLegend ? "pb-legend-registered" : "pb-legend-gap"}`} />{" "}
-          {sumLegend ? "Registered" : gapLegendLabel}
-        </span>
+        {gapLegendLabel && (
+          <span
+            className="pb-legend-entry"
+            style={{ marginLeft: "0.9rem", opacity: showGap && !sumLegend ? 1 : 0 }}
+            aria-hidden={!showGap || sumLegend || undefined}
+          >
+            <span className="voa-legend-swatch pb-legend-gap" /> {gapLegendLabel}
+          </span>
+        )}
         {hasSplit && (
           <span
             className="pb-legend-entry"
@@ -776,13 +824,15 @@ export default function PopulationBars({
       <div className="voa-axis-label-x">{xLabel}</div>
       {heroGap && (
         <div className="pb-gap-summary pb-gap-summary--hero" style={{ opacity: heroGap.opacity ?? 1 }}>
-          <span className="pb-gap-marker" aria-hidden="true" />
           <div className="pb-gap-hero-row">
             {heroGap.items.map((item) => (
               <div className="pb-gap-hero" key={item.label}>
                 <div className="pb-gap-hero-figure">{item.figure}</div>
                 <div className="pb-gap-hero-label">
-                  <span className={`voa-legend-swatch pb-legend-${item.swatch}`} aria-hidden="true" /> {item.label}
+                  {item.swatch && (
+                    <span className={`voa-legend-swatch pb-legend-${item.swatch}`} aria-hidden="true" />
+                  )}{" "}
+                  {item.label}
                 </div>
                 {/* Always mounted so its arrival can't nudge the figure/label
                     above it - only opacity fades in near the end of the morph. */}

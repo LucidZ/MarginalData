@@ -78,13 +78,16 @@ if (Math.max(...pinned) - Math.min(...pinned) > 2) {
 }
 console.log(`PASS: chart holds one position across the beat boundary (top=${pinned[0]}px at steps 0-${STEPS - 2})`);
 
-// The shortfall's two parts (step 5) sum to its total (step 3) - the gold
-// wedge splits, it doesn't change size.
-const partsSum = hero[5][0] + hero[5][1];
-if (hero[3].length !== 1 || hero[5].length !== 2 || Math.abs(partsSum - hero[3][0]) > 0.1 + 1e-9) {
-  throw new Error(`FAIL: step-5 parts ${JSON.stringify(hero[5])} should sum to the step-3 total ${JSON.stringify(hero[3])} (±0.1M)`);
+// Step 3 prints one total (votes short of the 65+ rate); step 5 the two
+// plain head-counts the registered bar opens up, from the data.
+const data = await page.evaluate(() => fetch("/data/voter-age.json").then((r) => r.json()));
+const rows24 = data.byAge["2024"].rows;
+const sum = (f) => rows24.reduce((a, r) => a + f(r), 0) / 1000;
+const want = [sum((r) => r.registered - r.votes), sum((r) => r.cvap - r.registered)];
+if (hero[3].length !== 1 || hero[5].length !== 2 || hero[5].some((v, i) => Math.abs(v - want[i]) > 0.05)) {
+  throw new Error(`FAIL: step-5 counts ${JSON.stringify(hero[5])} should be ${want.map((v) => v.toFixed(1))} (registered didn't vote, not registered)`);
 }
-console.log(`PASS: the two shortfall parts (${hero[5].join("M + ")}M) sum to the step-3 total (${hero[3][0]}M)`);
+console.log(`PASS: step-5 counts match the data (${hero[5].join("M registered didn't vote, ")}M not registered)`);
 
 // Height constant at every step including the last: the hero figure, the
 // delta line and the gap legend all fade in over space reserved from first
