@@ -11,8 +11,11 @@ import {
   explorerCopy,
   midtermDropSteps,
   midtermsTitle,
+  playCopy,
+  rewindCopy,
   summaryCopy,
   summaryTitle,
+  yearCardCopy,
   type AgeBeatsVals,
   type MidtermDropVals,
 } from "./copy";
@@ -41,17 +44,22 @@ import type { VoterAgeData } from "./types";
  * to sit between the shortfall and the morph are at tag
  * `voter-age-registration-steps`.)
  *
- * Section 3 keeps the same pinned chart: the gold fades and 2022's age
- * columns recolour into three plain counts (votes, registered, eligible - no
- * 65+ standard) and merge into one stacked bar, each column's segments
- * flying into their slice of the total; then the other elections' bars fade
- * in around it, one bar per election. Then three beats of gold arrows, each
- * presidential election to the midterm after it: eligible, registered, votes.
+ * Section 3 keeps the same pinned chart and goes back further. Reaching its
+ * first step plays a timed rewind, 2022 -> 2012, one cohort hop per election
+ * with a pause on each real year, so the gold swelling in every midterm reads
+ * as a pattern without a scroll step per year. (Scrolling back above that
+ * step plays it forward again.) Then the scroll takes over and plays it
+ * forward, 2012 -> 2024, one step per election: the gold and the 65+ line
+ * give way to the registered band, so it's plain counts from here on.
  *
- * Every other year by age lives in the explorer after the story
- * (Explorer.tsx). The scroll used to rewind through all of them, one hop
- * per election, before the merge - that version is at tag
- * `voter-age-full-rewind`.
+ * Then the summary: 2024's age columns merge into one stacked bar, each
+ * column's segments flying into their slice of the total; the other
+ * elections' bars fade in around it, one bar per election. Then three beats
+ * of gold arrows, each presidential election to the midterm after it:
+ * eligible, registered, votes.
+ *
+ * Earlier versions: a scroll-step-per-year rewind with no forward pass is at
+ * tag `voter-age-full-rewind`; summary straight after 2022 is `a1f521b`.
  */
 
 /** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
@@ -67,9 +75,16 @@ const TWEEN_UNTIL = MORPH_STEP - 0.6;
 /** Matches App.css's phone breakpoint, where the chart pins above the text. */
 const PHONE_QUERY = "(max-width: 720px)";
 
-/** Step whose centre each hop starts from. Only one hop now: beat 2's,
- * 2024 -> 2022. */
-const hopStart = (h: number) => MORPH_STEP + h;
+/** Section 3's first step. Reaching it plays the timed rewind. */
+const REWIND_STEP = MORPH_STEP + 2;
+/** The forward pass's first step, resting on the first year: the gold
+ * gives way to the registered band on the way here. Then one step per
+ * election after it. */
+const PLAY_STEP = REWIND_STEP + 1;
+/** The timed rewind: each hop's duration, then a pause on the real year it
+ * lands on. */
+const CLIP_HOP_MS = 550;
+const CLIP_DWELL_MS = 700;
 /** Scroll fraction of a hop's step span spent resting at each end: the hop
  * runs over the middle 70%, same as beat 2 has always used. */
 const HOP_MARGIN = 0.15;
@@ -93,14 +108,19 @@ const shortfallOf = (rows: { missing: number }[]) =>
   Math.abs(rows.reduce((s, r) => s + Math.min(0, r.missing), 0));
 
 export default function AgeBeats({ data }: { data: VoterAgeData }) {
-  // Newest first. The scroll only visits the first two: 2024, the chart
-  // beat 1 builds, and 2022, beat 2's hop. Every election feeds the summary.
-  const allYears = useMemo(() => Object.keys(data.byAge).sort().reverse(), [data]);
-  const years = useMemo(() => allYears.slice(0, 2), [allYears]);
+  // Newest first: index 0 is 2024, the chart beat 1 builds. `pos` below
+  // counts elections back from it.
+  const years = useMemo(() => Object.keys(data.byAge).sort().reverse(), [data]);
   const hopCount = years.length - 1;
-  /** First summary step: the merged 2022 bar. The merge runs from beat 2's
-   * last step to this one, the reveal from this one to the next. */
-  const SUMMARY_STEP = MORPH_STEP + 1 + hopCount;
+  /** The timed rewind's hops: 2022 back to the first year. */
+  const clipHops = hopCount - 1;
+  /** The forward pass's year cards, oldest first; the first rides on
+   * PLAY_STEP. */
+  const forwardYears = useMemo(() => [...years].reverse(), [years]);
+  /** First summary step: the merged 2024 bar. The merge runs from the
+   * forward pass's last card to this one, the reveal from this one to the
+   * next. */
+  const SUMMARY_STEP = PLAY_STEP + hopCount + 1;
   /** Then one step per gold-arrow beat: eligible, registered, votes. */
   const DROP_STEP = SUMMARY_STEP + 2;
   const stepCount = DROP_STEP + midtermDropSteps.length;
@@ -145,18 +165,66 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   // Rounded so float noise at a hop's edge (progress - start - margin
   // coming out 1e-16, not 0) can't read as "mid-hop" while the chart is
   // visibly at rest - every consumer tests u against exactly 0 and 1.
-  const hopU = (h: number) =>
-    Math.round(clamp01((progress - hopStart(h) - HOP_MARGIN) / (1 - 2 * HOP_MARGIN)) * 1e6) / 1e6;
-  let pos = 0;
-  for (let h = 0; h < hopCount; h++) pos += hopU(h);
+  // Same margins for every scroll-driven move: rest at each step, move in
+  // between.
+  const spanU = (from: number) =>
+    Math.round(clamp01((progress - from - HOP_MARGIN) / (1 - 2 * HOP_MARGIN)) * 1e6) / 1e6;
+  /** Beat 2's own hop - its delta line belongs to 2024 -> 2022 only. */
+  const u0 = spanU(MORPH_STEP);
+
+  // The timed rewind, in hops back from 2022: runs to the first year once the
+  // reader reaches REWIND_STEP, back to 0 if they scroll above it.
+  const clipTarget = step >= REWIND_STEP ? clipHops : 0;
+  const [clipPos, setClipPos] = useState(0);
+  const clipRef = useRef(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      clipRef.current = clipTarget;
+      setClipPos(clipTarget);
+      return;
+    }
+    let raf = 0;
+    let prev = performance.now();
+    let dwell = 0;
+    const tick = (now: number) => {
+      // Never negative - see the same guard in Explorer.tsx.
+      let dt = Math.max(0, now - prev);
+      prev = now;
+      let p = clipRef.current;
+      if (p === clipTarget) return;
+      const used = Math.min(dt, dwell);
+      dwell -= used;
+      dt -= used;
+      if (dt > 0) {
+        const dir = Math.sign(clipTarget - p);
+        // The next real year in this direction: stop there and pause.
+        const stop = dir > 0 ? Math.floor(p) + 1 : Math.ceil(p) - 1;
+        p += (dir * dt) / CLIP_HOP_MS;
+        if ((p - stop) * dir >= 0) {
+          p = stop;
+          dwell = CLIP_DWELL_MS;
+        }
+        clipRef.current = p;
+        setClipPos(p);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [clipTarget]);
+  const clipRunning = clipPos !== clipTarget;
+
+  // Then the scroll plays it forward, one hop per year card.
+  let forward = 0;
+  for (let f = 0; f < hopCount; f++) forward += spanU(PLAY_STEP + f);
+  // Clamped: a reader who scrolls on before the rewind has finished would
+  // otherwise run pos past 2024.
+  const pos = Math.max(0, u0 + clipPos - forward);
   const hop = Math.min(Math.floor(pos), hopCount - 1);
   const u = pos - hop;
   const t = ease(u);
-  /** Beat 2's own hop - its delta line belongs to 2024 -> 2022 only. */
-  const u0 = hopU(0);
-  // Same margins as a hop: rest at each step, move in between.
-  const spanU = (from: number) =>
-    Math.round(clamp01((progress - from - HOP_MARGIN) / (1 - 2 * HOP_MARGIN)) * 1e6) / 1e6;
+  /** Gold and 65+ line out, registered band in: REWIND_STEP to PLAY_STEP. */
+  const regU = spanU(REWIND_STEP);
   const mergeU = spanU(SUMMARY_STEP - 1);
   const revealU = spanU(SUMMARY_STEP);
 
@@ -196,17 +264,18 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   }, [data]);
 
   // Chronological, oldest left. Summed from the same per-age pieces the
-  // chart draws, so the merged bar is exactly its columns stacked.
-  const mergeYear = years[hopCount];
+  // chart draws, so the merged bar is exactly its columns stacked. The
+  // forward pass ends on 2024, so that's the bar the columns merge into.
+  const mergeYear = years[0];
   const summaryBars = useMemo(
     (): SummaryBar[] =>
-      [...allYears].reverse().map((y) => {
+      [...years].reverse().map((y) => {
         const c = data.byAge[y];
         const segments: SummaryBar["segments"] = [0, 0, 0];
         for (const r of c.rows) stackSegments(r).forEach((v, s) => (segments[s] += v));
         return { key: y, kind: c.kind, segments };
       }),
-    [data, allYears]
+    [data, years]
   );
   // Each presidential election paired with the midterm right after it.
   const dropPairs = useMemo(
@@ -293,6 +362,20 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     () => Object.fromEntries(Object.entries(data.byAge).map(([y, c]) => [y, shortfallOf(c.rows)])),
     [data]
   );
+  // The registered band's two head-counts per election, for the forward
+  // pass's hero figures.
+  const counts = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(data.byAge).map(([y, c]) => {
+          const [, regNotVoted, notRegistered] = c.rows
+            .map(stackSegments)
+            .reduce((a, v) => [a[0] + v[0], a[1] + v[1], a[2] + v[2]], [0, 0, 0]);
+          return [y, { regNotVoted, notRegistered }];
+        })
+      ),
+    [data]
+  );
   const shortfall2024 = shortfalls["2024"];
   const shortfall2022 = shortfalls["2022"];
 
@@ -308,6 +391,8 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   // Mid-morph the bars describe no real election, so there is nothing
   // honest to hover - no tooltip until the chart settles on a real year.
   const morphing = t > 0 && t < 1;
+  /** Past the halfway point of the gold -> registered swap. */
+  const plainCounts = regU >= 0.5;
   const tooltipFor = useCallback(
     (row: PopulationBarRow) => {
       if (morphing) return null;
@@ -322,7 +407,8 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
           </div>
           {fmtM(real.cvap)} eligible
           {` · ${fmtM(real.votes)} voted (${fmtPct(real.turnout)})`}
-          {step >= LINE_STEP && (
+          {plainCounts && real.registered !== undefined && <div>{fmtM(real.registered)} registered</div>}
+          {step >= LINE_STEP && !plainCounts && (
             <div className="voa-tooltip__note">
               At the {year} 65+ rate ({fmtPct(shownCycle.over65Turnout)}): {fmtM(real.expected)}
             </div>
@@ -330,7 +416,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
         </>
       );
     },
-    [morphing, shownRowsByKey, shownYear, shownCycle, step]
+    [morphing, shownRowsByKey, shownYear, shownCycle, step, plainCounts]
   );
 
   const stepRef = setStepRef;
@@ -373,22 +459,41 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             showVotes={step >= 1}
             // The dotted line and the gold have no counterpart on the summary
             // bars - they and their legend entries go as the merge starts.
-            expectedOpacity={step >= LINE_STEP ? 1 - clamp01(mergeU / 0.3) : 0}
-            gapOpacity={step >= TOTAL_STEP ? 1 - clamp01(mergeU / 0.3) : 0}
+            // Both give way to the registered band on the way into the
+            // forward pass, which is plain counts.
+            expectedOpacity={step >= LINE_STEP ? 1 - clamp01(regU / 0.5) : 0}
+            gapOpacity={step >= TOTAL_STEP ? 1 - clamp01(regU / 0.5) : 0}
+            registeredOpacity={clamp01((regU - 0.5) / 0.5)}
             gapLegendLabel="Shortfall"
             // Traces whichever cycle is shown, so its rate follows the morph.
             expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
             heroGap={{
               // Snaps to the shown election's own figure - never one read off
-              // lerped rows.
-              items: [
-                {
-                  figure: fmtM(shortfalls[shownYear]),
-                  label: "fewer votes than the 65+ rate",
-                  delta: fmtMSigned(shortfall2022 - shortfall2024),
-                  tone: "gap",
-                },
-              ],
+              // lerped rows. The shortfall until the swap, then the
+              // registered band's two head-counts.
+              items: plainCounts
+                ? [
+                    {
+                      figure: fmtM(counts[shownYear].regNotVoted),
+                      label: "registered, didn't vote",
+                      delta: "",
+                      swatch: "registered",
+                    },
+                    {
+                      figure: fmtM(counts[shownYear].notRegistered),
+                      label: "not registered",
+                      delta: "",
+                      swatch: "track",
+                    },
+                  ]
+                : [
+                    {
+                      figure: fmtM(shortfalls[shownYear]),
+                      label: "fewer votes than the 65+ rate",
+                      delta: fmtMSigned(shortfall2022 - shortfall2024),
+                      tone: "gap",
+                    },
+                  ],
               // Mounted from first paint (so the space it takes is reserved
               // and its arrival moves nothing), faded in as the reader
               // reaches the step that adds the gold up. Dimmed with the plot
@@ -397,6 +502,8 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               opacity:
                 clamp01((progress - (TOTAL_STEP - 0.45)) / 0.35) *
                 (1 - 0.65 * rewindHaze(u)) *
+                // Out and back in around the swap of figures.
+                clamp01(Math.abs(regU - 0.5) / 0.2) *
                 (1 - clamp01(mergeU / 0.15)),
               // Fades in over beat 2's hop's last ~15%. Keyed to raw `u`, the
               // linear scroll signal, not the eased `t` (whose last 15% is a
@@ -404,7 +511,9 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               // 2024 -> 2022 only: it fades back out as the next hop starts,
               // since a change vs. the previous election would mix election
               // types.
-              deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01((pos - 1) / 0.15)),
+              // Gone for good once the rewind starts: 2022 comes round again
+              // in the forward pass, without a delta.
+              deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01(clipPos / 0.15)),
             }}
             yDomain={yDomain}
             // Off once the chart is scroll-driven: a time tween there fights
@@ -413,15 +522,15 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             tooltipFor={tooltipFor}
             summary={summary}
             summaryTooltip={summaryTooltip}
-            // Clock centred on the 1M gridline: low enough to leave the
-            // under-35 shortfall and the 60s bulge in view as it passes.
-            plotOverlay={({ yPct }) => (
+            // On mid-hop, and for the whole timed rewind, pauses included.
+            plotOverlay={
               <RewindOverlay
-                u={u}
+                opacity={Math.max(rewindHaze(u), clipRunning ? 1 : 0)}
+                direction={direction}
                 label={direction === "back" ? explorerCopy.rewinding : explorerCopy.fastForwarding}
-                clockTop={`${yPct(1000)}%`}
+                year={shownYear}
               />
-            )}
+            }
             plotHaze={rewindHaze(u)}
           />
         </StickyViz>
@@ -440,9 +549,44 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               </div>
             </div>
           ))}
-          <div className="voa-step" ref={stepRef(SUMMARY_STEP)}>
+          <div className="voa-step" ref={stepRef(REWIND_STEP)}>
             <div className="voa-step-inner">
               <h2 className="voa-beat-title voa-beat-title--incolumn">{summaryTitle}</h2>
+              <h3>{rewindCopy.heading({ firstYear: forwardYears[0] })}</h3>
+              {rewindCopy.body()}
+            </div>
+          </div>
+          {forwardYears.map((year, k) => {
+            const c = data.byAge[year];
+            return (
+              <div className="voa-step" key={year} ref={stepRef(PLAY_STEP + k)}>
+                <div className="voa-step-inner">
+                  {k === 0 && (
+                    <>
+                      <h3>{playCopy.heading}</h3>
+                      {playCopy.body()}
+                    </>
+                  )}
+                  <div
+                    className={`voa-year-card voa-year-card--${c.kind}${
+                      year === restingYear && step >= PLAY_STEP ? " is-on" : ""
+                    }`}
+                    data-year={year}
+                  >
+                    <div className="voa-year-card__head">
+                      <span className="voa-year-card__year">{year}</span>
+                      <span className="voa-year-card__kind">
+                        {c.kind === "midterm" ? explorerCopy.midterm : explorerCopy.presidential}
+                      </span>
+                    </div>
+                    <p>{yearCardCopy({ turnout: fmtPct(c.avgTurnout) })}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div className="voa-step" ref={stepRef(SUMMARY_STEP)}>
+            <div className="voa-step-inner">
               <h3>{summaryCopy.mergeHeading}</h3>
               {summaryCopy.merge({ year: mergeYear })}
             </div>

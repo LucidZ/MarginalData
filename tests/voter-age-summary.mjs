@@ -1,5 +1,5 @@
 // Section 3's summary (AgeBeats.tsx, PopulationBars.tsx
-// `summary`): 2022's age columns merge into one stacked bar, then every
+// `summary`): 2024's age columns (the forward pass's last card) merge into one stacked bar, then every
 // other election's bar fades in beside it. Screenshots the merge and reveal at
 // several scroll fractions, checks the merged bars' segment heights against
 // the JSON (summed with the same stackSegments rule), and that scrolling back
@@ -36,10 +36,13 @@ const segmentsOf = (y) =>
     [0, 0, 0]
   );
 
-/** Steps counted from beat 2's last step (resting on 2022): 0 that step,
+/** Steps counted from the forward pass's last card (resting on 2024): 0 that step,
  * 1 merged bar, 2 every election, 3-5 the arrow beats. Scrolls `frac` of
  * the way from step a to step a+1. */
-const BEAT2_LAST = 5; // AgeBeats.tsx: MORPH_STEP + 1
+const BEAT2_LAST = await page.evaluate(() =>
+  [...document.querySelectorAll(".voa-beat .voa-step")].findIndex((s) => s.querySelector('.voa-year-card[data-year="2024"]'))
+);
+if (BEAT2_LAST < 0) fail("no 2024 year card in the forward pass");
 async function scrollBetweenLast(a, frac) {
   await page.evaluate(
     ({ a, frac, base }) => {

@@ -216,21 +216,56 @@ export const explorerCopy = {
   controlLabel: "Election year",
   presidential: "Presidential",
   midterm: "Midterm",
-  // Beat 2's rewind clock, by scroll direction.
-  rewinding: "rewinding",
-  fastForwarding: "fast-forwarding",
+  // The VCR badge on the chart (RewindOverlay.tsx), by direction.
+  rewinding: "rew",
+  fastForwarding: "ff",
 };
 
 export const summaryTitle = "3. It's not just 2022";
 
-// Placeholder copy - the summary chart after section 3's rewind.
+// ---------------------------------------------------------------------------
+// Section 3 (AgeBeats.tsx): a timed rewind 2022 -> first year, then the
+// scroll plays it forward with registrations, one year card per election.
+// Placeholder copy.
+// ---------------------------------------------------------------------------
+
+export interface RewindVals {
+  firstYear: string;
+}
+
+export const rewindCopy = {
+  heading: (v: RewindVals) => <>Rewind to {v.firstYear}</>,
+  body: () => (
+    <p>
+      [Placeholder] Watch the gold as the tape rewinds. It shrinks in presidential years and swells again in every
+      midterm: 2022 wasn't a fluke.
+    </p>
+  ),
+};
+
+export const playCopy = {
+  heading: "Now play it forward",
+  body: () => (
+    <p>
+      [Placeholder] This time, drop the 65+ yardstick and count registrations. The pale band above each votes bar is
+      people who were registered but didn't vote; the grey above that is eligible citizens who aren't registered.
+    </p>
+  ),
+};
+
+export interface YearCardVals {
+  turnout: string;
+}
+
+export const yearCardCopy = (v: YearCardVals) => <>{v.turnout} of eligible citizens voted.</>;
+
+// Placeholder copy - the summary chart after section 3's forward pass.
 export const summaryCopy = {
   mergeHeading: "Every age, added up",
   merge: (v: { year: string }) => (
     <p>
-      [Placeholder] Drop the 65+ yardstick and just count. Stack every age from {v.year} into a single bar: the
-      people who voted, then the people registered who didn't, then the eligible citizens who aren't registered
-      at all.
+      [Placeholder] Stack every age from {v.year} into a single bar: the people who voted, then the people
+      registered who didn't, then the eligible citizens who aren't registered at all.
     </p>
   ),
   revealHeading: "Every election, side by side",

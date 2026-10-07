@@ -16,7 +16,7 @@ await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 await page.waitForTimeout(300);
 
-const STEPS = 11; // AgeBeats.tsx: 6 beat steps + 2 summary steps (merge, reveal) + 3 midterm-drop arrow steps
+const STEPS = 19; // AgeBeats.tsx: 6 beat steps + rewind + 7 forward-pass year cards + 2 summary steps (merge, reveal) + 3 midterm-drop arrow steps
 
 // One section, one sticky pane, one chart for beats 1-2 and section 3.
 const shape = await page.evaluate(() => {

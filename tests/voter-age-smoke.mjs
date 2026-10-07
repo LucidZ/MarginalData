@@ -35,7 +35,7 @@ console.log("beat titles found:", beatTitles);
 const expectedTitleFragments = [
   "age of the electorate",
   "Midterms make it worse",
-  "Every election since",
+  "Explore every election",
 ];
 for (const fragment of expectedTitleFragments) {
   const found = beatTitles.some((t) => t.includes(fragment));
