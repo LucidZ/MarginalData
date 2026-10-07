@@ -47,7 +47,10 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
       }
       let prev = performance.now();
       const tick = (now: number) => {
-        const step = (now - prev) / HOP_MS;
+        // Firefox stamps a frame with its start time, which can precede the
+        // performance.now() taken at the click - a negative step would push
+        // pos past 2024 to -0.0x and index a row set that doesn't exist.
+        const step = Math.max(0, now - prev) / HOP_MS;
         prev = now;
         const p = posRef.current;
         const next = p < target ? Math.min(target, p + step) : Math.max(target, p - step);
