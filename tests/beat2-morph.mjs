@@ -62,10 +62,7 @@ async function readState() {
     const section = document.querySelector(".voa-beat");
     const state = section.querySelector(".voa-morph-state");
     const u = state ? parseFloat(state.dataset.u0) : null;
-    // The timeline's 2022 and 2024 buttons stand in for the old two-year
-    // scrubber's end circles: filled only while resting on that year.
-    const btn = (y) => section.querySelector(`.voa-yc-btn[aria-label^="${y}"]`);
-    const endsOn = [btn("2022"), btn("2024")].map((e) => e.classList.contains("is-on"));
+    const resting = state ? state.dataset.resting : null;
     const plotOpacity = parseFloat(getComputedStyle(section.querySelector(".pb-plot-wrap svg")).opacity);
     const heroFigEl = section.querySelector(".pb-gap-hero-figure");
     const heroFig = heroFigEl ? parseFloat(heroFigEl.textContent) : null;
@@ -75,7 +72,7 @@ async function readState() {
     const nodeCount = surface ? surface.querySelectorAll("*").length : null;
     const surfaceHeight = surface ? surface.getBoundingClientRect().height : null;
     const d = section.querySelector(".pb-plot-wrap path.pb-expected-line")?.getAttribute("d") ?? null;
-    return { u, endsOn, plotOpacity, heroFig, deltaOpacity, nodeCount, surfaceHeight, d };
+    return { u, resting, plotOpacity, heroFig, deltaOpacity, nodeCount, surfaceHeight, d };
   });
 }
 
@@ -100,19 +97,18 @@ if (Math.min(...us) > 0.05) throw new Error(`FAIL: never reached near u=0 (min u
 if (Math.max(...us) < 0.95) throw new Error(`FAIL: never reached near u=1 (max u=${Math.max(...us).toFixed(3)})`);
 console.log(`PASS: scan spans u=${Math.min(...us).toFixed(3)}..${Math.max(...us).toFixed(3)}`);
 
-// 2. Timeline: a year's button is filled only while resting on that real
-// year, and the plot is only undimmed there.
+// 2. The chart only counts as resting on a year at that real year, and the
+// plot is only undimmed there. (The story's year buttons moved to the
+// explorer after it - tests/voter-age-explorer.mjs.)
 for (const s of samples) {
-  const [on2022, on2024] = s.endsOn;
-  if (on2022 !== s.u >= 0.999 || on2024 !== s.u <= 0.001) { console.log(JSON.stringify(s.endsOn), s.y);
-    throw new Error(`FAIL: timeline buttons [2022=${on2022}, 2024=${on2024}] wrong at u=${s.u}`);
-  }
+  const want = s.u >= 0.999 ? "2022" : s.u <= 0.001 ? "2024" : "";
+  if (s.resting !== want) throw new Error(`FAIL: resting="${s.resting}" at u=${s.u}, want "${want}"`);
   const atRealYear = s.u <= 0.001 || s.u >= 0.999;
   if (atRealYear !== (s.plotOpacity > 0.99)) {
     throw new Error(`FAIL: plot opacity ${s.plotOpacity} at u=${s.u} - should be dimmed iff between years`);
   }
 }
-console.log("PASS: timeline buttons fill only at a real year; plot dimmed only between years");
+console.log("PASS: resting only at a real year; plot dimmed only between years");
 
 // 3. The printed shortfall figure only ever takes one of the two real values -
 // never something in between, which would describe an election that never

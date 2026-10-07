@@ -2,11 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PopulationBars, { stackSegments, type PopulationBarRow, type SummaryBar } from "./PopulationBars";
 import StickyViz from "./StickyViz";
 import RewindOverlay, { rewindHaze } from "./RewindOverlay";
-import { readingLine, useStepProgress } from "./useStepProgress";
-import YearControl, { type YearOption } from "./YearControl";
+import { useStepProgress } from "./useStepProgress";
 import { cohortRows, hopRows } from "./ageRows";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
-import { ageBeatsSteps, ageBeatsTitle, explorerCopy, midtermsTitle, summaryCopy, type AgeBeatsVals } from "./copy";
+import {
+  ageBeatsSteps,
+  ageBeatsTitle,
+  explorerCopy,
+  midtermDropSteps,
+  midtermsTitle,
+  summaryCopy,
+  summaryTitle,
+  type AgeBeatsVals,
+  type MidtermDropVals,
+} from "./copy";
 import type { VoterAgeData } from "./types";
 
 /**
@@ -32,27 +41,21 @@ import type { VoterAgeData } from "./types";
  * to sit between the shortfall and the morph are at tag
  * `voter-age-registration-steps`.)
  *
- * Section 3 keeps the same pinned chart and keeps going back: one step per
- * election, 2022 -> 2020 -> ... -> 2012, each hop the same morph as beat 2
- * (cohorts slide two years, values lerp, printed numbers snap). Scrolling up
- * plays it forward. Bars are keyed by birth cohort (ageRows.ts), so the same
- * people keep the same element across all six hops.
+ * Section 3 keeps the same pinned chart: the gold fades and 2022's age
+ * columns recolour into three plain counts (votes, registered, eligible - no
+ * 65+ standard) and merge into one stacked bar, each column's segments
+ * flying into their slice of the total; then the other elections' bars fade
+ * in around it, one bar per election. Then three beats of gold arrows, each
+ * presidential election to the midterm after it: eligible, registered, votes.
  *
- * Then the summary, two more steps on the same chart: the gold fades and
- * 2012's age columns recolour into three plain counts (votes, registered, eligible - no 65+
- * standard) and merge into one stacked bar, each column's segments flying
- * into their slice of the total; then the other elections' bars fade in
- * beside it. One bar per election.
+ * Every other year by age lives in the explorer after the story
+ * (Explorer.tsx). The scroll used to rewind through all of them, one hop
+ * per election, before the merge - that version is at tag
+ * `voter-age-full-rewind`.
  */
 
 /** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
 const MORPH_STEP = 4;
-/** Section 3's first step: heading and intro, the chart still resting on
- * 2022. Then one step per year from 2022 back, each holding just that
- * year's card - kept apart from the intro so no card sits at the bottom of
- * a step too tall for a phone's reading band. Every later hop runs from one
- * year's step to the next. */
-const EXPLORER_STEP = 6;
 /** The 65+ turnout standard's dotted line, on its own. */
 const LINE_STEP = 2;
 /** The gold shortfall under that line, and its total under the chart -
@@ -64,13 +67,9 @@ const TWEEN_UNTIL = MORPH_STEP - 0.6;
 /** Matches App.css's phone breakpoint, where the chart pins above the text. */
 const PHONE_QUERY = "(max-width: 720px)";
 
-/** Step whose centre each hop starts from: hop 0 (2024 -> 2022) is beat 2's;
- * hop h >= 1 runs from year h's card step to year h+1's. */
-const hopStart = (h: number) => (h === 0 ? MORPH_STEP : EXPLORER_STEP + h);
-/** The step resting on year index k (0 = 2024): beat 2's first step for
- * 2024 (the shortfall view, just before the first hop), else that year's
- * card step. */
-const restStep = (k: number) => (k === 0 ? MORPH_STEP : EXPLORER_STEP + k);
+/** Step whose centre each hop starts from. Only one hop now: beat 2's,
+ * 2024 -> 2022. */
+const hopStart = (h: number) => MORPH_STEP + h;
 /** Scroll fraction of a hop's step span spent resting at each end: the hop
  * runs over the middle 70%, same as beat 2 has always used. */
 const HOP_MARGIN = 0.15;
@@ -94,14 +93,17 @@ const shortfallOf = (rows: { missing: number }[]) =>
   Math.abs(rows.reduce((s, r) => s + Math.min(0, r.missing), 0));
 
 export default function AgeBeats({ data }: { data: VoterAgeData }) {
-  // Newest first: index 0 is 2024, the chart beat 1 builds; each scroll hop
-  // goes one index further back.
-  const years = useMemo(() => Object.keys(data.byAge).sort().reverse(), [data]);
+  // Newest first. The scroll only visits the first two: 2024, the chart
+  // beat 1 builds, and 2022, beat 2's hop. Every election feeds the summary.
+  const allYears = useMemo(() => Object.keys(data.byAge).sort().reverse(), [data]);
+  const years = useMemo(() => allYears.slice(0, 2), [allYears]);
   const hopCount = years.length - 1;
-  /** First summary step: the merged 2012 bar. The merge runs from the
-   * 2012 card's step to this one, the reveal from this one to the next. */
-  const SUMMARY_STEP = EXPLORER_STEP + 1 + hopCount;
-  const stepCount = SUMMARY_STEP + 2;
+  /** First summary step: the merged 2022 bar. The merge runs from beat 2's
+   * last step to this one, the reveal from this one to the next. */
+  const SUMMARY_STEP = MORPH_STEP + 1 + hopCount;
+  /** Then one step per gold-arrow beat: eligible, registered, votes. */
+  const DROP_STEP = SUMMARY_STEP + 2;
+  const stepCount = DROP_STEP + midtermDropSteps.length;
 
   // On phones the chart is pinned across the top, so the text a reader can
   // see is the band below it - measure steps against that band's middle.
@@ -114,7 +116,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     return pane ? Math.min(Math.max(0, pane.getBoundingClientRect().bottom), window.innerHeight * 0.75) : 0;
   }, []);
   const { progress, activeStep: step, setStepRef } = useStepProgress(stepCount, coveredTop);
-  const stepEls = useRef<(HTMLElement | null)[]>([]);
   const cycle2024 = data.byAge["2024"];
   const cycle2022 = data.byAge["2022"];
 
@@ -187,28 +188,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     lastPos.current = pos;
   }, [pos]);
 
-  const yearOptions: YearOption[] = useMemo(
-    () => [...years].reverse().map((year) => ({ year, kind: data.byAge[year].kind })),
-    [years, data]
-  );
-  const pickYear = useCallback(
-    (year: string) => {
-      const el = stepEls.current[restStep(years.indexOf(year))];
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      // Where the step will be read once there: on phones, below the pinned
-      // pane (stuck by then, so its full height), else mid-viewport.
-      const pane = pinnedPane();
-      const covered = window.matchMedia(PHONE_QUERY).matches && pane ? pane.getBoundingClientRect().height : 0;
-      window.scrollTo({
-        top: window.scrollY + r.top + r.height / 2 - readingLine(covered),
-        behavior: reduce ? "auto" : "smooth",
-      });
-    },
-    [years]
-  );
-
   // Pinned across every cycle from first paint, so the axis never rescales -
   // not at a beat-1 layer reveal, and not under any hop.
   const yDomain = useMemo((): [number, number] => {
@@ -218,21 +197,82 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
 
   // Chronological, oldest left. Summed from the same per-age pieces the
   // chart draws, so the merged bar is exactly its columns stacked.
-  const firstYear = years[years.length - 1];
+  const mergeYear = years[hopCount];
   const summaryBars = useMemo(
     (): SummaryBar[] =>
-      [...years].reverse().map((y) => {
+      [...allYears].reverse().map((y) => {
         const c = data.byAge[y];
         const segments: SummaryBar["segments"] = [0, 0, 0];
         for (const r of c.rows) stackSegments(r).forEach((v, s) => (segments[s] += v));
         return { key: y, kind: c.kind, segments };
       }),
-    [data, years]
+    [data, allYears]
+  );
+  // Each presidential election paired with the midterm right after it.
+  const dropPairs = useMemo(
+    () =>
+      summaryBars.flatMap((b, i) => {
+        const next = summaryBars[i + 1];
+        return b.kind === "presidential" && next?.kind === "midterm" ? [{ from: b, to: next }] : [];
+      }),
+    [summaryBars]
+  );
+  // Layer = segments summed from the bottom: votes, registered, eligible.
+  // Beat order is eligible (3), registered (2), votes (1).
+  const DROP_LAYERS = [3, 2, 1];
+  const topOf = (b: SummaryBar, layer: number) => b.segments.slice(0, layer).reduce((a, v) => a + v, 0);
+  const dropStats = DROP_LAYERS.map((layer) => {
+    const per = dropPairs.map(({ from, to }) => ({
+      diff: topOf(to, layer) - topOf(from, layer),
+      pct: (topOf(to, layer) / topOf(from, layer) - 1) * 100,
+    }));
+    const n = Math.max(1, per.length);
+    return {
+      per,
+      avgDiff: per.reduce((a, p) => a + p.diff, 0) / n,
+      avgPct: per.reduce((a, p) => a + p.pct, 0) / n,
+    };
+  });
+  const signedPct = (v: number) => `${v >= 0 ? "+" : "\u2212"}${fmtPct(Math.abs(v))}`;
+  // Each beat's arrows fade in as its step arrives and out as the next one
+  // does, so only one layer is ever marked.
+  const dropOpacity = (i: number) => {
+    const s = DROP_STEP + i;
+    const fadeIn = clamp01((progress - (s - 0.45)) / 0.35);
+    const fadeOut = i === DROP_LAYERS.length - 1 ? 0 : clamp01((progress - (s + 0.55)) / 0.35);
+    return fadeIn * (1 - fadeOut);
+  };
+  // Joined into a string so the memo (and with it the d3 effect) only
+  // re-fires when an opacity actually changes.
+  const arrowOpacityKey = DROP_LAYERS.map((_, i) => dropOpacity(i).toFixed(3)).join(",");
+  const arrows = useMemo(
+    () =>
+      DROP_LAYERS.map((layer, i) => ({
+        layer,
+        opacity: Number(arrowOpacityKey.split(",")[i]),
+        pairs: dropPairs.map(({ from, to }, k) => ({
+          from: from.key,
+          to: to.key,
+          label: signedPct(dropStats[i].per[k].pct),
+        })),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dropPairs, arrowOpacityKey]
   );
   const summary = useMemo(
-    () => ({ bars: summaryBars, from: firstYear, merge: mergeU, reveal: revealU }),
-    [summaryBars, firstYear, mergeU, revealU]
+    () => ({ bars: summaryBars, from: mergeYear, merge: mergeU, reveal: revealU, arrows }),
+    [summaryBars, mergeYear, mergeU, revealU, arrows]
   );
+  const [eligibleDrop, registeredDrop, votesDrop] = dropStats;
+  const dropVals: MidtermDropVals = {
+    pairs: dropPairs.length,
+    eligiblePct: signedPct(eligibleDrop.avgPct),
+    registeredPct: fmtPct(Math.abs(registeredDrop.avgPct)),
+    registeredM: fmtM(Math.abs(registeredDrop.avgDiff)),
+    votesPct: fmtPct(Math.abs(votesDrop.avgPct)),
+    votesM: fmtM(Math.abs(votesDrop.avgDiff)),
+    ratio: Math.round(votesDrop.avgDiff / registeredDrop.avgDiff).toString(),
+  };
   const summaryTooltip = useCallback(
     (bar: SummaryBar) => (
       <>
@@ -293,15 +333,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     [morphing, shownRowsByKey, shownYear, shownCycle, step]
   );
 
-  // Fades in as beat 2's heading comes up, fully there (resting on 2024)
-  // before the first hop starts - through beat 1 there is only one year, so
-  // a timeline is noise.
-  const timelineOpacity = clamp01((progress - (MORPH_STEP - 0.45)) / 0.35);
-  const explorerVals = { firstYear: years[years.length - 1] };
-  const stepRef = (i: number) => (el: HTMLElement | null) => {
-    setStepRef(i)(el);
-    stepEls.current[i] = el;
-  };
+  const stepRef = setStepRef;
 
   const copyVals: AgeBeatsVals = {
     age25cvap: fmtM(age25.cvap),
@@ -321,8 +353,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       <h2 className="voa-beat-title">{ageBeatsTitle}</h2>
       <div className="voa-scrolly">
         <StickyViz>
-          {/* Mounted from first paint and only faded, like every other
-              arriving layer, so its arrival can't move the chart. */}
           {/* Scroll state for tests: pos = hops back from 2024, u = within the
               current hop, u0 = within beat 2's hop (2024 -> 2022) only. */}
           <span
@@ -333,16 +363,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             data-shown={shownYear}
             data-resting={restingYear ?? ""}
             hidden
-          />
-          <YearControl
-            options={yearOptions}
-            shown={shownYear}
-            // Nothing is "the year shown" once the columns start merging.
-            resting={mergeU > 0 ? null : restingYear}
-            dotPos={hopCount - pos}
-            dotOpacity={rewindHaze(u)}
-            opacity={timelineOpacity}
-            onPick={pickYear}
           />
           <PopulationBars
             rows={activeRows}
@@ -420,37 +440,11 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               </div>
             </div>
           ))}
-          <div className="voa-step" ref={stepRef(EXPLORER_STEP)}>
-            <div className="voa-step-inner">
-              <h2 className="voa-beat-title voa-beat-title--incolumn">{explorerCopy.title(explorerVals)}</h2>
-              {explorerCopy.intro(explorerVals)}
-            </div>
-          </div>
-          {years.slice(1).map((year, k) => {
-            const c = data.byAge[year];
-            return (
-              <div className="voa-step" key={year} ref={stepRef(restStep(k + 1))}>
-                <div className="voa-step-inner">
-                  <div
-                    className={`voa-year-card voa-year-card--${c.kind}${year === restingYear ? " is-on" : ""}`}
-                    data-year={year}
-                  >
-                    <div className="voa-year-card__head">
-                      <span className="voa-year-card__year">{year}</span>
-                      <span className="voa-year-card__kind">
-                        {c.kind === "midterm" ? explorerCopy.midterm : explorerCopy.presidential}
-                      </span>
-                    </div>
-                    <p>{explorerCopy.yearCard({ year, kind: c.kind, turnout: fmtPct(c.avgTurnout) })}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
           <div className="voa-step" ref={stepRef(SUMMARY_STEP)}>
             <div className="voa-step-inner">
+              <h2 className="voa-beat-title voa-beat-title--incolumn">{summaryTitle}</h2>
               <h3>{summaryCopy.mergeHeading}</h3>
-              {summaryCopy.merge({ year: firstYear })}
+              {summaryCopy.merge({ year: mergeYear })}
             </div>
           </div>
           <div className="voa-step" ref={stepRef(SUMMARY_STEP + 1)}>
@@ -459,6 +453,14 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               {summaryCopy.reveal()}
             </div>
           </div>
+          {midtermDropSteps.map((s, i) => (
+            <div className="voa-step" key={`drop-${i}`} ref={stepRef(DROP_STEP + i)}>
+              <div className="voa-step-inner">
+                <h3>{typeof s.heading === "function" ? s.heading(dropVals) : s.heading}</h3>
+                {s.body(dropVals)}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

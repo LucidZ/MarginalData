@@ -63,7 +63,8 @@ const uMid = await u();
 const tipMid = await hoverTooltip();
 check(uMid > 0 && uMid < 1 && tipMid === null, `mid-morph (u=${uMid.toFixed(2)}): no tooltip -> ${tipMid}`);
 
-await scrollTo(to + span * 0.3);
+// Exactly on beat 2's last step: just past it, section 3's merge begins.
+await scrollTo(to);
 const u1 = await u();
 const t2022 = await ticks();
 const tip2022 = await hoverTooltip();

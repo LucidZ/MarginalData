@@ -74,7 +74,7 @@ const RECOLOR = 0.25;
 /** Fraction of the merge spent staggering: age i starts at i/n of this, so
  * the youngest columns lead and the bar fills like a pour. */
 const MERGE_STAGGER = 0.45;
-/** Same, for the other elections' bars fading in left to right. */
+/** Same, for the other elections' bars fading in, fanning out from the merged one. */
 const REVEAL_STAGGER = 0.55;
 
 interface Props {
@@ -177,6 +177,10 @@ interface Props {
     from: string;
     merge: number;
     reveal: number;
+    /** Gold arrows between bar pairs, each at the top of one stacked layer:
+     * `layer` counts segments from the bottom (1 = votes, 2 = registered,
+     * 3 = eligible). Drawn bar centre to bar centre, labelled above. */
+    arrows?: { layer: number; opacity: number; pairs: { from: string; to: string; label: string }[] }[];
   };
   summaryTooltip?: (bar: SummaryBar) => ReactNode;
 }
@@ -334,6 +338,8 @@ export default function PopulationBars({
       clipped.append("g").attr("class", "pb-merge");
       clipped.append("g").attr("class", "pb-summary");
       clipped.append("g").attr("class", "pb-summary-hits");
+      // Outside the clip, so a label riding above the tallest bar isn't cut.
+      root.append("g").attr("class", "pb-summary-arrows");
     }
     root.attr("transform", `translate(${margin.left},${margin.top})`);
     root
@@ -694,14 +700,16 @@ export default function PopulationBars({
     drawPieces("pb-merge", pieces);
 
     // Merged: one solid stack per election. `from` is already there; the
-    // rest fade in at full height, left to right, as `reveal` runs. Fading
-    // rather than growing means no frame ever shows a bar at a false total.
-    const others = sumBars.filter((b) => b.key !== summary?.from);
+    // rest fade in at full height as `reveal` runs, fanning out from it -
+    // its neighbours first, then theirs. Fading rather than growing means no
+    // frame ever shows a bar at a false total.
+    const fromIdx = sumBars.findIndex((b) => b.key === summary?.from);
+    const maxRing = Math.max(1, fromIdx, sumBars.length - 1 - fromIdx);
     const appear = (b: SummaryBar) => {
       if (!summary || m < 1) return 0;
       if (b.key === summary.from) return 1;
-      const i = others.indexOf(b);
-      return easeInOut(clamp01((summary.reveal - (i / others.length) * REVEAL_STAGGER) / (1 - REVEAL_STAGGER)));
+      const ring = Math.abs(sumBars.indexOf(b) - fromIdx) - 1;
+      return easeInOut(clamp01((summary.reveal - (ring / maxRing) * REVEAL_STAGGER) / (1 - REVEAL_STAGGER)));
     };
     const stacks: Piece[] = [];
     const shown = sumBars.map((b) => ({ b, f: appear(b) })).filter((d) => d.f > 0);
@@ -736,6 +744,59 @@ export default function PopulationBars({
         setSumHover({ bar: d.b, clientX: p.clientX, clientY: p.clientY });
       })
       .on("mouseleave touchend", () => setSumHover(null));
+
+    // Gold arrows: one group per beat, faded by its own opacity. Only once
+    // every bar is in, so an arrow never points at a bar that isn't there.
+    type Arrow = { key: string; x1: number; y1: number; x2: number; y2: number; label: string; o: number };
+    const arrows: Arrow[] = [];
+    if (summary && m >= 1 && summary.reveal >= 1) {
+      const byKey = new Map(sumBars.map((b) => [b.key, b]));
+      const topOf = (b: SummaryBar, layer: number) => b.segments.slice(0, layer).reduce((a, v) => a + v, 0);
+      for (const a of summary.arrows ?? []) {
+        if (a.opacity <= 0) continue;
+        for (const p of a.pairs) {
+          const f = byKey.get(p.from), t = byKey.get(p.to);
+          if (!f || !t) continue;
+          arrows.push({
+            key: `${a.layer}-${p.from}`,
+            x1: (xs(p.from) ?? 0) + xs.bandwidth() * 0.5,
+            y1: ys(topOf(f, a.layer)),
+            x2: (xs(p.to) ?? 0) + xs.bandwidth() * 0.5,
+            y2: ys(topOf(t, a.layer)),
+            label: p.label,
+            o: a.opacity,
+          });
+        }
+      }
+    }
+    const HEAD = 7;
+    const ag = root
+      .select<SVGGElement>("g.pb-summary-arrows")
+      .selectAll<SVGGElement, Arrow>("g.pb-arrow")
+      .data(arrows, (d) => d.key);
+    ag.exit().remove();
+    const agEnter = ag.enter().append("g").attr("class", "pb-arrow");
+    agEnter.append("line").attr("class", "pb-arrow-line");
+    agEnter.append("path").attr("class", "pb-arrow-head");
+    agEnter.append("text").attr("class", "pb-arrow-label").attr("text-anchor", "middle");
+    const agAll = agEnter.merge(ag as any).style("opacity", (d) => d.o);
+    agAll.each(function (d) {
+      const g = select(this);
+      const ang = Math.atan2(d.y2 - d.y1, d.x2 - d.x1);
+      // Stop the shaft short of the tip so its square end can't poke past the head.
+      g.select("line")
+        .attr("x1", d.x1)
+        .attr("y1", d.y1)
+        .attr("x2", d.x2 - Math.cos(ang) * HEAD * 0.8)
+        .attr("y2", d.y2 - Math.sin(ang) * HEAD * 0.8);
+      const bx = d.x2 - Math.cos(ang) * HEAD, by = d.y2 - Math.sin(ang) * HEAD;
+      const nx = -Math.sin(ang) * HEAD * 0.6, ny = Math.cos(ang) * HEAD * 0.6;
+      g.select("path").attr("d", `M${d.x2},${d.y2}L${bx + nx},${by + ny}L${bx - nx},${by - ny}Z`);
+      g.select("text")
+        .attr("x", (d.x1 + d.x2) / 2)
+        .attr("y", Math.min(d.y1, d.y2) - 8)
+        .text(d.label);
+    });
   }, [
     summary,
     summaryTooltip,

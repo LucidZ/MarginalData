@@ -175,42 +175,37 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Section 3 - every election, back to 2012 (AgeBeats.tsx steps 6+, YearControl.tsx)
+// Explorer - every election by age, after the story (Explorer.tsx, YearControl.tsx)
 // ---------------------------------------------------------------------------
 
 export interface ExplorerVals {
   firstYear: string; // earliest cycle in byAge
 }
 
-export interface YearCardVals {
-  year: string;
-  kind: "presidential" | "midterm";
-  turnout: string; // fmtPct(avgTurnout)
-}
-
 export const explorerCopy = {
-  title: (v: ExplorerVals) => `3. Every election since ${v.firstYear}`,
+  title: "Explore every election",
   intro: (v: ExplorerVals) => (
+    <p>
+      The same chart for every election since {v.firstYear}. Pick a year: the bars follow each generation, sliding
+      two years younger for every election back.
+    </p>
+  ),
+  caveat: (v: ExplorerVals) => (
     <>
-      <p>
-        Keep scrolling to go back one election at a time, to {v.firstYear}. The bars keep following each generation:
-        every step back, they slide two years younger. Scroll up to come forward again, or pick a year above the
-        chart.
-      </p>
-      <p className="voa-explorer-caveat">
-        Population for {v.firstYear}–2018 comes from the Census Bureau's 2010–2020 intercensal estimates, which
-        were revised after the 2020 census counted everyone. Later years use its current estimates, anchored to the
-        same census.
-      </p>
+      Population for {v.firstYear}–2018 comes from the Census Bureau's 2010–2020 intercensal estimates, which were
+      revised after the 2020 census counted everyone. Later years use its current estimates, anchored to the same
+      census.
     </>
   ),
   controlLabel: "Election year",
   presidential: "Presidential",
   midterm: "Midterm",
-  yearCard: (v: YearCardVals) => <>{v.turnout} of eligible citizens voted.</>,
+  // Beat 2's rewind clock, by scroll direction.
   rewinding: "rewinding",
   fastForwarding: "fast-forwarding",
 };
+
+export const summaryTitle = "3. It's not just 2022";
 
 // Placeholder copy - the summary chart after section 3's rewind.
 export const summaryCopy = {
@@ -231,3 +226,68 @@ export const summaryCopy = {
   ),
   xLabel: "Election",
 };
+
+/** Averages over each presidential -> midterm pair (2012->14, 2016->18,
+ * 2020->22), all from the data. */
+export interface MidtermDropVals {
+  pairs: number; // how many presidential -> midterm pairs are averaged
+  eligiblePct: string; // signed, e.g. "+1.8%"
+  registeredPct: string; // unsigned size of the drop, e.g. "4.8%"
+  registeredM: string;
+  votesPct: string;
+  votesM: string;
+  ratio: string; // votes drop / registration drop, in people, e.g. "4"
+}
+
+// Draft copy - three beats on the summary chart, one gold arrow layer each.
+export const midtermDropSteps: StepCopy<MidtermDropVals>[] = [
+  {
+    heading: "The pool keeps growing",
+    body: (v) => (
+      <p>
+        Between each presidential election and the midterm after it, the number of eligible citizens still grew,
+        by <strong className="voa-gap-text">{v.eligiblePct}</strong> on average.
+      </p>
+    ),
+  },
+  {
+    heading: "Registrations dip a little",
+    body: (v) => (
+      <p>
+        In each of the last {v.pairs} midterms, fewer people said they were{" "}
+        <Gloss
+          note={
+            <>
+              Some of this dip is probably real, some probably isn't:
+              <GlossList
+                items={[
+                  "People move, and a registration doesn't follow them to a new address",
+                  "People change their names, and the registration has to be updated",
+                  <>
+                    The survey only asks about registration if someone says they didn't vote. People who vote are
+                    assumed registered. In a midterm, far more people get asked, and some who are registered will
+                    say they aren't, or don't know
+                  </>,
+                ]}
+              />
+            </>
+          }
+        >
+          registered
+        </Gloss>{" "}
+        than two years before: down <strong className="voa-gap-text">{v.registeredPct}</strong> on average, about{" "}
+        {v.registeredM} people.
+      </p>
+    ),
+  },
+  {
+    heading: "Votes fall off a cliff",
+    body: (v) => (
+      <p>
+        Votes fell <strong className="voa-gap-text">{v.votesPct}</strong> on average, about {v.votesM} people:
+        roughly {v.ratio} times the drop in registrations. Most of the midterm drop isn't people falling off the
+        rolls. It's registered voters who just don't show up.
+      </p>
+    ),
+  },
+];

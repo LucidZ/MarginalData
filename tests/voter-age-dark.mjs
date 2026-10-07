@@ -14,11 +14,21 @@ await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.1));
 await page.waitForTimeout(500);
 await page.screenshot({ path: "tests/screenshots/voter-age-dark-beat1.png" });
 
-// Section 3 resting on a midterm, so the filled timeline button's dashed
-// border and the year card are checked against the dark page too.
-await page.$eval('.voa-year-card[data-year="2018"]', (e) => e.closest(".voa-step").scrollIntoView({ block: "center" }));
-await page.waitForTimeout(500);
+// The explorer resting on a midterm, so the filled timeline button's
+// dashed border is checked against the dark page too.
+await page.$eval(".voa-explorer", (e) => e.scrollIntoView());
+await page.click('.voa-explorer .voa-yc-btn[aria-label^="2018"]');
+await page.waitForFunction(() => document.querySelector(".voa-explorer-state").dataset.resting === "2018");
+await page.waitForTimeout(300);
 await page.screenshot({ path: "tests/screenshots/voter-age-dark-explorer.png" });
+
+// The summary's gold arrows, on the last story step.
+await page.evaluate(() => {
+  const steps = document.querySelectorAll(".voa-beat .voa-step");
+  steps[steps.length - 1].scrollIntoView({ block: "center" });
+});
+await page.waitForTimeout(600);
+await page.screenshot({ path: "tests/screenshots/voter-age-dark-arrows.png" });
 
 const swatchBg =await page.$eval(".pb-legend-votes", (el) => getComputedStyle(el).backgroundColor);
 console.log("pb-legend-votes background-color in dark mode:", swatchBg);

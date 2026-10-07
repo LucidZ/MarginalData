@@ -1,5 +1,5 @@
-// The summary after section 3's rewind (AgeBeats.tsx, PopulationBars.tsx
-// `summary`): 2012's age columns merge into one stacked bar, then every
+// Section 3's summary (AgeBeats.tsx, PopulationBars.tsx
+// `summary`): 2022's age columns merge into one stacked bar, then every
 // other election's bar fades in beside it. Screenshots the merge and reveal at
 // several scroll fractions, checks the merged bars' segment heights against
 // the JSON (summed with the same stackSegments rule), and that scrolling back
@@ -36,23 +36,23 @@ const segmentsOf = (y) =>
     [0, 0, 0]
   );
 
-/** Steps counted from the 2012 card: 0 card, 1 merged bar, 2 every
- * election. Scrolls
- * `frac` of the way from step a to step a+1. */
+/** Steps counted from beat 2's last step (resting on 2022): 0 that step,
+ * 1 merged bar, 2 every election, 3-5 the arrow beats. Scrolls `frac` of
+ * the way from step a to step a+1. */
+const BEAT2_LAST = 5; // AgeBeats.tsx: MORPH_STEP + 1
 async function scrollBetweenLast(a, frac) {
   await page.evaluate(
-    ({ a, frac, first }) => {
+    ({ a, frac, base }) => {
       const steps = [...document.querySelectorAll(".voa-beat .voa-step")];
-      const card = steps.indexOf(document.querySelector(`.voa-year-card[data-year="${first}"]`).closest(".voa-step"));
       const c = (el) => {
         const r = el.getBoundingClientRect();
         return window.scrollY + r.top + r.height / 2 - window.innerHeight / 2;
       };
-      const from = c(steps[card + a]);
-      const to = c(steps[card + a + 1]);
+      const from = c(steps[base + a]);
+      const to = c(steps[Math.min(base + a + 1, steps.length - 1)]);
       window.scrollTo(0, from + (to - from) * frac);
     },
-    { a, frac, first: years[0] }
+    { a, frac, base: BEAT2_LAST }
   );
   await page.waitForTimeout(300);
 }
@@ -83,7 +83,7 @@ for (const f of [0.4, 0.7, 1]) {
 c = await counts();
 if (c.summary !== years.length * 3) fail(`every election should be a 3-segment bar, got ${c.summary} rects`);
 
-// Segment heights proportional to the JSON's sums (pixel ratio vs the 2012 total).
+// Segment heights proportional to the JSON's sums (pixel ratio vs the first bar's total).
 const heights = await page.evaluate(() =>
   [...document.querySelectorAll("g.pb-summary rect")].map((r) => +r.getAttribute("height"))
 );
@@ -95,6 +95,34 @@ years.forEach((y, i) =>
   })
 );
 console.log("segment heights match the data");
+
+// The arrow beats: one layer's arrows at a time (eligible, registered,
+// votes), one per presidential -> midterm pair, labelled with that pair's
+// change in the data.
+const tops = (y) => {
+  const [v, r, u] = segmentsOf(y);
+  return [v, v + r, v + r + u]; // votes, registered, eligible
+};
+const pairs = years.flatMap((y, i) =>
+  data.byAge[y].kind === "presidential" && data.byAge[years[i + 1]]?.kind === "midterm" ? [[y, years[i + 1]]] : []
+);
+const layers = [2, 1, 0]; // beat order: eligible, registered, votes
+for (let k = 0; k < 3; k++) {
+  await scrollBetweenLast(3 + k, 0);
+  await page.waitForTimeout(300);
+  const shown = await page.evaluate(() =>
+    [...document.querySelectorAll("g.pb-summary-arrows g.pb-arrow")]
+      .filter((g) => parseFloat(g.style.opacity) > 0.5)
+      .map((g) => g.querySelector("text").textContent)
+  );
+  const want = pairs.map(([a, b]) => {
+    const pct = (tops(b)[layers[k]] / tops(a)[layers[k]] - 1) * 100;
+    return `${pct >= 0 ? "+" : "\u2212"}${Math.abs(pct).toFixed(1)}%`;
+  });
+  if (JSON.stringify(shown) !== JSON.stringify(want)) fail(`arrow beat ${k}: labels ${JSON.stringify(shown)}, want ${JSON.stringify(want)}`);
+  await plot().screenshot({ path: `${OUT}/voter-age-summary-arrows-${k}.png` });
+  console.log(`arrow beat ${k}:`, shown.join(" "));
+}
 
 // Back up: plain age chart again.
 await scrollBetweenLast(0, 0);

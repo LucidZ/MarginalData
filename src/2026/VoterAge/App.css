@@ -257,47 +257,20 @@
   }
 }
 
-/* ---------- Section 3 timeline + year cards (YearControl.tsx, AgeBeats.tsx) ---------- */
-.voa-step-inner .voa-explorer-caveat {
+/* ---------- Explorer after the story (Explorer.tsx) ---------- */
+.voa-explorer {
+  margin-top: 4rem;
+}
+.voa-explorer > p {
+  max-width: 62ch;
+}
+.voa-explorer-chart {
+  max-width: 640px;
+  margin: 1.2rem 0 0.8rem;
+}
+.voa-explorer .voa-explorer-caveat {
   font-size: 0.85rem;
   color: var(--muted);
-}
-.voa-year-card {
-  margin-top: 0.4rem;
-  padding: 0.8rem 1rem;
-  border: 1.5px solid var(--baseline);
-  border-radius: 8px;
-  background: var(--surface-1);
-  transition: border-color 200ms;
-}
-.voa-year-card--midterm {
-  background: var(--midterm-band);
-}
-/* Resting on this year: the card's outline darkens with the timeline
-   button's fill, so the text column confirms the lock too. */
-.voa-year-card.is-on {
-  border-color: var(--text-primary);
-}
-.voa-year-card__head {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-}
-.voa-year-card__year {
-  font-size: 1.6rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-.voa-year-card__kind {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-.voa-step-inner .voa-year-card p {
-  margin: 0.3rem 0 0;
 }
 .voa-yc {
   margin: 0 0 0.6rem;
@@ -514,6 +487,27 @@
 }
 .pb-seg--track {
   fill: var(--gridline);
+}
+/* Summary beats' presidential -> midterm arrows. */
+.pb-arrow {
+  transition: opacity 200ms;
+  pointer-events: none;
+}
+.pb-arrow-line {
+  stroke: var(--gap);
+  stroke-width: 2.5;
+}
+.pb-arrow-head {
+  fill: var(--gap);
+}
+.pb-arrow-label {
+  fill: var(--gap-edge);
+  font-size: 12px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--surface-1);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 .voa-axis .pb-axis-sublabel {
   font-size: 9.5px;
