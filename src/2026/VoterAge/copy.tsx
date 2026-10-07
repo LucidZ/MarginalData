@@ -13,7 +13,7 @@ import type { VoterAgeData } from "./types";
  */
 
 export interface StepCopy<V> {
-  heading: string | ((v: V) => string);
+  heading: ReactNode | ((v: V) => ReactNode);
   body: (v: V) => ReactNode;
 }
 
@@ -72,7 +72,7 @@ export function sourcesFootnote(meta: VoterAgeData["meta"]): ReactNode {
 }
 
 // ---------------------------------------------------------------------------
-// Beats 1 + 2 (AgeBeats.tsx) - one merged section, 9 steps
+// Beats 1 + 2 (AgeBeats.tsx) - one merged section, 6 steps
 // ---------------------------------------------------------------------------
 
 export interface AgeBeatsVals {
@@ -84,21 +84,8 @@ export interface AgeBeatsVals {
   shortfall2024: string;
   under35Missing: string;
   shortfall2024Pct: string;
-  reg65: string; // 2024 65+ registration rate
-  youthReg: string; // 2024 18-24 registration rate
-  youthShowUp: string; // 2024 share of registered 18-24s who voted
-  youthShowUp2022: string;
-  showUp65: string; // 2024 share of registered 65+ who voted
-  // Plain head-counts, all ages: registered people who didn't vote, and
-  // eligible citizens who aren't registered.
-  regNotVoted2024: string;
-  regNotVoted2022: string;
-  notRegistered2024: string;
-  notRegistered2022: string;
-  /** The last beat step's turnout-by-age table, rendered by AgeBeats.tsx (it's data
-   * presentation, not prose) and embedded here so the surrounding paragraphs
-   * stay in one place with it. */
-  compareTable: ReactNode;
+  shortfall2022: string; // against 2022's own 65+ rate
+  shortfall2022Pct: string;
 }
 
 export const ageBeatsTitle = "1. The age of the electorate";
@@ -149,7 +136,11 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
-    heading: (v) => `This shortfall is ${v.shortfall2024Pct} of votes cast.`,
+    heading: (v) => (
+      <>
+        This shortfall is <span className="voa-gap-text">{v.shortfall2024Pct}</span> of votes cast.
+      </>
+    ),
     body: () => (
       <>
         <p>
@@ -159,86 +150,32 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
-    heading: "Some people are registered but don't vote...",
-    body: (v) => (
-      <p>
-        Some people are{" "}
-        <Gloss
-          note={
-            <>
-              Registration is self-reported in the same survey as voting. Census counts people who didn't answer the
-              question as not registered, and young people skip it most often (about one in five 18-to-24-year-olds),
-              so their registration is probably somewhat understated.
-            </>
-          }
-        >
-          registered
-        </Gloss>{" "}
-        but don't vote. The pale band above each green bar is them: <strong>{v.regNotVoted2024}</strong> people in
-        2024. Of registered people 65-and-over, {v.showUp65} voted; of registered 18-to-24-year-olds,{" "}
-        {v.youthShowUp}.
-      </p>
-    ),
-  },
-  {
-    heading: "and many more aren't registered at all",
-    body: (v) => (
-      <p>
-        The grey above the pale band is eligible citizens who aren't registered: <strong>{v.notRegistered2024}</strong>{" "}
-        people. {v.reg65} of people 65-and-over are registered, compared with {v.youthReg} of 18-to-24-year-olds.
-      </p>
-    ),
-  },
-  {
     heading: "No president on the ballot",
-    body: () => (
+    body: (v) => (
       <p>
-        Nothing has moved: same bars, same 2024 election, same line. Now rewind two years and take the president off
-        the ballot. In a midterm, turnout drops for everyone. The question is whether it drops evenly.
+        Now rewind two years to the 2022 midterm. Turnout drops for everyone, 65-and-over included, so the dotted
+        line drops too ({v.bench} to {v.bench2022}). The question is whether everyone drops evenly.
       </p>
     ),
   },
   {
-    heading: "2022: registered, but staying home",
-    body: (v) => (
+    heading: (v) => (
       <>
-        <p>
-          Every bar slid two years left as it fell — it's the same people, two years younger. The two youngest slid
-          clean off the chart: 2024's 18- and 19-year-olds weren't old enough to vote in 2022 at all.
-        </p>
-        <p>
-          The dotted line still traces the 65-and-over turnout rate, which drops in a midterm too ({v.bench} to{" "}
-          {v.bench2022}). The number not registered grows a little: {v.notRegistered2024} to{" "}
-          {v.notRegistered2022}.
-        </p>
-        <p>
-          The big change is the pale band: registered people staying home. It doubles, from {v.regNotVoted2024} to{" "}
-          <strong>{v.regNotVoted2022}</strong>.
-        </p>
+        In 2022, the shortfall was <span className="voa-gap-text">{v.shortfall2022Pct}</span> of votes cast.
       </>
     ),
-  },
-  {
-    heading: "The young nearly stop showing up; the old barely notice",
     body: (v) => (
-      <>
-        <p>Turnout by single year of age, presidential vs. midterm:</p>
-        {v.compareTable}
-        <p>
-          An 18-year-old's turnout is nearly cut in half. A 79-year-old's barely moves. Older voters show up
-          regardless of what's on the ballot; younger voters mostly show up for president.
-        </p>
-        <p>
-          Fewer young people say they're registered in a midterm too, but the steeper drop is among those who are.
-          Of registered 18-to-24-year-olds, {v.youthShowUp} voted in 2024; in 2022 only {v.youthShowUp2022} did.
-        </p>
-      </>
+      <p>
+        Every bar slid two years left as it fell: it's the same people, two years younger. Even measured against
+        a lower 65-and-over rate, the shortfall grows from {v.shortfall2024} to <strong>{v.shortfall2022}</strong>.
+        Older voters show up regardless of what's on the ballot; younger voters mostly show up for president.
+      </p>
     ),
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Section 3 - every election, back to 2012 (AgeBeats.tsx steps 8+, YearControl.tsx)
+// Section 3 - every election, back to 2012 (AgeBeats.tsx steps 6+, YearControl.tsx)
 // ---------------------------------------------------------------------------
 
 export interface ExplorerVals {

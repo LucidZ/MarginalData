@@ -16,7 +16,7 @@ await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 await page.waitForTimeout(300);
 
-const STEPS = 18; // AgeBeats.tsx: 9 beat steps + section 3 intro + one per earlier election (2022 ... 2012) + 2 summary steps
+const STEPS = 15; // AgeBeats.tsx: 6 beat steps + section 3 intro + one per earlier election (2022 ... 2012) + 2 summary steps
 
 // One section, one sticky pane, one chart for beats 1-2 and section 3.
 const shape = await page.evaluate(() => {
@@ -78,16 +78,17 @@ if (Math.max(...pinned) - Math.min(...pinned) > 2) {
 }
 console.log(`PASS: chart holds one position across the beat boundary (top=${pinned[0]}px at steps 0-${STEPS - 2})`);
 
-// Step 3 prints one total (votes short of the 65+ rate); step 5 the two
-// plain head-counts the registered bar opens up, from the data.
+// Step 3 prints 2024's shortfall against its own 65+ rate; step 5, after
+// the rewind, 2022's against its own. Both summed from the data.
 const data = await page.evaluate(() => fetch("/data/voter-age.json").then((r) => r.json()));
-const rows24 = data.byAge["2024"].rows;
-const sum = (f) => rows24.reduce((a, r) => a + f(r), 0) / 1000;
-const want = [sum((r) => r.registered - r.votes), sum((r) => r.cvap - r.registered)];
-if (hero[3].length !== 1 || hero[5].length !== 2 || hero[5].some((v, i) => Math.abs(v - want[i]) > 0.05)) {
-  throw new Error(`FAIL: step-5 counts ${JSON.stringify(hero[5])} should be ${want.map((v) => v.toFixed(1))} (registered didn't vote, not registered)`);
+const short = (y) => Math.abs(data.byAge[y].rows.reduce((a, r) => a + Math.min(0, r.missing), 0)) / 1000;
+const want = { 3: short("2024"), 5: short("2022") };
+for (const k of [3, 5]) {
+  if (hero[k].length !== 1 || Math.abs(hero[k][0] - want[k]) > 0.05) {
+    throw new Error(`FAIL: step-${k} shortfall ${JSON.stringify(hero[k])} should be ${want[k].toFixed(1)}`);
+  }
 }
-console.log(`PASS: step-5 counts match the data (${hero[5].join("M registered didn't vote, ")}M not registered)`);
+console.log(`PASS: shortfall figures match the data (2024 ${hero[3][0]}M, 2022 ${hero[5][0]}M)`);
 
 // Height constant at every step including the last: the hero figure, the
 // delta line and the gap legend all fade in over space reserved from first

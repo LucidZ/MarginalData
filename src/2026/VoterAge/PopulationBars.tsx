@@ -99,6 +99,9 @@ interface Props {
    * isn't voting, and shading a "surplus" would imply some groups should
    * participate less. */
   showGap?: boolean;
+  /** Opacity 0-1 of the gold shortfall layer, overriding showGap - for a
+   * layer that fades out under a scroll-driven transition. */
+  gapOpacity?: number;
   /** Opacity 0-1 of the gold wedge split into its two parts ("age" variant
    * only, rows must carry turnShort/regShort): the turnout shade from the
    * votes bar up, the registration shade from there to the dotted line.
@@ -141,6 +144,8 @@ interface Props {
       label: string;
       delta: string;
       swatch?: "gap" | "gap-turnout" | "gap-reg" | "registered" | "track";
+      /** "gap" prints the figure in the shortfall's gold. */
+      tone?: "gap";
     }[];
     opacity?: number;
     deltaOpacity: number;
@@ -200,6 +205,7 @@ export default function PopulationBars({
   expectedOpacity,
   expectedLineLabel = "expected at average turnout",
   showGap = false,
+  gapOpacity,
   gapSplit = 0,
   gapLegendLabel = "",
   gapRegLegendLabel = "",
@@ -298,6 +304,7 @@ export default function PopulationBars({
       yDomainProp ?? [0, Math.max(1, ...rows.map((r) => r.cvap)) * 1.08];
     const yScale = scaleLinear().domain(yDomain).range([innerH, 0]);
     const lineOpacity = expectedOpacity ?? (showExpected ? 1 : 0);
+    const gapOn = gapOpacity ?? (showGap ? 1 : 0);
 
     let root = svg.select<SVGGElement>("g.pb-root");
     if (root.empty()) {
@@ -503,7 +510,7 @@ export default function PopulationBars({
         .attr("y", (d: PopulationBarRow) => yScale(top(d)!))
         .attr("height", (d: PopulationBarRow) => yScale(bottom(d)!) - yScale(top(d)!));
     };
-    drawGapLayer("pb-gaps", (d) => d.votes, (d) => d.expected, showGap ? 1 : 0);
+    drawGapLayer("pb-gaps", (d) => d.votes, (d) => d.expected, gapOn);
     // The split, over the single wedge. The seam is capped at the dotted
     // line: mid-morph the lerped parts can overshoot a lerped gap that's
     // crossing zero, and the two shades must never spill past the wedge.
@@ -742,6 +749,7 @@ export default function PopulationBars({
     showExpected,
     expectedOpacity,
     showGap,
+    gapOpacity,
     gapSplit,
     registeredOpacity,
     shortRows,
@@ -759,6 +767,7 @@ export default function PopulationBars({
   const lineLegendOn = !sumLegend && (expectedOpacity ?? (showExpected ? 1 : 0)) > 0.5;
   const registeredLegendOn = sumLegend || registeredOpacity > 0.5;
   const regLegendOn = !sumLegend && gapSplit > 0.5;
+  const gapLegendOn = !sumLegend && (gapOpacity ?? (showGap ? 1 : 0)) > 0.5;
   const hasSplit = !!gapRegLegendLabel && rows.some((r) => r.regShort !== undefined);
 
   return (
@@ -796,8 +805,8 @@ export default function PopulationBars({
         {gapLegendLabel && (
           <span
             className="pb-legend-entry"
-            style={{ marginLeft: "0.9rem", opacity: showGap && !sumLegend ? 1 : 0 }}
-            aria-hidden={!showGap || sumLegend || undefined}
+            style={{ marginLeft: "0.9rem", opacity: gapLegendOn ? 1 : 0 }}
+            aria-hidden={!gapLegendOn || undefined}
           >
             <span className="voa-legend-swatch pb-legend-gap" /> {gapLegendLabel}
           </span>
@@ -827,7 +836,7 @@ export default function PopulationBars({
           <div className="pb-gap-hero-row">
             {heroGap.items.map((item) => (
               <div className="pb-gap-hero" key={item.label}>
-                <div className="pb-gap-hero-figure">{item.figure}</div>
+                <div className={`pb-gap-hero-figure${item.tone ? " voa-gap-text" : ""}`}>{item.figure}</div>
                 <div className="pb-gap-hero-label">
                   {item.swatch && (
                     <span className={`voa-legend-swatch pb-legend-${item.swatch}`} aria-hidden="true" />

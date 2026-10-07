@@ -23,11 +23,11 @@ await page.waitForSelector(".voa-root h1");
 // morph window can't be read off a "beat 2 section" - it's measured from the
 // steps themselves. Progress is a fractional step index, and the morph runs
 // from progress MORPH_STEP+0.15 to MORPH_STEP+0.85, i.e. between the centers
-// of steps 5 and 6. Scan a little past both ends so the true endpoints are
+// of steps 4 and 5. Scan a little past both ends so the true endpoints are
 // reached regardless of how step heights map to scroll position. We read `u`
 // back from the scrubber's data-u (RewindOverlay.tsx) rather than assume a
 // scrollY formula for it.
-const MORPH_STEP = 6; // AgeBeats.tsx
+const MORPH_STEP = 4; // AgeBeats.tsx
 const window_ = await page.evaluate(
   ({ i, h }) => {
     const steps = [...document.querySelectorAll(".voa-beat .voa-step")];
@@ -114,26 +114,25 @@ for (const s of samples) {
 }
 console.log("PASS: timeline buttons fill only at a real year; plot dimmed only between years");
 
-// 3. The printed registered-didn't-vote figure only ever takes one of the two real values -
+// 3. The printed shortfall figure only ever takes one of the two real values -
 // never something in between, which would describe an election that never
 // happened. Both years' shortfalls are measured against their OWN 65+ rate
 // (23.3M / 36.1M), not a value pinned to 2024's rate (that was 54.0M in the
 // earlier pinned-benchmark version of this beat - see spec addendum).
-// First hero figure is the turnout part of the shortfall (votes lost to
-// registrants voting less than 65+ registrants do), the view beat 1 hands to
-// the morph since the 2026-10-02 shortfall split.
-const ALLOWED = [20.1, 40.5];
+// The whole gold shortfall is what beat 1 hands to the morph since the
+// registration steps were cut (2026-10-07).
+const ALLOWED = [23.3, 36.1];
 for (const s of samples) {
   const nearest = ALLOWED.reduce((a, b) => (Math.abs(b - s.heroFig) < Math.abs(a - s.heroFig) ? b : a));
   if (Math.abs(s.heroFig - nearest) > 0.05) {
-    throw new Error(`FAIL: figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 20.1M nor 40.5M`);
+    throw new Error(`FAIL: figure ${s.heroFig}M at u=${s.u.toFixed(2)} is neither 23.3M nor 36.1M`);
   }
 }
 const below = samples.filter((s) => s.u < 0.45);
 const above = samples.filter((s) => s.u > 0.55);
-if (!below.every((s) => Math.abs(s.heroFig - 20.1) < 0.05)) throw new Error("FAIL: figure isn't pinned to 20.1M before the flip");
-if (!above.every((s) => Math.abs(s.heroFig - 40.5) < 0.05)) throw new Error("FAIL: figure isn't pinned to 40.5M after the flip");
-console.log("PASS: figure snaps between the two real values only (20.1M / 40.5M), never a blend");
+if (!below.every((s) => Math.abs(s.heroFig - 23.3) < 0.05)) throw new Error("FAIL: figure isn't pinned to 23.3M before the flip");
+if (!above.every((s) => Math.abs(s.heroFig - 36.1) < 0.05)) throw new Error("FAIL: figure isn't pinned to 36.1M after the flip");
+console.log("PASS: figure snaps between the two real values only (23.3M / 36.1M), never a blend");
 
 // 4. Delta line stays invisible until deep in the morph (last ~15% of u),
 // then fades in - reserved space, never a mount (spec S5/S7).

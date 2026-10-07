@@ -461,6 +461,11 @@
 .pb-legend-gap {
   background: var(--gap);
 }
+/* Figures that name the gold shortfall, in the chart's exact gold. */
+.voa-gap-text,
+.pb-gap-hero-figure.voa-gap-text {
+  color: var(--gap);
+}
 /* Legend entries arrive with the layer they name. */
 .voa-legend > span {
   transition: opacity 300ms;

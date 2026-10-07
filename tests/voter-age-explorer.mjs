@@ -12,7 +12,7 @@ const BASE = process.env.BASE_URL || "http://localhost:4321";
 const OUT = "tests/screenshots";
 mkdirSync(OUT, { recursive: true });
 
-const MORPH_STEP = 6; // AgeBeats.tsx - the step resting on 2024 just before the first hop
+const MORPH_STEP = 4; // AgeBeats.tsx - the step resting on 2024 just before the first hop
 const fmtM = (thousands, digits = 1) => `${(thousands / 1000).toFixed(digits)}M`;
 const fail = (msg) => {
   throw new Error(`FAIL: ${msg}`);
@@ -98,7 +98,8 @@ for (const year of [...years].reverse()) {
   if (year !== "2024" && !lock.cardOn) fail(`${year}: year card not marked as resting`);
   if (lock.plotOpacity < 0.99 || lock.dotOpacity > 0.01) fail(`${year}: plot should be crisp and dot hidden at rest ${JSON.stringify(lock)}`);
   const c = data.byAge[year];
-  const want = [fmtM(c.turnoutShortfall), fmtM(c.registrationShortfall)];
+  // That election's gold, against its own 65+ rate.
+  const want = [fmtM(Math.abs(c.rows.reduce((a, r) => a + Math.min(0, r.missing), 0)))];
   if (JSON.stringify(lock.hero) !== JSON.stringify(want)) fail(`${year}: hero ${JSON.stringify(lock.hero)}, want ${JSON.stringify(want)}`);
   if (!lock.legend.includes(`${c.over65Turnout.toFixed(1)}%`)) fail(`${year}: legend "${lock.legend}" lacks its own 65+ rate`);
   const ticks = await yTicks();

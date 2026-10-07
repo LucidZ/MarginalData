@@ -7,7 +7,7 @@ import YearControl, { type YearOption } from "./YearControl";
 import { cohortRows, hopRows } from "./ageRows";
 import { fmtM, fmtMSigned, fmtPct } from "./format";
 import { ageBeatsSteps, ageBeatsTitle, explorerCopy, midtermsTitle, summaryCopy, type AgeBeatsVals } from "./copy";
-import type { VoterAgeData, AgeRow } from "./types";
+import type { VoterAgeData } from "./types";
 
 /**
  * Beats 1 and 2, sharing one pinned chart.
@@ -21,15 +21,16 @@ import type { VoterAgeData, AgeRow } from "./types";
  * physical element: one sticky pane spanning eight steps, with beat 2's
  * heading riding up the text column while the chart stays put.
  *
- * Steps 0-5 accumulate the 2024 chart layer by layer, off a rounded step
+ * Steps 0-3 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
- * 700ms tween): eligible, votes, the 65+ turnout line (a reference only -
- * nothing is shaded against it) and the votes it would mean, then the
- * registered bar between the two, then its plain counts: registered but
- * didn't vote, and eligible but not registered. That three-count view is
- * what the morph carries: beat 2 is watching both change. Steps 6-8 morph it to 2022 continuously off the raw scroll
- * fraction, with the tween disabled - see .claude/voter-age-scroll-morph-spec.md
- * and .claude/voter-age-morph-honesty-spec.md.
+ * 700ms tween): eligible, votes, the 65+ turnout line, then the gold
+ * shortfall under it and its total. That shortfall view is what the morph
+ * carries: beat 2 (steps 4-5) rewinds it to the 2022 midterm, continuously
+ * off the raw scroll fraction, with the tween disabled - see
+ * .claude/voter-age-scroll-morph-spec.md and
+ * .claude/voter-age-morph-honesty-spec.md. (The registration steps that used
+ * to sit between the shortfall and the morph are at tag
+ * `voter-age-registration-steps`.)
  *
  * Section 3 keeps the same pinned chart and keeps going back: one step per
  * election, 2022 -> 2020 -> ... -> 2012, each hop the same morph as beat 2
@@ -37,33 +38,28 @@ import type { VoterAgeData, AgeRow } from "./types";
  * plays it forward. Bars are keyed by birth cohort (ageRows.ts), so the same
  * people keep the same element across all six hops.
  *
- * Then the summary, two more steps on the same chart: 2012's age columns
- * recolour into three plain counts (votes, registered, eligible - no 65+
+ * Then the summary, two more steps on the same chart: the gold fades and
+ * 2012's age columns recolour into three plain counts (votes, registered, eligible - no 65+
  * standard) and merge into one stacked bar, each column's segments flying
  * into their slice of the total; then the other elections' bars fade in
  * beside it. One bar per election.
  */
 
 /** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
-const MORPH_STEP = 6;
+const MORPH_STEP = 4;
 /** Section 3's first step: heading and intro, the chart still resting on
  * 2022. Then one step per year from 2022 back, each holding just that
  * year's card - kept apart from the intro so no card sits at the bottom of
  * a step too tall for a phone's reading band. Every later hop runs from one
  * year's step to the next. */
-const EXPLORER_STEP = 9;
+const EXPLORER_STEP = 6;
 /** The 65+ turnout standard's dotted line, on its own. */
 const LINE_STEP = 2;
-/** The votes that line would mean, as one total under the chart. */
+/** The gold shortfall under that line, and its total under the chart -
+ * held through the morph and every hop after it. */
 const TOTAL_STEP = 3;
-/** The registered bar, between votes and eligible. */
-const REG_STEP = 4;
-/** The two plain counts under the chart - held through the morph. */
-const REG_GAP_STEP = 5;
 /** Past this point the chart is scroll-driven, so d3's time tween is off. */
 const TWEEN_UNTIL = MORPH_STEP - 0.6;
-
-const COMPARE_AGES = [18, 22, 65, 79];
 
 /** Matches App.css's phone breakpoint, where the chart pins above the text. */
 const PHONE_QUERY = "(max-width: 720px)";
@@ -72,8 +68,8 @@ const PHONE_QUERY = "(max-width: 720px)";
  * hop h >= 1 runs from year h's card step to year h+1's. */
 const hopStart = (h: number) => (h === 0 ? MORPH_STEP : EXPLORER_STEP + h);
 /** The step resting on year index k (0 = 2024): beat 2's first step for
- * 2024 (the full registration view, just before the first hop), else that
- * year's card step. */
+ * 2024 (the shortfall view, just before the first hop), else that year's
+ * card step. */
 const restStep = (k: number) => (k === 0 ? MORPH_STEP : EXPLORER_STEP + k);
 /** Scroll fraction of a hop's step span spent resting at each end: the hop
  * runs over the middle 70%, same as beat 2 has always used. */
@@ -90,14 +86,6 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 // change in the middle third. See .claude/voter-age-morph-honesty-spec.md S4a.
 function ease(x: number, gamma = 3) {
   return x < 0.5 ? Math.pow(2 * x, gamma) / 2 : 1 - Math.pow(2 * (1 - x), gamma) / 2;
-}
-
-/** Pooled rates over an age range: registered/eligible, and votes/registered
- * (how reliably the registered actually vote). */
-function bracketRates(rows: AgeRow[], lo: number, hi: number) {
-  const inRange = rows.filter((r) => r.age >= lo && r.age <= hi);
-  const sum = (k: "cvap" | "votes" | "registered") => inRange.reduce((s, r) => s + r[k], 0);
-  return { registered: (100 * sum("registered")) / sum("cvap"), showUp: (100 * sum("votes")) / sum("registered") };
 }
 
 /** Every age that fell short of its cycle's 65+ standard, summed - the same
@@ -260,33 +248,18 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     []
   );
 
-  const shortfall2024 = shortfallOf(cycle2024.rows);
-  // The two bands the registered bar opens up, per year: registered but
-  // didn't vote, and eligible but not registered. Plain head-counts.
-  const counts = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(data.byAge).map(([y, c]) => {
-          const [, regNotVoted, notRegistered] = c.rows
-            .map(stackSegments)
-            .reduce((a, v) => a.map((x, i) => x + v[i]) as [number, number, number], [0, 0, 0]);
-          return [y, { regNotVoted, notRegistered }];
-        })
-      ),
+  // Each election's shortfall against its own 65+ rate - the gold, summed.
+  const shortfalls = useMemo(
+    () => Object.fromEntries(Object.entries(data.byAge).map(([y, c]) => [y, shortfallOf(c.rows)])),
     [data]
   );
-  const shownCounts = counts[shownYear];
+  const shortfall2024 = shortfalls["2024"];
+  const shortfall2022 = shortfalls["2022"];
 
   const under35Missing = shortfallOf(cycle2024.rows.filter((r) => r.age < 35));
 
   const age25 = cycle2024.rows.find((r) => r.age === 25)!;
   const age75 = cycle2024.rows.find((r) => r.age === 75)!;
-
-  const compareRows = COMPARE_AGES.map((age) => ({
-    age,
-    t2024: cycle2024.rows.find((r) => r.age === age)!.turnout,
-    t2022: cycle2022.rows.find((r) => r.age === age)!.turnout,
-  }));
 
   // Tooltip content snaps the same as every other printed number - a hovered
   // bar mid-morph describes `shown`, not the lerped geometry it happens to
@@ -308,7 +281,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             {real.ratesPooled ? " (rate shared across 80-84/85+)" : ""}
           </div>
           {fmtM(real.cvap)} eligible
-          {step >= REG_STEP ? ` · ${fmtM(real.registered!)} registered` : ""}
           {` · ${fmtM(real.votes)} voted (${fmtPct(real.turnout)})`}
           {step >= LINE_STEP && (
             <div className="voa-tooltip__note">
@@ -319,32 +291,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       );
     },
     [morphing, shownRowsByKey, shownYear, shownCycle, step]
-  );
-
-  const youth2024 = bracketRates(cycle2024.rows, 18, 24);
-  const youth2022 = bracketRates(cycle2022.rows, 18, 24);
-
-  const compareTable = (
-    <table className="voa-compare-table">
-      <thead>
-        <tr>
-          <th>Age</th>
-          <th>2024</th>
-          <th>2022</th>
-          <th>Change</th>
-        </tr>
-      </thead>
-      <tbody>
-        {compareRows.map((r) => (
-          <tr key={r.age}>
-            <td>{r.age}</td>
-            <td>{fmtPct(r.t2024)}</td>
-            <td>{fmtPct(r.t2022)}</td>
-            <td className={r.t2022 - r.t2024 < -10 ? "voa-compare-big-drop" : ""}>{(r.t2022 - r.t2024).toFixed(1)}pp</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 
   // Fades in as beat 2's heading comes up, fully there (resting on 2024)
@@ -366,16 +312,8 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
     shortfall2024: fmtM(shortfall2024),
     under35Missing: fmtM(under35Missing),
     shortfall2024Pct: fmtPct((shortfall2024 / cycle2024.totalVotes) * 100),
-    reg65: fmtPct(cycle2024.over65Registration),
-    youthReg: fmtPct(youth2024.registered),
-    youthShowUp: fmtPct(youth2024.showUp),
-    youthShowUp2022: fmtPct(youth2022.showUp),
-    showUp65: fmtPct(cycle2024.over65ShowUp),
-    regNotVoted2024: fmtM(counts["2024"].regNotVoted),
-    regNotVoted2022: fmtM(counts["2022"].regNotVoted),
-    notRegistered2024: fmtM(counts["2024"].notRegistered),
-    notRegistered2022: fmtM(counts["2022"].notRegistered),
-    compareTable,
+    shortfall2022: fmtM(shortfall2022),
+    shortfall2022Pct: fmtPct((shortfall2022 / cycle2022.totalVotes) * 100),
   };
 
   return (
@@ -413,62 +351,41 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             yLabel="People (millions)"
             showTrack
             showVotes={step >= 1}
-            // The dotted line has no counterpart on the summary bars - it and its
-            // legend entry go as the merge starts. The registered bar stays:
-            // the summary is made of the same three counts.
+            // The dotted line and the gold have no counterpart on the summary
+            // bars - they and their legend entries go as the merge starts.
             expectedOpacity={step >= LINE_STEP ? 1 - clamp01(mergeU / 0.3) : 0}
-            registeredOpacity={step >= REG_STEP ? 1 : 0}
+            gapOpacity={step >= TOTAL_STEP ? 1 - clamp01(mergeU / 0.3) : 0}
+            gapLegendLabel="Shortfall"
             // Traces whichever cycle is shown, so its rate follows the morph.
             expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
-            heroGap={
-              step < REG_STEP
-                ? {
-                    items: [
-                      { figure: fmtM(shortfall2024), label: "fewer votes than the 65+ rate", delta: "" },
-                    ],
-                    // Mounted from first paint (so the space it takes is
-                    // reserved and its arrival moves nothing), faded in as
-                    // the reader reaches the step that adds the gold up.
-                    opacity: clamp01((progress - (TOTAL_STEP - 0.45)) / 0.35),
-                    deltaOpacity: 0,
-                  }
-                : {
-                    // The two bands' head-counts, carried through every hop.
-                    // Each prints only a real election's figure (`shownYear`,
-                    // snapped at t=0.5), never one read off lerped rows.
-                    items: [
-                      {
-                        figure: fmtM(shownCounts.regNotVoted),
-                        label: "registered, didn't vote",
-                        delta: fmtMSigned(counts["2022"].regNotVoted - counts["2024"].regNotVoted),
-                        swatch: "registered",
-                      },
-                      {
-                        figure: fmtM(shownCounts.notRegistered),
-                        label: "not registered",
-                        delta: fmtMSigned(counts["2022"].notRegistered - counts["2024"].notRegistered),
-                        swatch: "track",
-                      },
-                    ],
-                    // Hidden while the split first appears, so the reader
-                    // meets the shades before the numbers. Dimmed with the plot mid-morph: a
-                    // crisp number under a rewinding chart still invites
-                    // reading it as the chart's.
-                    opacity:
-                      clamp01((progress - (REG_GAP_STEP - 0.45)) / 0.35) *
-                      (1 - 0.65 * rewindHaze(u)) *
-                      // Gone as the columns merge: the summary bars carry
-                      // these counts themselves.
-                      (1 - clamp01(mergeU / 0.15)),
-                    // Fades in over beat 2's hop's last ~15%. Keyed to raw
-                    // `u`, the linear scroll signal, not the eased `t` (whose
-                    // last 15% is a much narrower sliver of actual scroll
-                    // distance). These deltas are 2024 -> 2022 only: it fades
-                    // back out as the next hop starts, since a change vs. the
-                    // previous election would mix election types.
-                    deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01((pos - 1) / 0.15)),
-                  }
-            }
+            heroGap={{
+              // Snaps to the shown election's own figure - never one read off
+              // lerped rows.
+              items: [
+                {
+                  figure: fmtM(shortfalls[shownYear]),
+                  label: "fewer votes than the 65+ rate",
+                  delta: fmtMSigned(shortfall2022 - shortfall2024),
+                  tone: "gap",
+                },
+              ],
+              // Mounted from first paint (so the space it takes is reserved
+              // and its arrival moves nothing), faded in as the reader
+              // reaches the step that adds the gold up. Dimmed with the plot
+              // mid-morph: a crisp number under a rewinding chart still
+              // invites reading it as the chart's. Gone as the columns merge.
+              opacity:
+                clamp01((progress - (TOTAL_STEP - 0.45)) / 0.35) *
+                (1 - 0.65 * rewindHaze(u)) *
+                (1 - clamp01(mergeU / 0.15)),
+              // Fades in over beat 2's hop's last ~15%. Keyed to raw `u`, the
+              // linear scroll signal, not the eased `t` (whose last 15% is a
+              // much narrower sliver of actual scroll distance). The delta is
+              // 2024 -> 2022 only: it fades back out as the next hop starts,
+              // since a change vs. the previous election would mix election
+              // types.
+              deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01((pos - 1) / 0.15)),
+            }}
             yDomain={yDomain}
             // Off once the chart is scroll-driven: a time tween there fights
             // the scroll instead of following it.
