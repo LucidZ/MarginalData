@@ -39,6 +39,22 @@ broader population it is meant to represent.
   ),
 };
 
+// Closing call to action, between the explorer and the sources. Election day
+// is hand-typed: update it (or drop the line) after November 3, 2026.
+export const voteCta = {
+  heading: "Make sure you're counted.",
+  body: (
+    <>
+      The next election is the <strong>November 3, 2026 midterm</strong>, exactly the kind of election where
+      turnout drops most. Registration deadlines vary by state, and some fall weeks before Election Day. Check your
+      status now, then vote.
+    </>
+  ),
+  button: "Check your registration at vote.gov",
+  href: "https://vote.gov/",
+  note: "Vote.gov is the official U.S. government site for registering and finding your state's election info.",
+};
+
 export function loadErrorText(message: string): ReactNode {
   return <>Couldn't load the data for this story: {message}</>;
 }
