@@ -16,7 +16,7 @@ await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 await page.waitForTimeout(300);
 
-const STEPS = 24; // AgeBeats.tsx: 6 beat steps + 6 rewind-pass year cards + 7 forward-pass year cards + 2 summary steps (merge, reveal) + 3 midterm-drop arrow steps
+const STEPS = 23; // AgeBeats.tsx: 5 beat steps + 6 rewind-pass year cards + 7 forward-pass year cards + 2 summary steps (merge, reveal) + 3 midterm-drop arrow steps
 
 // One section, one sticky pane, one chart for beats 1-2 and section 3.
 const shape = await page.evaluate(() => {
@@ -57,7 +57,7 @@ const seen = [];
 const hero = {};
 for (let i = 0; i < STEPS; i++) {
   await toStep(i);
-  if (i === 3 || i === 5) hero[i] = await heroFigs();
+  if (i === 3 || i === 4) hero[i] = await heroFigs();
   await page.screenshot({ path: `${OUT}/age-beats-step-${i}.png` });
   seen.push(
     await page.evaluate(() => {
@@ -78,17 +78,17 @@ if (Math.max(...pinned) - Math.min(...pinned) > 2) {
 }
 console.log(`PASS: chart holds one position across the beat boundary (top=${pinned[0]}px at steps 0-${STEPS - 2})`);
 
-// Step 3 prints 2024's shortfall against its own 65+ rate; step 5, after
+// Step 3 prints 2024's shortfall against its own 65+ rate; step 4, after
 // the rewind, 2022's against its own. Both summed from the data.
 const data = await page.evaluate(() => fetch("/data/voter-age.json").then((r) => r.json()));
 const short = (y) => Math.abs(data.byAge[y].rows.reduce((a, r) => a + Math.min(0, r.missing), 0)) / 1000;
-const want = { 3: short("2024"), 5: short("2022") };
-for (const k of [3, 5]) {
+const want = { 3: short("2024"), 4: short("2022") };
+for (const k of [3, 4]) {
   if (hero[k].length !== 1 || Math.abs(hero[k][0] - want[k]) > 0.05) {
     throw new Error(`FAIL: step-${k} shortfall ${JSON.stringify(hero[k])} should be ${want[k].toFixed(1)}`);
   }
 }
-console.log(`PASS: shortfall figures match the data (2024 ${hero[3][0]}M, 2022 ${hero[5][0]}M)`);
+console.log(`PASS: shortfall figures match the data (2024 ${hero[3][0]}M, 2022 ${hero[4][0]}M)`);
 
 // Height constant at every step including the last: the hero figure, the
 // delta line and the gap legend all fade in over space reserved from first

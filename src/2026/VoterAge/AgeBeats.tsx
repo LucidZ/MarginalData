@@ -31,14 +31,15 @@ import type { VoterAgeData } from "./types";
  * chart leave and come back unchanged, and then read "this is the same chart
  * from beat one" underneath it. Beat 2's whole move is "hold this chart
  * still and change the election", which only lands if it is the same
- * physical element: one sticky pane spanning eight steps, with beat 2's
+ * physical element: one sticky pane, with beat 2's
  * heading riding up the text column while the chart stays put.
  *
  * Steps 0-3 accumulate the 2024 chart layer by layer, off a rounded step
  * index (the layer toggles are genuinely discrete, and each gets d3's
  * 700ms tween): eligible, votes, the 65+ turnout line, then the gold
  * shortfall under it and its total. That shortfall view is what the morph
- * carries: beat 2 (steps 4-5) rewinds it to the 2022 midterm, continuously
+ * carries: scrolling from step 3 to beat 2's step 4 rewinds it to the 2022
+ * midterm, continuously
  * off the raw scroll fraction, with the tween disabled - see
  * .claude/voter-age-scroll-morph-spec.md and
  * .claude/voter-age-morph-honesty-spec.md. (The registration steps that used
@@ -63,15 +64,20 @@ import type { VoterAgeData } from "./types";
  * tag `voter-age-full-rewind`; summary straight after 2022 is `a1f521b`.
  */
 
-/** Index of beat 2's first step - the first hop (2024 -> 2022) is measured from here. */
-const MORPH_STEP = 4;
+/** The first hop (2024 -> 2022) is measured from here: the 2024 shortfall
+ * step, straight into beat 2's first step (2022) at MORPH_STEP + 1. (A
+ * "no president on the ballot" step that used to sit between them was cut.) */
+const MORPH_STEP = 3;
+/** Beat 2's first step - its heading rides in with it. */
+const MIDTERM_STEP = MORPH_STEP + 1;
 /** The 65+ turnout standard's dotted line, on its own. */
 const LINE_STEP = 2;
 /** The gold shortfall under that line, and its total under the chart -
  * held through the morph and every hop after it. */
 const TOTAL_STEP = 3;
 /** Past this point the chart is scroll-driven, so d3's time tween is off. */
-const TWEEN_UNTIL = MORPH_STEP - 0.6;
+// Just short of the hop's start, so step 3's gold still tweens in.
+const TWEEN_UNTIL = MORPH_STEP + 0.1;
 
 /** Matches App.css's phone breakpoint, where the chart pins above the text. */
 const PHONE_QUERY = "(max-width: 720px)";
@@ -408,6 +414,22 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
 
   const stepRef = setStepRef;
 
+  // Running header on the pinned chart: once the section's own title has
+  // scrolled off the top, the current numbered section's title rides with
+  // the chart until the next one replaces it.
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const [titleGone, setTitleGone] = useState(false);
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([e]) =>
+      setTitleGone(!e.isIntersecting && e.boundingClientRect.top < 0)
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const runningTitle = step < MIDTERM_STEP ? ageBeatsTitle : step < REWIND_STEP ? midtermsTitle : summaryTitle;
+
   const copyVals: AgeBeatsVals = {
     age25cvap: fmtM(age25.cvap),
     age75cvap: fmtM(age75.cvap),
@@ -423,9 +445,14 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
 
   return (
     <section className="voa-beat" ref={sectionRef}>
-      <h2 className="voa-beat-title">{ageBeatsTitle}</h2>
+      <h2 className="voa-beat-title" ref={titleRef}>{ageBeatsTitle}</h2>
       <div className="voa-scrolly">
         <StickyViz>
+          {/* Always mounted, so its space is reserved and fading in moves
+              nothing. Keyed so each new title fades in on its own. */}
+          <div className="voa-running-title" style={{ opacity: titleGone ? 1 : 0 }} aria-hidden="true">
+            <span key={runningTitle}>{runningTitle}</span>
+          </div>
           {/* Scroll state for tests: pos = hops back from 2024, u = within the
               current hop, u0 = within beat 2's hop (2024 -> 2022) only. */}
           <span
@@ -525,10 +552,10 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
           {ageBeatsSteps.map((s, i) => (
             <div className="voa-step" key={i} ref={stepRef(i)}>
               <div className="voa-step-inner">
-                {i === MORPH_STEP && (
-                  // Beat 2 starts here. Its heading rides up the text column
-                  // rather than ruling off the page full-width, because the
-                  // chart to its left is the same element and must not unstick.
+                {i === MIDTERM_STEP && (
+                  // Beat 2 starts here. Visually hidden: the running title on
+                  // the pinned chart is the visible header (it's aria-hidden,
+                  // so this one carries the outline).
                   <h2 className="voa-beat-title voa-beat-title--incolumn">{midtermsTitle}</h2>
                 )}
                 <h3>{typeof s.heading === "function" ? s.heading(copyVals) : s.heading}</h3>

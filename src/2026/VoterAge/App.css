@@ -110,12 +110,35 @@
   padding-top: 2rem;
   border-top: 1px solid var(--gridline);
 }
-/* Beat 2's heading rides up inside the text column instead of ruling off
-   the page full-width: beats 1 and 2 share one pinned chart (AgeBeats.tsx),
-   and a full-width break between them would have to unstick it. */
+/* Later sections' headings, kept for screen readers and document outline
+   only: beats 1 and 2 share one pinned chart (AgeBeats.tsx), so a
+   full-width break between them would have to unstick it, and the visible
+   heading is the running title on the chart instead. */
 .voa-beat-title--incolumn {
-  padding-top: 1.4rem;
-  margin-bottom: 1.2rem;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* The current section's heading, carried on the pinned chart (AgeBeats.tsx)
+   - the one visible section header once beat 1's title scrolls away. */
+.voa-running-title {
+  font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  transition: opacity 250ms;
+}
+.voa-running-title > span {
+  display: inline-block;
+  animation: voa-running-title-in 350ms ease-out;
+}
+@keyframes voa-running-title-in {
+  from { opacity: 0; transform: translateY(4px); }
 }
 .voa-scrolly {
   display: flex;
@@ -196,6 +219,10 @@
   }
   .voa-step:last-child {
     min-height: 42vh;
+  }
+  .voa-scrolly-viz .voa-running-title {
+    font-size: 0.95rem;
+    margin: 0 0.2rem 0.15rem;
   }
   .voa-scrolly-viz .voa-chart-surface {
     padding: 0.3rem 0.3rem 0.4rem;

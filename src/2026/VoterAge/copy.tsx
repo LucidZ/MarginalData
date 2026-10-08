@@ -104,8 +104,8 @@ export interface AgeBeatsVals {
   shortfall2022Pct: string;
 }
 
-export const ageBeatsTitle = "1. The age of the electorate";
-export const midtermsTitle = "2. Midterms make it worse";
+export const ageBeatsTitle = "1. Voters Skew Older";
+export const midtermsTitle = "2. Midterm Voters Skew Even Older";
 
 export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
   {
@@ -147,7 +147,7 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     body: (v) => (
       <p>
         The highest participation rate ({v.bench}) belongs to those 65-and-over, perhaps because most are retired and
-        have more time. The dotted line is how many votes every age would cast at that rate.
+        have more time.
       </p>
     ),
   },
@@ -166,25 +166,14 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     ),
   },
   {
-    heading: "No president on the ballot",
-    body: (v) => (
-      <p>
-        Now rewind two years to the 2022 midterm. Turnout drops for everyone, 65-and-over included, so the dotted
-        line drops too ({v.bench} to {v.bench2022}). The question is whether everyone drops evenly.
-      </p>
-    ),
-  },
-  {
     heading: (v) => (
       <>
-        In 2022, the shortfall was <span className="voa-gap-text">{v.shortfall2022Pct}</span> of votes cast.
+        In 2022, a midterm election, the shortfall was <span className="voa-gap-text">{v.shortfall2022Pct}</span> of votes cast.
       </>
     ),
     body: (v) => (
       <p>
-        Every bar slid two years left as it fell: it's the same people, two years younger. Even measured against
-        a lower 65-and-over rate, the shortfall grows from {v.shortfall2024} to <strong>{v.shortfall2022}</strong>.
-        Older voters show up regardless of what's on the ballot; younger voters mostly show up for president.
+        Turnout was lower across all ages, but the older skew of voters was even more pronounced. 
       </p>
     ),
   },
@@ -234,11 +223,10 @@ export interface RewindVals {
 }
 
 export const rewindCopy = {
-  heading: (v: RewindVals) => <>Rewind to {v.firstYear}</>,
+  heading: (v: RewindVals) => <>This pattern isn't new</>,
   body: () => (
     <p>
-      [Placeholder] Keep scrolling to rewind the tape, and watch the gold. It shrinks in presidential years and swells
-      again in every midterm: 2022 wasn't a fluke.
+      You can see this same pattern going back to at least 2012.
     </p>
   ),
 };
