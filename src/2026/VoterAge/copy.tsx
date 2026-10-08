@@ -233,9 +233,15 @@ export const rewindCopy = {
 
 export interface RewindCardVals {
   bench: string;
+  shortfallPct: string;
 }
 
-export const rewindCardCopy = (v: RewindCardVals) => <>{v.bench} of eligible 65-and-over citizens voted.</>;
+export const rewindCardCopy = (v: RewindCardVals) => (
+  <>
+    The shortfall was <strong className="voa-gap-text">{v.shortfallPct}</strong> of votes cast, measured against the
+    65+ rate ({v.bench}).
+  </>
+);
 
 export const playCopy = {
   heading: "Now play it forward",
@@ -251,7 +257,11 @@ export interface YearCardVals {
   turnout: string;
 }
 
-export const yearCardCopy = (v: YearCardVals) => <>{v.turnout} of eligible citizens voted.</>;
+export const yearCardCopy = (v: YearCardVals) => (
+  <>
+    <strong className="voa-votes-text">{v.turnout}</strong> of eligible citizens voted.
+  </>
+);
 
 // Placeholder copy - the summary chart after section 3's forward pass.
 export const summaryCopy = {

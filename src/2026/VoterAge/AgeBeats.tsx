@@ -581,7 +581,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
                     pass="rewind"
                     on={year === restingYear && step >= REWIND_STEP && step < PLAY_STEP}
                   >
-                    {rewindCardCopy({ bench: fmtPct(c.over65Turnout) })}
+                    {rewindCardCopy({ bench: fmtPct(c.over65Turnout), shortfallPct: fmtPct((shortfalls[year] / c.totalVotes) * 100) })}
                   </YearCard>
                 </div>
               </div>

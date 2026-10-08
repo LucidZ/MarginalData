@@ -463,8 +463,14 @@
 }
 /* Figures that name the gold shortfall, in the chart's exact gold. */
 .voa-gap-text,
+.voa-step-inner strong.voa-gap-text,
 .pb-gap-hero-figure.voa-gap-text {
   color: var(--gap);
+}
+/* Figures that name votes cast, in the votes bars' green. */
+.voa-votes-text,
+.voa-step-inner strong.voa-votes-text {
+  color: var(--series-3);
 }
 /* Legend entries arrive with the layer they name. */
 .voa-legend > span {
