@@ -15,6 +15,7 @@ import {
   rewindCopy,
   summaryCopy,
   summaryTitle,
+  rewindCardCopy,
   yearCardCopy,
   type AgeBeatsVals,
   type MidtermDropVals,
@@ -44,13 +45,13 @@ import type { VoterAgeData } from "./types";
  * to sit between the shortfall and the morph are at tag
  * `voter-age-registration-steps`.)
  *
- * Section 3 keeps the same pinned chart and goes back further. Reaching its
- * first step plays a timed rewind, 2022 -> 2012, one cohort hop per election
- * with a pause on each real year, so the gold swelling in every midterm reads
- * as a pattern without a scroll step per year. (Scrolling back above that
- * step plays it forward again.) Then the scroll takes over and plays it
- * forward, 2012 -> 2024, one step per election: the gold and the 65+ line
- * give way to the registered band, so it's plain counts from here on.
+ * Section 3 keeps the same pinned chart and goes back further. The scroll
+ * rewinds it 2022 -> 2012 in the gold view, one year card and one cohort hop
+ * per election, so the gold swelling in every midterm reads as a pattern.
+ * Then it plays forward, 2012 -> 2024, the same way: the gold and the 65+
+ * line give way to the registered band, so it's plain counts from here on.
+ * (A timed, auto-playing rewind was tried at `5e682ad` and dropped: one
+ * mechanic going back and another going forward confused readers.)
  *
  * Then the summary: 2024's age columns merge into one stacked bar, each
  * column's segments flying into their slice of the total; the other
@@ -75,16 +76,9 @@ const TWEEN_UNTIL = MORPH_STEP - 0.6;
 /** Matches App.css's phone breakpoint, where the chart pins above the text. */
 const PHONE_QUERY = "(max-width: 720px)";
 
-/** Section 3's first step. Reaching it plays the timed rewind. */
+/** Section 3's first step, resting on 2022: the rewind pass's first year
+ * card. Then one step per election back to the first year. */
 const REWIND_STEP = MORPH_STEP + 2;
-/** The forward pass's first step, resting on the first year: the gold
- * gives way to the registered band on the way here. Then one step per
- * election after it. */
-const PLAY_STEP = REWIND_STEP + 1;
-/** The timed rewind: each hop's duration, then a pause on the real year it
- * lands on. */
-const CLIP_HOP_MS = 550;
-const CLIP_DWELL_MS = 700;
 /** Scroll fraction of a hop's step span spent resting at each end: the hop
  * runs over the middle 70%, same as beat 2 has always used. */
 const HOP_MARGIN = 0.15;
@@ -107,16 +101,47 @@ function ease(x: number, gamma = 3) {
 const shortfallOf = (rows: { missing: number }[]) =>
   Math.abs(rows.reduce((s, r) => s + Math.min(0, r.missing), 0));
 
+/** One election's card in section 3's rewind or forward pass, outlined while
+ * the chart rests on its year. */
+function YearCard({
+  year,
+  kind,
+  pass,
+  on,
+  children,
+}: {
+  year: string;
+  kind: "presidential" | "midterm";
+  pass: "rewind" | "forward";
+  on: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`voa-year-card voa-year-card--${kind}${on ? " is-on" : ""}`} data-year={year} data-pass={pass}>
+      <div className="voa-year-card__head">
+        <span className="voa-year-card__year">{year}</span>
+        <span className="voa-year-card__kind">{kind === "midterm" ? explorerCopy.midterm : explorerCopy.presidential}</span>
+      </div>
+      <p>{children}</p>
+    </div>
+  );
+}
+
 export default function AgeBeats({ data }: { data: VoterAgeData }) {
   // Newest first: index 0 is 2024, the chart beat 1 builds. `pos` below
   // counts elections back from it.
   const years = useMemo(() => Object.keys(data.byAge).sort().reverse(), [data]);
   const hopCount = years.length - 1;
-  /** The timed rewind's hops: 2022 back to the first year. */
-  const clipHops = hopCount - 1;
+  /** The rewind pass's year cards, 2022 back to the first year; the first
+   * rides on REWIND_STEP, then one hop per card. */
+  const rewindYears = useMemo(() => years.slice(1), [years]);
   /** The forward pass's year cards, oldest first; the first rides on
    * PLAY_STEP. */
   const forwardYears = useMemo(() => [...years].reverse(), [years]);
+  /** The forward pass's first step, resting on the first year again: the
+   * gold gives way to the registered band on the way here. Then one step
+   * per election after it. */
+  const PLAY_STEP = REWIND_STEP + rewindYears.length;
   /** First summary step: the merged 2024 bar. The merge runs from the
    * forward pass's last card to this one, the reveal from this one to the
    * next. */
@@ -172,59 +197,21 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   /** Beat 2's own hop - its delta line belongs to 2024 -> 2022 only. */
   const u0 = spanU(MORPH_STEP);
 
-  // The timed rewind, in hops back from 2022: runs to the first year once the
-  // reader reaches REWIND_STEP, back to 0 if they scroll above it.
-  const clipTarget = step >= REWIND_STEP ? clipHops : 0;
-  const [clipPos, setClipPos] = useState(0);
-  const clipRef = useRef(0);
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      clipRef.current = clipTarget;
-      setClipPos(clipTarget);
-      return;
-    }
-    let raf = 0;
-    let prev = performance.now();
-    let dwell = 0;
-    const tick = (now: number) => {
-      // Never negative - see the same guard in Explorer.tsx.
-      let dt = Math.max(0, now - prev);
-      prev = now;
-      let p = clipRef.current;
-      if (p === clipTarget) return;
-      const used = Math.min(dt, dwell);
-      dwell -= used;
-      dt -= used;
-      if (dt > 0) {
-        const dir = Math.sign(clipTarget - p);
-        // The next real year in this direction: stop there and pause.
-        const stop = dir > 0 ? Math.floor(p) + 1 : Math.ceil(p) - 1;
-        p += (dir * dt) / CLIP_HOP_MS;
-        if ((p - stop) * dir >= 0) {
-          p = stop;
-          dwell = CLIP_DWELL_MS;
-        }
-        clipRef.current = p;
-        setClipPos(p);
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [clipTarget]);
-  const clipRunning = clipPos !== clipTarget;
-
-  // Then the scroll plays it forward, one hop per year card.
+  // Section 3 rewinds by scroll, one hop per rewind card (2022 back to the
+  // first year), then plays it forward the same way, one hop per forward
+  // card - the same mechanic in both directions.
+  // (spanU(s) is the move from step s to step s + 1.)
+  let back = 0;
+  for (let k = 0; k < rewindYears.length - 1; k++) back += spanU(REWIND_STEP + k);
   let forward = 0;
-  for (let f = 0; f < hopCount; f++) forward += spanU(PLAY_STEP + f);
-  // Clamped: a reader who scrolls on before the rewind has finished would
-  // otherwise run pos past 2024.
-  const pos = Math.max(0, u0 + clipPos - forward);
+  for (let f = 0; f < forwardYears.length - 1; f++) forward += spanU(PLAY_STEP + f);
+  const pos = u0 + back - forward;
   const hop = Math.min(Math.floor(pos), hopCount - 1);
   const u = pos - hop;
   const t = ease(u);
-  /** Gold and 65+ line out, registered band in: REWIND_STEP to PLAY_STEP. */
-  const regU = spanU(REWIND_STEP);
+  /** Gold and 65+ line out, registered band in: the last rewind card to
+   * PLAY_STEP, both resting on the first year. */
+  const regU = spanU(PLAY_STEP - 1);
   const mergeU = spanU(SUMMARY_STEP - 1);
   const revealU = spanU(SUMMARY_STEP);
 
@@ -513,7 +500,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               // types.
               // Gone for good once the rewind starts: 2022 comes round again
               // in the forward pass, without a delta.
-              deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01(clipPos / 0.15)),
+              deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01(back / 0.15)),
             }}
             yDomain={yDomain}
             // Off once the chart is scroll-driven: a time tween there fights
@@ -522,10 +509,10 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             tooltipFor={tooltipFor}
             summary={summary}
             summaryTooltip={summaryTooltip}
-            // On mid-hop, and for the whole timed rewind, pauses included.
+            // On mid-hop only.
             plotOverlay={
               <RewindOverlay
-                opacity={Math.max(rewindHaze(u), clipRunning ? 1 : 0)}
+                opacity={rewindHaze(u)}
                 direction={direction}
                 label={direction === "back" ? explorerCopy.rewinding : explorerCopy.fastForwarding}
                 year={shownYear}
@@ -549,13 +536,30 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
               </div>
             </div>
           ))}
-          <div className="voa-step" ref={stepRef(REWIND_STEP)}>
-            <div className="voa-step-inner">
-              <h2 className="voa-beat-title voa-beat-title--incolumn">{summaryTitle}</h2>
-              <h3>{rewindCopy.heading({ firstYear: forwardYears[0] })}</h3>
-              {rewindCopy.body()}
-            </div>
-          </div>
+          {rewindYears.map((year, k) => {
+            const c = data.byAge[year];
+            return (
+              <div className="voa-step" key={`rew-${year}`} ref={stepRef(REWIND_STEP + k)}>
+                <div className="voa-step-inner">
+                  {k === 0 && (
+                    <>
+                      <h2 className="voa-beat-title voa-beat-title--incolumn">{summaryTitle}</h2>
+                      <h3>{rewindCopy.heading({ firstYear: forwardYears[0] })}</h3>
+                      {rewindCopy.body()}
+                    </>
+                  )}
+                  <YearCard
+                    year={year}
+                    kind={c.kind}
+                    pass="rewind"
+                    on={year === restingYear && step >= REWIND_STEP && step < PLAY_STEP}
+                  >
+                    {rewindCardCopy({ bench: fmtPct(c.over65Turnout) })}
+                  </YearCard>
+                </div>
+              </div>
+            );
+          })}
           {forwardYears.map((year, k) => {
             const c = data.byAge[year];
             return (
@@ -567,20 +571,9 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
                       {playCopy.body()}
                     </>
                   )}
-                  <div
-                    className={`voa-year-card voa-year-card--${c.kind}${
-                      year === restingYear && step >= PLAY_STEP ? " is-on" : ""
-                    }`}
-                    data-year={year}
-                  >
-                    <div className="voa-year-card__head">
-                      <span className="voa-year-card__year">{year}</span>
-                      <span className="voa-year-card__kind">
-                        {c.kind === "midterm" ? explorerCopy.midterm : explorerCopy.presidential}
-                      </span>
-                    </div>
-                    <p>{yearCardCopy({ turnout: fmtPct(c.avgTurnout) })}</p>
-                  </div>
+                  <YearCard year={year} kind={c.kind} pass="forward" on={year === restingYear && step >= PLAY_STEP}>
+                    {yearCardCopy({ turnout: fmtPct(c.avgTurnout) })}
+                  </YearCard>
                 </div>
               </div>
             );

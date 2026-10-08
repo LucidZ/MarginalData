@@ -224,9 +224,9 @@ export const explorerCopy = {
 export const summaryTitle = "3. It's not just 2022";
 
 // ---------------------------------------------------------------------------
-// Section 3 (AgeBeats.tsx): a timed rewind 2022 -> first year, then the
-// scroll plays it forward with registrations, one year card per election.
-// Placeholder copy.
+// Section 3 (AgeBeats.tsx): the scroll rewinds 2022 -> first year in the gold
+// view, then plays it forward with registrations, one year card per election
+// each way. Placeholder copy.
 // ---------------------------------------------------------------------------
 
 export interface RewindVals {
@@ -237,11 +237,17 @@ export const rewindCopy = {
   heading: (v: RewindVals) => <>Rewind to {v.firstYear}</>,
   body: () => (
     <p>
-      [Placeholder] Watch the gold as the tape rewinds. It shrinks in presidential years and swells again in every
-      midterm: 2022 wasn't a fluke.
+      [Placeholder] Keep scrolling to rewind the tape, and watch the gold. It shrinks in presidential years and swells
+      again in every midterm: 2022 wasn't a fluke.
     </p>
   ),
 };
+
+export interface RewindCardVals {
+  bench: string;
+}
+
+export const rewindCardCopy = (v: RewindCardVals) => <>{v.bench} of eligible 65-and-over citizens voted.</>;
 
 export const playCopy = {
   heading: "Now play it forward",

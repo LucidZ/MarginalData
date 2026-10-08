@@ -1,8 +1,7 @@
-// Section 3's timed rewind and forward pass (AgeBeats.tsx). Reaching the
-// rewind step plays 2022 -> 2012 on a timer, pausing on every real year,
-// with the VCR badge (RewindOverlay.tsx) up the whole time; the scroll then
-// plays it forward one year card per election with the registered band on;
-// scrolling back above the rewind step plays it forward to 2022 again.
+// Section 3's rewind and forward passes (AgeBeats.tsx), both scroll-driven:
+// one year card per election back 2022 -> 2012 in the gold view, then one
+// per election forward 2012 -> 2024 with the registered band on. The VCR
+// badge (RewindOverlay.tsx) is up mid-hop only.
 // Run with: BASE_URL=http://localhost:5174 node tests/voter-age-rewind.mjs
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -65,37 +64,41 @@ await page.waitForTimeout(800);
 let s = await state(page);
 if (Math.abs(s.pos - 1) > 1e-3 || s.badge > 0.01) fail(`before the rewind: ${JSON.stringify(s)}`);
 
-// The timed rewind: sample pos; it must only grow, pass through every year,
-// and hold the badge up until 2012.
-await toStep(page, REWIND);
-const samples = [];
-const t0 = Date.now();
-while (Date.now() - t0 < 9000) {
-  samples.push(await state(page));
-  if (samples.at(-1).resting === years[0] && samples.at(-1).badge < 0.01) break;
-  await page.waitForTimeout(60);
+// The rewind pass: one card per election, 2022 back to the first year, each
+// resting on its year in the gold view, scroll-driven like the forward pass.
+const rewindYears = years.slice(0, -1).reverse(); // 2022 .. 2012
+for (const y of rewindYears) {
+  await toStep(page, await stepIndex(`.voa-year-card[data-pass="rewind"][data-year="${y}"]`));
+  await page.waitForTimeout(400);
+  s = await state(page);
+  if (s.resting !== y) fail(`rewind card ${y}: chart resting on ${s.resting}`);
+  if (s.registered > 0.01 || s.hero.length !== 1) fail(`rewind card ${y}: should be the gold view ${JSON.stringify(s)}`);
+  if (s.badge > 0.01) fail(`rewind card ${y}: badge should be off at rest`);
+  const on = await page.$$eval(".voa-year-card.is-on", (els) => els.map((e) => `${e.dataset.pass}-${e.dataset.year}`));
+  if (JSON.stringify(on) !== JSON.stringify([`rewind-${y}`])) fail(`rewind card ${y}: outlined cards ${on}`);
 }
-const posSeries = samples.map((x) => x.pos);
-for (let i = 1; i < posSeries.length; i++)
-  if (posSeries[i] < posSeries[i - 1] - 1e-4) fail(`rewind went backwards: ${posSeries.slice(i - 2, i + 1)}`);
-const restedOn = [...new Set(samples.map((x) => x.resting).filter(Boolean))];
-const wantRest = years.slice(0, -1).reverse(); // 2022 .. 2012
-if (JSON.stringify(restedOn) !== JSON.stringify(wantRest)) fail(`rested on ${restedOn}, want ${wantRest}`);
-const mid = samples.filter((x) => x.pos > 1.05 && x.pos < years.length - 1.05);
-// Allow a couple of samples caught in the badge's CSS fade-in.
-if (!mid.length || mid.filter((x) => x.badge < 0.5).length > 2) fail("badge should stay up through the whole rewind");
-if (!mid.every((x) => x.badgeText.includes("rew"))) fail(`badge should read rew: ${mid[0]?.badgeText}`);
-s = samples.at(-1);
-if (s.resting !== years[0] || Math.abs(s.pos - (years.length - 1)) > 1e-3) fail(`rewind should end on ${years[0]}: ${JSON.stringify(s)}`);
-console.log(`PASS: timed rewind 2022 -> ${years[0]}, rested on ${restedOn.join(" ")}, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
-await page.waitForTimeout(400);
-s = await state(page);
-if (s.badge > 0.01) fail("badge should clear once the rewind is done");
+// Mid-hop between two rewind cards, scrolling down into it: badge up and
+// reading rew.
+{
+  const i = await stepIndex(`.voa-year-card[data-pass="rewind"][data-year="${rewindYears[2]}"]`);
+  await toStep(page, i);
+  await page.waitForTimeout(300);
+  await page.evaluate((i) => {
+    const a = document.querySelectorAll(".voa-beat .voa-step")[i].getBoundingClientRect();
+    const b = document.querySelectorAll(".voa-beat .voa-step")[i + 1].getBoundingClientRect();
+    const mid = (a.top + a.height / 2 + b.top + b.height / 2) / 2;
+    window.scrollTo(0, mid + window.scrollY - window.innerHeight / 2);
+  }, i);
+  await page.waitForTimeout(300);
+  s = await state(page);
+  if (s.badge < 0.5 || !s.badgeText.includes("rew")) fail(`mid-rewind hop: ${JSON.stringify(s)}`);
+}
+console.log(`PASS: rewind pass rests on ${rewindYears.join(" ")} in the gold view, badge only mid-hop`);
 
 // Forward pass: each card rests on its year, registered band on, hero
 // figures = that year's registered-didn't-vote / not registered.
 for (const y of years) {
-  const i = await stepIndex(`.voa-year-card[data-year="${y}"]`);
+  const i = await stepIndex(`.voa-year-card[data-pass="forward"][data-year="${y}"]`);
   await toStep(page, i);
   await page.waitForTimeout(500);
   s = await state(page);
@@ -113,26 +116,14 @@ for (const y of years) {
 }
 console.log(`PASS: forward pass rests on every year with the registered band and its counts`);
 
-// Back above the rewind step: plays forward to 2022, badge reads ff.
+// Back above section 3: the scroll alone brings it forward to 2022, gold view restored.
 await toStep(page, REWIND - 1);
-await page.waitForTimeout(250);
-s = await state(page);
-if (!s.badgeText.includes("ff")) fail(`scrolling back should fast-forward: ${s.badgeText}`);
-await page.waitForTimeout(8000);
+await page.waitForTimeout(400);
 s = await state(page);
 if (s.resting !== "2022" || s.registered > 0.01 || s.hero.length !== 1) fail(`back on beat 2: ${JSON.stringify(s)}`);
-console.log("PASS: scrolling back above the rewind fast-forwards to 2022, gold view restored");
+console.log("PASS: scrolling back above section 3 returns to 2022, gold view restored");
 if (errors.length) fail(`console errors: ${errors.slice(0, 3).join(" | ")}`);
 await page.close();
-
-// Reduced motion: no timed animation, straight to the first year.
-const rm = await open({ reducedMotion: "reduce" });
-await toStep(rm.page, REWIND);
-await rm.page.waitForTimeout(400);
-s = await state(rm.page);
-if (s.resting !== years[0]) fail(`reduced motion should jump to ${years[0]}, resting on ${s.resting}`);
-console.log("PASS: reduced motion jumps straight to the first year");
-await rm.page.close();
 
 await browser.close();
 console.log("all checks passed");
