@@ -32,7 +32,7 @@ if (shape.steps !== STEPS) throw new Error(`FAIL: expected ${STEPS} steps in the
 if (shape.vizPanes !== 1 || shape.charts !== 1) {
   throw new Error(`FAIL: beats 1+2 must share one chart, found ${shape.vizPanes} sticky panes / ${shape.charts} charts`);
 }
-if (shape.titles.length !== 3 || !shape.titles[1].includes("Midterms") || !shape.titles[2].includes("not just")) {
+if (shape.titles.length !== 3 || !shape.titles[1].includes("Midterm Voters") || !shape.titles[2].includes("not just")) {
   throw new Error(`FAIL: beat 2's and section 3's headings should live inside the merged section, got ${JSON.stringify(shape.titles)}`);
 }
 console.log(`PASS: beats 1-2 and section 3 are one section, one sticky pane, one chart (${shape.titles.join(" / ")})`);
