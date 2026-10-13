@@ -302,6 +302,44 @@
 .voa-yc {
   margin: 0 0 0.6rem;
 }
+/* Dimension switch above the year control: same button language, smaller,
+   left-aligned with its label. */
+.voa-dims {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.8rem;
+}
+.voa-dims-label {
+  margin-right: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.voa-dims-btn {
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-1);
+  border: 1.5px solid var(--baseline);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.voa-dims-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--muted);
+}
+.voa-dims-btn[aria-checked="true"] {
+  color: var(--page);
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+.voa-dims-btn:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
 .voa-yc-row {
   --yc-gap: 0.35rem;
   position: relative;
@@ -361,6 +399,14 @@
 .voa-yc-btn:hover {
   color: var(--text-primary);
   border-color: var(--muted);
+}
+.voa-yc-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.voa-yc-btn:disabled:hover {
+  color: var(--text-secondary);
+  border-color: var(--baseline);
 }
 .voa-yc-btn.is-on {
   color: var(--page);

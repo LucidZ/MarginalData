@@ -193,13 +193,46 @@ export interface ExplorerVals {
   firstYear: string; // earliest cycle in byAge
 }
 
+/** The non-age views' caveat, filled from the year being shown. */
+export interface DimensionVals {
+  year: string;
+  benchmark: string; // the highest-turnout group's full label
+  totalGap: string; // e.g. "2.4%" - how far the survey total runs under the age view's
+  imputed?: string; // income only, e.g. "20.5%"
+}
+
 export const explorerCopy = {
   title: "Explore every election",
   intro: (v: ExplorerVals) => (
     <p>
       The same chart for every election since {v.firstYear}. Pick a year: the bars follow each generation, sliding
-      two years younger for every election back.
+      two years younger for every election back. Or slice the same electorate another way: by education, family
+      income or race.
     </p>
+  ),
+  dimsLabel: "Slice by",
+  dims: {
+    age: "Age",
+    education: "Education",
+    income: "Family income",
+    race: "Race / ethnicity",
+  },
+  /** The dotted line's legend in a non-age view. */
+  benchmarkLine: (group: string, pct: string) => `at ${group} turnout (${pct})`,
+  dimCaveat: (v: DimensionVals) => (
+    <>
+      Education, income and race come straight from the Census survey's own counts, {v.year} only for now. The
+      survey covers people living in households, so its total runs {v.totalGap} under the age view, which also counts
+      people in nursing homes, prisons and the military. Here the dotted line is the best-voting group's rate (
+      {v.benchmark.toLowerCase()}), not the 65+ rate.
+    </>
+  ),
+  incomeCaveat: (v: DimensionVals) => (
+    <>
+      {" "}
+      Family income is the household's combined family income (your own, if you live alone or with roommates), in{" "}
+      {v.year} dollars. Census estimated it for the {v.imputed} who didn't report it.
+    </>
   ),
   caveat: (v: ExplorerVals) => (
     <>

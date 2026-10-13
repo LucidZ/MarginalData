@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import PopulationBars, { type PopulationBarRow } from "./PopulationBars";
 import YearControl, { type YearOption } from "./YearControl";
 import { cohortRows, hopRows } from "./ageRows";
 import { fmtM, fmtPct } from "./format";
 import { explorerCopy } from "./copy";
-import type { VoterAgeData } from "./types";
+import type { DimensionKey, DimensionYear, VoterAgeData } from "./types";
 
 /**
  * Every election by age, after the story: the beat 1-2 chart (eligible,
@@ -13,7 +13,66 @@ import type { VoterAgeData } from "./types";
  * story's beat 2 does, once per election in between, on a timer. Bars are
  * keyed by birth cohort (ageRows.ts), so a jump from 2024 to 2012 slides
  * each generation twelve years younger rather than cutting.
+ *
+ * The dimension switch above the years swaps the age chart for a category
+ * one - education, family income or race (byDimension) - drawn the same way
+ * but benchmarked to that dimension's best-voting group instead of 65+.
+ * Those views only have the years the pipeline built them for; the rest of
+ * the year buttons disable while one is up.
  */
+
+type View = "age" | DimensionKey;
+const VIEWS: View[] = ["age", "education", "income", "race"];
+
+function dimensionRows(y: DimensionYear): PopulationBarRow[] {
+  return y.rows.map((r) => ({
+    key: r.group,
+    x: r.group,
+    label: r.short,
+    cvap: r.cvap,
+    votes: r.votes,
+    expected: r.expected,
+    missing: r.missing,
+    turnout: r.turnout,
+  }));
+}
+
+/** The dimension switch: a radio group of pills, arrow keys move. */
+function ViewControl({ view, onPick }: { view: View; onPick: (v: View) => void }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const onKeyDown = (e: KeyboardEvent, i: number) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const j = (i + step + VIEWS.length) % VIEWS.length;
+    onPick(VIEWS[j]);
+    refs.current[j]?.focus();
+  };
+  return (
+    <div className="voa-dims" role="radiogroup" aria-labelledby="voa-dims-label">
+      <span className="voa-dims-label" id="voa-dims-label">
+        {explorerCopy.dimsLabel}
+      </span>
+      {VIEWS.map((v, i) => (
+        <button
+          key={v}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          type="button"
+          role="radio"
+          aria-checked={v === view}
+          tabIndex={v === view ? 0 : -1}
+          className="voa-dims-btn"
+          onClick={() => onPick(v)}
+          onKeyDown={(e) => onKeyDown(e, i)}
+        >
+          {explorerCopy.dims[v]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /** One hop's duration. A multi-year jump plays every hop in between. */
 const HOP_MS = 450;
@@ -31,16 +90,38 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
   const restRows = useMemo(() => years.map((y) => cohortRows(data.byAge[y], Number(y))), [data, years]);
   const last = years.length - 1;
 
+  const [view, setView] = useState<View>("age");
   const [pos, setPos] = useState(0);
   const posRef = useRef(0);
   const raf = useRef(0);
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
+  /** Years the current view has data for; null for age, which has them all. */
+  const dimYears = view === "age" ? null : data.byDimension[view].years;
+
+  const pickView = useCallback(
+    (v: View) => {
+      setView(v);
+      if (v === "age") return;
+      // Snap to the newest year that view has, if the one shown isn't there.
+      // Mid-hop counts as not there - the category chart has no in-between.
+      const has = data.byDimension[v].years;
+      const at = posRef.current;
+      if (Number.isInteger(at) && has[years[at]]) return;
+      const target = years.findIndex((y) => has[y]);
+      cancelAnimationFrame(raf.current);
+      posRef.current = target;
+      setPos(target);
+    },
+    [data, years]
+  );
+
   const pick = useCallback(
     (year: string) => {
       const target = years.indexOf(year);
       cancelAnimationFrame(raf.current);
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // The cohort hop is the age chart's; the other views just cut.
+      if (dimYears || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         posRef.current = target;
         setPos(target);
         return;
@@ -60,7 +141,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
       };
       raf.current = requestAnimationFrame(tick);
     },
-    [years]
+    [years, dimYears]
   );
 
   const hop = Math.min(Math.floor(pos), last - 1);
@@ -81,8 +162,11 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
   );
 
   const options: YearOption[] = useMemo(
-    () => [...years].reverse().map((year) => ({ year, kind: data.byAge[year].kind })),
-    [years, data]
+    () =>
+      [...years]
+        .reverse()
+        .map((year) => ({ year, kind: data.byAge[year].kind, disabled: dimYears ? !dimYears[year] : false })),
+    [years, data, dimYears]
   );
 
   // Same pinned scale as the story's chart, so the two read alike.
@@ -115,13 +199,59 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
 
   const vals = { firstYear: years[last] };
 
+  // The non-age view at the shown year (pickView makes sure it exists).
+  const dimYear = dimYears?.[shownYear] ?? null;
+  const dimBarRows = useMemo(() => (dimYear ? dimensionRows(dimYear) : []), [dimYear]);
+  // Pinned per view across its years, like the age chart's.
+  const dimYDomain = useMemo((): [number, number] => {
+    if (!dimYears) return [0, 1];
+    const maxCvap = Math.max(...Object.values(dimYears).flatMap((y) => y.rows.map((r) => r.cvap)));
+    return [0, maxCvap * 1.08];
+  }, [dimYears]);
+
+  const dimTooltipFor = useCallback(
+    (row: PopulationBarRow) => {
+      const real = dimYear?.rows.find((r) => r.group === row.key);
+      if (!dimYear || !real) return null;
+      return (
+        <>
+          <div className="voa-tooltip__head">
+            {real.group} · {shownYear}
+          </div>
+          {fmtM(real.cvap)} eligible · {fmtM(real.votes)} voted ({fmtPct(real.turnout)})
+          <div className="voa-tooltip__note">
+            {real.group === dimYear.benchmarkGroup
+              ? "Highest turnout: the benchmark"
+              : `At ${dimYear.benchmarkGroup.toLowerCase()} turnout (${fmtPct(dimYear.benchmarkTurnout)}): ${fmtM(real.expected)}`}
+          </div>
+        </>
+      );
+    },
+    [dimYear, shownYear]
+  );
+
+  const benchmarkShort = dimYear?.rows.find((r) => r.group === dimYear.benchmarkGroup)?.short ?? "";
+  const dimVals = dimYear && {
+    year: shownYear,
+    benchmark: dimYear.benchmarkGroup,
+    totalGap: fmtPct(100 * (1 - dimYear.totalCvap / shownCycle.totalCvap)),
+    imputed: dimYear.imputedPct === undefined ? undefined : fmtPct(dimYear.imputedPct),
+  };
+
   return (
     <section className="voa-explorer">
       <h2 className="voa-beat-title">{explorerCopy.title}</h2>
       {explorerCopy.intro(vals)}
       <div className="voa-explorer-chart">
         {/* State for tests: pos = elections back from 2024. */}
-        <span className="voa-explorer-state" data-pos={pos.toFixed(4)} data-resting={resting ?? ""} hidden />
+        <span
+          className="voa-explorer-state"
+          data-pos={pos.toFixed(4)}
+          data-resting={resting ?? ""}
+          data-view={view}
+          hidden
+        />
+        <ViewControl view={view} onPick={pickView} />
         <YearControl
           options={options}
           shown={shownYear}
@@ -131,39 +261,82 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
           opacity={1}
           onPick={pick}
         />
-        <PopulationBars
-          rows={rows}
-          xKind="age"
-          xLabel="Age"
-          yLabel="People (millions)"
-          showTrack
-          showVotes
-          expectedOpacity={1}
-          gapOpacity={1}
-          gapLegendLabel="Shortfall"
-          expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
-          heroGap={{
-            items: [
-              {
-                figure: fmtPct((shortfallOf(shownCycle.rows) / shownCycle.totalVotes) * 100),
-                label: "shortfall, as a share of votes cast",
-                delta: "",
-                tone: "gap",
-              },
-              {
-                figure: fmtPct(shownCycle.avgTurnout),
-                label: "of eligible citizens voted",
-                delta: "",
-              },
-            ],
-            deltaOpacity: 0,
-          }}
-          yDomain={yDomain}
-          transitionMs={0}
-          tooltipFor={tooltipFor}
-        />
+        {dimYear ? (
+          <PopulationBars
+            key={view}
+            rows={dimBarRows}
+            xKind="category"
+            xLabel={explorerCopy.dims[view]}
+            yLabel="People (millions)"
+            showTrack
+            showVotes
+            expectedOpacity={1}
+            gapOpacity={1}
+            gapLegendLabel="Shortfall"
+            expectedLineLabel={explorerCopy.benchmarkLine(benchmarkShort, fmtPct(dimYear.benchmarkTurnout))}
+            heroGap={{
+              items: [
+                {
+                  figure: fmtPct((dimYear.shortfall / dimYear.totalVotes) * 100),
+                  label: "shortfall, as a share of votes cast",
+                  delta: "",
+                  tone: "gap",
+                },
+                {
+                  figure: fmtPct(dimYear.avgTurnout),
+                  label: "of eligible citizens voted",
+                  delta: "",
+                },
+              ],
+              deltaOpacity: 0,
+            }}
+            yDomain={dimYDomain}
+            tooltipFor={dimTooltipFor}
+          />
+        ) : (
+          <PopulationBars
+            rows={rows}
+            xKind="age"
+            xLabel="Age"
+            yLabel="People (millions)"
+            showTrack
+            showVotes
+            expectedOpacity={1}
+            gapOpacity={1}
+            gapLegendLabel="Shortfall"
+            expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
+            heroGap={{
+              items: [
+                {
+                  figure: fmtPct((shortfallOf(shownCycle.rows) / shownCycle.totalVotes) * 100),
+                  label: "shortfall, as a share of votes cast",
+                  delta: "",
+                  tone: "gap",
+                },
+                {
+                  figure: fmtPct(shownCycle.avgTurnout),
+                  label: "of eligible citizens voted",
+                  delta: "",
+                },
+              ],
+              deltaOpacity: 0,
+            }}
+            yDomain={yDomain}
+            transitionMs={0}
+            tooltipFor={tooltipFor}
+          />
+        )}
       </div>
-      <p className="voa-explorer-caveat">{explorerCopy.caveat(vals)}</p>
+      <p className="voa-explorer-caveat">
+        {dimVals ? (
+          <>
+            {explorerCopy.dimCaveat(dimVals)}
+            {view === "income" && explorerCopy.incomeCaveat(dimVals)}
+          </>
+        ) : (
+          explorerCopy.caveat(vals)
+        )}
+      </p>
     </section>
   );
 }

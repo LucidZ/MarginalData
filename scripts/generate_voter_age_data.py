@@ -32,6 +32,15 @@ Sources used:
                  2022/2024; the explorer uses all seven).
   PEP          - national, single year of age x sex: 2010-2020 intercensal
                  series for 2012-2018, Vintage 2024 for 2020-2024.
+  CPS microdata - the same November supplement's public-use person file
+                 (2024 only, so far), for the explorer's education / family
+                 income / race views. Microdata rather than Tables 2/5/7:
+                 Table 7 covers family members only and leaves income
+                 unreported for 1 in 6 of them (~60% coverage), while the
+                 person file carries family income for every household,
+                 Census-imputed where not reported. Weighted, it reproduces
+                 Table 1's citizen and voter totals and Table 5 row for row
+                 - checked below.
 
 Requirements:
     openpyxl, xlrd >= 2 (for the 2012/2014 .xls tables)
@@ -85,6 +94,54 @@ CYCLES = [
     (2022, "586", "vote01_2022.xlsx"),
     (2024, "587", "vote01_2024.xlsx"),
 ]
+
+# Public-use November supplement person files, per year.
+MICRODATA_BASE = "https://www2.census.gov/programs-surveys/cps/datasets"
+MICRODATA = {2024: "nov24pub.csv"}
+
+# Each dimension's groups, in axis order: (full label, short axis label,
+# predicate on the parsed person record).
+EDUCATION_GROUPS = [
+    ("Less than 9th grade", "< 9th grade", lambda p: p["edu"] <= 34),
+    ("9th to 12th grade, no diploma", "9th-12th, no diploma", lambda p: 35 <= p["edu"] <= 38),
+    ("High school graduate", "HS grad", lambda p: p["edu"] == 39),
+    ("Some college or associate's degree", "Some college", lambda p: 40 <= p["edu"] <= 42),
+    ("Bachelor's degree", "Bachelor's", lambda p: p["edu"] == 43),
+    ("Advanced degree", "Advanced degree", lambda p: p["edu"] >= 44),
+]
+
+# HEFAMINC's 16 codes merged to Table 7's ten brackets. Nominal dollars of
+# each survey year - not inflation-adjusted.
+INCOME_GROUPS = [
+    ("Under $10,000", "<$10K", lambda p: p["inc"] <= 3),
+    ("$10,000 to $14,999", "$10-15K", lambda p: p["inc"] in (4, 5)),
+    ("$15,000 to $19,999", "$15-20K", lambda p: p["inc"] == 6),
+    ("$20,000 to $29,999", "$20-30K", lambda p: p["inc"] in (7, 8)),
+    ("$30,000 to $39,999", "$30-40K", lambda p: p["inc"] in (9, 10)),
+    ("$40,000 to $49,999", "$40-50K", lambda p: p["inc"] == 11),
+    ("$50,000 to $74,999", "$50-75K", lambda p: p["inc"] in (12, 13)),
+    ("$75,000 to $99,999", "$75-100K", lambda p: p["inc"] == 14),
+    ("$100,000 to $149,999", "$100-150K", lambda p: p["inc"] == 15),
+    ("$150,000 and over", "$150K+", lambda p: p["inc"] == 16),
+]
+
+# Mutually exclusive, unlike Table 2's overlapping race files (where
+# "Black alone" includes Hispanic Black people), so the bars sum to the
+# whole electorate.
+RACE_GROUPS = [
+    ("White, not Hispanic", "White", lambda p: not p["hisp"] and p["race"] == 1),
+    ("Black, not Hispanic", "Black", lambda p: not p["hisp"] and p["race"] == 2),
+    ("Asian, not Hispanic", "Asian", lambda p: not p["hisp"] and p["race"] == 4),
+    ("Hispanic (any race)", "Hispanic", lambda p: p["hisp"]),
+    ("Other or multiple races, not Hispanic", "Other", lambda p: not p["hisp"] and p["race"] not in (1, 2, 4)),
+]
+
+DIMENSIONS = {
+    "education": ("Education", EDUCATION_GROUPS),
+    "income": ("Family income", INCOME_GROUPS),
+    "race": ("Race / ethnicity", RACE_GROUPS),
+}
+
 
 def download(dest_name, url):
     dest = RAW_DIR / dest_name
@@ -424,6 +481,112 @@ def validate_age_reconstruction(cycle, cps_published_cvap, cps_published_votes, 
         raise ValueError(f"age-18 2024 CVAP {row18['cvap']} outside expected range [4200, 4350]")
 
 
+# ---------------------------------------------------------------------------
+# byDimension: education / income / race from CPS microdata
+# ---------------------------------------------------------------------------
+
+def load_microdata(path):
+    """Eligible voters from one November person file: age 18+, civilian
+    adults (PRPERTYP 2 - the universe of every P20 table), US citizens.
+    Voted = PES1 1; everything else (no, don't know, refused, no response)
+    counts as not voting, Census's own convention. Weights carry four
+    implied decimals; returned in thousands."""
+    import csv
+
+    people = []
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            if int(row["PRTAGE"]) < 18 or row["PRPERTYP"] != "2" or int(row["PRCITSHP"]) > 4:
+                continue
+            inc = int(row["HEFAMINC"])
+            if not 1 <= inc <= 16:
+                raise ValueError(f"{path.name}: HEFAMINC {inc} outside 1-16 - expected every household imputed")
+            people.append({
+                "w": float(row["PWSSWGT"]) / 1e7,
+                "voted": row["PES1"] == "1",
+                "edu": int(row["PEEDUCA"]),
+                "inc": inc,
+                "incImputed": row["HXFAMINC"] != "0",
+                "race": int(row["PTDTRACE"]),
+                "hisp": row["PEHSPNON"] == "1",
+            })
+    return people
+
+
+def build_dimension_year(people, groups):
+    """One year of one dimension. The benchmark is the group with the
+    highest turnout: expected = cvap x that rate, so every other group's
+    missing is its shortfall from the best-voting group and the top
+    group's is 0."""
+    rows = []
+    for full, short, pred in groups:
+        members = [p for p in people if pred(p)]
+        cvap = sum(p["w"] for p in members)
+        votes = sum(p["w"] for p in members if p["voted"])
+        rows.append({"group": full, "short": short, "cvap": cvap, "votes": votes, "turnout": 100 * votes / cvap})
+
+    covered = sum(r["cvap"] for r in rows)
+    total = sum(p["w"] for p in people)
+    if abs(covered - total) > 0.5:
+        raise ValueError(f"groups cover {covered:,.0f}k of {total:,.0f}k eligible - they must partition everyone")
+
+    top = max(rows, key=lambda r: r["turnout"])
+    bench = top["turnout"] / 100
+    shortfall = 0.0
+    for r in rows:
+        expected = r["cvap"] * bench
+        shortfall += expected - r["votes"]
+        r["expected"] = round(expected, 1)
+        r["missing"] = round(r["votes"] - expected, 1) + 0.0  # no -0.0 for the benchmark group
+        r["cvap"] = round(r["cvap"], 1)
+        r["votes"] = round(r["votes"], 1)
+        r["turnout"] = round(r["turnout"], 1)
+
+    total_votes = sum(p["w"] for p in people if p["voted"])
+    return {
+        "benchmarkGroup": top["group"],
+        "benchmarkTurnout": round(top["turnout"], 2),
+        "totalCvap": round(total, 1),
+        "totalVotes": round(total_votes, 1),
+        "avgTurnout": round(100 * total_votes / total, 2),
+        "shortfall": round(shortfall, 1),  # thousands of votes, sum of every group's gap to the benchmark
+        "rows": rows,
+    }
+
+
+def validate_microdata(people, year, table1, table5_path):
+    """The weighted person file must reproduce Census's published tables:
+    Table 1's citizen and voter totals, and (2024) Table 5's education rows,
+    within rounding. Anything more is a parsing or universe error."""
+    single_years, tail_80_84, tail_85_plus = table1
+    cps_cvap = sum(v[1] for v in single_years.values()) + tail_80_84[1] + tail_85_plus[1]
+    cps_votes = sum(v[2] for v in single_years.values()) + tail_80_84[2] + tail_85_plus[2]
+    cvap = sum(p["w"] for p in people)
+    votes = sum(p["w"] for p in people if p["voted"])
+    for name, mine, theirs in (("citizens", cvap, cps_cvap), ("voters", votes, cps_votes)):
+        if abs(mine - theirs) > 2:
+            raise ValueError(f"{year} microdata {name} {mine:,.0f}k vs Table 1 {theirs:,.0f}k (tolerance 2k)")
+
+    if table5_path is None:
+        return
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        ws = openpyxl.load_workbook(table5_path, data_only=True).active
+    published = {}
+    for r in ws.iter_rows(values_only=True):
+        if r[0] in ("MALE", "Margins of Error3"):
+            break  # BOTH SEXES block only
+        label = str(r[1] or "").strip()
+        if any(label == g[0] for g in EDUCATION_GROUPS):
+            published[label] = (float(r[3]), float(r[10]))
+    for full, _, pred in EDUCATION_GROUPS:
+        members = [p for p in people if pred(p)]
+        mine = (sum(p["w"] for p in members), sum(p["w"] for p in members if p["voted"]))
+        theirs = published[full]
+        if abs(mine[0] - theirs[0]) > 2 or abs(mine[1] - theirs[1]) > 2:
+            raise ValueError(f"{year} {full}: microdata {mine} vs Table 5 {theirs} (tolerance 2k)")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-download", action="store_true", help="Reuse cached files in data/voter_age/ without re-fetching")
@@ -482,23 +645,53 @@ def main():
             f"not registered + {cycle['turnoutShortfall']:,.0f}k registered, voted less"
         )
 
+    print("Building byDimension (CPS microdata)...")
+    by_dimension = {key: {"label": label, "years": {}} for key, (label, _) in DIMENSIONS.items()}
+    for year, filename in MICRODATA.items():
+        dest_name = filename
+        path = RAW_DIR / dest_name if args.skip_download else download(dest_name, f"{MICRODATA_BASE}/{year}/supp/{filename}")
+        people = load_microdata(path)
+        table5 = RAW_DIR / "2024_vote05_2024_1.xlsx" if year == 2024 else None
+        if table5 is not None and not args.skip_download:
+            table5 = download(table5.name, f"{CPS_BASE}/587/vote05_2024_1.xlsx")
+        validate_microdata(people, year, table1[year], table5)
+        total = sum(p["w"] for p in people)
+        imputed = 100 * sum(p["w"] for p in people if p["incImputed"]) / total
+        for key, (_, groups) in DIMENSIONS.items():
+            entry = build_dimension_year(people, groups)
+            if key == "income":
+                entry["imputedPct"] = round(imputed, 1)
+            by_dimension[key]["years"][str(year)] = entry
+            print(
+                f"  {year} {key}: benchmark {entry['benchmarkGroup']} {entry['benchmarkTurnout']}%  "
+                f"shortfall {entry['shortfall']:,.0f}k ({100 * entry['shortfall'] / entry['totalVotes']:.1f}% of votes)"
+            )
+        print(f"  {year}: {len(people):,} eligible respondents, {total:,.0f}k weighted; family income imputed for {imputed:.1f}%")
+
     output = {
         "meta": {
             "sources": [
                 "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 "
-                "(2012, 2014, 2016, 2018, 2020, 2022, 2024)",
+                "(2012, 2014, 2016, 2018, 2020, 2022, 2024), and its public-use person file (2024)",
                 "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age "
                 "estimates: Vintage 2024 (2020-2024) and 2010-2020 intercensal (2012-2018)",
             ],
             "sourceUrls": [
                 f"{CPS_BASE}/{p20_dir}/" for _, p20_dir, _ in CYCLES
-            ] + [PEP_URL, PEP_INTERCENSAL_URL],
+            ] + [PEP_URL, PEP_INTERCENSAL_URL] + [
+                f"{MICRODATA_BASE}/{y}/supp/{f}" for y, f in MICRODATA.items()
+            ],
             "retrieved": "2026-09-25",
             "units": "thousands of people (cvap, votes, registered, expected, missing); thousands of votes short of the 65+ standard (regShort, turnShort, registrationShortfall, turnoutShortfall); thousands of people, reference only, not drawn (registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration, over65ShowUp)",
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
                 "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "
-                "See spec v2 S5 for why levels come from PEP and rates from CPS."
+                "See spec v2 S5 for why levels come from PEP and rates from CPS. "
+                "byDimension: CPS weighted counts straight from the person file, no PEP - PEP has "
+                "no education or income breakdown, and CPS weights are already controlled to "
+                "Census population estimates for the civilian non-institutional population. "
+                "Totals run ~2.5% below byAge's, which also counts people in institutions "
+                "(nursing homes, prisons) and the military."
             ),
             "notes": [
                 "Eligible population = citizen voting-age population (CVAP), not total voting-age "
@@ -516,9 +709,15 @@ def main():
                 "interview as voting, and Census counts non-response as not registered. Non-response "
                 "is highest among the young (~20% of 18-24s in 2024 vs ~12-13% of 65+), so youth "
                 "registration is likely understated somewhat - same convention as turnout.",
+                "byDimension's benchmark is each dimension's highest-turnout group, not the 65+ rate; "
+                "its shortfall sums every other group's gap to that rate.",
+                "Family income (byDimension.income) is the household's combined family income - a "
+                "person living alone or with non-relatives gets their own household's - in nominal "
+                "dollars of each survey year. Census imputes it where not reported (imputedPct).",
             ],
         },
         "byAge": by_age,
+        "byDimension": by_dimension,
     }
 
     with open(OUT_PATH, "w") as f:

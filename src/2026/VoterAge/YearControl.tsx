@@ -4,6 +4,8 @@ import { explorerCopy } from "./copy";
 export interface YearOption {
   year: string;
   kind: "presidential" | "midterm";
+  /** No data for this year in the current view - shown, but not pickable. */
+  disabled?: boolean;
 }
 
 interface Props {
@@ -38,24 +40,28 @@ export default function YearControl({ options, shown, resting, dotPos, dotOpacit
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const hidden = opacity < 0.5;
 
-  const move = (to: number) => {
-    const i = Math.max(0, Math.min(options.length - 1, to));
+  // Arrow keys step past disabled years; Home/End land on the nearest
+  // enabled one.
+  const move = (to: number, dir: 1 | -1) => {
+    let i = Math.max(0, Math.min(options.length - 1, to));
+    while (options[i]?.disabled) i += dir;
+    if (i < 0 || i >= options.length) return;
     onPick(options[i].year);
     refs.current[i]?.focus();
   };
 
   const onKeyDown = (e: KeyboardEvent, i: number) => {
-    const next: Record<string, number> = {
-      ArrowLeft: i - 1,
-      ArrowUp: i - 1,
-      ArrowRight: i + 1,
-      ArrowDown: i + 1,
-      Home: 0,
-      End: options.length - 1,
+    const next: Record<string, [number, 1 | -1]> = {
+      ArrowLeft: [i - 1, -1],
+      ArrowUp: [i - 1, -1],
+      ArrowRight: [i + 1, 1],
+      ArrowDown: [i + 1, 1],
+      Home: [0, 1],
+      End: [options.length - 1, -1],
     };
     if (e.key in next) {
       e.preventDefault();
-      move(next[e.key]);
+      move(...next[e.key]);
     }
   };
 
@@ -80,6 +86,7 @@ export default function YearControl({ options, shown, resting, dotPos, dotOpacit
               aria-checked={on}
               aria-label={`${o.year}, ${o.kind === "midterm" ? explorerCopy.midterm : explorerCopy.presidential}`}
               tabIndex={on ? 0 : -1}
+              disabled={o.disabled}
               className={`voa-yc-btn voa-yc-btn--${o.kind}${o.year === resting ? " is-on" : ""}`}
               onClick={() => onPick(o.year)}
               onKeyDown={(e) => onKeyDown(e, i)}

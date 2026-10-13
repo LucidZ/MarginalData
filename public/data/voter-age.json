@@ -1,7 +1,7 @@
 {
   "meta": {
     "sources": [
-      "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 (2012, 2014, 2016, 2018, 2020, 2022, 2024)",
+      "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 (2012, 2014, 2016, 2018, 2020, 2022, 2024), and its public-use person file (2024)",
       "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age estimates: Vintage 2024 (2020-2024) and 2010-2020 intercensal (2012-2018)"
     ],
     "sourceUrls": [
@@ -13,17 +13,20 @@
       "https://www2.census.gov/programs-surveys/cps/tables/p20/586/",
       "https://www2.census.gov/programs-surveys/cps/tables/p20/587/",
       "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/national/asrh/nc-est2024-agesex-res.csv",
-      "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/intercensal/national/asrh/nc-est2020int-agesex-res.csv"
+      "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/intercensal/national/asrh/nc-est2020int-agesex-res.csv",
+      "https://www2.census.gov/programs-surveys/cps/datasets/2024/supp/nov24pub.csv"
     ],
     "retrieved": "2026-09-25",
     "units": "thousands of people (cvap, votes, registered, expected, missing); thousands of votes short of the 65+ standard (regShort, turnShort, registrationShortfall, turnoutShortfall); thousands of people, reference only, not drawn (registrationGap, registeredNotVoted); percent (turnout, registeredRate, avgTurnout, over65Turnout, over65Registration, over65ShowUp)",
-    "construction": "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). See spec v2 S5 for why levels come from PEP and rates from CPS.",
+    "construction": "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). See spec v2 S5 for why levels come from PEP and rates from CPS. byDimension: CPS weighted counts straight from the person file, no PEP - PEP has no education or income breakdown, and CPS weights are already controlled to Census population estimates for the civilian non-institutional population. Totals run ~2.5% below byAge's, which also counts people in institutions (nursing homes, prisons) and the military.",
     "notes": [
       "Eligible population = citizen voting-age population (CVAP), not total voting-age population, to avoid confounding any gap with non-citizen population share.",
       "CPS turnout is self-reported and runs higher than certified results; the overstatement is not perfectly uniform across groups, so treat exact percentage points as approximate rather than exact.",
       "byAge covers every November election 2012-2024. Population for 2012-2018 comes from Census's 2010-2020 intercensal estimates, which were revised after the 2020 Census; 2020-2024 from Vintage 2024. Both are anchored to the 2020 Census.",
       "Ages 80+ (byAge) use real single-year PEP population but a CPS turnout/citizen-share rate pooled across the whole 80-84 or 85+ bucket, since CPS does not report single years of age above 79 - flagged per-row as ratesPooled.",
-      "Registration (byAge registered/registeredRate) is self-reported in the same November interview as voting, and Census counts non-response as not registered. Non-response is highest among the young (~20% of 18-24s in 2024 vs ~12-13% of 65+), so youth registration is likely understated somewhat - same convention as turnout."
+      "Registration (byAge registered/registeredRate) is self-reported in the same November interview as voting, and Census counts non-response as not registered. Non-response is highest among the young (~20% of 18-24s in 2024 vs ~12-13% of 65+), so youth registration is likely understated somewhat - same convention as turnout.",
+      "byDimension's benchmark is each dimension's highest-turnout group, not the 65+ rate; its shortfall sums every other group's gap to that rate.",
+      "Family income (byDimension.income) is the household's combined family income - a person living alone or with non-relatives gets their own household's - in nominal dollars of each survey year. Census imputes it where not reported (imputedPct)."
     ]
   },
   "byAge": {
@@ -7698,6 +7701,243 @@
           "turnShort": 1.8
         }
       ]
+    }
+  },
+  "byDimension": {
+    "education": {
+      "label": "Education",
+      "years": {
+        "2024": {
+          "benchmarkGroup": "Advanced degree",
+          "benchmarkTurnout": 82.5,
+          "totalCvap": 236138.2,
+          "totalVotes": 154307.7,
+          "avgTurnout": 65.35,
+          "shortfall": 40552.3,
+          "rows": [
+            {
+              "group": "Less than 9th grade",
+              "short": "< 9th grade",
+              "cvap": 3998.2,
+              "votes": 1233.3,
+              "turnout": 30.8,
+              "expected": 3299.3,
+              "missing": -2065.9
+            },
+            {
+              "group": "9th to 12th grade, no diploma",
+              "short": "9th-12th, no diploma",
+              "cvap": 12294.2,
+              "votes": 4703.6,
+              "turnout": 38.3,
+              "expected": 10145.1,
+              "missing": -5441.4
+            },
+            {
+              "group": "High school graduate",
+              "short": "HS grad",
+              "cvap": 67642.6,
+              "votes": 35540.5,
+              "turnout": 52.5,
+              "expected": 55818.3,
+              "missing": -20277.8
+            },
+            {
+              "group": "Some college or associate's degree",
+              "short": "Some college",
+              "cvap": 64672.3,
+              "votes": 43563.7,
+              "turnout": 67.4,
+              "expected": 53367.3,
+              "missing": -9803.6
+            },
+            {
+              "group": "Bachelor's degree",
+              "short": "Bachelor's",
+              "cvap": 55578.4,
+              "votes": 42899.5,
+              "turnout": 77.2,
+              "expected": 45863.0,
+              "missing": -2963.5
+            },
+            {
+              "group": "Advanced degree",
+              "short": "Advanced degree",
+              "cvap": 31952.5,
+              "votes": 26367.1,
+              "turnout": 82.5,
+              "expected": 26367.1,
+              "missing": 0.0
+            }
+          ]
+        }
+      }
+    },
+    "income": {
+      "label": "Family income",
+      "years": {
+        "2024": {
+          "benchmarkGroup": "$150,000 and over",
+          "benchmarkTurnout": 75.9,
+          "totalCvap": 236138.2,
+          "totalVotes": 154307.7,
+          "avgTurnout": 65.35,
+          "shortfall": 24963.2,
+          "rows": [
+            {
+              "group": "Under $10,000",
+              "short": "<$10K",
+              "cvap": 7669.2,
+              "votes": 3272.3,
+              "turnout": 42.7,
+              "expected": 5822.3,
+              "missing": -2550.1
+            },
+            {
+              "group": "$10,000 to $14,999",
+              "short": "$10-15K",
+              "cvap": 6724.2,
+              "votes": 3243.8,
+              "turnout": 48.2,
+              "expected": 5104.8,
+              "missing": -1861.1
+            },
+            {
+              "group": "$15,000 to $19,999",
+              "short": "$15-20K",
+              "cvap": 4578.7,
+              "votes": 2301.3,
+              "turnout": 50.3,
+              "expected": 3476.1,
+              "missing": -1174.8
+            },
+            {
+              "group": "$20,000 to $29,999",
+              "short": "$20-30K",
+              "cvap": 14442.1,
+              "votes": 7505.3,
+              "turnout": 52.0,
+              "expected": 10964.1,
+              "missing": -3458.8
+            },
+            {
+              "group": "$30,000 to $39,999",
+              "short": "$30-40K",
+              "cvap": 18497.4,
+              "votes": 10043.1,
+              "turnout": 54.3,
+              "expected": 14042.8,
+              "missing": -3999.7
+            },
+            {
+              "group": "$40,000 to $49,999",
+              "short": "$40-50K",
+              "cvap": 14794.2,
+              "votes": 8713.5,
+              "turnout": 58.9,
+              "expected": 11231.5,
+              "missing": -2517.9
+            },
+            {
+              "group": "$50,000 to $74,999",
+              "short": "$50-75K",
+              "cvap": 39834.0,
+              "votes": 25693.6,
+              "turnout": 64.5,
+              "expected": 30241.1,
+              "missing": -4547.5
+            },
+            {
+              "group": "$75,000 to $99,999",
+              "short": "$75-100K",
+              "cvap": 32243.0,
+              "votes": 21619.0,
+              "turnout": 67.1,
+              "expected": 24478.2,
+              "missing": -2859.2
+            },
+            {
+              "group": "$100,000 to $149,999",
+              "short": "$100-150K",
+              "cvap": 41428.9,
+              "votes": 29457.8,
+              "turnout": 71.1,
+              "expected": 31451.9,
+              "missing": -1994.1
+            },
+            {
+              "group": "$150,000 and over",
+              "short": "$150K+",
+              "cvap": 55926.5,
+              "votes": 42458.1,
+              "turnout": 75.9,
+              "expected": 42458.1,
+              "missing": 0.0
+            }
+          ],
+          "imputedPct": 20.5
+        }
+      }
+    },
+    "race": {
+      "label": "Race / ethnicity",
+      "years": {
+        "2024": {
+          "benchmarkGroup": "White, not Hispanic",
+          "benchmarkTurnout": 70.5,
+          "totalCvap": 236138.2,
+          "totalVotes": 154307.7,
+          "avgTurnout": 65.35,
+          "shortfall": 12084.0,
+          "rows": [
+            {
+              "group": "White, not Hispanic",
+              "short": "White",
+              "cvap": 154574.6,
+              "votes": 108919.0,
+              "turnout": 70.5,
+              "expected": 108919.0,
+              "missing": 0.0
+            },
+            {
+              "group": "Black, not Hispanic",
+              "short": "Black",
+              "cvap": 29477.0,
+              "votes": 17701.3,
+              "turnout": 60.1,
+              "expected": 20770.6,
+              "missing": -3069.2
+            },
+            {
+              "group": "Asian, not Hispanic",
+              "short": "Asian",
+              "cvap": 12334.7,
+              "votes": 7121.9,
+              "turnout": 57.7,
+              "expected": 8691.5,
+              "missing": -1569.6
+            },
+            {
+              "group": "Hispanic (any race)",
+              "short": "Hispanic",
+              "cvap": 32764.7,
+              "votes": 16572.8,
+              "turnout": 50.6,
+              "expected": 23087.2,
+              "missing": -6514.4
+            },
+            {
+              "group": "Other or multiple races, not Hispanic",
+              "short": "Other",
+              "cvap": 6987.3,
+              "votes": 3992.7,
+              "turnout": 57.1,
+              "expected": 4923.5,
+              "missing": -930.8
+            }
+          ]
+        }
+      }
     }
   }
 }

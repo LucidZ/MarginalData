@@ -1,7 +1,7 @@
 // The explorer after the story (Explorer.tsx, YearControl.tsx, ageRows.ts):
 // the beat 1-2 age chart for every election, picked from the year buttons
 // and animated on a timer through every hop in between. Checks every year's
-// printed figures against the JSON, the "locked in" signals, mid-jump
+// printed figures against the JSON, the education/income/race views, the "locked in" signals, mid-jump
 // honesty (no filled year, figures only ever a real election's), cohorts
 // followed across a hop, the right edge filling at 2012, keyboard, reduced
 // motion, and a 360px phone.
@@ -134,6 +134,49 @@ await page.waitForFunction(() => document.querySelector(".voa-explorer-state").d
 const focused = await page.evaluate(() => document.activeElement?.getAttribute("aria-label"));
 if (!focused?.startsWith("2014")) fail(`ArrowRight should focus 2014, focused ${focused}`);
 console.log("PASS: ArrowRight from 2012 goes to 2014 and moves focus there");
+
+// 6b. The dimension switch: each non-age view draws its groups, prints its
+// JSON figures, disables the years it has no data for, and switching back
+// to age restores the age chart at the same year.
+const fmtPct = (v) => `${v.toFixed(1)}%`;
+async function pickView(label) {
+  await page.click(`${X} .voa-dims-btn:text-is("${label}")`);
+  await page.waitForTimeout(1200); // the category chart's bars grow in over 700ms
+}
+await pick("2016");
+for (const [key, label] of [["education", "Education"], ["income", "Family income"], ["race", "Race / ethnicity"]]) {
+  await pickView(label);
+  const dimYears = Object.keys(data.byDimension[key].years);
+  const newest = dimYears.sort().at(-1);
+  const st = await state();
+  if (st.view !== key || st.resting !== newest) fail(`${key}: should snap to ${newest}, state ${JSON.stringify(st)}`);
+  const y = data.byDimension[key].years[newest];
+  const got = await page.evaluate((X) => ({
+    bars: document.querySelectorAll(`${X} .pb-bar-track, ${X} rect.pb-track`).length,
+    ticks: [...document.querySelectorAll(`${X} .pb-axis-x .tick text`)].map((e) => e.textContent.trim()),
+    hero: [...document.querySelectorAll(`${X} .pb-gap-hero-figure`)].map((e) => e.textContent.trim()),
+    legend: document.querySelector(`${X} .pb-legend-expected`).textContent.trim(),
+    disabled: [...document.querySelectorAll(`${X} .voa-yc-btn:disabled`)].map((b) => b.getAttribute("aria-label").slice(0, 4)),
+    caveat: document.querySelector(`${X} .voa-explorer-caveat`).textContent,
+  }), X);
+  const wantTicks = y.rows.map((r) => r.short);
+  if (JSON.stringify(got.ticks) !== JSON.stringify(wantTicks)) fail(`${key}: x ticks ${JSON.stringify(got.ticks)}, want ${JSON.stringify(wantTicks)}`);
+  const wantHero = [fmtPct((y.shortfall / y.totalVotes) * 100), fmtPct(y.avgTurnout)];
+  if (JSON.stringify(got.hero) !== JSON.stringify(wantHero)) fail(`${key}: hero ${JSON.stringify(got.hero)}, want ${JSON.stringify(wantHero)}`);
+  if (!got.legend.includes(fmtPct(y.benchmarkTurnout))) fail(`${key}: legend "${got.legend}" lacks the benchmark rate`);
+  const wantDisabled = years.filter((yr) => !dimYears.includes(yr));
+  if (JSON.stringify(got.disabled) !== JSON.stringify(wantDisabled)) fail(`${key}: disabled ${got.disabled}, want ${wantDisabled}`);
+  if (key === "income" && !got.caveat.includes(fmtPct(y.imputedPct))) fail(`income caveat lacks the imputed share`);
+  if (await nanTransforms()) fail(`${key}: NaN in a transform`);
+  await page.locator(`${X} .voa-explorer-chart`).screenshot({ path: `${OUT}/voter-age-explorer-${key}.png` });
+  console.log(`PASS: ${key} ${newest}: ${got.ticks.length} groups; ${got.hero.join(" / ")}; ${got.legend}; ${got.disabled.length} years disabled`);
+}
+await pickView("Age");
+const back = await state();
+const ageTicks = await page.$$eval(`${X} .pb-axis-x .tick text`, (els) => els.length);
+const stillDisabled = await page.$$eval(`${X} .voa-yc-btn:disabled`, (els) => els.length);
+if (back.view !== "age" || ageTicks < 5 || stillDisabled) fail(`back to age: ${JSON.stringify(back)}, ${ageTicks} ticks, ${stillDisabled} disabled`);
+console.log(`PASS: back to age at ${back.resting}, every year enabled again`);
 
 if ((await nanTransforms()) > 0) fail("NaN in a transform attribute");
 if (consoleErrors.length) fail(`console errors:\n  ${consoleErrors.join("\n  ")}`);

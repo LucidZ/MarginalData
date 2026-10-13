@@ -46,6 +46,37 @@ export interface AgeCycle {
   rows: AgeRow[];
 }
 
+/** One group of a non-age dimension in one election - CPS weighted counts
+ * from the public-use person file, no PEP. */
+export interface DimensionRow {
+  group: string; // full label, for the tooltip
+  short: string; // axis label
+  cvap: number; // thousands
+  votes: number; // thousands
+  turnout: number; // percent
+  expected: number; // cvap x the benchmark group's turnout, thousands
+  missing: number; // votes - expected, thousands (0 for the benchmark group)
+}
+
+export interface DimensionYear {
+  benchmarkGroup: string; // the group with the highest turnout this year
+  benchmarkTurnout: number; // percent
+  totalCvap: number; // thousands
+  totalVotes: number; // thousands
+  avgTurnout: number; // percent
+  shortfall: number; // thousands of votes - every group's gap to the benchmark rate, summed
+  imputedPct?: number; // income only: percent of eligible people whose family income Census imputed
+  rows: DimensionRow[];
+}
+
+export type DimensionKey = "education" | "income" | "race";
+
+export interface Dimension {
+  label: string;
+  /** Keyed by election year - so far only "2024". */
+  years: Record<string, DimensionYear>;
+}
+
 export interface VoterAgeData {
   meta: {
     sources: string[];
@@ -58,4 +89,6 @@ export interface VoterAgeData {
   /** Keyed by election year as a string, every November election 2012-2024.
    * Beats 1-2 read "2024" and "2022" by key; the explorer reads them all. */
   byAge: Record<string, AgeCycle>;
+  /** The explorer's other ways to slice the electorate. */
+  byDimension: Record<DimensionKey, Dimension>;
 }
