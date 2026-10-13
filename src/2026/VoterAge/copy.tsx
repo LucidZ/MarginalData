@@ -39,7 +39,7 @@ broader population it is meant to represent.
   ),
 };
 
-// Closing call to action, between the explorer and the sources. Election day
+// Closing call to action, straight after the story, before the explorer. Election day
 // is hand-typed: update it (or drop the line) after November 3, 2026.
 export const voteCta = {
   heading: "Make sure you're counted.",
@@ -76,6 +76,12 @@ export function sourcesFootnote(meta: VoterAgeData["meta"]): ReactNode {
         rel="noopener noreferrer"
       >
         [More on CPS overreporting]
+      </a>
+      <br />
+      Turnout records in the year cards (lowest or highest since a given year) are from the US Elections Project's
+      national turnout series, 1789–present.{" "}
+      <a href="https://www.electproject.org/national-1789-present" target="_blank" rel="noopener noreferrer">
+        [US Elections Project]
       </a>
       <br />
       Population by single year of age is from the Census Population Estimates Program (PEP), combined with CPS
@@ -214,8 +220,7 @@ export const summaryTitle = "3. It's not just 2022";
 
 // ---------------------------------------------------------------------------
 // Section 3 (AgeBeats.tsx): the scroll rewinds 2022 -> first year in the gold
-// view, then plays it forward with registrations, one year card per election
-// each way. Placeholder copy.
+// view, one year card per election, then sums it up. Placeholder copy.
 // ---------------------------------------------------------------------------
 
 export interface RewindVals {
@@ -231,118 +236,71 @@ export const rewindCopy = {
   ),
 };
 
+/** A year card's one figure: the number big, a short label beside it. */
+const CardFigure = ({ value, tone, label }: { value: string; tone: "gap" | "votes"; label: string }) => (
+  <p className="voa-year-card__figure">
+    <strong className={`voa-${tone}-text`}>{value}</strong> {label}
+  </p>
+);
+
 export interface RewindCardVals {
-  bench: string;
   shortfallPct: string;
 }
 
-export const rewindCardCopy = (v: RewindCardVals) => (
-  <>
-    The shortfall was <strong className="voa-gap-text">{v.shortfallPct}</strong> of votes cast, measured against the
-    65+ rate ({v.bench}).
-  </>
-);
-
-export const playCopy = {
-  heading: "Now play it forward",
-  body: () => (
-    <p>
-      [Placeholder] This time, drop the 65+ yardstick and count registrations. The pale band above each votes bar is
-      people who were registered but didn't vote; the grey above that is eligible citizens who aren't registered.
-    </p>
-  ),
+/** Only the elections whose bar would otherwise prompt a "why?" get a note
+ * on its card.
+ * Records are from the US Elections Project's national turnout series
+ * (eligible-population turnout, 1789-present): 2014 midterm 36.7%, lowest
+ * since 1942's 33.9%; 2018 midterm 50.0%, highest since 1914's 50.4%; 2020
+ * presidential 66.6%, highest since 1900's 73.7%. Its rates differ from the
+ * CPS ones on the chart, so the notes quote the record, not the rate. */
+const turnoutNotes: Record<string, string> = {
+  "2014": "Lowest midterm turnout since 1942",
+  "2018": "Highest midterm turnout since 1914",
+  "2020": "Highest presidential turnout since 1900",
 };
 
-export interface YearCardVals {
-  turnout: string;
-}
+const TurnoutNote = ({ year }: { year: string }) =>
+  turnoutNotes[year] ? <p className="voa-year-card__note">{turnoutNotes[year]}</p> : null;
 
-export const yearCardCopy = (v: YearCardVals) => (
+export const rewindCardCopy = (year: string, v: RewindCardVals) => (
   <>
-    <strong className="voa-votes-text">{v.turnout}</strong> of eligible citizens voted.
+    <CardFigure value={v.shortfallPct} tone="gap" label="shortfall, as a share of votes cast" />
+    <TurnoutNote year={year} />
   </>
 );
 
-// Placeholder copy - the summary chart after section 3's forward pass.
-export const summaryCopy = {
-  mergeHeading: "Every age, added up",
+export interface GoldSummaryVals {
+  midterms: string; // shortfall range in midterms, e.g. "30.8M–40.3M"
+  presidentials: string;
+  midtermPcts: string; // the same as % of votes cast, e.g. "24.7%–42.9%"
+  presidentialPcts: string;
+}
+
+// Placeholder copy - the gold-view summary at the end of the rewind.
+export const goldSummaryCopy = {
+  mergeHeading: "All of it, in one bar",
   merge: (v: { year: string }) => (
     <p>
-      [Placeholder] Stack every age from {v.year} into a single bar: the people who voted, then the people
-      registered who didn't, then the eligible citizens who aren't registered at all.
+      [Placeholder] Stack every age from {v.year} into a single bar: the people who voted, then the gold shortfall
+      on top of them.
     </p>
   ),
-  revealHeading: "Every election, side by side",
-  reveal: () => (
+  revealHeading: "More gold in every midterm",
+  reveal: (v: GoldSummaryVals) => (
     <p>
-      [Placeholder] Now every election from 2012 to 2024. The unregistered band barely moves. What swings is the
-      pale band: registered people who sit out the midterms.
+      [Placeholder] The gold grows in every midterm: <span className="voa-gap-text">{v.midterms}</span> votes short,
+      against <span className="voa-gap-text">{v.presidentials}</span> in presidential years.
     </p>
   ),
+  pctHeading: "As a share of votes cast",
+  pct: (v: GoldSummaryVals) => (
+    <p>
+      [Placeholder] Measured against the votes actually cast, midterms fall{" "}
+      <span className="voa-gap-text">{v.midtermPcts}</span> short, presidential years{" "}
+      <span className="voa-gap-text">{v.presidentialPcts}</span>.
+    </p>
+  ),
+  pctYLabel: "Shortfall (% of votes cast)",
   xLabel: "Election",
 };
-
-/** Averages over each presidential -> midterm pair (2012->14, 2016->18,
- * 2020->22), all from the data. */
-export interface MidtermDropVals {
-  pairs: number; // how many presidential -> midterm pairs are averaged
-  eligiblePct: string; // signed, e.g. "+1.8%"
-  registeredPct: string; // unsigned size of the drop, e.g. "4.8%"
-  registeredM: string;
-  votesPct: string;
-  votesM: string;
-  ratio: string; // votes drop / registration drop, in people, e.g. "4"
-}
-
-// Draft copy - three beats on the summary chart, one gold arrow layer each.
-export const midtermDropSteps: StepCopy<MidtermDropVals>[] = [
-  {
-    heading: "The pool keeps growing",
-    body: (v) => (
-      <p>
-        Between each presidential election and the midterm after it, the number of eligible citizens still grew,
-        by <strong className="voa-gap-text">{v.eligiblePct}</strong> on average.
-      </p>
-    ),
-  },
-  {
-    heading: "Registrations dip a little",
-    body: (v) => (
-      <p>
-        In each of the last {v.pairs} midterms, fewer people said they were{" "}
-        <Gloss
-          note={
-            <>
-              Some of this dip is probably real, some probably isn't:
-              <GlossList
-                items={[
-                  "People move, and a registration doesn't follow them to a new address",
-                  "People change their names, and the registration has to be updated",
-                  <>
-                    The survey only asks about registration if someone says they didn't vote. People who vote are
-                    assumed registered. In a midterm, far more people get asked, and some who are registered will
-                    say they aren't, or don't know
-                  </>,
-                ]}
-              />
-            </>
-          }
-        >
-          registered
-        </Gloss>{" "}
-        than two years before: down <strong className="voa-gap-text">{v.registeredPct}</strong> on average, about{" "}
-        {v.registeredM} people.
-      </p>
-    ),
-  },
-  {
-    heading: "Votes fall off a cliff",
-    body: (v) => (
-      <p>
-        Votes fell <strong className="voa-gap-text">{v.votesPct}</strong> on average, about {v.votesM} people:
-        roughly {v.ratio} times the drop in registrations. Most of the midterm drop isn't people falling off the
-        rolls. It's registered voters who just don't show up.
-      </p>
-    ),
-  },
-];

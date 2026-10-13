@@ -39,7 +39,8 @@ async function pick(year) {
   await page.click(`${X} .voa-yc-btn[aria-label^="${year}"]`);
   await page.waitForFunction((y) => document.querySelector(".voa-explorer-state").dataset.resting === y, year, { timeout: 8000 });
 }
-const shortfallOf = (y) => fmtM(Math.abs(data.byAge[y].rows.reduce((a, r) => a + Math.min(0, r.missing), 0)));
+const shortfallOf = (y) =>
+  `${((Math.abs(data.byAge[y].rows.reduce((a, r) => a + Math.min(0, r.missing), 0)) / data.byAge[y].totalVotes) * 100).toFixed(1)}%`;
 const turnoutOf = (y) => `${data.byAge[y].avgTurnout.toFixed(1)}%`;
 
 // 1. The timeline lives in the explorer only; seven buttons, chronological.

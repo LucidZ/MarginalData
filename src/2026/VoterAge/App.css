@@ -509,6 +509,9 @@
 .pb-seg--registered {
   fill: var(--registered);
 }
+.pb-seg--gap {
+  fill: var(--gap);
+}
 .pb-registered {
   fill: var(--registered);
 }
@@ -739,6 +742,22 @@
 .voa-step-inner .voa-year-card p {
   margin: 0.3rem 0 0;
 }
+/* The card's one figure: the number large, its label quiet beside it. */
+.voa-step-inner .voa-year-card .voa-year-card__figure {
+  color: var(--text-secondary);
+}
+.voa-year-card__figure strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.15rem;
+}
+/* Only on the record years (2014, 2018, 2020). */
+.voa-step-inner .voa-year-card .voa-year-card__note {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
 
 /* ---------- Small helpers: compare table, source list ---------- */
 .voa-compare-table {
@@ -843,10 +862,31 @@
   background: #137a55;
   border-radius: 8px;
   text-decoration: none;
-  transition: background 150ms;
+  transition: background 150ms, transform 150ms, box-shadow 150ms;
 }
+/* Color restated on hover: the global a:hover (0,1,1) outranks the class. */
 .voa-cta-button:hover {
+  color: #ffffff;
   background: #0f6647;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgb(19 122 85 / 0.25);
+}
+.voa-cta-arrow {
+  display: inline-block;
+  transition: transform 150ms;
+}
+.voa-cta-button:hover .voa-cta-arrow {
+  transform: translateX(3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .voa-cta-button,
+  .voa-cta-arrow {
+    transition: background 150ms;
+  }
+  .voa-cta-button:hover,
+  .voa-cta-button:hover .voa-cta-arrow {
+    transform: none;
+  }
 }
 .voa-cta-button:focus-visible {
   outline: 3px solid var(--series-3);
@@ -858,7 +898,9 @@
     background: #199e70;
   }
   :root:where(:not([data-theme="light"])) .voa-cta-button:hover {
+    color: #0d0d0d;
     background: #2bbf88;
+    box-shadow: 0 4px 14px rgb(43 191 136 / 0.3);
   }
 }
 :root[data-theme="dark"] .voa-cta-button {
@@ -866,7 +908,9 @@
   background: #199e70;
 }
 :root[data-theme="dark"] .voa-cta-button:hover {
+  color: #0d0d0d;
   background: #2bbf88;
+  box-shadow: 0 4px 14px rgb(43 191 136 / 0.3);
 }
 .voa-cta .voa-cta-note {
   font-size: 0.82rem;

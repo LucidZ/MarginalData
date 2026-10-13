@@ -22,13 +22,13 @@ await page.waitForFunction(() => document.querySelector(".voa-explorer-state").d
 await page.waitForTimeout(300);
 await page.screenshot({ path: "tests/screenshots/voter-age-dark-explorer.png" });
 
-// The summary's gold arrows, on the last story step.
+// The gold summary's percent bars, on the last story step.
 await page.evaluate(() => {
   const steps = document.querySelectorAll(".voa-beat .voa-step");
   steps[steps.length - 1].scrollIntoView({ block: "center" });
 });
 await page.waitForTimeout(600);
-await page.screenshot({ path: "tests/screenshots/voter-age-dark-arrows.png" });
+await page.screenshot({ path: "tests/screenshots/voter-age-dark-gold-pct.png" });
 
 const swatchBg =await page.$eval(".pb-legend-votes", (el) => getComputedStyle(el).backgroundColor);
 console.log("pb-legend-votes background-color in dark mode:", swatchBg);

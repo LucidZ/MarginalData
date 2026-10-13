@@ -1,7 +1,6 @@
-// Section 3's rewind and forward passes (AgeBeats.tsx), both scroll-driven:
-// one year card per election back 2022 -> 2012 in the gold view, then one
-// per election forward 2012 -> 2024 with the registered band on. The VCR
-// badge (RewindOverlay.tsx) is up mid-hop only.
+// Section 3's rewind (AgeBeats.tsx), scroll-driven: one year card per
+// election back 2022 -> 2012 in the gold view, then the gold summary. The
+// VCR badge (RewindOverlay.tsx) is up mid-hop only.
 // Run with: BASE_URL=http://localhost:5174 node tests/voter-age-rewind.mjs
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -41,6 +40,7 @@ const state = (page) =>
       badge: parseFloat(getComputedStyle(document.querySelector(".voa-vcr")).opacity),
       badgeText: document.querySelector(".voa-vcr").textContent,
       hero: [...document.querySelectorAll(".voa-beat .pb-gap-hero-figure")].map((e) => parseFloat(e.textContent)),
+      heroOpacity: parseFloat(getComputedStyle(document.querySelector(".voa-beat .pb-gap-summary--hero")).opacity),
       registered: Math.max(
         0,
         ...[...document.querySelectorAll("rect.pb-registered")].map((r) => parseFloat(r.style.opacity) || 0)
@@ -65,22 +65,24 @@ let s = await state(page);
 if (Math.abs(s.pos - 1) > 1e-3 || s.badge > 0.01) fail(`before the rewind: ${JSON.stringify(s)}`);
 
 // The rewind pass: one card per election, 2022 back to the first year, each
-// resting on its year in the gold view, scroll-driven like the forward pass.
+// resting on its year in the gold view.
 const rewindYears = years.slice(0, -1).reverse(); // 2022 .. 2012
 for (const y of rewindYears) {
-  await toStep(page, await stepIndex(`.voa-year-card[data-pass="rewind"][data-year="${y}"]`));
+  await toStep(page, await stepIndex(`.voa-year-card[data-year="${y}"]`));
   await page.waitForTimeout(400);
   s = await state(page);
   if (s.resting !== y) fail(`rewind card ${y}: chart resting on ${s.resting}`);
   if (s.registered > 0.01 || s.hero.length !== 1) fail(`rewind card ${y}: should be the gold view ${JSON.stringify(s)}`);
   if (s.badge > 0.01) fail(`rewind card ${y}: badge should be off at rest`);
-  const on = await page.$$eval(".voa-year-card.is-on", (els) => els.map((e) => `${e.dataset.pass}-${e.dataset.year}`));
-  if (JSON.stringify(on) !== JSON.stringify([`rewind-${y}`])) fail(`rewind card ${y}: outlined cards ${on}`);
+  // The card carries the shortfall, so the figure under the chart is out.
+  if (s.heroOpacity > 0.01) fail(`rewind card ${y}: figure under the chart should be hidden (${s.heroOpacity})`);
+  const on = await page.$$eval(".voa-year-card.is-on", (els) => els.map((e) => e.dataset.year));
+  if (JSON.stringify(on) !== JSON.stringify([y])) fail(`rewind card ${y}: outlined cards ${on}`);
 }
 // Mid-hop between two rewind cards, scrolling down into it: badge up and
 // reading rew.
 {
-  const i = await stepIndex(`.voa-year-card[data-pass="rewind"][data-year="${rewindYears[2]}"]`);
+  const i = await stepIndex(`.voa-year-card[data-year="${rewindYears[2]}"]`);
   await toStep(page, i);
   await page.waitForTimeout(300);
   await page.evaluate((i) => {
@@ -95,32 +97,79 @@ for (const y of rewindYears) {
 }
 console.log(`PASS: rewind pass rests on ${rewindYears.join(" ")} in the gold view, badge only mid-hop`);
 
-// Forward pass: each card rests on its year, registered band on, hero
-// figures = that year's registered-didn't-vote / not registered.
-for (const y of years) {
-  const i = await stepIndex(`.voa-year-card[data-pass="forward"][data-year="${y}"]`);
-  await toStep(page, i);
-  await page.waitForTimeout(500);
-  s = await state(page);
-  const want = data.byAge[y].rows.reduce(
-    (a, r) => [a[0] + (r.registered - r.votes) / 1000, a[1] + (r.cvap - r.registered) / 1000],
-    [0, 0]
+// The gold summary after the last rewind card: the first year's columns
+// merge into one votes / shortfall / rest-of-eligible bar, then every
+// election's bar. Heights checked against the JSON, summed with the same
+// rule as PopulationBars' goldSegments.
+{
+  const first = rewindYears[rewindYears.length - 1];
+  const lastRewind = await stepIndex(`.voa-year-card[data-year="${first}"]`);
+  const goldOf = (y) =>
+    data.byAge[y].rows.reduce(
+      (acc, r) => {
+        const g = Math.max(0, -r.missing);
+        [r.votes, g, r.cvap - r.votes - g].forEach((v, k) => (acc[k] += v));
+        return acc;
+      },
+      [0, 0, 0]
+    );
+  const bars = () =>
+    page.evaluate(() => ({
+      rects: [...document.querySelectorAll("g.pb-summary rect")].map((r) => ({
+        cls: r.getAttribute("class"),
+        h: +r.getAttribute("height"),
+      })),
+      ageHidden: getComputedStyle(document.querySelector("g.pb-age")).display === "none",
+    }));
+  await toStep(page, lastRewind + 1);
+  await page.waitForTimeout(400);
+  let b = await bars();
+  if (b.rects.length !== 3 || !b.ageHidden || !b.rects[1].cls.includes("pb-seg--gap"))
+    fail(`gold merge: should be one votes/gold/eligible bar ${JSON.stringify(b)}`);
+  await page.locator(".voa-beat .voa-scrolly-viz").screenshot({ path: `${OUT}/voter-age-gold-merge.png` });
+  await toStep(page, lastRewind + 2);
+  await page.waitForTimeout(400);
+  b = await bars();
+  const chrono = [...years].sort();
+  if (b.rects.length !== chrono.length * 3) fail(`gold reveal: ${b.rects.length} rects, want ${chrono.length * 3}`);
+  const pxPerK = b.rects.slice(0, 3).reduce((a, r) => a + r.h, 0) / goldOf(chrono[0]).reduce((a, v) => a + v, 0);
+  chrono.forEach((y, i) =>
+    goldOf(y).forEach((v, k) => {
+      const got = b.rects[i * 3 + k].h / pxPerK;
+      if (Math.abs(got - v) > 50) fail(`gold ${y} segment ${k}: drew ${got.toFixed(0)}k, data ${v.toFixed(0)}k`);
+    })
   );
-  if (s.resting !== y) fail(`card ${y}: chart resting on ${s.resting}`);
-  if (s.registered < 0.99) fail(`card ${y}: registered band opacity ${s.registered}`);
-  if (s.hero.length !== 2 || Math.abs(s.hero[0] - want[0]) > 0.06 || Math.abs(s.hero[1] - want[1]) > 0.06)
-    fail(`card ${y}: hero ${s.hero}, want ${want.map((v) => v.toFixed(1))}`);
-  const on = await page.$$eval(".voa-year-card.is-on", (els) => els.map((e) => e.dataset.year));
-  if (JSON.stringify(on) !== JSON.stringify([y])) fail(`card ${y}: outlined cards ${on}`);
-  await page.locator(".voa-beat .voa-scrolly-viz").screenshot({ path: `${OUT}/voter-age-forward-${y}.png` });
+  await page.locator(".voa-beat .voa-scrolly-viz").screenshot({ path: `${OUT}/voter-age-gold-reveal.png` });
+  console.log("PASS: gold summary merges the first year, then every election's bar matches the data");
+
+  // Then each bar cut to its gold, as a share of that election's votes cast.
+  await toStep(page, lastRewind + 3);
+  await page.waitForTimeout(400);
+  const pct = await page.evaluate(() => ({
+    rects: [...document.querySelectorAll("g.pb-summary rect")].map((r) => ({
+      cls: r.getAttribute("class"),
+      h: +r.getAttribute("height"),
+    })),
+    labels: [...document.querySelectorAll("g.pb-summary-pct-labels text")].map((t) => t.textContent),
+  }));
+  const wantPct = chrono.map((y) => (goldOf(y)[1] / data.byAge[y].totalVotes) * 100);
+  if (pct.rects.length !== chrono.length || pct.rects.some((r) => !r.cls.includes("pb-seg--gap")))
+    fail(`gold percent: should be gold bars only ${JSON.stringify(pct.rects)}`);
+  const pxPerPct = pct.rects[0].h / wantPct[0];
+  chrono.forEach((y, i) => {
+    if (Math.abs(pct.rects[i].h / pxPerPct - wantPct[i]) > 0.1) fail(`gold percent ${y}: drew ${(pct.rects[i].h / pxPerPct).toFixed(1)}%, data ${wantPct[i].toFixed(1)}%`);
+  });
+  const wantLabels = wantPct.map((v) => `${v.toFixed(1)}%`);
+  if (JSON.stringify(pct.labels) !== JSON.stringify(wantLabels)) fail(`gold percent labels ${pct.labels}, want ${wantLabels}`);
+  await page.locator(".voa-beat .voa-scrolly-viz").screenshot({ path: `${OUT}/voter-age-gold-pct.png` });
+  console.log(`PASS: gold percent bars match the data (${pct.labels.join(" ")})`);
 }
-console.log(`PASS: forward pass rests on every year with the registered band and its counts`);
 
 // Back above section 3: the scroll alone brings it forward to 2022, gold view restored.
 await toStep(page, REWIND - 1);
 await page.waitForTimeout(400);
 s = await state(page);
-if (s.resting !== "2022" || s.registered > 0.01 || s.hero.length !== 1) fail(`back on beat 2: ${JSON.stringify(s)}`);
+if (s.resting !== "2022" || s.registered > 0.01 || s.hero.length !== 1 || s.heroOpacity < 0.99) fail(`back on beat 2: ${JSON.stringify(s)}`);
 console.log("PASS: scrolling back above section 3 returns to 2022, gold view restored");
 if (errors.length) fail(`console errors: ${errors.slice(0, 3).join(" | ")}`);
 await page.close();

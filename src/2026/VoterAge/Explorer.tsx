@@ -145,8 +145,8 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
           heroGap={{
             items: [
               {
-                figure: fmtM(shortfallOf(shownCycle.rows)),
-                label: "fewer votes than the 65+ rate",
+                figure: fmtPct((shortfallOf(shownCycle.rows) / shownCycle.totalVotes) * 100),
+                label: "shortfall, as a share of votes cast",
                 delta: "",
                 tone: "gap",
               },

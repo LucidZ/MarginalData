@@ -33,16 +33,17 @@ export default function App() {
 
       <AgeBeats data={data} />
 
-      <Explorer data={data} />
-
+      {/* Straight off the end of the story, before the explorer. */}
       <section className="voa-cta" aria-labelledby="voa-cta-heading">
         <h2 id="voa-cta-heading">{voteCta.heading}</h2>
         <p>{voteCta.body}</p>
         <a className="voa-cta-button" href={voteCta.href} target="_blank" rel="noopener noreferrer">
-          {voteCta.button} <span aria-hidden="true">→</span>
+          {voteCta.button} <span className="voa-cta-arrow" aria-hidden="true">→</span>
         </a>
         <p className="voa-cta-note">{voteCta.note}</p>
       </section>
+
+      <Explorer data={data} />
 
       <footer className="voa-sources">
         <strong>Sources:</strong>

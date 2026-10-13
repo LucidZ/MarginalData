@@ -62,7 +62,19 @@ export function stackSegments(d: { cvap: number; votes: number; registered?: num
   return [d.votes, reg - d.votes, d.cvap - reg];
 }
 
-const SEGMENT_CLASS = ["pb-seg--votes", "pb-seg--registered", "pb-seg--track"];
+/** The shortfall view's version of stackSegments, bottom-up: votes, the gold
+ * (votes short of the 65+ standard, where there is a shortfall) and the
+ * rest of the eligible citizens. Same total, so the merged bar stands as
+ * tall as the counts one. */
+export function goldSegments(d: { cvap: number; votes: number; missing: number }): [number, number, number] {
+  const gold = Math.max(0, -d.missing);
+  return [d.votes, gold, d.cvap - d.votes - gold];
+}
+
+const SEGMENT_CLASS = {
+  counts: ["pb-seg--votes", "pb-seg--registered", "pb-seg--track"],
+  shortfall: ["pb-seg--votes", "pb-seg--gap", "pb-seg--track"],
+};
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
@@ -174,9 +186,18 @@ interface Props {
    * is the plain age chart. `rows` must be the `from` election at rest. */
   summary?: {
     bars: SummaryBar[];
+    /** Which three segments the bars stack: the plain counts (stackSegments,
+     * the default) or the shortfall view (goldSegments). */
+    layers?: "counts" | "shortfall";
     from: string;
     merge: number;
     reveal: number;
+    /** Shortfall view only: the bars reduced to their gold, as a share of
+     * votes cast. `u` 0-1: the votes and eligible segments fade, each gold
+     * block drops to the baseline at its own size (still in people), then
+     * resizes to its percent while the y axis swaps to percent. `values` is
+     * percent by bar key. */
+    pct?: { u: number; values: Record<string, number> };
     /** Gold arrows between bar pairs, each at the top of one stacked layer:
      * `layer` counts segments from the bottom (1 = votes, 2 = registered,
      * 3 = eligible). Drawn bar centre to bar centre, labelled above. */
@@ -213,7 +234,7 @@ export default function PopulationBars({
   gapSplit = 0,
   gapLegendLabel = "",
   gapRegLegendLabel = "",
-  registeredOpacity = 0,
+  registeredOpacity: registeredOpacityProp,
   yDomain: yDomainProp,
   directLabelMissing = false,
   heroGap,
@@ -224,6 +245,7 @@ export default function PopulationBars({
   summary,
   summaryTooltip,
 }: Props) {
+  const registeredOpacity = registeredOpacityProp ?? 0;
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const clipId = useId();
@@ -317,6 +339,8 @@ export default function PopulationBars({
       root.append("g").attr("class", "voa-axis pb-axis-y");
       root.append("g").attr("class", "voa-axis pb-axis-x2");
       root.append("g").attr("class", "voa-axis pb-axis-y2");
+      root.append("g").attr("class", "voa-axis pb-axis-y3");
+      root.append("g").attr("class", "pb-summary-pct-labels");
       root.append("text").attr("class", "voa-axis-label pb-axis-label-y").attr("text-anchor", "middle");
       root.append("clipPath").attr("id", clipId).append("rect").attr("class", "pb-clip-rect");
       // Bars sliding past x=0 (cohort morph) must be cut at the y-axis, not
@@ -621,6 +645,18 @@ export default function PopulationBars({
     root.select("g.pb-axis-y").style("opacity", oldAxis);
     const xAxis2 = root.select<SVGGElement>("g.pb-axis-x2").attr("transform", `translate(0,${innerH})`);
     const yAxis2 = root.select<SVGGElement>("g.pb-axis-y2");
+    const yAxis3 = root.select<SVGGElement>("g.pb-axis-y3");
+    // The percent view, in three moves so each reads on its own: the other
+    // segments fade, the gold drops to the baseline unchanged (the people
+    // axis still true), then it resizes to percent as the axes cross-fade.
+    const pctU = summary?.pct ? clamp01(summary.pct.u) : 0;
+    const pctFade = clamp01(pctU / 0.25);
+    const pctDrop = easeInOut(clamp01((pctU - 0.25) / 0.3));
+    const pctResize = easeInOut(clamp01((pctU - 0.6) / 0.4));
+    const pctVals = summary?.pct?.values ?? {};
+    const ysPct = scaleLinear()
+      .domain([0, Math.max(1, ...Object.values(pctVals)) * 1.15])
+      .range([innerH, 0]);
     const sumBars = summary?.bars ?? [];
     const xs = scaleBand<string>().domain(sumBars.map((b) => b.key)).range([0, innerW]).padding(0.3);
     const totalOf = (b: SummaryBar) => b.segments.reduce((a, v) => a + v, 0);
@@ -642,10 +678,21 @@ export default function PopulationBars({
           .attr("dy", "1.15em")
           .text("midterm");
       });
-      yAxis2.style("opacity", newAxis).style("display", "").call(axisLeft(ys).ticks(5).tickFormat(fmtK as any) as any);
+      yAxis2
+        .style("opacity", newAxis * (1 - clamp01((pctU - 0.6) / 0.15)))
+        .style("display", "")
+        .call(axisLeft(ys).ticks(5).tickFormat(fmtK as any) as any);
     } else {
       xAxis2.style("display", "none");
       yAxis2.style("display", "none");
+    }
+    if (pctU > 0) {
+      yAxis3
+        .style("opacity", clamp01((pctU - 0.8) / 0.2))
+        .style("display", "")
+        .call(axisLeft(ysPct).ticks(5).tickFormat((v) => `${v}%`) as any);
+    } else {
+      yAxis3.style("display", "none");
     }
     type Piece = { key: string; seg: number; x: number; y: number; w: number; h: number; o?: number };
 
@@ -656,7 +703,7 @@ export default function PopulationBars({
     const pieces: Piece[] = [];
     if (summary && m > 0 && m < 1) {
       const cols = rows.filter((r) => !r.offAxis).sort((a, b) => Number(a.x) - Number(b.x));
-      const segs = cols.map(stackSegments);
+      const segs = cols.map(summary.layers === "shortfall" ? goldSegments : stackSegments);
       const segTotals = [0, 1, 2].map((s) => segs.reduce((a, v) => a + v[s], 0));
       const segBase = segTotals.map((_, s) => segTotals.slice(0, s).reduce((a, v) => a + v, 0));
       const offset = [0, 0, 0];
@@ -688,7 +735,7 @@ export default function PopulationBars({
         .enter()
         .append("rect")
         .merge(sel as any)
-        .attr("class", (d: Piece) => `pb-seg ${SEGMENT_CLASS[d.seg]}`)
+        .attr("class", (d: Piece) => `pb-seg ${SEGMENT_CLASS[summary?.layers ?? "counts"][d.seg]}`)
         .attr("x", (d: Piece) => d.x)
         .attr("width", (d: Piece) => d.w)
         .attr("y", (d: Piece) => d.y)
@@ -717,11 +764,42 @@ export default function PopulationBars({
       const x = xs(b.key) ?? 0;
       let below = 0;
       b.segments.forEach((v, s) => {
-        if (v > 0) stacks.push({ key: `${b.key}-${s}`, seg: s, x, w: xs.bandwidth(), y: ys(below + v), h: ys(below) - ys(below + v), o: f });
+        if (v > 0) {
+          let y = ys(below + v), h = ys(below) - ys(below + v), o = f;
+          if (pctU > 0 && s === 1) {
+            // The gold: down from its slot in the stack to the baseline,
+            // then from its size in people to its percent.
+            // Resizing only starts once the drop is done, so the bottom is
+            // on the baseline throughout it.
+            y = lerp(lerp(y, innerH - h, pctDrop), ysPct(pctVals[b.key] ?? 0), pctResize);
+            if (pctResize > 0) h = innerH - y;
+          } else if (pctU > 0) {
+            o = f * (1 - pctFade);
+          }
+          if (o > 0) stacks.push({ key: `${b.key}-${s}`, seg: s, x, w: xs.bandwidth(), y, h, o });
+        }
         below += v;
       });
     }
     drawPieces("pb-summary", stacks);
+
+    // Percent labels over the gold bars, once they've landed.
+    const pctLabelO = clamp01((pctU - 0.9) / 0.1);
+    const pctLabels = root
+      .select<SVGGElement>("g.pb-summary-pct-labels")
+      .selectAll<SVGTextElement, SummaryBar>("text")
+      .data(pctLabelO > 0 ? shown.map((d) => d.b) : [], (d) => d.key);
+    pctLabels.exit().remove();
+    pctLabels
+      .enter()
+      .append("text")
+      .attr("class", "pb-arrow-label pb-pct-label")
+      .attr("text-anchor", "middle")
+      .merge(pctLabels as any)
+      .attr("x", (d: SummaryBar) => (xs(d.key) ?? 0) + xs.bandwidth() / 2)
+      .attr("y", (d: SummaryBar) => ysPct(pctVals[d.key] ?? 0) - 6)
+      .style("opacity", pctLabelO)
+      .text((d: SummaryBar) => `${(pctVals[d.key] ?? 0).toFixed(1)}%`);
 
     const sumHits = root
       .select<SVGGElement>("g.pb-summary-hits")
@@ -824,20 +902,30 @@ export default function PopulationBars({
   // Entries arrive with their layer and are only faded, never mounted, so
   // the legend never reflows. Once the summary's recolour is half done the
   // registered entry is on whatever the step: the summary bars carry it.
-  const sumLegend = (summary?.merge ?? 0) >= RECOLOR / 2;
-  const lineLegendOn = !sumLegend && (expectedOpacity ?? (showExpected ? 1 : 0)) > 0.5;
+  // The shortfall summary keeps the gold entry instead, and drops the line.
+  const merged = (summary?.merge ?? 0) >= RECOLOR / 2;
+  const sumGold = merged && summary?.layers === "shortfall";
+  const sumLegend = merged && !sumGold;
+  const lineLegendOn = !merged && (expectedOpacity ?? (showExpected ? 1 : 0)) > 0.5;
   const registeredLegendOn = sumLegend || registeredOpacity > 0.5;
   const regLegendOn = !sumLegend && gapSplit > 0.5;
-  const gapLegendOn = !sumLegend && (gapOpacity ?? (showGap ? 1 : 0)) > 0.5;
+  const gapLegendOn = sumGold || (!sumLegend && (gapOpacity ?? (showGap ? 1 : 0)) > 0.5);
+  /** The percent view: gold only, so the other entries step aside. */
+  const pctOn = (summary?.pct?.u ?? 0) >= 0.4;
+  /** Only a chart that can draw the registered band (or the counts summary,
+   * whose bars carry it) reserves the entry's space. */
+  const canShowRegistered =
+    (registeredOpacityProp !== undefined || (!!summary && summary.layers !== "shortfall")) &&
+    rows.some((r) => r.registered !== undefined);
   const hasSplit = !!gapRegLegendLabel && rows.some((r) => r.regShort !== undefined);
 
   return (
     <div ref={wrapRef} className="voa-chart-surface pb-surface">
       <div className="voa-legend">
-        <span className="pb-legend-entry">
+        <span className="pb-legend-entry" style={{ opacity: pctOn ? 0 : 1 }} aria-hidden={pctOn || undefined}>
           <span className="voa-legend-swatch pb-legend-track" /> Eligible citizens
         </span>
-        {rows.some((r) => r.registered !== undefined) && (
+        {canShowRegistered && (
           <span
             className="pb-legend-entry"
             style={{ marginLeft: "0.9rem", opacity: registeredLegendOn ? 1 : 0 }}
@@ -848,20 +936,10 @@ export default function PopulationBars({
         )}
         <span
           className="pb-legend-entry"
-          style={{ marginLeft: "0.9rem", opacity: showVotes ? 1 : 0 }}
-          aria-hidden={!showVotes || undefined}
+          style={{ marginLeft: "0.9rem", opacity: showVotes && !pctOn ? 1 : 0 }}
+          aria-hidden={!showVotes || pctOn || undefined}
         >
           <span className="voa-legend-swatch pb-legend-votes" /> Votes cast
-        </span>
-        <span
-          className="pb-legend-expected"
-          style={{ marginLeft: "0.9rem", opacity: lineLegendOn ? 1 : 0 }}
-          aria-hidden={!lineLegendOn || undefined}
-        >
-          <svg width="18" height="10" aria-hidden="true">
-            <line x1="0" y1="5" x2="18" y2="5" className="pb-expected-line pb-legend-line" />
-          </svg>{" "}
-          {expectedLineLabel}
         </span>
         {gapLegendLabel && (
           <span
@@ -881,6 +959,16 @@ export default function PopulationBars({
             <span className="voa-legend-swatch pb-legend-gap-reg" /> {gapRegLegendLabel}
           </span>
         )}
+        <span
+          className="pb-legend-expected"
+          style={{ marginLeft: "0.9rem", opacity: lineLegendOn ? 1 : 0 }}
+          aria-hidden={!lineLegendOn || undefined}
+        >
+          <svg width="18" height="10" aria-hidden="true">
+            <line x1="0" y1="5" x2="18" y2="5" className="pb-expected-line pb-legend-line" />
+          </svg>{" "}
+          {expectedLineLabel}
+        </span>
       </div>
       <div className="pb-plot-wrap">
         <svg
