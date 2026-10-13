@@ -1,7 +1,7 @@
 {
   "meta": {
     "sources": [
-      "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 (2012, 2014, 2016, 2018, 2020, 2022, 2024), and its public-use person file (2024)",
+      "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 (2012, 2014, 2016, 2018, 2020, 2022, 2024), and its public-use person file (same years)",
       "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age estimates: Vintage 2024 (2020-2024) and 2010-2020 intercensal (2012-2018)"
     ],
     "sourceUrls": [
@@ -14,6 +14,12 @@
       "https://www2.census.gov/programs-surveys/cps/tables/p20/587/",
       "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/national/asrh/nc-est2024-agesex-res.csv",
       "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/intercensal/national/asrh/nc-est2020int-agesex-res.csv",
+      "https://www2.census.gov/programs-surveys/cps/datasets/2012/supp/nov12pub.dat.gz",
+      "https://www2.census.gov/programs-surveys/cps/datasets/2014/supp/nov14pub.dat.gz",
+      "https://www2.census.gov/programs-surveys/cps/datasets/2016/supp/nov16pub.dat.gz",
+      "https://www2.census.gov/programs-surveys/cps/datasets/2018/supp/nov18pub.dat.gz",
+      "https://www2.census.gov/programs-surveys/cps/datasets/2020/supp/nov20pub.csv",
+      "https://www2.census.gov/programs-surveys/cps/datasets/2022/supp/nov22pub.csv",
       "https://www2.census.gov/programs-surveys/cps/datasets/2024/supp/nov24pub.csv"
     ],
     "retrieved": "2026-09-25",
@@ -7707,6 +7713,390 @@
     "education": {
       "label": "Education",
       "years": {
+        "2012": {
+          "benchmarkGroup": "Advanced degree",
+          "benchmarkTurnout": 81.3,
+          "totalCvap": 215081.1,
+          "totalVotes": 132948.2,
+          "avgTurnout": 61.81,
+          "shortfall": 42016.6,
+          "rows": [
+            {
+              "group": "Less than 9th grade",
+              "short": "< 9th grade",
+              "cvap": 6104.8,
+              "votes": 2265.8,
+              "turnout": 37.1,
+              "expected": 4966.1,
+              "missing": -2700.3
+            },
+            {
+              "group": "9th to 12th grade, no diploma",
+              "short": "9th-12th, no diploma",
+              "cvap": 15737.3,
+              "votes": 6031.0,
+              "turnout": 38.3,
+              "expected": 12802.1,
+              "missing": -6771.1
+            },
+            {
+              "group": "High school graduate",
+              "short": "HS grad",
+              "cvap": 65379.9,
+              "votes": 34402.3,
+              "turnout": 52.6,
+              "expected": 53185.4,
+              "missing": -18783.1
+            },
+            {
+              "group": "Some college or associate's degree",
+              "short": "Some college",
+              "cvap": 64790.1,
+              "votes": 41600.9,
+              "turnout": 64.2,
+              "expected": 52705.7,
+              "missing": -11104.8
+            },
+            {
+              "group": "Bachelor's degree",
+              "short": "Bachelor's",
+              "cvap": 41610.0,
+              "votes": 31191.7,
+              "turnout": 75.0,
+              "expected": 33849.1,
+              "missing": -2657.4
+            },
+            {
+              "group": "Advanced degree",
+              "short": "Advanced degree",
+              "cvap": 21459.0,
+              "votes": 17456.5,
+              "turnout": 81.3,
+              "expected": 17456.5,
+              "missing": 0.0
+            }
+          ]
+        },
+        "2014": {
+          "benchmarkGroup": "Advanced degree",
+          "benchmarkTurnout": 62.0,
+          "totalCvap": 219941.1,
+          "totalVotes": 92251.4,
+          "avgTurnout": 41.94,
+          "shortfall": 44153.8,
+          "rows": [
+            {
+              "group": "Less than 9th grade",
+              "short": "< 9th grade",
+              "cvap": 5495.3,
+              "votes": 1304.7,
+              "turnout": 23.7,
+              "expected": 3408.1,
+              "missing": -2103.4
+            },
+            {
+              "group": "9th to 12th grade, no diploma",
+              "short": "9th-12th, no diploma",
+              "cvap": 15683.1,
+              "votes": 3396.5,
+              "turnout": 21.7,
+              "expected": 9726.5,
+              "missing": -6330.0
+            },
+            {
+              "group": "High school graduate",
+              "short": "HS grad",
+              "cvap": 65609.5,
+              "votes": 22262.2,
+              "turnout": 33.9,
+              "expected": 40690.3,
+              "missing": -18428.1
+            },
+            {
+              "group": "Some college or associate's degree",
+              "short": "Some college",
+              "cvap": 66058.3,
+              "votes": 27513.7,
+              "turnout": 41.7,
+              "expected": 40968.7,
+              "missing": -13455.0
+            },
+            {
+              "group": "Bachelor's degree",
+              "short": "Bachelor's",
+              "cvap": 43515.3,
+              "votes": 23150.5,
+              "turnout": 53.2,
+              "expected": 26987.8,
+              "missing": -3837.3
+            },
+            {
+              "group": "Advanced degree",
+              "short": "Advanced degree",
+              "cvap": 23579.7,
+              "votes": 14623.9,
+              "turnout": 62.0,
+              "expected": 14623.9,
+              "missing": 0.0
+            }
+          ]
+        },
+        "2016": {
+          "benchmarkGroup": "Advanced degree",
+          "benchmarkTurnout": 80.3,
+          "totalCvap": 224059.0,
+          "totalVotes": 137536.5,
+          "avgTurnout": 61.38,
+          "shortfall": 42319.2,
+          "rows": [
+            {
+              "group": "Less than 9th grade",
+              "short": "< 9th grade",
+              "cvap": 5642.7,
+              "votes": 1787.9,
+              "turnout": 31.7,
+              "expected": 4529.5,
+              "missing": -2741.6
+            },
+            {
+              "group": "9th to 12th grade, no diploma",
+              "short": "9th-12th, no diploma",
+              "cvap": 14715.3,
+              "votes": 5201.8,
+              "turnout": 35.3,
+              "expected": 11812.2,
+              "missing": -6610.4
+            },
+            {
+              "group": "High school graduate",
+              "short": "HS grad",
+              "cvap": 65518.1,
+              "votes": 33773.7,
+              "turnout": 51.5,
+              "expected": 52592.4,
+              "missing": -18818.7
+            },
+            {
+              "group": "Some college or associate's degree",
+              "short": "Some college",
+              "cvap": 66809.2,
+              "votes": 42295.6,
+              "turnout": 63.3,
+              "expected": 53628.8,
+              "missing": -11333.2
+            },
+            {
+              "group": "Bachelor's degree",
+              "short": "Bachelor's",
+              "cvap": 46317.3,
+              "votes": 34364.3,
+              "turnout": 74.2,
+              "expected": 37179.6,
+              "missing": -2815.3
+            },
+            {
+              "group": "Advanced degree",
+              "short": "Advanced degree",
+              "cvap": 25056.5,
+              "votes": 20113.3,
+              "turnout": 80.3,
+              "expected": 20113.3,
+              "missing": 0.0
+            }
+          ]
+        },
+        "2018": {
+          "benchmarkGroup": "Advanced degree",
+          "benchmarkTurnout": 74.0,
+          "totalCvap": 228831.7,
+          "totalVotes": 122280.6,
+          "avgTurnout": 53.44,
+          "shortfall": 47063.8,
+          "rows": [
+            {
+              "group": "Less than 9th grade",
+              "short": "< 9th grade",
+              "cvap": 5044.0,
+              "votes": 1282.6,
+              "turnout": 25.4,
+              "expected": 3732.8,
+              "missing": -2450.2
+            },
+            {
+              "group": "9th to 12th grade, no diploma",
+              "short": "9th-12th, no diploma",
+              "cvap": 13921.6,
+              "votes": 3879.5,
+              "turnout": 27.9,
+              "expected": 10302.5,
+              "missing": -6423.1
+            },
+            {
+              "group": "High school graduate",
+              "short": "HS grad",
+              "cvap": 66007.3,
+              "votes": 27778.2,
+              "turnout": 42.1,
+              "expected": 48848.0,
+              "missing": -21069.7
+            },
+            {
+              "group": "Some college or associate's degree",
+              "short": "Some college",
+              "cvap": 66562.4,
+              "votes": 36266.9,
+              "turnout": 54.5,
+              "expected": 49258.8,
+              "missing": -12991.9
+            },
+            {
+              "group": "Bachelor's degree",
+              "short": "Bachelor's",
+              "cvap": 49991.6,
+              "votes": 32866.8,
+              "turnout": 65.7,
+              "expected": 36995.8,
+              "missing": -4129.0
+            },
+            {
+              "group": "Advanced degree",
+              "short": "Advanced degree",
+              "cvap": 27304.8,
+              "votes": 20206.6,
+              "turnout": 74.0,
+              "expected": 20206.6,
+              "missing": 0.0
+            }
+          ]
+        },
+        "2020": {
+          "benchmarkGroup": "Advanced degree",
+          "benchmarkTurnout": 83.0,
+          "totalCvap": 231592.7,
+          "totalVotes": 154627.7,
+          "avgTurnout": 66.77,
+          "shortfall": 37506.3,
+          "rows": [
+            {
+              "group": "Less than 9th grade",
+              "short": "< 9th grade",
+              "cvap": 4791.5,
+              "votes": 1800.4,
+              "turnout": 37.6,
+              "expected": 3975.2,
+              "missing": -2174.8
+            },
+            {
+              "group": "9th to 12th grade, no diploma",
+              "short": "9th-12th, no diploma",
+              "cvap": 12738.3,
+              "votes": 5283.4,
+              "turnout": 41.5,
+              "expected": 10567.9,
+              "missing": -5284.5
+            },
+            {
+              "group": "High school graduate",
+              "short": "HS grad",
+              "cvap": 67538.9,
+              "votes": 37456.2,
+              "turnout": 55.5,
+              "expected": 56031.6,
+              "missing": -18575.4
+            },
+            {
+              "group": "Some college or associate's degree",
+              "short": "Some college",
+              "cvap": 66049.0,
+              "votes": 45955.1,
+              "turnout": 69.6,
+              "expected": 54795.6,
+              "missing": -8840.5
+            },
+            {
+              "group": "Bachelor's degree",
+              "short": "Bachelor's",
+              "cvap": 51762.3,
+              "votes": 40312.0,
+              "turnout": 77.9,
+              "expected": 42943.0,
+              "missing": -2631.1
+            },
+            {
+              "group": "Advanced degree",
+              "short": "Advanced degree",
+              "cvap": 28712.8,
+              "votes": 23820.7,
+              "turnout": 83.0,
+              "expected": 23820.7,
+              "missing": 0.0
+            }
+          ]
+        },
+        "2022": {
+          "benchmarkGroup": "Advanced degree",
+          "benchmarkTurnout": 71.0,
+          "totalCvap": 233545.7,
+          "totalVotes": 121916.2,
+          "avgTurnout": 52.2,
+          "shortfall": 43998.9,
+          "rows": [
+            {
+              "group": "Less than 9th grade",
+              "short": "< 9th grade",
+              "cvap": 4672.9,
+              "votes": 1104.2,
+              "turnout": 23.6,
+              "expected": 3319.7,
+              "missing": -2215.5
+            },
+            {
+              "group": "9th to 12th grade, no diploma",
+              "short": "9th-12th, no diploma",
+              "cvap": 12094.7,
+              "votes": 3236.5,
+              "turnout": 26.8,
+              "expected": 8592.3,
+              "missing": -5355.7
+            },
+            {
+              "group": "High school graduate",
+              "short": "HS grad",
+              "cvap": 67223.8,
+              "votes": 27190.9,
+              "turnout": 40.4,
+              "expected": 47757.0,
+              "missing": -20566.1
+            },
+            {
+              "group": "Some college or associate's degree",
+              "short": "Some college",
+              "cvap": 65336.7,
+              "votes": 34153.0,
+              "turnout": 52.3,
+              "expected": 46416.4,
+              "missing": -12263.4
+            },
+            {
+              "group": "Bachelor's degree",
+              "short": "Bachelor's",
+              "cvap": 53191.9,
+              "votes": 34190.4,
+              "turnout": 64.3,
+              "expected": 37788.5,
+              "missing": -3598.1
+            },
+            {
+              "group": "Advanced degree",
+              "short": "Advanced degree",
+              "cvap": 31025.6,
+              "votes": 22041.1,
+              "turnout": 71.0,
+              "expected": 22041.1,
+              "missing": 0.0
+            }
+          ]
+        },
         "2024": {
           "benchmarkGroup": "Advanced degree",
           "benchmarkTurnout": 82.5,
@@ -7776,6 +8166,612 @@
     "income": {
       "label": "Family income",
       "years": {
+        "2012": {
+          "benchmarkGroup": "$150,000 and over",
+          "benchmarkTurnout": 74.9,
+          "totalCvap": 215081.1,
+          "totalVotes": 132948.2,
+          "avgTurnout": 61.81,
+          "shortfall": 28203.2,
+          "rows": [
+            {
+              "group": "Under $10,000",
+              "short": "<$10K",
+              "cvap": 14040.1,
+              "votes": 6373.1,
+              "turnout": 45.4,
+              "expected": 10519.7,
+              "missing": -4146.6
+            },
+            {
+              "group": "$10,000 to $14,999",
+              "short": "$10-15K",
+              "cvap": 12360.8,
+              "votes": 5936.9,
+              "turnout": 48.0,
+              "expected": 9261.4,
+              "missing": -3324.6
+            },
+            {
+              "group": "$15,000 to $19,999",
+              "short": "$15-20K",
+              "cvap": 9341.8,
+              "votes": 4757.5,
+              "turnout": 50.9,
+              "expected": 6999.4,
+              "missing": -2241.9
+            },
+            {
+              "group": "$20,000 to $29,999",
+              "short": "$20-30K",
+              "cvap": 24318.5,
+              "votes": 13357.2,
+              "turnout": 54.9,
+              "expected": 18220.8,
+              "missing": -4863.6
+            },
+            {
+              "group": "$30,000 to $39,999",
+              "short": "$30-40K",
+              "cvap": 24026.0,
+              "votes": 13660.6,
+              "turnout": 56.9,
+              "expected": 18001.7,
+              "missing": -4341.1
+            },
+            {
+              "group": "$40,000 to $49,999",
+              "short": "$40-50K",
+              "cvap": 18240.4,
+              "votes": 10930.2,
+              "turnout": 59.9,
+              "expected": 13666.8,
+              "missing": -2736.5
+            },
+            {
+              "group": "$50,000 to $74,999",
+              "short": "$50-75K",
+              "cvap": 41557.5,
+              "votes": 26857.2,
+              "turnout": 64.6,
+              "expected": 31137.3,
+              "missing": -4280.0
+            },
+            {
+              "group": "$75,000 to $99,999",
+              "short": "$75-100K",
+              "cvap": 26056.6,
+              "votes": 17858.2,
+              "turnout": 68.5,
+              "expected": 19523.1,
+              "missing": -1664.9
+            },
+            {
+              "group": "$100,000 to $149,999",
+              "short": "$100-150K",
+              "cvap": 25402.6,
+              "votes": 18429.1,
+              "turnout": 72.5,
+              "expected": 19033.1,
+              "missing": -604.0
+            },
+            {
+              "group": "$150,000 and over",
+              "short": "$150K+",
+              "cvap": 19737.0,
+              "votes": 14788.1,
+              "turnout": 74.9,
+              "expected": 14788.1,
+              "missing": 0.0
+            }
+          ],
+          "imputedPct": 21.8
+        },
+        "2014": {
+          "benchmarkGroup": "$150,000 and over",
+          "benchmarkTurnout": 51.8,
+          "totalCvap": 219941.1,
+          "totalVotes": 92251.4,
+          "avgTurnout": 41.94,
+          "shortfall": 21671.0,
+          "rows": [
+            {
+              "group": "Under $10,000",
+              "short": "<$10K",
+              "cvap": 13973.4,
+              "votes": 3404.4,
+              "turnout": 24.4,
+              "expected": 7237.8,
+              "missing": -3833.4
+            },
+            {
+              "group": "$10,000 to $14,999",
+              "short": "$10-15K",
+              "cvap": 11744.7,
+              "votes": 3616.1,
+              "turnout": 30.8,
+              "expected": 6083.4,
+              "missing": -2467.3
+            },
+            {
+              "group": "$15,000 to $19,999",
+              "short": "$15-20K",
+              "cvap": 8490.1,
+              "votes": 2745.6,
+              "turnout": 32.3,
+              "expected": 4397.6,
+              "missing": -1651.9
+            },
+            {
+              "group": "$20,000 to $29,999",
+              "short": "$20-30K",
+              "cvap": 23595.5,
+              "votes": 8215.8,
+              "turnout": 34.8,
+              "expected": 12221.7,
+              "missing": -4005.9
+            },
+            {
+              "group": "$30,000 to $39,999",
+              "short": "$30-40K",
+              "cvap": 24513.6,
+              "votes": 9464.8,
+              "turnout": 38.6,
+              "expected": 12697.3,
+              "missing": -3232.4
+            },
+            {
+              "group": "$40,000 to $49,999",
+              "short": "$40-50K",
+              "cvap": 18590.9,
+              "votes": 7438.3,
+              "turnout": 40.0,
+              "expected": 9629.5,
+              "missing": -2191.2
+            },
+            {
+              "group": "$50,000 to $74,999",
+              "short": "$50-75K",
+              "cvap": 41555.2,
+              "votes": 18464.3,
+              "turnout": 44.4,
+              "expected": 21524.3,
+              "missing": -3060.0
+            },
+            {
+              "group": "$75,000 to $99,999",
+              "short": "$75-100K",
+              "cvap": 26879.0,
+              "votes": 12936.4,
+              "turnout": 48.1,
+              "expected": 13922.5,
+              "missing": -986.0
+            },
+            {
+              "group": "$100,000 to $149,999",
+              "short": "$100-150K",
+              "cvap": 27217.9,
+              "votes": 13855.0,
+              "turnout": 50.9,
+              "expected": 14098.0,
+              "missing": -243.0
+            },
+            {
+              "group": "$150,000 and over",
+              "short": "$150K+",
+              "cvap": 23380.9,
+              "votes": 12110.5,
+              "turnout": 51.8,
+              "expected": 12110.5,
+              "missing": 0.0
+            }
+          ],
+          "imputedPct": 23.1
+        },
+        "2016": {
+          "benchmarkGroup": "$150,000 and over",
+          "benchmarkTurnout": 75.1,
+          "totalCvap": 224059.0,
+          "totalVotes": 137536.5,
+          "avgTurnout": 61.38,
+          "shortfall": 30818.5,
+          "rows": [
+            {
+              "group": "Under $10,000",
+              "short": "<$10K",
+              "cvap": 12509.1,
+              "votes": 5203.2,
+              "turnout": 41.6,
+              "expected": 9399.1,
+              "missing": -4195.9
+            },
+            {
+              "group": "$10,000 to $14,999",
+              "short": "$10-15K",
+              "cvap": 10919.6,
+              "votes": 5113.9,
+              "turnout": 46.8,
+              "expected": 8204.9,
+              "missing": -3091.0
+            },
+            {
+              "group": "$15,000 to $19,999",
+              "short": "$15-20K",
+              "cvap": 8188.1,
+              "votes": 4091.8,
+              "turnout": 50.0,
+              "expected": 6152.4,
+              "missing": -2060.6
+            },
+            {
+              "group": "$20,000 to $29,999",
+              "short": "$20-30K",
+              "cvap": 21150.0,
+              "votes": 10877.0,
+              "turnout": 51.4,
+              "expected": 15891.8,
+              "missing": -5014.8
+            },
+            {
+              "group": "$30,000 to $39,999",
+              "short": "$30-40K",
+              "cvap": 23966.2,
+              "votes": 13384.6,
+              "turnout": 55.8,
+              "expected": 18007.9,
+              "missing": -4623.3
+            },
+            {
+              "group": "$40,000 to $49,999",
+              "short": "$40-50K",
+              "cvap": 18457.9,
+              "votes": 11024.6,
+              "turnout": 59.7,
+              "expected": 13869.0,
+              "missing": -2844.4
+            },
+            {
+              "group": "$50,000 to $74,999",
+              "short": "$50-75K",
+              "cvap": 41574.6,
+              "votes": 26116.8,
+              "turnout": 62.8,
+              "expected": 31238.6,
+              "missing": -5121.8
+            },
+            {
+              "group": "$75,000 to $99,999",
+              "short": "$75-100K",
+              "cvap": 28884.4,
+              "votes": 19163.9,
+              "turnout": 66.3,
+              "expected": 21703.4,
+              "missing": -2539.5
+            },
+            {
+              "group": "$100,000 to $149,999",
+              "short": "$100-150K",
+              "cvap": 31446.0,
+              "votes": 22300.9,
+              "turnout": 70.9,
+              "expected": 23628.1,
+              "missing": -1327.2
+            },
+            {
+              "group": "$150,000 and over",
+              "short": "$150K+",
+              "cvap": 26963.2,
+              "votes": 20259.8,
+              "turnout": 75.1,
+              "expected": 20259.8,
+              "missing": 0.0
+            }
+          ],
+          "imputedPct": 23.5
+        },
+        "2018": {
+          "benchmarkGroup": "$150,000 and over",
+          "benchmarkTurnout": 65.7,
+          "totalCvap": 228831.7,
+          "totalVotes": 122280.6,
+          "avgTurnout": 53.44,
+          "shortfall": 27985.7,
+          "rows": [
+            {
+              "group": "Under $10,000",
+              "short": "<$10K",
+              "cvap": 10779.6,
+              "votes": 3642.5,
+              "turnout": 33.8,
+              "expected": 7078.6,
+              "missing": -3436.1
+            },
+            {
+              "group": "$10,000 to $14,999",
+              "short": "$10-15K",
+              "cvap": 9839.7,
+              "votes": 3942.0,
+              "turnout": 40.1,
+              "expected": 6461.4,
+              "missing": -2519.5
+            },
+            {
+              "group": "$15,000 to $19,999",
+              "short": "$15-20K",
+              "cvap": 6992.4,
+              "votes": 2992.0,
+              "turnout": 42.8,
+              "expected": 4591.7,
+              "missing": -1599.6
+            },
+            {
+              "group": "$20,000 to $29,999",
+              "short": "$20-30K",
+              "cvap": 19689.7,
+              "votes": 8613.1,
+              "turnout": 43.7,
+              "expected": 12929.6,
+              "missing": -4316.4
+            },
+            {
+              "group": "$30,000 to $39,999",
+              "short": "$30-40K",
+              "cvap": 23563.0,
+              "votes": 11034.4,
+              "turnout": 46.8,
+              "expected": 15473.1,
+              "missing": -4438.7
+            },
+            {
+              "group": "$40,000 to $49,999",
+              "short": "$40-50K",
+              "cvap": 17138.6,
+              "votes": 8794.7,
+              "turnout": 51.3,
+              "expected": 11254.4,
+              "missing": -2459.7
+            },
+            {
+              "group": "$50,000 to $74,999",
+              "short": "$50-75K",
+              "cvap": 44524.3,
+              "votes": 23651.3,
+              "turnout": 53.1,
+              "expected": 29237.7,
+              "missing": -5586.4
+            },
+            {
+              "group": "$75,000 to $99,999",
+              "short": "$75-100K",
+              "cvap": 29177.9,
+              "votes": 16907.5,
+              "turnout": 57.9,
+              "expected": 19160.2,
+              "missing": -2252.7
+            },
+            {
+              "group": "$100,000 to $149,999",
+              "short": "$100-150K",
+              "cvap": 34245.2,
+              "votes": 21111.1,
+              "turnout": 61.6,
+              "expected": 22487.7,
+              "missing": -1376.6
+            },
+            {
+              "group": "$150,000 and over",
+              "short": "$150K+",
+              "cvap": 32881.1,
+              "votes": 21592.0,
+              "turnout": 65.7,
+              "expected": 21592.0,
+              "missing": 0.0
+            }
+          ],
+          "imputedPct": 24.8
+        },
+        "2020": {
+          "benchmarkGroup": "$150,000 and over",
+          "benchmarkTurnout": 78.9,
+          "totalCvap": 231592.7,
+          "totalVotes": 154627.7,
+          "avgTurnout": 66.77,
+          "shortfall": 28078.4,
+          "rows": [
+            {
+              "group": "Under $10,000",
+              "short": "<$10K",
+              "cvap": 8686.3,
+              "votes": 4142.6,
+              "turnout": 47.7,
+              "expected": 6852.7,
+              "missing": -2710.1
+            },
+            {
+              "group": "$10,000 to $14,999",
+              "short": "$10-15K",
+              "cvap": 8744.9,
+              "votes": 4456.3,
+              "turnout": 51.0,
+              "expected": 6899.0,
+              "missing": -2442.7
+            },
+            {
+              "group": "$15,000 to $19,999",
+              "short": "$15-20K",
+              "cvap": 7488.0,
+              "votes": 3934.4,
+              "turnout": 52.5,
+              "expected": 5907.4,
+              "missing": -1973.0
+            },
+            {
+              "group": "$20,000 to $29,999",
+              "short": "$20-30K",
+              "cvap": 19122.0,
+              "votes": 10565.0,
+              "turnout": 55.3,
+              "expected": 15085.5,
+              "missing": -4520.5
+            },
+            {
+              "group": "$30,000 to $39,999",
+              "short": "$30-40K",
+              "cvap": 22593.2,
+              "votes": 13507.2,
+              "turnout": 59.8,
+              "expected": 17824.1,
+              "missing": -4316.8
+            },
+            {
+              "group": "$40,000 to $49,999",
+              "short": "$40-50K",
+              "cvap": 18068.3,
+              "votes": 11467.6,
+              "turnout": 63.5,
+              "expected": 14254.3,
+              "missing": -2786.7
+            },
+            {
+              "group": "$50,000 to $74,999",
+              "short": "$50-75K",
+              "cvap": 42853.3,
+              "votes": 28600.6,
+              "turnout": 66.7,
+              "expected": 33807.5,
+              "missing": -5206.9
+            },
+            {
+              "group": "$75,000 to $99,999",
+              "short": "$75-100K",
+              "cvap": 31577.4,
+              "votes": 22234.4,
+              "turnout": 70.4,
+              "expected": 24911.8,
+              "missing": -2677.4
+            },
+            {
+              "group": "$100,000 to $149,999",
+              "short": "$100-150K",
+              "cvap": 35766.4,
+              "votes": 26772.2,
+              "turnout": 74.9,
+              "expected": 28216.5,
+              "missing": -1444.3
+            },
+            {
+              "group": "$150,000 and over",
+              "short": "$150K+",
+              "cvap": 36692.8,
+              "votes": 28947.4,
+              "turnout": 78.9,
+              "expected": 28947.4,
+              "missing": 0.0
+            }
+          ],
+          "imputedPct": 26.4
+        },
+        "2022": {
+          "benchmarkGroup": "$150,000 and over",
+          "benchmarkTurnout": 62.8,
+          "totalCvap": 233545.7,
+          "totalVotes": 121916.2,
+          "avgTurnout": 52.2,
+          "shortfall": 24753.6,
+          "rows": [
+            {
+              "group": "Under $10,000",
+              "short": "<$10K",
+              "cvap": 7910.6,
+              "votes": 2310.5,
+              "turnout": 29.2,
+              "expected": 4968.0,
+              "missing": -2657.4
+            },
+            {
+              "group": "$10,000 to $14,999",
+              "short": "$10-15K",
+              "cvap": 7900.2,
+              "votes": 3118.3,
+              "turnout": 39.5,
+              "expected": 4961.4,
+              "missing": -1843.2
+            },
+            {
+              "group": "$15,000 to $19,999",
+              "short": "$15-20K",
+              "cvap": 5810.1,
+              "votes": 2247.0,
+              "turnout": 38.7,
+              "expected": 3648.8,
+              "missing": -1401.8
+            },
+            {
+              "group": "$20,000 to $29,999",
+              "short": "$20-30K",
+              "cvap": 16776.3,
+              "votes": 6991.4,
+              "turnout": 41.7,
+              "expected": 10535.8,
+              "missing": -3544.3
+            },
+            {
+              "group": "$30,000 to $39,999",
+              "short": "$30-40K",
+              "cvap": 20562.4,
+              "votes": 8981.5,
+              "turnout": 43.7,
+              "expected": 12913.5,
+              "missing": -3932.0
+            },
+            {
+              "group": "$40,000 to $49,999",
+              "short": "$40-50K",
+              "cvap": 16393.5,
+              "votes": 7668.9,
+              "turnout": 46.8,
+              "expected": 10295.3,
+              "missing": -2626.4
+            },
+            {
+              "group": "$50,000 to $74,999",
+              "short": "$50-75K",
+              "cvap": 41471.3,
+              "votes": 20951.1,
+              "turnout": 50.5,
+              "expected": 26044.5,
+              "missing": -5093.4
+            },
+            {
+              "group": "$75,000 to $99,999",
+              "short": "$75-100K",
+              "cvap": 31170.0,
+              "votes": 17203.9,
+              "turnout": 55.2,
+              "expected": 19575.2,
+              "missing": -2371.2
+            },
+            {
+              "group": "$100,000 to $149,999",
+              "short": "$100-150K",
+              "cvap": 38404.6,
+              "votes": 22834.8,
+              "turnout": 59.5,
+              "expected": 24118.6,
+              "missing": -1283.8
+            },
+            {
+              "group": "$150,000 and over",
+              "short": "$150K+",
+              "cvap": 47146.7,
+              "votes": 29608.8,
+              "turnout": 62.8,
+              "expected": 29608.8,
+              "missing": 0.0
+            }
+          ],
+          "imputedPct": 21.7
+        },
         "2024": {
           "benchmarkGroup": "$150,000 and over",
           "benchmarkTurnout": 75.9,
@@ -7882,6 +8878,336 @@
     "race": {
       "label": "Race / ethnicity",
       "years": {
+        "2012": {
+          "benchmarkGroup": "Black, not Hispanic",
+          "benchmarkTurnout": 66.6,
+          "totalCvap": 215081.1,
+          "totalVotes": 132948.2,
+          "avgTurnout": 61.81,
+          "shortfall": 10390.3,
+          "rows": [
+            {
+              "group": "White, not Hispanic",
+              "short": "White",
+              "cvap": 152862.1,
+              "votes": 98041.4,
+              "turnout": 64.1,
+              "expected": 101873.3,
+              "missing": -3831.9
+            },
+            {
+              "group": "Black, not Hispanic",
+              "short": "Black",
+              "cvap": 25753.0,
+              "votes": 17162.8,
+              "turnout": 66.6,
+              "expected": 17162.8,
+              "missing": 0.0
+            },
+            {
+              "group": "Asian, not Hispanic",
+              "short": "Asian",
+              "cvap": 8032.2,
+              "votes": 3770.0,
+              "turnout": 46.9,
+              "expected": 5353.0,
+              "missing": -1583.0
+            },
+            {
+              "group": "Hispanic (any race)",
+              "short": "Hispanic",
+              "cvap": 23328.9,
+              "votes": 11188.0,
+              "turnout": 48.0,
+              "expected": 15547.3,
+              "missing": -4359.3
+            },
+            {
+              "group": "Other or multiple races, not Hispanic",
+              "short": "Other",
+              "cvap": 5104.9,
+              "votes": 2786.0,
+              "turnout": 54.6,
+              "expected": 3402.1,
+              "missing": -616.1
+            }
+          ]
+        },
+        "2014": {
+          "benchmarkGroup": "White, not Hispanic",
+          "benchmarkTurnout": 45.8,
+          "totalCvap": 219941.1,
+          "totalVotes": 92251.4,
+          "avgTurnout": 41.94,
+          "shortfall": 8386.5,
+          "rows": [
+            {
+              "group": "White, not Hispanic",
+              "short": "White",
+              "cvap": 153749.9,
+              "votes": 70350.9,
+              "turnout": 45.8,
+              "expected": 70350.9,
+              "missing": 0.0
+            },
+            {
+              "group": "Black, not Hispanic",
+              "short": "Black",
+              "cvap": 26559.2,
+              "votes": 10789.0,
+              "turnout": 40.6,
+              "expected": 12152.6,
+              "missing": -1363.6
+            },
+            {
+              "group": "Asian, not Hispanic",
+              "short": "Asian",
+              "cvap": 9295.7,
+              "votes": 2503.2,
+              "turnout": 26.9,
+              "expected": 4253.4,
+              "missing": -1750.2
+            },
+            {
+              "group": "Hispanic (any race)",
+              "short": "Hispanic",
+              "cvap": 25091.5,
+              "votes": 6775.5,
+              "turnout": 27.0,
+              "expected": 11481.1,
+              "missing": -4705.6
+            },
+            {
+              "group": "Other or multiple races, not Hispanic",
+              "short": "Other",
+              "cvap": 5244.9,
+              "votes": 1832.8,
+              "turnout": 34.9,
+              "expected": 2399.9,
+              "missing": -567.1
+            }
+          ]
+        },
+        "2016": {
+          "benchmarkGroup": "White, not Hispanic",
+          "benchmarkTurnout": 65.3,
+          "totalCvap": 224059.0,
+          "totalVotes": 137536.5,
+          "avgTurnout": 61.38,
+          "shortfall": 8764.2,
+          "rows": [
+            {
+              "group": "White, not Hispanic",
+              "short": "White",
+              "cvap": 154449.9,
+              "votes": 100849.1,
+              "turnout": 65.3,
+              "expected": 100849.1,
+              "missing": 0.0
+            },
+            {
+              "group": "Black, not Hispanic",
+              "short": "Black",
+              "cvap": 27525.9,
+              "votes": 16397.7,
+              "turnout": 59.6,
+              "expected": 17973.2,
+              "missing": -1575.5
+            },
+            {
+              "group": "Asian, not Hispanic",
+              "short": "Asian",
+              "cvap": 9936.4,
+              "votes": 4894.5,
+              "turnout": 49.3,
+              "expected": 6488.0,
+              "missing": -1593.5
+            },
+            {
+              "group": "Hispanic (any race)",
+              "short": "Hispanic",
+              "cvap": 26662.3,
+              "votes": 12682.3,
+              "turnout": 47.6,
+              "expected": 17409.3,
+              "missing": -4727.0
+            },
+            {
+              "group": "Other or multiple races, not Hispanic",
+              "short": "Other",
+              "cvap": 5484.5,
+              "votes": 2713.0,
+              "turnout": 49.5,
+              "expected": 3581.2,
+              "missing": -868.2
+            }
+          ]
+        },
+        "2018": {
+          "benchmarkGroup": "White, not Hispanic",
+          "benchmarkTurnout": 57.5,
+          "totalCvap": 228831.7,
+          "totalVotes": 122280.6,
+          "avgTurnout": 53.44,
+          "shortfall": 9239.4,
+          "rows": [
+            {
+              "group": "White, not Hispanic",
+              "short": "White",
+              "cvap": 154982.0,
+              "votes": 89075.2,
+              "turnout": 57.5,
+              "expected": 89075.2,
+              "missing": 0.0
+            },
+            {
+              "group": "Black, not Hispanic",
+              "short": "Black",
+              "cvap": 28354.5,
+              "votes": 14569.3,
+              "turnout": 51.4,
+              "expected": 16296.6,
+              "missing": -1727.3
+            },
+            {
+              "group": "Asian, not Hispanic",
+              "short": "Asian",
+              "cvap": 10765.7,
+              "votes": 4325.5,
+              "turnout": 40.2,
+              "expected": 6187.5,
+              "missing": -1862.0
+            },
+            {
+              "group": "Hispanic (any race)",
+              "short": "Hispanic",
+              "cvap": 28955.2,
+              "votes": 11694.5,
+              "turnout": 40.4,
+              "expected": 16641.9,
+              "missing": -4947.4
+            },
+            {
+              "group": "Other or multiple races, not Hispanic",
+              "short": "Other",
+              "cvap": 5774.3,
+              "votes": 2616.1,
+              "turnout": 45.3,
+              "expected": 3318.8,
+              "missing": -702.7
+            }
+          ]
+        },
+        "2020": {
+          "benchmarkGroup": "White, not Hispanic",
+          "benchmarkTurnout": 70.9,
+          "totalCvap": 231592.7,
+          "totalVotes": 154627.7,
+          "avgTurnout": 66.77,
+          "shortfall": 9657.0,
+          "rows": [
+            {
+              "group": "White, not Hispanic",
+              "short": "White",
+              "cvap": 154827.1,
+              "votes": 109829.6,
+              "turnout": 70.9,
+              "expected": 109829.6,
+              "missing": 0.0
+            },
+            {
+              "group": "Black, not Hispanic",
+              "short": "Black",
+              "cvap": 28803.7,
+              "votes": 18088.2,
+              "turnout": 62.8,
+              "expected": 20432.5,
+              "missing": -2344.2
+            },
+            {
+              "group": "Asian, not Hispanic",
+              "short": "Asian",
+              "cvap": 11106.0,
+              "votes": 6602.6,
+              "turnout": 59.5,
+              "expected": 7878.3,
+              "missing": -1275.7
+            },
+            {
+              "group": "Hispanic (any race)",
+              "short": "Hispanic",
+              "cvap": 30627.0,
+              "votes": 16459.4,
+              "turnout": 53.7,
+              "expected": 21725.9,
+              "missing": -5266.5
+            },
+            {
+              "group": "Other or multiple races, not Hispanic",
+              "short": "Other",
+              "cvap": 6228.9,
+              "votes": 3648.0,
+              "turnout": 58.6,
+              "expected": 4418.6,
+              "missing": -770.6
+            }
+          ]
+        },
+        "2022": {
+          "benchmarkGroup": "White, not Hispanic",
+          "benchmarkTurnout": 57.6,
+          "totalCvap": 233545.7,
+          "totalVotes": 121916.2,
+          "avgTurnout": 52.2,
+          "shortfall": 12695.5,
+          "rows": [
+            {
+              "group": "White, not Hispanic",
+              "short": "White",
+              "cvap": 154963.2,
+              "votes": 89318.2,
+              "turnout": 57.6,
+              "expected": 89318.2,
+              "missing": 0.0
+            },
+            {
+              "group": "Black, not Hispanic",
+              "short": "Black",
+              "cvap": 29054.9,
+              "votes": 13262.4,
+              "turnout": 45.6,
+              "expected": 16746.8,
+              "missing": -3484.4
+            },
+            {
+              "group": "Asian, not Hispanic",
+              "short": "Asian",
+              "cvap": 11738.5,
+              "votes": 4714.6,
+              "turnout": 40.2,
+              "expected": 6765.9,
+              "missing": -2051.3
+            },
+            {
+              "group": "Hispanic (any race)",
+              "short": "Hispanic",
+              "cvap": 31187.3,
+              "votes": 11806.6,
+              "turnout": 37.9,
+              "expected": 17975.9,
+              "missing": -6169.2
+            },
+            {
+              "group": "Other or multiple races, not Hispanic",
+              "short": "Other",
+              "cvap": 6601.7,
+              "votes": 2814.5,
+              "turnout": 42.6,
+              "expected": 3805.1,
+              "missing": -990.6
+            }
+          ]
+        },
         "2024": {
           "benchmarkGroup": "White, not Hispanic",
           "benchmarkTurnout": 70.5,

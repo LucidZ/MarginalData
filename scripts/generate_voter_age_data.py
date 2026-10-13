@@ -33,14 +33,15 @@ Sources used:
   PEP          - national, single year of age x sex: 2010-2020 intercensal
                  series for 2012-2018, Vintage 2024 for 2020-2024.
   CPS microdata - the same November supplement's public-use person file
-                 (2024 only, so far), for the explorer's education / family
-                 income / race views. Microdata rather than Tables 2/5/7:
-                 Table 7 covers family members only and leaves income
-                 unreported for 1 in 6 of them (~60% coverage), while the
-                 person file carries family income for every household,
-                 Census-imputed where not reported. Weighted, it reproduces
-                 Table 1's citizen and voter totals and Table 5 row for row
-                 - checked below.
+                 (every November election 2012-2024), for the explorer's
+                 education / family income / race views. Microdata rather
+                 than Tables 2/5/7: Table 7 covers family members only and
+                 leaves income unreported for 1 in 6 of them (~60%
+                 coverage), while the person file carries family income for
+                 every household, Census-imputed where not reported.
+                 Weighted, it reproduces every year's Table 1 and 2024's
+                 Table 5 row for row - checked below. 2020 onward are CSVs;
+                 2012-2018 are fixed-width only (layouts below).
 
 Requirements:
     openpyxl, xlrd >= 2 (for the 2012/2014 .xls tables)
@@ -97,7 +98,39 @@ CYCLES = [
 
 # Public-use November supplement person files, per year.
 MICRODATA_BASE = "https://www2.census.gov/programs-surveys/cps/datasets"
-MICRODATA = {2024: "nov24pub.csv"}
+MICRODATA = {
+    2012: "nov12pub.dat.gz",
+    2014: "nov14pub.dat.gz",
+    2016: "nov16pub.dat.gz",
+    2018: "nov18pub.dat.gz",
+    2020: "nov20pub.csv",
+    2022: "nov22pub.csv",
+    2024: "nov24pub.csv",
+}
+
+# 1-based inclusive (start, end) columns of the fixed-width years, read off
+# each year's record layout (techdocs/cpsnovYY.pdf). Identical 2012-2016;
+# 2018's record grows to 1018 bytes and moves PES1 from 951-952 to 1001-1002.
+# Every variable's codes are the same 2012-2024 (PTDTRACE's 26 race codes
+# included), so the groups below apply to every year unchanged.
+_FW_2012 = {
+    "HEFAMINC": (39, 40),
+    "PRTAGE": (122, 123),
+    "PEEDUCA": (137, 138),
+    "PTDTRACE": (139, 140),
+    "PEHSPNON": (157, 158),
+    "PRPERTYP": (161, 162),
+    "PRCITSHP": (172, 173),
+    "PWSSWGT": (613, 622),
+    "HXFAMINC": (932, 933),
+    "PES1": (951, 952),
+}
+FIXED_WIDTH_LAYOUTS = {
+    2012: _FW_2012,
+    2014: _FW_2012,
+    2016: _FW_2012,
+    2018: {**_FW_2012, "PES1": (1001, 1002)},
+}
 
 # Each dimension's groups, in axis order: (full label, short axis label,
 # predicate on the parsed person record).
@@ -485,31 +518,51 @@ def validate_age_reconstruction(cycle, cps_published_cvap, cps_published_votes, 
 # byDimension: education / income / race from CPS microdata
 # ---------------------------------------------------------------------------
 
-def load_microdata(path):
+def _microdata_records(path, year):
+    """Yield each record of a person file as {variable: string}, from the
+    CSV (2020+) or the gzipped fixed-width file (2012-2018)."""
+    import csv
+    import gzip
+
+    if path.suffix == ".csv":
+        with open(path, newline="") as f:
+            yield from csv.DictReader(f)
+        return
+    layout = FIXED_WIDTH_LAYOUTS[year]
+    width = max(end for _, end in layout.values())
+    with gzip.open(path, "rt") as f:
+        for line in f:
+            if len(line.rstrip("\r\n")) < width:
+                raise ValueError(f"{path.name}: record shorter than layout ({width} columns)")
+            yield {var: line[start - 1:end].strip() for var, (start, end) in layout.items()}
+
+
+def load_microdata(path, year):
     """Eligible voters from one November person file: age 18+, civilian
     adults (PRPERTYP 2 - the universe of every P20 table), US citizens.
     Voted = PES1 1; everything else (no, don't know, refused, no response)
     counts as not voting, Census's own convention. Weights carry four
     implied decimals; returned in thousands."""
-    import csv
-
     people = []
-    with open(path, newline="") as f:
-        for row in csv.DictReader(f):
-            if int(row["PRTAGE"]) < 18 or row["PRPERTYP"] != "2" or int(row["PRCITSHP"]) > 4:
-                continue
-            inc = int(row["HEFAMINC"])
-            if not 1 <= inc <= 16:
-                raise ValueError(f"{path.name}: HEFAMINC {inc} outside 1-16 - expected every household imputed")
-            people.append({
-                "w": float(row["PWSSWGT"]) / 1e7,
-                "voted": row["PES1"] == "1",
-                "edu": int(row["PEEDUCA"]),
-                "inc": inc,
-                "incImputed": row["HXFAMINC"] != "0",
-                "race": int(row["PTDTRACE"]),
-                "hisp": row["PEHSPNON"] == "1",
-            })
+    for row in _microdata_records(path, year):
+        if int(row["PRTAGE"]) < 18 or row["PRPERTYP"] != "2" or int(row["PRCITSHP"]) > 4:
+            continue
+        inc = int(row["HEFAMINC"])
+        if not 1 <= inc <= 16:
+            raise ValueError(f"{path.name}: HEFAMINC {inc} outside 1-16 - expected every household imputed")
+        edu = int(row["PEEDUCA"])
+        if not 31 <= edu <= 46:
+            raise ValueError(f"{path.name}: PEEDUCA {edu} outside 31-46")
+        people.append({
+            "age": int(row["PRTAGE"]),  # top-coded: 80 = 80-84, 85 = 85+
+            "w": float(row["PWSSWGT"]) / 1e7,
+            "voted": row["PES1"] == "1",
+            "edu": edu,
+            "inc": inc,
+            "incImputed": row["HXFAMINC"] != "0",
+            "race": int(row["PTDTRACE"]),
+            "hisp": row["PEHSPNON"] == "1",
+        })
     return people
 
 
@@ -556,16 +609,22 @@ def build_dimension_year(people, groups):
 
 def validate_microdata(people, year, table1, table5_path):
     """The weighted person file must reproduce Census's published tables:
-    Table 1's citizen and voter totals, and (2024) Table 5's education rows,
-    within rounding. Anything more is a parsing or universe error."""
+    every Table 1 row (citizens and voters at each single year of age, plus
+    the 80-84 and 85+ buckets) to within its rounding to the thousand, and
+    (2024) Table 5's education rows. Anything more is a parsing or universe
+    error. Rows, not totals: the totals sum 64 rounded rows, so they drift
+    a few thousand apart on rounding alone."""
     single_years, tail_80_84, tail_85_plus = table1
-    cps_cvap = sum(v[1] for v in single_years.values()) + tail_80_84[1] + tail_85_plus[1]
-    cps_votes = sum(v[2] for v in single_years.values()) + tail_80_84[2] + tail_85_plus[2]
-    cvap = sum(p["w"] for p in people)
-    votes = sum(p["w"] for p in people if p["voted"])
-    for name, mine, theirs in (("citizens", cvap, cps_cvap), ("voters", votes, cps_votes)):
-        if abs(mine - theirs) > 2:
-            raise ValueError(f"{year} microdata {name} {mine:,.0f}k vs Table 1 {theirs:,.0f}k (tolerance 2k)")
+    published = {**single_years, 80: tail_80_84, 85: tail_85_plus}
+    for age, (_, cps_cvap, cps_votes, _) in published.items():
+        members = [p for p in people if p["age"] == age]
+        cvap = sum(p["w"] for p in members)
+        votes = sum(p["w"] for p in members if p["voted"])
+        for name, mine, theirs in (("citizens", cvap, cps_cvap), ("voters", votes, cps_votes)):
+            if abs(mine - theirs) > 0.51:
+                raise ValueError(f"{year} age {age} microdata {name} {mine:,.1f}k vs Table 1 {theirs:,.0f}k")
+    if sum(len([p for p in people if p["age"] == a]) for a in published) != len(people):
+        raise ValueError(f"{year} microdata has eligible ages outside Table 1's rows")
 
     if table5_path is None:
         return
@@ -650,7 +709,7 @@ def main():
     for year, filename in MICRODATA.items():
         dest_name = filename
         path = RAW_DIR / dest_name if args.skip_download else download(dest_name, f"{MICRODATA_BASE}/{year}/supp/{filename}")
-        people = load_microdata(path)
+        people = load_microdata(path, year)
         table5 = RAW_DIR / "2024_vote05_2024_1.xlsx" if year == 2024 else None
         if table5 is not None and not args.skip_download:
             table5 = download(table5.name, f"{CPS_BASE}/587/vote05_2024_1.xlsx")
@@ -672,7 +731,7 @@ def main():
         "meta": {
             "sources": [
                 "US Census Bureau, CPS November Voting and Registration Supplement, Table 1 "
-                "(2012, 2014, 2016, 2018, 2020, 2022, 2024), and its public-use person file (2024)",
+                "(2012, 2014, 2016, 2018, 2020, 2022, 2024), and its public-use person file (same years)",
                 "US Census Bureau, Population Estimates Program (PEP), national single-year-of-age "
                 "estimates: Vintage 2024 (2020-2024) and 2010-2020 intercensal (2012-2018)",
             ],

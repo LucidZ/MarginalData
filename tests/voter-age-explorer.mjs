@@ -135,42 +135,73 @@ const focused = await page.evaluate(() => document.activeElement?.getAttribute("
 if (!focused?.startsWith("2014")) fail(`ArrowRight should focus 2014, focused ${focused}`);
 console.log("PASS: ArrowRight from 2012 goes to 2014 and moves focus there");
 
-// 6b. The dimension switch: each non-age view draws its groups, prints its
-// JSON figures, disables the years it has no data for, and switching back
-// to age restores the age chart at the same year.
+// 6b. The dimension switch: each non-age view keeps the shown year, then
+// every year draws its groups, prints its JSON figures, keeps the view's
+// y axis pinned, and leaves no year disabled. A year pick tweens the bars
+// (700ms) rather than cutting. Switching back to age restores the age
+// chart at the same year.
 const fmtPct = (v) => `${v.toFixed(1)}%`;
 async function pickView(label) {
   await page.click(`${X} .voa-dims-btn:text-is("${label}")`);
   await page.waitForTimeout(1200); // the category chart's bars grow in over 700ms
 }
+const trackHeights = () => page.$$eval(`${X} g.pb-tracks rect`, (els) => els.map((e) => +e.getAttribute("height")));
 await pick("2016");
 for (const [key, label] of [["education", "Education"], ["income", "Family income"], ["race", "Race / ethnicity"]]) {
+  const shown = (await state()).resting;
   await pickView(label);
-  const dimYears = Object.keys(data.byDimension[key].years);
-  const newest = dimYears.sort().at(-1);
   const st = await state();
-  if (st.view !== key || st.resting !== newest) fail(`${key}: should snap to ${newest}, state ${JSON.stringify(st)}`);
-  const y = data.byDimension[key].years[newest];
-  const got = await page.evaluate((X) => ({
-    bars: document.querySelectorAll(`${X} .pb-bar-track, ${X} rect.pb-track`).length,
-    ticks: [...document.querySelectorAll(`${X} .pb-axis-x .tick text`)].map((e) => e.textContent.trim()),
-    hero: [...document.querySelectorAll(`${X} .pb-gap-hero-figure`)].map((e) => e.textContent.trim()),
-    legend: document.querySelector(`${X} .pb-legend-expected`).textContent.trim(),
-    disabled: [...document.querySelectorAll(`${X} .voa-yc-btn:disabled`)].map((b) => b.getAttribute("aria-label").slice(0, 4)),
-    caveat: document.querySelector(`${X} .voa-explorer-caveat`).textContent,
-  }), X);
-  const wantTicks = y.rows.map((r) => r.short);
-  if (JSON.stringify(got.ticks) !== JSON.stringify(wantTicks)) fail(`${key}: x ticks ${JSON.stringify(got.ticks)}, want ${JSON.stringify(wantTicks)}`);
-  const wantHero = [fmtPct((y.shortfall / y.totalVotes) * 100), fmtPct(y.avgTurnout)];
-  if (JSON.stringify(got.hero) !== JSON.stringify(wantHero)) fail(`${key}: hero ${JSON.stringify(got.hero)}, want ${JSON.stringify(wantHero)}`);
-  if (!got.legend.includes(fmtPct(y.benchmarkTurnout))) fail(`${key}: legend "${got.legend}" lacks the benchmark rate`);
-  const wantDisabled = years.filter((yr) => !dimYears.includes(yr));
-  if (JSON.stringify(got.disabled) !== JSON.stringify(wantDisabled)) fail(`${key}: disabled ${got.disabled}, want ${wantDisabled}`);
-  if (key === "income" && !got.caveat.includes(fmtPct(y.imputedPct))) fail(`income caveat lacks the imputed share`);
-  if (await nanTransforms()) fail(`${key}: NaN in a transform`);
-  await page.locator(`${X} .voa-explorer-chart`).screenshot({ path: `${OUT}/voter-age-explorer-${key}.png` });
-  console.log(`PASS: ${key} ${newest}: ${got.ticks.length} groups; ${got.hero.join(" / ")}; ${got.legend}; ${got.disabled.length} years disabled`);
+  if (st.view !== key || st.resting !== shown) fail(`${key}: should stay on ${shown}, state ${JSON.stringify(st)}`);
+  const dimYears = Object.keys(data.byDimension[key].years).sort();
+  if (JSON.stringify(dimYears) !== JSON.stringify(years)) fail(`${key}: JSON has ${dimYears}, want every year`);
+
+  let dimTicks = null;
+  for (const year of [...years].reverse()) {
+    const before = await trackHeights();
+    await page.click(`${X} .voa-yc-btn[aria-label^="${year}"]`);
+    await page.waitForTimeout(150);
+    const mid = await trackHeights();
+    await page.waitForTimeout(900);
+    const st = await state();
+    if (st.view !== key || st.resting !== year) fail(`${key} ${year}: state ${JSON.stringify(st)}`);
+    const after = await trackHeights();
+    // Mid-tween, some bar that moves sits strictly between where it was and where it lands.
+    const moves = (i) => Math.abs(after[i] - before[i]) > 2;
+    const moved = before.some((_, i) => moves(i));
+    const between = before.some(
+      (b, i) => moves(i) && Math.min(b, after[i]) + 0.5 < mid[i] && mid[i] < Math.max(b, after[i]) - 0.5
+    );
+    if (moved && !between) fail(`${key} ${year}: bars cut instead of tweening (${before} -> ${mid} -> ${after})`);
+
+    const y = data.byDimension[key].years[year];
+    const got = await page.evaluate((X) => ({
+      ticks: [...document.querySelectorAll(`${X} .pb-axis-x .tick text`)].map((e) => e.textContent.trim()),
+      hero: [...document.querySelectorAll(`${X} .pb-gap-hero-figure`)].map((e) => e.textContent.trim()),
+      legend: document.querySelector(`${X} .pb-legend-expected`).textContent.trim(),
+      disabled: document.querySelectorAll(`${X} .voa-yc-btn:disabled`).length,
+      on: [...document.querySelectorAll(`${X} .voa-yc-btn.is-on`)].map((b) => b.getAttribute("aria-label").slice(0, 4)),
+      caveat: document.querySelector(`${X} .voa-explorer-caveat`).textContent,
+    }), X);
+    const wantTicks = y.rows.map((r) => r.short);
+    if (JSON.stringify(got.ticks) !== JSON.stringify(wantTicks)) fail(`${key} ${year}: x ticks ${JSON.stringify(got.ticks)}, want ${JSON.stringify(wantTicks)}`);
+    const wantHero = [fmtPct((y.shortfall / y.totalVotes) * 100), fmtPct(y.avgTurnout)];
+    if (JSON.stringify(got.hero) !== JSON.stringify(wantHero)) fail(`${key} ${year}: hero ${JSON.stringify(got.hero)}, want ${JSON.stringify(wantHero)}`);
+    if (!got.legend.includes(fmtPct(y.benchmarkTurnout))) fail(`${key} ${year}: legend "${got.legend}" lacks the benchmark rate`);
+    if (got.disabled) fail(`${key} ${year}: ${got.disabled} year buttons disabled`);
+    if (JSON.stringify(got.on) !== JSON.stringify([year])) fail(`${key} ${year}: filled buttons ${JSON.stringify(got.on)}`);
+    if (!got.caveat.includes(y.benchmarkGroup.toLowerCase())) fail(`${key} ${year}: caveat lacks the benchmark group`);
+    if (/only for now/.test(got.caveat)) fail(`${key} ${year}: caveat still says "only for now"`);
+    if (key === "income" && !got.caveat.includes(`${fmtPct(y.imputedPct)} who`)) fail(`income ${year}: caveat lacks the imputed share`);
+    if (key === "income" && !got.caveat.includes(`${year} dollars`)) fail(`income ${year}: caveat lacks its own year's dollars`);
+    const ticks = await yTicks();
+    if (dimTicks === null) dimTicks = ticks;
+    else if (ticks !== dimTicks) fail(`${key} ${year}: y ticks changed ${ticks} vs ${dimTicks}`);
+    if (await nanTransforms()) fail(`${key} ${year}: NaN in a transform`);
+    await page.locator(`${X} .voa-explorer-chart`).screenshot({ path: `${OUT}/voter-age-explorer-${key}-${year}.png` });
+    console.log(`PASS: ${key} ${year}: ${got.ticks.length} groups; ${got.hero.join(" / ")}; ${got.legend}${moved ? "; tweened" : ""}`);
+  }
 }
+await pick("2016");
 await pickView("Age");
 const back = await state();
 const ageTicks = await page.$$eval(`${X} .pb-axis-x .tick text`, (els) => els.length);

@@ -221,9 +221,9 @@ export const explorerCopy = {
   benchmarkLine: (group: string, pct: string) => `at ${group} turnout (${pct})`,
   dimCaveat: (v: DimensionVals) => (
     <>
-      Education, income and race come straight from the Census survey's own counts, {v.year} only for now. The
-      survey covers people living in households, so its total runs {v.totalGap} under the age view, which also counts
-      people in nursing homes, prisons and the military. Here the dotted line is the best-voting group's rate (
+      Education, income and race come straight from the Census survey's own counts. The survey covers people living
+      in households, so its total runs {v.totalGap} under the age view, which also counts people in nursing homes,
+      prisons and the military. Here the dotted line is the best-voting group's rate (
       {v.benchmark.toLowerCase()}), not the 65+ rate.
     </>
   ),
@@ -231,7 +231,7 @@ export const explorerCopy = {
     <>
       {" "}
       Family income is the household's combined family income (your own, if you live alone or with roommates), in{" "}
-      {v.year} dollars. Census estimated it for the {v.imputed} who didn't report it.
+      {v.year} dollars, not adjusted for inflation. Census estimated it for the {v.imputed} who didn't report it.
     </>
   ),
   caveat: (v: ExplorerVals) => (
