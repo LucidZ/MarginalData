@@ -279,9 +279,6 @@
     padding: 0.25rem 0;
     font-size: 0.8rem;
   }
-  .voa-scrolly-viz .voa-yc-row {
-    padding-bottom: 9px;
-  }
 }
 
 /* ---------- Explorer after the story (Explorer.tsx) ---------- */
@@ -345,39 +342,35 @@
   position: relative;
   display: flex;
   gap: var(--yc-gap);
-  padding-bottom: 12px; /* room for the track */
 }
-/* The track runs from the first button's centre to the last's. Equal-width
-   buttons put the centres evenly apart: slot width w = (100% - (n-1)gap)/n,
-   centre i = w/2 + i(w + gap). */
-.voa-yc-track {
+/* The sliding highlight. Equal-width buttons: slot width
+   w = (100% - (n-1)gap)/n and slot i starts at i(w + gap), so clipping this
+   black copy of the row to [p(w + gap), p(w + gap) + w] puts a button-sized
+   rect at any fractional position p, with the labels under it in white. */
+.voa-yc-ink {
   --yc-w: calc((100% - (var(--yc-n) - 1) * var(--yc-gap)) / var(--yc-n));
+  --yc-l: calc(var(--yc-p) * (var(--yc-w) + var(--yc-gap)));
   position: absolute;
-  left: calc(var(--yc-w) / 2);
-  right: calc(var(--yc-w) / 2);
-  bottom: 3px;
-  height: 6px;
+  inset: 0;
+  display: flex;
+  gap: var(--yc-gap);
+  background: var(--text-primary);
+  color: var(--page);
+  clip-path: inset(0 calc(100% - var(--yc-l) - var(--yc-w)) 0 var(--yc-l) round 6px);
   pointer-events: none;
 }
-.voa-yc-track::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  border-top: 1.5px solid var(--gridline);
-}
-/* Between years only (opacity = the chart haze): at a real year the button
-   fills instead, so the dot never stands in for a year. */
-.voa-yc-dot {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--yc-p) / (var(--yc-n) - 1) * 100%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-primary);
-  transform: translate(-50%, -50%);
+/* Mirrors .voa-yc-btn's box so each white label sits on its button's. */
+.voa-yc-ink-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0;
+  border: 1.5px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .voa-yc-btn {
   flex: 1 1 0;

@@ -13,14 +13,11 @@ interface Props {
   /** The year every printed number currently describes (snaps at a hop's
    * midpoint) - the radio group's checked button. */
   shown: string;
-  /** The year the chart is resting on, or null mid-morph. Only this button
-   * fills: between years the timeline shows a dot between two buttons,
-   * never a year. */
+  /** The year the chart is resting on, or null mid-morph. */
   resting: string | null;
-  /** Continuous position in `options` index units (0 = first year), for
-   * the dot riding the scroll. */
-  dotPos: number;
-  dotOpacity: number;
+  /** Continuous position in `options` index units (0 = first year): where
+   * the black highlight sits. Between years it straddles two buttons. */
+  pos: number;
   /** Fades the whole control. Below 0.5 it's inert, so a hidden timeline
    * can't be tabbed into or clicked. */
   opacity: number;
@@ -36,7 +33,7 @@ interface Props {
  * the labels shorten to '12 ... '24 so all seven fit a 360px screen; the
  * full year stays in aria-label.
  */
-export default function YearControl({ options, shown, resting, dotPos, dotOpacity, opacity, onPick }: Props) {
+export default function YearControl({ options, shown, resting, pos, opacity, onPick }: Props) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const hidden = opacity < 0.5;
 
@@ -71,7 +68,7 @@ export default function YearControl({ options, shown, resting, dotPos, dotOpacit
         className="voa-yc-row"
         role="radiogroup"
         aria-label={explorerCopy.controlLabel}
-        style={{ "--yc-n": options.length, "--yc-p": dotPos } as CSSProperties}
+        style={{ "--yc-n": options.length, "--yc-p": pos } as CSSProperties}
       >
         {options.map((o, i) => {
           const on = o.year === shown;
@@ -100,8 +97,17 @@ export default function YearControl({ options, shown, resting, dotPos, dotOpacit
             </button>
           );
         })}
-        <span className="voa-yc-track" aria-hidden="true">
-          <span className="voa-yc-dot" style={{ opacity: dotOpacity }} />
+        {/* The highlight: a black copy of the row with white labels, clipped
+            to one button's box at `pos`. It slides through the years in
+            between, and whatever label it covers reads white. Clicks pass
+            through to the buttons underneath. */}
+        <span className="voa-yc-ink" aria-hidden="true">
+          {options.map((o) => (
+            <span key={o.year} className="voa-yc-ink-slot">
+              <span className="voa-yc-full">{o.year}</span>
+              <span className="voa-yc-short">&rsquo;{o.year.slice(2)}</span>
+            </span>
+          ))}
         </span>
       </div>
       <div className="voa-yc-key" aria-hidden="true">

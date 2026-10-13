@@ -58,12 +58,12 @@ for (const year of [...years].reverse()) {
   await pick(year);
   const lock = await page.evaluate((X) => ({
     on: [...document.querySelectorAll(`${X} .voa-yc-btn.is-on`)].map((b) => b.getAttribute("aria-label").slice(0, 4)),
-    dotOpacity: parseFloat(document.querySelector(`${X} .voa-yc-dot`).style.opacity),
+    rect: parseFloat(document.querySelector(`${X} .voa-yc-row`).style.getPropertyValue("--yc-p")),
     hero: [...document.querySelectorAll(`${X} .pb-gap-hero-figure`)].map((e) => e.textContent.trim()),
     legend: document.querySelector(`${X} .pb-legend-expected`).textContent.trim(),
   }), X);
   if (JSON.stringify(lock.on) !== JSON.stringify([year])) fail(`${year}: filled buttons ${JSON.stringify(lock.on)}`);
-  if (lock.dotOpacity > 0.01) fail(`${year}: dot should be hidden at rest`);
+  if (lock.rect !== years.indexOf(year)) fail(`${year}: highlight rect at slot ${lock.rect}, want ${years.indexOf(year)}`);
   const want = [shortfallOf(year), turnoutOf(year)];
   if (JSON.stringify(lock.hero) !== JSON.stringify(want)) fail(`${year}: hero ${JSON.stringify(lock.hero)}, want ${JSON.stringify(want)}`);
   if (!lock.legend.includes(`${data.byAge[year].over65Turnout.toFixed(1)}%`)) fail(`${year}: legend "${lock.legend}" lacks its own 65+ rate`);
@@ -76,7 +76,7 @@ for (const year of [...years].reverse()) {
 }
 
 // 3. A long jump plays every hop: sampled mid-flight, no year is filled,
-// the dot shows, and the figures are always some real election's.
+// the black rect slides between buttons, and the figures are always some real election's.
 const realHeroes = new Set(years.map((y) => `${shortfallOf(y)}|${turnoutOf(y)}`));
 await page.click(`${X} .voa-yc-btn[aria-label^="2024"]`);
 const seenPos = new Set();
@@ -87,19 +87,21 @@ for (let i = 0; i < 40; i++) {
     pos: parseFloat(document.querySelector(".voa-explorer-state").dataset.pos),
     resting: document.querySelector(".voa-explorer-state").dataset.resting,
     on: document.querySelectorAll(`${X} .voa-yc-btn.is-on`).length,
-    dot: parseFloat(document.querySelector(`${X} .voa-yc-dot`).style.opacity),
+    rect: parseFloat(document.querySelector(`${X} .voa-yc-row`).style.getPropertyValue("--yc-p")),
     hero: [...document.querySelectorAll(`${X} .pb-gap-hero-figure`)].map((e) => e.textContent.trim()).join("|"),
   }), X);
   seenPos.add(Math.floor(s.pos));
   if (!realHeroes.has(s.hero)) fail(`mid-jump figures ${s.hero} belong to no election`);
   if (!s.resting) {
     midChecked++;
-    if (s.on !== 0 || s.dot < 0.99) fail(`mid-jump should show only the dot ${JSON.stringify(s)}`);
+    // The rect straddles two buttons, tracking pos (counted from 2012 here).
+    if (s.on !== 0 || Number.isInteger(s.rect) || Math.abs(s.rect - (years.length - 1 - s.pos)) > 1e-3)
+      fail(`mid-jump the rect should slide between years ${JSON.stringify(s)}`);
   }
   if (s.resting === "2024") break;
 }
 if (midChecked < 5 || seenPos.size < 5) fail(`2012 -> 2024 should pass through every hop (saw ${[...seenPos]}, ${midChecked} mid samples)`);
-console.log(`PASS: 2012 -> 2024 plays through every hop; mid-flight shows only the dot and real figures (${midChecked} samples)`);
+console.log(`PASS: 2012 -> 2024 plays through every hop; mid-flight the rect slides between years, figures stay real (${midChecked} samples)`);
 
 // 4. Cohorts followed across a hop: c-1984 is 36 in 2020, 34 in 2018.
 const xOf = (key) => page.$eval(`${X} rect.pb-track[data-key="${key}"]`, (e) => parseFloat(e.getAttribute("x")));
@@ -137,8 +139,9 @@ console.log("PASS: ArrowRight from 2012 goes to 2014 and moves focus there");
 
 // 6b. The dimension switch: each non-age view keeps the shown year, then
 // every year draws its groups, prints its JSON figures, keeps the view's
-// y axis pinned, and leaves no year disabled. A year pick tweens the bars
-// (700ms) rather than cutting. Switching back to age restores the age
+// y axis pinned, and leaves no year disabled. A year pick plays the timed
+// hops like age does - a 2012 -> 2024 jump passes through every election in
+// between - rather than cutting. Switching back to age restores the age
 // chart at the same year.
 const fmtPct = (v) => `${v.toFixed(1)}%`;
 async function pickView(label) {
@@ -161,7 +164,7 @@ for (const [key, label] of [["education", "Education"], ["income", "Family incom
     await page.click(`${X} .voa-yc-btn[aria-label^="${year}"]`);
     await page.waitForTimeout(150);
     const mid = await trackHeights();
-    await page.waitForTimeout(900);
+    await page.waitForFunction((y) => document.querySelector(".voa-explorer-state").dataset.resting === y, year, { timeout: 8000 });
     const st = await state();
     if (st.view !== key || st.resting !== year) fail(`${key} ${year}: state ${JSON.stringify(st)}`);
     const after = await trackHeights();
@@ -200,6 +203,22 @@ for (const [key, label] of [["education", "Education"], ["income", "Family incom
     await page.locator(`${X} .voa-explorer-chart`).screenshot({ path: `${OUT}/voter-age-explorer-${key}-${year}.png` });
     console.log(`PASS: ${key} ${year}: ${got.ticks.length} groups; ${got.hero.join(" / ")}; ${got.legend}${moved ? "; tweened" : ""}`);
   }
+
+  // At 2012 now: jump to 2024 and watch pos walk through every hop in between.
+  await page.click(`${X} .voa-yc-btn[aria-label^="2024"]`);
+  const seen = new Set();
+  let midHeights = 0;
+  for (let i = 0; i < 80 && (await state()).resting !== "2024"; i++) {
+    const pos = +(await state()).pos;
+    if (!Number.isInteger(pos)) seen.add(Math.floor(pos));
+    const h = await trackHeights();
+    if (h.some((v) => !Number.isFinite(v))) fail(`${key}: non-finite bar height mid-jump`);
+    midHeights++;
+    await page.waitForTimeout(40);
+  }
+  if ((await state()).resting !== "2024") fail(`${key}: 2012 -> 2024 jump never landed`);
+  if (seen.size < years.length - 2) fail(`${key}: 2012 -> 2024 jump only passed through hops ${[...seen]}`);
+  console.log(`PASS: ${key}: 2012 -> 2024 played ${seen.size} in-between hops (${midHeights} samples)`);
 }
 await pick("2016");
 await pickView("Age");

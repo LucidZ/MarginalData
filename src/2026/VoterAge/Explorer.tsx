@@ -17,8 +17,9 @@ import type { DimensionKey, DimensionYear, VoterAgeData } from "./types";
  * The dimension switch above the years swaps the age chart for a category
  * one - education, family income or race (byDimension) - drawn the same way
  * but benchmarked to that dimension's best-voting group instead of 65+.
- * Those views only have the years the pipeline built them for; the rest of
- * the year buttons disable while one is up.
+ * Its groups don't move between elections, so a year change plays the same
+ * timed hops with every bar holding its slot while its values lerp. A view
+ * missing any year just cuts instead, and the absent years' buttons disable.
  */
 
 type View = "age" | DimensionKey;
@@ -35,6 +36,25 @@ function dimensionRows(y: DimensionYear): PopulationBarRow[] {
     missing: r.missing,
     turnout: r.turnout,
   }));
+}
+
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+
+/** Category rows between two elections: same groups, same slots, values lerp. */
+function blendRows(from: PopulationBarRow[], to: PopulationBarRow[], t: number): PopulationBarRow[] {
+  const toByKey = new Map(to.map((r) => [r.key, r]));
+  return from.map((r) => {
+    const o = toByKey.get(r.key);
+    if (!o) return r;
+    return {
+      ...r,
+      cvap: lerp(r.cvap, o.cvap, t),
+      votes: lerp(r.votes, o.votes, t),
+      expected: lerp(r.expected, o.expected, t),
+      missing: lerp(r.missing, o.missing, t),
+      turnout: lerp(r.turnout, o.turnout, t),
+    };
+  });
 }
 
 /** The dimension switch: a radio group of pills, arrow keys move. */
@@ -98,16 +118,21 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
 
   /** Years the current view has data for; null for age, which has them all. */
   const dimYears = view === "age" ? null : data.byDimension[view].years;
+  /** The current category view's rows per election, newest first; null if it lacks any year. */
+  const dimRestRows = useMemo(
+    () => (dimYears && years.every((y) => dimYears[y]) ? years.map((y) => dimensionRows(dimYears[y])) : null),
+    [dimYears, years]
+  );
 
   const pickView = useCallback(
     (v: View) => {
       setView(v);
       if (v === "age") return;
       // Snap to the newest year that view has, if the one shown isn't there.
-      // Mid-hop counts as not there - the category chart has no in-between.
+      // Mid-hop is only fine if the view can blend every year.
       const has = data.byDimension[v].years;
       const at = posRef.current;
-      if (Number.isInteger(at) && has[years[at]]) return;
+      if (Number.isInteger(at) ? has[years[at]] : years.every((y) => has[y])) return;
       const target = years.findIndex((y) => has[y]);
       cancelAnimationFrame(raf.current);
       posRef.current = target;
@@ -120,8 +145,8 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
     (year: string) => {
       const target = years.indexOf(year);
       cancelAnimationFrame(raf.current);
-      // The cohort hop is the age chart's; the other views just cut.
-      if (dimYears || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // A category view missing some years has nothing to hop through: cut.
+      if ((dimYears && !dimRestRows) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         posRef.current = target;
         setPos(target);
         return;
@@ -141,7 +166,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
       };
       raf.current = requestAnimationFrame(tick);
     },
-    [years, dimYears]
+    [years, dimYears, dimRestRows]
   );
 
   const hop = Math.min(Math.floor(pos), last - 1);
@@ -201,7 +226,14 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
 
   // The non-age view at the shown year (pickView makes sure it exists).
   const dimYear = dimYears?.[shownYear] ?? null;
-  const dimBarRows = useMemo(() => (dimYear ? dimensionRows(dimYear) : []), [dimYear]);
+  const dimBarRows = useMemo(() => {
+    if (dimRestRows) {
+      if (t <= 0) return dimRestRows[hop];
+      if (t >= 1) return dimRestRows[hop + 1];
+      return blendRows(dimRestRows[hop], dimRestRows[hop + 1], t);
+    }
+    return dimYear ? dimensionRows(dimYear) : [];
+  }, [dimRestRows, dimYear, hop, t]);
   // Pinned per view across its years, like the age chart's.
   const dimYDomain = useMemo((): [number, number] => {
     if (!dimYears) return [0, 1];
@@ -211,6 +243,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
 
   const dimTooltipFor = useCallback(
     (row: PopulationBarRow) => {
+      if (resting === null) return null; // mid-hop the bars describe no real election
       const real = dimYear?.rows.find((r) => r.group === row.key);
       if (!dimYear || !real) return null;
       return (
@@ -227,7 +260,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
         </>
       );
     },
-    [dimYear, shownYear]
+    [resting, dimYear, shownYear]
   );
 
   const benchmarkShort = dimYear?.rows.find((r) => r.group === dimYear.benchmarkGroup)?.short ?? "";
@@ -256,8 +289,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
           options={options}
           shown={shownYear}
           resting={resting}
-          dotPos={last - pos}
-          dotOpacity={resting === null ? 1 : 0}
+          pos={last - pos}
           opacity={1}
           onPick={pick}
         />
@@ -291,6 +323,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
               deltaOpacity: 0,
             }}
             yDomain={dimYDomain}
+            transitionMs={0}
             tooltipFor={dimTooltipFor}
           />
         ) : (
