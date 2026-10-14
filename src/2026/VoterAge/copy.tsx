@@ -166,7 +166,7 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     body: () => (
       <>
         <p>
-          In elections where the margins of victory tends to be small, this can be significant.
+          And while 100% voter turnout would be ideal, even In elections where the margins of victory tends to be small, this can be significant.
         </p>
       </>
     ),
@@ -217,6 +217,15 @@ export const explorerCopy = {
     income: "Family income",
     race: "Race / ethnicity",
   },
+  measureLabel: "Show",
+  measures: {
+    people: "People",
+    gap: "Shortfall only",
+  },
+  /** The shortfall-only view: each bar's gold, as a share of all votes cast. */
+  gapYLabel: "Shortfall (% of all votes cast)",
+  /** Tooltip line in the shortfall-only view. */
+  gapTip: (short: string, pct: string) => `Shortfall: ${short} (${pct} of all votes cast)`,
   /** The dotted line's legend in a non-age view. */
   benchmarkLine: (group: string, pct: string) => `at ${group} turnout (${pct})`,
   dimCaveat: (v: DimensionVals) => (
@@ -312,7 +321,7 @@ export interface GoldSummaryVals {
 
 // Placeholder copy - the gold-view summary at the end of the rewind.
 export const goldSummaryCopy = {
-  mergeHeading: "All of it, in one bar",
+  mergeHeading: "Let's group everything together to get a clearer picture.",
   merge: (v: { year: string }) => (
     <p>
       [Placeholder] Stack every age from {v.year} into a single bar: the people who voted, then the gold shortfall

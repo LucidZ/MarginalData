@@ -228,6 +228,55 @@ const stillDisabled = await page.$$eval(`${X} .voa-yc-btn:disabled`, (els) => el
 if (back.view !== "age" || ageTicks < 5 || stillDisabled) fail(`back to age: ${JSON.stringify(back)}, ${ageTicks} ticks, ${stillDisabled} disabled`);
 console.log(`PASS: back to age at ${back.resting}, every year enabled again`);
 
+// 6c. The measure switch: "Shortfall only" strips every view to its gold on
+// a percent axis, and the bars sum to the hero's shortfall share. Back to
+// People restores the people axis.
+const goldSum = () =>
+  page.$$eval(`${X} g.pb-gaps rect`, (els) => els.reduce((a, e) => a + +e.getAttribute("height"), 0));
+const pctAt = async (v) => {
+  // Pixel height of v% on the current y axis, from its 0 and top ticks.
+  const t = await page.$$eval(`${X} .pb-axis-y .tick`, (els) =>
+    els.map((e) => ({ v: parseFloat(e.textContent), y: +e.getAttribute("transform").match(/,([\d.]+)/)[1] }))
+  );
+  return (v * (t[0].y - t.at(-1).y)) / (t.at(-1).v - t[0].v);
+};
+for (const [key, label] of [["age", "Age"], ["race", "Race / ethnicity"]]) {
+  await pickView(label);
+  await page.click(`${X} .voa-dims-btn:text-is("Shortfall only")`);
+  // The switch plays on a timer: catch it mid-drop and mid-resize, then settled.
+  for (const u of [0.4, 0.8]) {
+    await page.waitForFunction(
+      ([X, u]) => +document.querySelector(`${X} .voa-explorer-state`).dataset.gapU >= u,
+      [X, u]
+    );
+    if (await nanTransforms()) fail(`${key} switching at u=${u}: NaN in a transform`);
+    await page.locator(`${X} .voa-explorer-chart`).screenshot({ path: `${OUT}/voter-age-explorer-gap-${key}-u${u}.png` });
+  }
+  await page.waitForFunction((X) => document.querySelector(`${X} .voa-explorer-state`).dataset.gapU === "1.0000", X);
+  const st = await state();
+  const year = st.resting;
+  const got = await page.evaluate((X) => ({
+    ticks: [...document.querySelectorAll(`${X} .pb-axis-y .tick text`)].map((e) => e.textContent.trim()),
+    votes: [...document.querySelectorAll(`${X} rect.pb-votes`)].filter((e) => getComputedStyle(e).opacity !== "0").length,
+    hero: document.querySelector(`${X} .pb-gap-hero-figure`).textContent.trim(),
+  }), X);
+  if (st.measure !== "gap") fail(`${key}: measure should be gap, ${JSON.stringify(st)}`);
+  if (!got.ticks.every((t) => t.endsWith("%"))) fail(`${key} shortfall-only: y ticks ${got.ticks}`);
+  if (got.votes) fail(`${key} shortfall-only: ${got.votes} votes bars still visible`);
+  const want = await pctAt(parseFloat(got.hero));
+  const sum = await goldSum();
+  // The hero rounds to 0.1%, so allow half that plus a pixel.
+  if (Math.abs(sum - want) > (await pctAt(0.05)) + 1) fail(`${key} ${year} shortfall-only: gold sums to ${sum.toFixed(1)}px, hero ${got.hero} = ${want.toFixed(1)}px`);
+  if (await nanTransforms()) fail(`${key} shortfall-only: NaN in a transform`);
+  await page.locator(`${X} .voa-explorer-chart`).screenshot({ path: `${OUT}/voter-age-explorer-gap-${key}-${year}.png` });
+  await page.click(`${X} .voa-dims-btn:text-is("People")`);
+  await page.waitForFunction((X) => document.querySelector(`${X} .voa-explorer-state`).dataset.gapU === "0.0000", X);
+  const back = await yTicks();
+  if (!back.includes("M")) fail(`${key}: back to People, y ticks ${back}`);
+  console.log(`PASS: ${key} ${year} shortfall-only: percent axis ${got.ticks.join(" ")}, gold bars sum to the hero ${got.hero}`);
+}
+await pickView("Age");
+
 if ((await nanTransforms()) > 0) fail("NaN in a transform attribute");
 if (consoleErrors.length) fail(`console errors:\n  ${consoleErrors.join("\n  ")}`);
 console.log("PASS: zero console errors, no NaN transforms");

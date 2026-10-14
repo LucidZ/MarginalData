@@ -20,6 +20,11 @@ import type { DimensionKey, DimensionYear, VoterAgeData } from "./types";
  * Its groups don't move between elections, so a year change plays the same
  * timed hops with every bar holding its slot while its values lerp. A view
  * missing any year just cuts instead, and the absent years' buttons disable.
+ *
+ * The measure switch under it strips any view down to its gold: each bar's
+ * shortfall as a share of all votes cast, on its own pinned percent axis, so
+ * the bars sum to the hero figure. The switch plays the story's shortfall
+ * summary moves on a timer (measureRows), and reverses them going back.
  */
 
 type View = "age" | DimensionKey;
@@ -57,23 +62,87 @@ function blendRows(from: PopulationBarRow[], to: PopulationBarRow[], t: number):
   });
 }
 
-/** The dimension switch: a radio group of pills, arrow keys move. */
-function ViewControl({ view, onPick }: { view: View; onPick: (v: View) => void }) {
+/** The people chart, or each bar's gold alone as a share of all votes cast. */
+type Measure = "people" | "gap";
+const MEASURES: Measure[] = ["people", "gap"];
+
+/** The shortfall-only view's rows: the gold drawn from the baseline, sized
+ * as a share of all votes cast, so the bars sum to the hero figure. Track
+ * and votes go to zero; the gold layer spans votes -> expected. */
+function gapRows(rows: PopulationBarRow[], totalVotes: number): PopulationBarRow[] {
+  return rows.map((r) => {
+    const pct = (Math.max(0, -r.missing) / totalVotes) * 100;
+    return { ...r, cvap: 0, votes: 0, expected: pct, missing: -pct, registered: undefined };
+  });
+}
+
+const fmtTickPct = (v: number) => `${v}%`;
+
+/** The people -> shortfall-only switch's length, and its three moves as
+ * fractions of it (the story's shortfall summary, PopulationBars pct): the
+ * other layers fade, the gold drops to the baseline still in people, then
+ * resizes to its percent while the y axes cross-fade. */
+const MEASURE_MS = 1400;
+const FADE_END = 0.25;
+const DROP = [0.25, 0.55] as const;
+const RESIZE = [0.6, 1] as const;
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const phase = (u: number, [a, b]: readonly [number, number]) => easeInOut(clamp01((u - a) / (b - a)));
+
+/** Rows mid-switch, still on the people axis: each gold block slid down to
+ * the baseline, then rescaled toward its percent height - expressed in
+ * people, `peopleMax / gapMax` converting, so at u=1 the bars stand exactly
+ * where gapRows on the percent axis draws them. */
+function measureRows(
+  rows: PopulationBarRow[],
+  totalVotes: number,
+  u: number,
+  peopleMax: number,
+  gapMax: number
+): PopulationBarRow[] {
+  const drop = phase(u, DROP);
+  if (drop <= 0) return rows; // still fading: the people chart as is
+  const resize = phase(u, RESIZE);
+  return rows.map((r) => {
+    const gold = Math.max(0, -r.missing);
+    const g = lerp(gold, ((gold / totalVotes) * 100 * peopleMax) / gapMax, resize);
+    const base = r.votes * (1 - drop);
+    return { ...r, votes: base, expected: base + g, missing: -g, registered: undefined };
+  });
+}
+
+/** A radio group of pills, arrow keys move: the dimension and measure switches. */
+function PillControl<T extends string>({
+  id,
+  label,
+  options,
+  names,
+  value,
+  onPick,
+}: {
+  id: string;
+  label: string;
+  options: T[];
+  names: Record<T, string>;
+  value: T;
+  onPick: (v: T) => void;
+}) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (e: KeyboardEvent, i: number) => {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
     if (!step) return;
     e.preventDefault();
-    const j = (i + step + VIEWS.length) % VIEWS.length;
-    onPick(VIEWS[j]);
+    const j = (i + step + options.length) % options.length;
+    onPick(options[j]);
     refs.current[j]?.focus();
   };
   return (
-    <div className="voa-dims" role="radiogroup" aria-labelledby="voa-dims-label">
-      <span className="voa-dims-label" id="voa-dims-label">
-        {explorerCopy.dimsLabel}
+    <div className="voa-dims" role="radiogroup" aria-labelledby={id}>
+      <span className="voa-dims-label" id={id}>
+        {label}
       </span>
-      {VIEWS.map((v, i) => (
+      {options.map((v, i) => (
         <button
           key={v}
           ref={(el) => {
@@ -81,13 +150,13 @@ function ViewControl({ view, onPick }: { view: View; onPick: (v: View) => void }
           }}
           type="button"
           role="radio"
-          aria-checked={v === view}
-          tabIndex={v === view ? 0 : -1}
+          aria-checked={v === value}
+          tabIndex={v === value ? 0 : -1}
           className="voa-dims-btn"
           onClick={() => onPick(v)}
           onKeyDown={(e) => onKeyDown(e, i)}
         >
-          {explorerCopy.dims[v]}
+          {names[v]}
         </button>
       ))}
     </div>
@@ -111,10 +180,46 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
   const last = years.length - 1;
 
   const [view, setView] = useState<View>("age");
+  const [measure, setMeasure] = useState<Measure>("people");
+  // 0 = people, 1 = shortfall only; in between, the switch is playing.
+  const [gapU, setGapU] = useState(0);
+  const gapURef = useRef(0);
+  const gapOnly = gapU >= 1;
+  const switching = gapU > 0 && gapU < 1;
   const [pos, setPos] = useState(0);
   const posRef = useRef(0);
   const raf = useRef(0);
-  useEffect(() => () => cancelAnimationFrame(raf.current), []);
+  const measureRaf = useRef(0);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(raf.current);
+      cancelAnimationFrame(measureRaf.current);
+    },
+    []
+  );
+
+  const pickMeasure = useCallback((m: Measure) => {
+    setMeasure(m);
+    const target = m === "gap" ? 1 : 0;
+    cancelAnimationFrame(measureRaf.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gapURef.current = target;
+      setGapU(target);
+      return;
+    }
+    let prev = performance.now();
+    const tick = (now: number) => {
+      // Clamped like the hop timer's: a frame stamped before the click.
+      const step = Math.max(0, now - prev) / MEASURE_MS;
+      prev = now;
+      const u = gapURef.current;
+      const next = u < target ? Math.min(target, u + step) : Math.max(target, u - step);
+      gapURef.current = next;
+      setGapU(next);
+      if (next !== target) measureRaf.current = requestAnimationFrame(tick);
+    };
+    measureRaf.current = requestAnimationFrame(tick);
+  }, []);
 
   /** Years the current view has data for; null for age, which has them all. */
   const dimYears = view === "age" ? null : data.byDimension[view].years;
@@ -171,11 +276,28 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
 
   const hop = Math.min(Math.floor(pos), last - 1);
   const t = ease(pos - hop);
-  const rows = useMemo(() => {
+  const peopleRows = useMemo(() => {
     if (t <= 0) return restRows[hop];
     if (t >= 1) return restRows[hop + 1];
     return hopRows(restRows[hop], restRows[hop + 1], t);
   }, [restRows, hop, t]);
+  // Same pinned scale as the story's chart, so the two read alike.
+  const yDomain = useMemo((): [number, number] => {
+    const maxCvap = Math.max(...Object.values(data.byAge).flatMap((c) => c.rows.map((r) => r.cvap)));
+    return [0, maxCvap * 1.08];
+  }, [data]);
+  // The shortfall-only scale, pinned across every year the same way.
+  const gapYDomain = useMemo((): [number, number] => {
+    const maxPct = Math.max(
+      ...Object.values(data.byAge).flatMap((c) => c.rows.map((r) => (Math.max(0, -r.missing) / c.totalVotes) * 100))
+    );
+    return [0, maxPct * 1.1];
+  }, [data]);
+  const rows = useMemo(() => {
+    if (gapU <= 0) return peopleRows;
+    const votes = lerp(data.byAge[years[hop]].totalVotes, data.byAge[years[hop + 1]].totalVotes, t);
+    return gapOnly ? gapRows(peopleRows, votes) : measureRows(peopleRows, votes, gapU, yDomain[1], gapYDomain[1]);
+  }, [gapU, gapOnly, peopleRows, data, years, hop, t, yDomain, gapYDomain]);
 
   // Printed numbers snap to a real election, never the lerped rows.
   const shownYear = years[Math.round(pos)];
@@ -194,12 +316,6 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
     [years, data, dimYears]
   );
 
-  // Same pinned scale as the story's chart, so the two read alike.
-  const yDomain = useMemo((): [number, number] => {
-    const maxCvap = Math.max(...Object.values(data.byAge).flatMap((c) => c.rows.map((r) => r.cvap)));
-    return [0, maxCvap * 1.08];
-  }, [data]);
-
   const tooltipFor = useCallback(
     (row: PopulationBarRow) => {
       if (resting === null) return null; // mid-hop the bars describe no real election
@@ -216,30 +332,46 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
           <div className="voa-tooltip__note">
             At the {shownYear} 65+ rate ({fmtPct(shownCycle.over65Turnout)}): {fmtM(real.expected)}
           </div>
+          {measure === "gap" && real.missing < 0 && (
+            <div className="voa-tooltip__note">
+              {explorerCopy.gapTip(fmtM(-real.missing), fmtPct((-real.missing / shownCycle.totalVotes) * 100))}
+            </div>
+          )}
         </>
       );
     },
-    [resting, shownRowsByKey, shownYear, shownCycle]
+    [resting, shownRowsByKey, shownYear, shownCycle, measure]
   );
 
   const vals = { firstYear: years[last] };
 
   // The non-age view at the shown year (pickView makes sure it exists).
   const dimYear = dimYears?.[shownYear] ?? null;
-  const dimBarRows = useMemo(() => {
-    if (dimRestRows) {
-      if (t <= 0) return dimRestRows[hop];
-      if (t >= 1) return dimRestRows[hop + 1];
-      return blendRows(dimRestRows[hop], dimRestRows[hop + 1], t);
-    }
-    return dimYear ? dimensionRows(dimYear) : [];
-  }, [dimRestRows, dimYear, hop, t]);
   // Pinned per view across its years, like the age chart's.
   const dimYDomain = useMemo((): [number, number] => {
     if (!dimYears) return [0, 1];
     const maxCvap = Math.max(...Object.values(dimYears).flatMap((y) => y.rows.map((r) => r.cvap)));
     return [0, maxCvap * 1.08];
   }, [dimYears]);
+  const dimGapYDomain = useMemo((): [number, number] => {
+    if (!dimYears) return [0, 1];
+    const maxPct = Math.max(
+      ...Object.values(dimYears).flatMap((y) => y.rows.map((r) => (Math.max(0, -r.missing) / y.totalVotes) * 100))
+    );
+    return [0, maxPct * 1.1];
+  }, [dimYears]);
+  const dimBarRows = useMemo(() => {
+    let at: PopulationBarRow[], votes: number;
+    if (dimRestRows && dimYears) {
+      at = t <= 0 ? dimRestRows[hop] : t >= 1 ? dimRestRows[hop + 1] : blendRows(dimRestRows[hop], dimRestRows[hop + 1], t);
+      votes = lerp(dimYears[years[hop]].totalVotes, dimYears[years[hop + 1]].totalVotes, t);
+    } else if (dimYear) {
+      at = dimensionRows(dimYear);
+      votes = dimYear.totalVotes;
+    } else return [];
+    if (gapU <= 0) return at;
+    return gapOnly ? gapRows(at, votes) : measureRows(at, votes, gapU, dimYDomain[1], dimGapYDomain[1]);
+  }, [dimRestRows, dimYears, dimYear, years, hop, t, gapU, gapOnly, dimYDomain, dimGapYDomain]);
 
   const dimTooltipFor = useCallback(
     (row: PopulationBarRow) => {
@@ -257,10 +389,15 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
               ? "Highest turnout: the benchmark"
               : `At ${dimYear.benchmarkGroup.toLowerCase()} turnout (${fmtPct(dimYear.benchmarkTurnout)}): ${fmtM(real.expected)}`}
           </div>
+          {measure === "gap" && real.missing < 0 && (
+            <div className="voa-tooltip__note">
+              {explorerCopy.gapTip(fmtM(-real.missing), fmtPct((-real.missing / dimYear.totalVotes) * 100))}
+            </div>
+          )}
         </>
       );
     },
-    [resting, dimYear, shownYear]
+    [resting, dimYear, shownYear, measure]
   );
 
   const benchmarkShort = dimYear?.rows.find((r) => r.group === dimYear.benchmarkGroup)?.short ?? "";
@@ -270,6 +407,25 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
     totalGap: fmtPct(100 * (1 - dimYear.totalCvap / shownCycle.totalCvap)),
     imputed: dimYear.imputedPct === undefined ? undefined : fmtPct(dimYear.imputedPct),
   };
+
+  // The layers each measure draws: the full people chart, or the gold alone.
+  // Mid-switch the others fade first, and the labels flip with the axes.
+  const fade = 1 - clamp01(gapU / FADE_END);
+  const pctLabels = gapU >= 0.8;
+  const measureProps = {
+    yLabel: pctLabels ? explorerCopy.gapYLabel : "People (millions)",
+    trackOpacity: fade,
+    votesOpacity: fade,
+    expectedOpacity: fade,
+    gapOpacity: 1,
+    // One label for both: the longer percent one wrapped the legend onto a
+    // second line mid-switch, dropping the whole plot. The axis says "%".
+    gapLegendLabel: "Shortfall",
+  };
+  /** Mid-switch the chart stays on the people axis, with the percent one
+   * cross-fading in over it as the gold resizes. */
+  const altAxis = (gap: [number, number]) =>
+    switching ? { domain: gap, tickFormat: fmtTickPct, u: clamp01((gapU - RESIZE[0]) / (RESIZE[1] - RESIZE[0])) } : undefined;
 
   return (
     <section className="voa-explorer">
@@ -282,9 +438,26 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
           data-pos={pos.toFixed(4)}
           data-resting={resting ?? ""}
           data-view={view}
+          data-measure={measure}
+          data-gap-u={gapU.toFixed(4)}
           hidden
         />
-        <ViewControl view={view} onPick={pickView} />
+        <PillControl
+          id="voa-dims-label"
+          label={explorerCopy.dimsLabel}
+          options={VIEWS}
+          names={explorerCopy.dims}
+          value={view}
+          onPick={pickView}
+        />
+        <PillControl
+          id="voa-measure-label"
+          label={explorerCopy.measureLabel}
+          options={MEASURES}
+          names={explorerCopy.measures}
+          value={measure}
+          onPick={pickMeasure}
+        />
         <YearControl
           options={options}
           shown={shownYear}
@@ -299,12 +472,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
             rows={dimBarRows}
             xKind="category"
             xLabel={explorerCopy.dims[view]}
-            yLabel="People (millions)"
-            showTrack
-            showVotes
-            expectedOpacity={1}
-            gapOpacity={1}
-            gapLegendLabel="Shortfall"
+            {...measureProps}
             expectedLineLabel={explorerCopy.benchmarkLine(benchmarkShort, fmtPct(dimYear.benchmarkTurnout))}
             heroGap={{
               items: [
@@ -322,7 +490,9 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
               ],
               deltaOpacity: 0,
             }}
-            yDomain={dimYDomain}
+            yDomain={gapOnly ? dimGapYDomain : dimYDomain}
+            yTickFormat={gapOnly ? fmtTickPct : undefined}
+            yAxisAlt={altAxis(dimGapYDomain)}
             transitionMs={0}
             tooltipFor={dimTooltipFor}
           />
@@ -331,12 +501,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
             rows={rows}
             xKind="age"
             xLabel="Age"
-            yLabel="People (millions)"
-            showTrack
-            showVotes
-            expectedOpacity={1}
-            gapOpacity={1}
-            gapLegendLabel="Shortfall"
+            {...measureProps}
             expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
             heroGap={{
               items: [
@@ -354,7 +519,9 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
               ],
               deltaOpacity: 0,
             }}
-            yDomain={yDomain}
+            yDomain={gapOnly ? gapYDomain : yDomain}
+            yTickFormat={gapOnly ? fmtTickPct : undefined}
+            yAxisAlt={altAxis(gapYDomain)}
             transitionMs={0}
             tooltipFor={tooltipFor}
           />

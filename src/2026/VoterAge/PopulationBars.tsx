@@ -100,6 +100,10 @@ interface Props {
   showTrack?: boolean;
   showVotes?: boolean;
   showExpected?: boolean;
+  /** Opacity 0-1 of the eligible track / votes bar, overriding showTrack /
+   * showVotes - for layers that fade under a timed or scrolled transition. */
+  trackOpacity?: number;
+  votesOpacity?: number;
   /** Opacity 0-1 of the expected line, overriding showExpected - for a line
    * that fades out under a scroll-driven transition. */
   expectedOpacity?: number;
@@ -135,6 +139,13 @@ interface Props {
    * 2024 -> 2022) so the transition reads as "the bars dropped", not "the
    * axis rescaled under them". Computed from the data if omitted. */
   yDomain?: [number, number];
+  /** The y axis's tick labels. Defaults to millions of people (fmtK). */
+  yTickFormat?: (v: number) => string;
+  /** A second y axis cross-faded in over the first - for a transition that
+   * changes units (the explorer's people -> shortfall-only switch). `u` 0-1:
+   * the main axis fades out over the first 40%, this one in over the last
+   * 40%, so the two never overlap. */
+  yAxisAlt?: { domain: [number, number]; tickFormat: (v: number) => string; u: number };
   /** category variant only - direct-labels each bar's missing figure above
    * its tip, per spec v2 S3.2 (small groups' bars are otherwise too small
    * to read a gap off directly). */
@@ -227,6 +238,8 @@ export default function PopulationBars({
   showTrack = true,
   showVotes = true,
   showExpected = true,
+  trackOpacity: trackOpacityProp,
+  votesOpacity: votesOpacityProp,
   expectedOpacity,
   expectedLineLabel = "expected at average turnout",
   showGap = false,
@@ -236,6 +249,8 @@ export default function PopulationBars({
   gapRegLegendLabel = "",
   registeredOpacity: registeredOpacityProp,
   yDomain: yDomainProp,
+  yTickFormat = fmtK,
+  yAxisAlt,
   directLabelMissing = false,
   heroGap,
   plotOverlay,
@@ -246,6 +261,8 @@ export default function PopulationBars({
   summaryTooltip,
 }: Props) {
   const registeredOpacity = registeredOpacityProp ?? 0;
+  const trackOpacity = trackOpacityProp ?? (showTrack ? 1 : 0);
+  const votesOpacity = votesOpacityProp ?? (showVotes ? 1 : 0);
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const clipId = useId();
@@ -340,6 +357,7 @@ export default function PopulationBars({
       root.append("g").attr("class", "voa-axis pb-axis-x2");
       root.append("g").attr("class", "voa-axis pb-axis-y2");
       root.append("g").attr("class", "voa-axis pb-axis-y3");
+      root.append("g").attr("class", "voa-axis pb-axis-y-alt");
       root.append("g").attr("class", "pb-summary-pct-labels");
       root.append("text").attr("class", "voa-axis-label pb-axis-label-y").attr("text-anchor", "middle");
       root.append("clipPath").attr("id", clipId).append("rect").attr("class", "pb-clip-rect");
@@ -416,7 +434,7 @@ export default function PopulationBars({
         .attr("dy", "0.15em");
     }
 
-    anim(root.select<SVGGElement>("g.pb-axis-y")).call(axisLeft(yScale).ticks(5).tickFormat(fmtK as any) as any);
+    anim(root.select<SVGGElement>("g.pb-axis-y")).call(axisLeft(yScale).ticks(5).tickFormat(yTickFormat as any) as any);
 
     root
       .select("text.pb-axis-label-y")
@@ -442,7 +460,7 @@ export default function PopulationBars({
       .merge(tracks as any)
       .attr("class", (d) => `pb-track${d.ratesPooled ? " pb-pooled" : ""}`)
       .attr("data-key", (d: PopulationBarRow) => d.key)
-      .style("opacity", (d: PopulationBarRow) => (showTrack ? 1 : 0) * (d.opacity ?? 1));
+      .style("opacity", (d: PopulationBarRow) => trackOpacity * (d.opacity ?? 1));
     anim(tracksMerged)
       .attr("x", (d: PopulationBarRow) => xOf(d))
       .attr("width", xScale.bandwidth())
@@ -494,7 +512,7 @@ export default function PopulationBars({
       .attr("height", 0)
       .merge(votes as any)
       .attr("class", votesClass)
-      .style("opacity", (d: PopulationBarRow) => (showVotes ? 1 : 0) * (d.opacity ?? 1));
+      .style("opacity", (d: PopulationBarRow) => votesOpacity * (d.opacity ?? 1));
     anim(votesMerged)
       .attr("x", (d: PopulationBarRow) => xOf(d))
       .attr("width", xScale.bandwidth())
@@ -642,7 +660,21 @@ export default function PopulationBars({
     const oldAxis = 1 - clamp01(fly / 0.4);
     const newAxis = clamp01((fly - 0.6) / 0.4);
     root.select("g.pb-axis-x").style("opacity", oldAxis);
-    root.select("g.pb-axis-y").style("opacity", oldAxis);
+    const altU = yAxisAlt ? clamp01(yAxisAlt.u) : 0;
+    root.select("g.pb-axis-y").style("opacity", oldAxis * (1 - clamp01(altU / 0.4)));
+    const yAxisAltSel = root.select<SVGGElement>("g.pb-axis-y-alt");
+    if (yAxisAlt && altU > 0) {
+      yAxisAltSel
+        .style("opacity", clamp01((altU - 0.6) / 0.4))
+        .style("display", "")
+        .call(
+          axisLeft(scaleLinear().domain(yAxisAlt.domain).range([innerH, 0]))
+            .ticks(5)
+            .tickFormat(yAxisAlt.tickFormat as any) as any
+        );
+    } else {
+      yAxisAltSel.style("display", "none");
+    }
     const xAxis2 = root.select<SVGGElement>("g.pb-axis-x2").attr("transform", `translate(0,${innerH})`);
     const yAxis2 = root.select<SVGGElement>("g.pb-axis-y2");
     const yAxis3 = root.select<SVGGElement>("g.pb-axis-y3");
@@ -893,6 +925,11 @@ export default function PopulationBars({
     registeredOpacity,
     shortRows,
     yDomainProp,
+    yTickFormat,
+    yAxisAlt?.u,
+    yAxisAlt?.domain[1],
+    trackOpacity,
+    votesOpacity,
     directLabelMissing,
     tooltipFor,
     yLabel,
@@ -922,7 +959,11 @@ export default function PopulationBars({
   return (
     <div ref={wrapRef} className="voa-chart-surface pb-surface">
       <div className="voa-legend">
-        <span className="pb-legend-entry" style={{ opacity: pctOn ? 0 : 1 }} aria-hidden={pctOn || undefined}>
+        <span
+          className="pb-legend-entry"
+          style={{ opacity: pctOn ? 0 : trackOpacity }}
+          aria-hidden={pctOn || trackOpacity < 0.5 || undefined}
+        >
           <span className="voa-legend-swatch pb-legend-track" /> Eligible citizens
         </span>
         {canShowRegistered && (
@@ -936,8 +977,8 @@ export default function PopulationBars({
         )}
         <span
           className="pb-legend-entry"
-          style={{ marginLeft: "0.9rem", opacity: showVotes && !pctOn ? 1 : 0 }}
-          aria-hidden={!showVotes || pctOn || undefined}
+          style={{ marginLeft: "0.9rem", opacity: pctOn ? 0 : votesOpacity }}
+          aria-hidden={votesOpacity < 0.5 || pctOn || undefined}
         >
           <span className="voa-legend-swatch pb-legend-votes" /> Votes cast
         </span>
