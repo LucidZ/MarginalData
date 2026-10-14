@@ -166,6 +166,12 @@
 .voa-step:last-child {
   min-height: 40vh;
 }
+/* A closing step that must read beside a pinned chart: the centred chart
+   only stays pinned while the section runs on below it, so the step needs
+   at least the chart's height for its middle to reach the viewport's. */
+.voa-step.voa-step--end {
+  min-height: 100vh;
+}
 .voa-step-inner h3 {
   font-size: clamp(1rem, 2vw, 1.2rem);
   margin: 0 0 0.6rem;
@@ -583,6 +589,22 @@
   stroke: var(--surface-1);
   stroke-width: 4px;
   stroke-linejoin: round;
+}
+/* The election still to come at the end of the gold summary: an empty slot. */
+.pb-pending {
+  pointer-events: none;
+}
+.pb-pending-slot {
+  fill: none;
+  stroke: var(--gap-edge);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  rx: 2;
+}
+.pb-pending-mark {
+  fill: var(--gap-edge);
+  font-size: 28px;
+  font-weight: 700;
 }
 .voa-axis .pb-axis-sublabel {
   font-size: 9.5px;

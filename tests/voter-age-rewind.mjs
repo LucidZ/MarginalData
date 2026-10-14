@@ -127,7 +127,14 @@ console.log(`PASS: rewind pass rests on ${rewindYears.join(" ")} in the gold vie
   if (b.rects.length !== 3 || !b.ageHidden || !b.rects[1].cls.includes("pb-seg--gap"))
     fail(`gold merge: should be one votes/gold/eligible bar ${JSON.stringify(b)}`);
   await page.locator(".voa-beat .voa-scrolly-viz").screenshot({ path: `${OUT}/voter-age-gold-merge.png` });
-  await toStep(page, lastRewind + 2);
+  // Halfway to the next step: every bar in, not yet cut to percent.
+  await page.evaluate((i) => {
+    const [a, c] = [i, i + 1].map((k) => {
+      const r = document.querySelectorAll(".voa-beat .voa-step")[k].getBoundingClientRect();
+      return r.top + window.scrollY + r.height / 2;
+    });
+    window.scrollTo(0, (a + c) / 2 - window.innerHeight / 2);
+  }, lastRewind + 1);
   await page.waitForTimeout(400);
   b = await bars();
   const chrono = [...years].sort();
@@ -143,14 +150,14 @@ console.log(`PASS: rewind pass rests on ${rewindYears.join(" ")} in the gold vie
   console.log("PASS: gold summary merges the first year, then every election's bar matches the data");
 
   // Then each bar cut to its gold, as a share of that election's votes cast.
-  await toStep(page, lastRewind + 3);
+  await toStep(page, lastRewind + 2);
   await page.waitForTimeout(400);
   const pct = await page.evaluate(() => ({
     rects: [...document.querySelectorAll("g.pb-summary rect")].map((r) => ({
       cls: r.getAttribute("class"),
       h: +r.getAttribute("height"),
     })),
-    labels: [...document.querySelectorAll("g.pb-summary-pct-labels text")].map((t) => t.textContent),
+    labels: [...document.querySelectorAll("g.pb-summary-pct-labels text.pb-pct-label")].map((t) => t.textContent),
   }));
   const wantPct = chrono.map((y) => (goldOf(y)[1] / data.byAge[y].totalVotes) * 100);
   if (pct.rects.length !== chrono.length || pct.rects.some((r) => !r.cls.includes("pb-seg--gap")))
@@ -163,6 +170,26 @@ console.log(`PASS: rewind pass rests on ${rewindYears.join(" ")} in the gold vie
   if (JSON.stringify(pct.labels) !== JSON.stringify(wantLabels)) fail(`gold percent labels ${pct.labels}, want ${wantLabels}`);
   await page.locator(".voa-beat .voa-scrolly-viz").screenshot({ path: `${OUT}/voter-age-gold-pct.png` });
   console.log(`PASS: gold percent bars match the data (${pct.labels.join(" ")})`);
+
+  // Last: the bars slide left for an empty 2026 slot, with no value drawn.
+  await toStep(page, lastRewind + 3);
+  await page.waitForTimeout(400);
+  const next = await page.evaluate(() => {
+    const slot = document.querySelector(".pb-pending-slot");
+    const gold = [...document.querySelectorAll("g.pb-summary rect")];
+    const plot = document.querySelector("g.pb-summary").closest("svg").getBoundingClientRect();
+    return {
+      slot: slot && +getComputedStyle(slot.parentNode).opacity,
+      mark: document.querySelector(".pb-pending-mark")?.textContent,
+      bars: gold.length,
+      slotInside: slot && slot.getBoundingClientRect().right <= plot.right,
+      tick: [...document.querySelectorAll("g.pb-axis-x2 g.tick")].some((t) => t.textContent.startsWith("2026") && +t.style.opacity === 1),
+    };
+  });
+  if (next.slot !== 1 || next.mark !== "?" || next.bars !== chrono.length || !next.slotInside || !next.tick)
+    fail(`2026 slot: ${JSON.stringify(next)}`);
+  await page.locator(".voa-beat .voa-scrolly-viz").screenshot({ path: `${OUT}/voter-age-gold-2026.png` });
+  console.log("PASS: an empty 2026 slot opens beside the gold percent bars");
 }
 
 // Back above section 3: the scroll alone brings it forward to 2022, gold view restored.

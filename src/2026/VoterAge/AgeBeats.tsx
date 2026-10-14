@@ -47,7 +47,8 @@ import type { VoterAgeData } from "./types";
  * per election, so the gold swelling in every midterm reads as a pattern.
  * At 2012 the columns merge into one gold-view bar and every election's bar
  * fades in beside it - the rewind's pattern in one picture - then each bar
- * shrinks to its gold as a share of votes cast. That's the end of the story:
+ * shrinks to its gold as a share of votes cast, and an empty slot opens for
+ * the 2026 midterm. That's the end of the story:
  * the vote call to action follows (App.tsx).
  * (A timed, auto-playing rewind was tried at `5e682ad` and dropped: one
  * mechanic going back and another going forward confused readers.)
@@ -133,11 +134,13 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   /** The rewind pass's year cards, 2022 back to the first year; the first
    * rides on REWIND_STEP, then one hop per card. */
   const rewindYears = useMemo(() => years.slice(1), [years]);
-  /** After the last rewind card, three steps of the gold-view summary: the
-   * first year's columns merged into one bar, every election's bar, then
-   * each bar's gold alone as a share of votes cast. The last step. */
+  /** After the last rewind card, the gold-view summary: the first year's
+   * columns merged into one bar; then every election's bar, each cut to its
+   * gold as a share of votes cast; then an empty slot for the coming
+   * midterm. The last step. */
   const GOLD_STEP = REWIND_STEP + rewindYears.length;
-  const stepCount = GOLD_STEP + 3;
+  const NEXT_STEP = GOLD_STEP + 2;
+  const stepCount = NEXT_STEP + 1;
 
   // On phones the chart is pinned across the top, so the text a reader can
   // see is the band below it - measure steps against that band's middle.
@@ -194,12 +197,14 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   const hop = Math.min(Math.floor(pos), hopCount - 1);
   const u = pos - hop;
   const t = ease(u);
-  // The gold summary: merged in from the last rewind card to GOLD_STEP, the
-  // other bars revealed from there to the next step, then cut to their gold
-  // as a percent.
+  // The gold summary: merged in from the last rewind card to GOLD_STEP; on
+  // the way to the next step the other bars are revealed (first half), then
+  // cut to their gold as a percent (second half).
   const goldMerge = spanU(GOLD_STEP - 1);
-  const goldReveal = spanU(GOLD_STEP);
-  const goldPct = spanU(GOLD_STEP + 1);
+  const goldAfter = spanU(GOLD_STEP);
+  const goldReveal = clamp01(goldAfter * 2);
+  const goldPct = clamp01(goldAfter * 2 - 1);
+  const nextU = spanU(NEXT_STEP - 1);
 
   const activeRows = useMemo(() => {
     if (t <= 0) return restRows[hop];
@@ -270,8 +275,9 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       merge: goldMerge,
       reveal: goldReveal,
       pct: { u: goldPct, values: shortfallPcts },
+      pending: { key: goldSummaryCopy.nextYear, kind: "midterm" as const, u: nextU },
     }),
-    [goldBars, goldFrom, goldMerge, goldReveal, goldPct, shortfallPcts]
+    [goldBars, goldFrom, goldMerge, goldReveal, goldPct, shortfallPcts, nextU]
   );
 
   const goldSummaryTooltip = useCallback(
@@ -293,14 +299,8 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
   const shortfall2024 = shortfalls["2024"];
   const shortfall2022 = shortfalls["2022"];
 
-  // Shortfall ranges by election type, for the gold summary's copy.
+  // Shortfall % ranges by election type, for the gold summary's copy.
   const goldVals = useMemo(() => {
-    const range = (kind: string) => {
-      const v = Object.entries(data.byAge)
-        .filter(([, c]) => c.kind === kind)
-        .map(([y]) => shortfalls[y]);
-      return `${fmtM(Math.min(...v))}–${fmtM(Math.max(...v))}`;
-    };
     const pctRange = (kind: string) => {
       const v = Object.entries(data.byAge)
         .filter(([, c]) => c.kind === kind)
@@ -308,12 +308,10 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
       return `${fmtPct(Math.min(...v))}–${fmtPct(Math.max(...v))}`;
     };
     return {
-      midterms: range("midterm"),
-      presidentials: range("presidential"),
       midtermPcts: pctRange("midterm"),
       presidentialPcts: pctRange("presidential"),
     };
-  }, [data, shortfalls, shortfallPcts]);
+  }, [data, shortfallPcts]);
 
   const under35Missing = shortfallOf(cycle2024.rows.filter((r) => r.age < 35));
 
@@ -511,14 +509,13 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
           </div>
           <div className="voa-step" ref={stepRef(GOLD_STEP + 1)}>
             <div className="voa-step-inner">
-              <h3>{goldSummaryCopy.revealHeading}</h3>
-              {goldSummaryCopy.reveal(goldVals)}
-            </div>
-          </div>
-          <div className="voa-step" ref={stepRef(GOLD_STEP + 2)}>
-            <div className="voa-step-inner">
               <h3>{goldSummaryCopy.pctHeading}</h3>
               {goldSummaryCopy.pct(goldVals)}
+            </div>
+          </div>
+          <div className="voa-step voa-step--end" ref={stepRef(NEXT_STEP)}>
+            <div className="voa-step-inner">
+              <h3>{goldSummaryCopy.nextHeading}</h3>
             </div>
           </div>
         </div>

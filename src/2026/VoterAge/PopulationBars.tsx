@@ -213,6 +213,10 @@ interface Props {
      * `layer` counts segments from the bottom (1 = votes, 2 = registered,
      * 3 = eligible). Drawn bar centre to bar centre, labelled above. */
     arrows?: { layer: number; opacity: number; pairs: { from: string; to: string; label: string }[] }[];
+    /** An election still to come, as an empty slot right of the bars. `u`
+     * 0-1 slides the bars left to make room (the slot starts clipped off
+     * the right edge), then fades in a dashed outline and its "?". */
+    pending?: { key: string; kind: SummaryBar["kind"]; u: number };
   };
   summaryTooltip?: (bar: SummaryBar) => ReactNode;
 }
@@ -690,12 +694,23 @@ export default function PopulationBars({
       .domain([0, Math.max(1, ...Object.values(pctVals)) * 1.15])
       .range([innerH, 0]);
     const sumBars = summary?.bars ?? [];
-    const xs = scaleBand<string>().domain(sumBars.map((b) => b.key)).range([0, innerW]).padding(0.3);
+    // A pending slot is always in the domain, so nothing re-lays out when it
+    // arrives: at u 0 the range runs past innerW by exactly one band step
+    // (step = width / (n + 0.3) at padding 0.3), which lays the real bars
+    // out as if the slot weren't there and parks it in the clip.
+    const pending = summary?.pending;
+    const pendSlide = pending ? easeInOut(clamp01(pending.u / 0.6)) : 0;
+    const pendShow = pending ? clamp01((pending.u - 0.6) / 0.4) : 0;
+    const xs = scaleBand<string>()
+      .domain([...sumBars.map((b) => b.key), ...(pending ? [pending.key] : [])])
+      .range([0, pending ? lerp((innerW * (sumBars.length + 1.3)) / (sumBars.length + 0.3), innerW, pendSlide) : innerW])
+      .padding(0.3);
     const totalOf = (b: SummaryBar) => b.segments.reduce((a, v) => a + v, 0);
     const ys = scaleLinear()
       .domain([0, Math.max(1, ...sumBars.map(totalOf)) * 1.08])
       .range([innerH, 0]);
     const kindOf = new Map(sumBars.map((b) => [b.key, b.kind]));
+    if (pending) kindOf.set(pending.key, pending.kind);
     if (summary && m > 0) {
       xAxis2.style("opacity", newAxis).style("display", "").call(axisBottom(xs) as any);
       // Midterm years get a second line under the year. The axis call resets
@@ -710,6 +725,13 @@ export default function PopulationBars({
           .attr("dy", "1.15em")
           .text("midterm");
       });
+      // The pending slot's tick arrives with its outline, not before.
+      if (pending) {
+        xAxis2
+          .selectAll<SVGGElement, string>("g.tick")
+          .filter((key) => key === pending.key)
+          .style("opacity", pendShow);
+      }
       yAxis2
         .style("opacity", newAxis * (1 - clamp01((pctU - 0.6) / 0.15)))
         .style("display", "")
@@ -815,11 +837,34 @@ export default function PopulationBars({
     }
     drawPieces("pb-summary", stacks);
 
+    // The pending election: an empty dashed column and a "?", no value.
+    const pendData = pending && pendShow > 0 ? [pending.key] : [];
+    const pendG = root
+      .select<SVGGElement>("g.pb-summary-pct-labels")
+      .selectAll<SVGGElement, string>("g.pb-pending")
+      .data(pendData);
+    pendG.exit().remove();
+    const pendEnter = pendG.enter().append("g").attr("class", "pb-pending");
+    pendEnter.append("rect").attr("class", "pb-pending-slot");
+    pendEnter.append("text").attr("class", "pb-pending-mark").attr("text-anchor", "middle").text("?");
+    const pendAll = pendEnter.merge(pendG as any).style("opacity", pendShow);
+    pendAll
+      .select("rect")
+      .attr("x", (k: string) => xs(k) ?? 0)
+      .attr("width", xs.bandwidth())
+      .attr("y", 0)
+      .attr("height", innerH);
+    pendAll
+      .select("text")
+      .attr("x", (k: string) => (xs(k) ?? 0) + xs.bandwidth() / 2)
+      .attr("y", innerH / 2)
+      .attr("dy", "0.35em");
+
     // Percent labels over the gold bars, once they've landed.
     const pctLabelO = clamp01((pctU - 0.9) / 0.1);
     const pctLabels = root
       .select<SVGGElement>("g.pb-summary-pct-labels")
-      .selectAll<SVGTextElement, SummaryBar>("text")
+      .selectAll<SVGTextElement, SummaryBar>("text.pb-pct-label")
       .data(pctLabelO > 0 ? shown.map((d) => d.b) : [], (d) => d.key);
     pctLabels.exit().remove();
     pctLabels

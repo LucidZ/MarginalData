@@ -202,12 +202,12 @@ export interface DimensionVals {
 }
 
 export const explorerCopy = {
-  title: "Explore every election",
-  intro: (v: ExplorerVals) => (
+  title: "Exploration Sandbox",
+  intro: () => (
     <p>
-      The same chart for every election since {v.firstYear}. Pick a year: the bars follow each generation, sliding
-      two years younger for every election back. Or slice the same electorate another way: by education, family
-      income or race.
+      Eat your veggies and double check your registration first... but then feel free to explore other demographic
+      characteristics and their associated shortfall. Age is just one way to look at voter representation data and
+      it's not even the most skewed!
     </p>
   ),
   dimsLabel: "Slice by",
@@ -224,6 +224,7 @@ export const explorerCopy = {
   },
   /** The shortfall-only view: each bar's gold, as a share of all votes cast. */
   gapYLabel: "Shortfall (% of all votes cast)",
+  gapLegend: "Shortfall, as a share of all votes cast",
   /** Tooltip line in the shortfall-only view. */
   gapTip: (short: string, pct: string) => `Shortfall: ${short} (${pct} of all votes cast)`,
   /** The dotted line's legend in a non-age view. */
@@ -313,36 +314,27 @@ export const rewindCardCopy = (year: string, v: RewindCardVals) => (
 );
 
 export interface GoldSummaryVals {
-  midterms: string; // shortfall range in midterms, e.g. "30.8M–40.3M"
-  presidentials: string;
-  midtermPcts: string; // the same as % of votes cast, e.g. "24.7%–42.9%"
+  midtermPcts: string; // shortfall range in midterms as % of votes cast, e.g. "24.7%–42.9%"
   presidentialPcts: string;
 }
 
 // Placeholder copy - the gold-view summary at the end of the rewind.
 export const goldSummaryCopy = {
-  mergeHeading: "Let's group everything together to get a clearer picture.",
+  mergeHeading: "Let's group everything together to get a clearer picture...",
   merge: (v: { year: string }) => (
     <p>
-      [Placeholder] Stack every age from {v.year} into a single bar: the people who voted, then the gold shortfall
-      on top of them.
+      The shortfall is still votes needed for each age group to match the 65+ voting rate.
     </p>
   ),
-  revealHeading: "More gold in every midterm",
-  reveal: (v: GoldSummaryVals) => (
-    <p>
-      [Placeholder] The gold grows in every midterm: <span className="voa-gap-text">{v.midterms}</span> votes short,
-      against <span className="voa-gap-text">{v.presidentials}</span> in presidential years.
-    </p>
-  ),
-  pctHeading: "As a share of votes cast",
+  pctHeading: "and then look at the shortfall as a share of votes cast",
   pct: (v: GoldSummaryVals) => (
     <p>
-      [Placeholder] Measured against the votes actually cast, midterms fall{" "}
-      <span className="voa-gap-text">{v.midtermPcts}</span> short, presidential years{" "}
-      <span className="voa-gap-text">{v.presidentialPcts}</span>.
+      Shortfalls in midterm elections can be more than double the shortfalls seen in presidential elections.
     </p>
   ),
+  /** The empty slot the summary opens at the end. */
+  nextYear: "2026",
+  nextHeading: "What will 2026 look like?",
   pctYLabel: "Shortfall (% of votes cast)",
   xLabel: "Election",
 };

@@ -430,7 +430,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
   return (
     <section className="voa-explorer">
       <h2 className="voa-beat-title">{explorerCopy.title}</h2>
-      {explorerCopy.intro(vals)}
+      {explorerCopy.intro()}
       <div className="voa-explorer-chart">
         {/* State for tests: pos = elections back from 2024. */}
         <span
