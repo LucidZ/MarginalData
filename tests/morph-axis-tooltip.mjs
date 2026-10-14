@@ -11,7 +11,7 @@ const MORPH_STEP = 3; // AgeBeats.tsx
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1000, height: H } });
-await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 
 const { from, to } = await page.evaluate(

@@ -1,7 +1,7 @@
 # Voter Participation by Age — Development Spec
 
 Story working title: **"The Electorate Is Older Than the Country"**
-Route: `/2026/VoterAge` · Branch: `voter-age-participation` · Group: `Government & Politics`
+Route: `/2026/ShapeOfTheElectorate` · Branch: `voter-age-participation` · Group: `Government & Politics`
 
 Every number in this spec was computed from the source files listed in §2 during planning
 (2026-09-03) and is quoted to the precision shown. Re-derive them in the pipeline; do not
@@ -291,7 +291,7 @@ between age cohorts.
 2. `scripts/generate_voter_age_data.py` + README section. Pull **all five cycles**
    (2016/2018/2020/2022/2024), Tables 1 and 4c. Verify against §1, §6, §7, §8 — they should
    reproduce exactly. **If they don't, stop and reconcile before building UI.**
-3. Scaffold `src/2026/VoterAge/{index.ts,App.tsx,App.css,types.ts}`, register in `src/routes.ts`
+3. Scaffold `src/2026/ShapeOfTheElectorate/{index.ts,App.tsx,App.css,types.ts}`, register in `src/routes.ts`
    (`title`, `description`, `group`, `date`, first-person `note` — read neighbours for voice).
 4. Beat 1 scatter (`AgeScatter.tsx`) — bins → single years, static first, then scroll wiring.
 5. Beat 2 — reuse `AgeScatter` with a year/type toggle, or a five-cycle small-multiples strip.

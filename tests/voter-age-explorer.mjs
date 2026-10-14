@@ -25,7 +25,7 @@ const consoleErrors = [];
 page.on("console", (m) => m.type() === "error" && consoleErrors.push(m.text()));
 page.on("pageerror", (e) => consoleErrors.push(String(e)));
 
-await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-explorer .pb-surface");
 const data = await page.evaluate(() => fetch("/data/voter-age.json").then((r) => r.json()));
 const years = Object.keys(data.byAge).sort(); // chronological
@@ -283,7 +283,7 @@ console.log("PASS: zero console errors, no NaN transforms");
 
 // 7. Reduced motion: a pick lands at once, no hops played.
 const rm = await browser.newPage({ viewport: { width: 1000, height: 900 }, reducedMotion: "reduce" });
-await rm.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await rm.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await rm.waitForSelector(".voa-explorer .pb-surface");
 await rm.click(`${X} .voa-yc-btn[aria-label^="2012"]`);
 await rm.waitForTimeout(50);
@@ -294,7 +294,7 @@ await rm.close();
 
 // 8. 360px phone: no horizontal scroll, all seven buttons visible and unclipped.
 const phone = await browser.newPage({ viewport: { width: 360, height: 800 } });
-await phone.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await phone.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await phone.waitForSelector(".voa-explorer .pb-surface");
 await phone.$eval(".voa-explorer", (e) => e.scrollIntoView());
 await phone.waitForTimeout(400);

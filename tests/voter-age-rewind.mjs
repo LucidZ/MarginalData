@@ -19,7 +19,7 @@ async function open(opts = {}) {
   const errors = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-beat .pb-surface");
   return { page, errors };
 }

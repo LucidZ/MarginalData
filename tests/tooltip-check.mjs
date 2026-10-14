@@ -32,7 +32,7 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
 {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
-  await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
   // Beat1 step 5 (full reveal, count callout) - hover an age bar. stepCount
@@ -62,7 +62,7 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
 {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
   const section = await scrollBeatToStep(page, "Voters Skew Older", 5, 9);

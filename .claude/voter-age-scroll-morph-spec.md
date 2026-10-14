@@ -15,7 +15,7 @@ mounted from first paint and fades in at step 4, so the merged chart's height
 never changes).
 
 Implementation brief. Everything below is scoped to
-`src/2026/VoterAge/` in the `voter-age-participation` worktree
+`src/2026/ShapeOfTheElectorate/` in the `voter-age-participation` worktree
 (`/Users/lucas/code/MarginalData-voter-age`, branch `voter-age-participation`).
 
 ## 1. The problem
@@ -63,7 +63,7 @@ is a per-field lerp and nothing else.
 
 ## 4. Changes
 
-### 4.1 New file: `src/2026/VoterAge/useStepProgress.ts`
+### 4.1 New file: `src/2026/ShapeOfTheElectorate/useStepProgress.ts`
 
 A continuous sibling to `useActiveStep`. Returns a **fractional** step index
 in `[0, count-1]`: `0` when step 0's center sits at viewport center, `1` when

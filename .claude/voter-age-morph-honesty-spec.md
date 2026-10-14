@@ -28,7 +28,7 @@ y-domain and the hero gold figure are shared with beat 1 (the figure is
 mounted from first paint and fades in at step 4, so the merged chart's height
 never changes).
 
-Implementation brief. Scope: `src/2026/VoterAge/` in the `voter-age-participation`
+Implementation brief. Scope: `src/2026/ShapeOfTheElectorate/` in the `voter-age-participation`
 worktree (`/Users/lucas/code/MarginalData-voter-age`).
 
 **This supersedes `.claude/voter-age-scroll-morph-spec.md`** on two of its

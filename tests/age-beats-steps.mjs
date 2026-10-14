@@ -12,7 +12,7 @@ mkdirSync(OUT, { recursive: true });
 const VIEWPORT = { width: 1000, height: 900 };
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: VIEWPORT });
-await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 await page.waitForTimeout(300);
 

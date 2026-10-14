@@ -2,7 +2,7 @@
 
 Written 2026-09-25 for execution in a fresh context. Worktree
 `/Users/lucas/code/MarginalData-voter-age`, branch `voter-age-participation` (last
-commit `b835ae5`). Route `/2026/VoterAge`. Read this whole file before touching code.
+commit `b835ae5`). Route `/2026/ShapeOfTheElectorate`. Read this whole file before touching code.
 
 ## 0. What and why
 
@@ -145,10 +145,10 @@ Sanity notes, not bugs:
 
 ### 5.1 Files
 
-- `src/2026/VoterAge/Explorer.tsx`: the section. A normal (non-sticky, non-scrolly) block:
+- `src/2026/ShapeOfTheElectorate/Explorer.tsx`: the section. A normal (non-sticky, non-scrolly) block:
   title, one-paragraph intro, year control, chart, hero figures.
-- `src/2026/VoterAge/YearControl.tsx`: the segmented buttons.
-- `src/2026/VoterAge/ageRows.ts`: move `toBarRow` out of `AgeBeats.tsx` so both sections
+- `src/2026/ShapeOfTheElectorate/YearControl.tsx`: the segmented buttons.
+- `src/2026/ShapeOfTheElectorate/ageRows.ts`: move `toBarRow` out of `AgeBeats.tsx` so both sections
   share it. Pure move; don't change it.
 - Tooltip: `AgeBeats.tsx`'s `tooltipFor` is tangled with the step/morph state. Don't try to
   share it. Write a small registration-view tooltip in `Explorer.tsx` that mirrors the

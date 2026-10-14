@@ -22,7 +22,7 @@ async function open(ctxOpts) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => errors.push(String(e)));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
   const term = page.locator("button.gloss-term", { hasText: "eligible" }).first();
   await term.scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);

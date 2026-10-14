@@ -4,7 +4,7 @@ const OUT = "tests/screenshots";
 const dark = process.env.DARK === "1";
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1000, height: 900 }, colorScheme: dark ? "dark" : "light" });
-await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 const sfx = dark ? "-dark" : "";
 

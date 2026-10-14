@@ -1,7 +1,7 @@
 # Voter Participation — Spec v2 (SUPERSEDES v1)
 
 Story working title: **"The Shape of the Electorate"**
-Route: `/2026/VoterAge` · Branch: `voter-age-participation` · Group: `Government & Politics`
+Route: `/2026/ShapeOfTheElectorate` · Branch: `voter-age-participation` · Group: `Government & Politics`
 
 **Read this instead of `voter-age-spec.md`.** v1 is retained only as the record of two analyses
 that were tested and rejected (state-level cross-section, NJ/Montana mail-in natural experiment)

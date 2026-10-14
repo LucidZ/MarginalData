@@ -16,7 +16,7 @@ page.on("console", (msg) => {
   if (msg.type() === "error") errors.push(msg.text());
 });
 
-await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1", { timeout: 10000 });
 await page.screenshot({ path: `${OUT}/voter-age-top.png` });
 

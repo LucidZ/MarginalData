@@ -6,7 +6,7 @@ Data processing and build scripts for MarginalData visualizations.
 
 ### `generate_voter_age_data.py`
 
-Builds the dataset for "The Shape of the Electorate" (`/2026/VoterAge`): eligible citizens,
+Builds the dataset for "The Shape of the Electorate" (`/2026/ShapeOfTheElectorate`): eligible citizens,
 registered voters and votes by single year of age (18-100) for every November election
 2012-2024.
 

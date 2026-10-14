@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 const BASE = process.env.BASE_URL || "http://localhost:4321";
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1000, height: 900 }, colorScheme: "dark" });
-await page.goto(`${BASE}/2026/VoterAge/`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
 await page.waitForSelector(".voa-root h1");
 
 // v1 had a real dark-mode bug - shared color classes set SVG `fill` only,

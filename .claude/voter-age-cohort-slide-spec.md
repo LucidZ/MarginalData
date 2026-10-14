@@ -1,7 +1,7 @@
 # VoterAge Beat 2 v3: the cohort slide
 
 **Status:** implementation brief, ready to execute. Author-approved 2026-09-18.
-**Scope:** `src/2026/VoterAge/` in the `voter-age-participation` worktree
+**Scope:** `src/2026/ShapeOfTheElectorate/` in the `voter-age-participation` worktree
 (`/Users/lucas/code/MarginalData-voter-age`). Two source files change
 (`PopulationBars.tsx`, `AgeBeats.tsx`) plus copy and one new test.
 
