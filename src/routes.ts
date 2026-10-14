@@ -138,8 +138,9 @@ export const ROUTES: RouteEntry[] = [
       "The country skews younger, but its voters skew older. How many votes go uncast compared with the best-voting group, in every election since 2012, by age, education, income and race.",
     component: () => import("./2026/VoterAge"),
     group: "Government & Politics",
+    image: "/og/shape-of-the-electorate.jpg",
     date: "2026-09-03",
-    note: "I wanted to see age-vs-turnout as a single scatterplot against a proportionality line. The state-level mail-in-voting angle I expected to confirm didn't hold up under a placebo test, so the story became as much about that null result as the original chart.",
+    note: "This is a little exploration into how the demographics of voters don't quite match the demographics of the country as a whole.",
   },
   {
     path: "/2025/DecisionVectorizer",

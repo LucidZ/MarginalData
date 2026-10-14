@@ -83,6 +83,25 @@ export const RECIPES = {
     pose: (page) => scrollFraction(page, 0.35),
   },
 
+  "/2026/ShapeOfTheElectorate": {
+    // The plot svg only, not .pb-surface: the whole surface (legend + plot
+    // + the big percent readout) is portrait, and object-fit:cover would
+    // keep just its middle band. The plot alone is close to landscape.
+    clip: ".voa-beat .pb-plot-wrap svg",
+    deviceScaleFactor: 2,
+    // Beat 1's fourth step: the age chart with the gold shortfall stacked
+    // on the green votes, the story's signature frame. Step cards are
+    // scroll-driven, so center the step in the viewport like the tests do,
+    // then wait out the bars' transition.
+    pose: async (page) => {
+      await page.evaluate(() => {
+        const r = document.querySelectorAll(".voa-beat .voa-step")[3].getBoundingClientRect();
+        window.scrollBy(0, r.top + r.height / 2 - window.innerHeight / 2);
+      });
+      await page.waitForTimeout(1800);
+    },
+  },
+
   "/2025/SpaceTraveler": {
     // Only one <canvas> on the page — the starfield/trajectory view.
     clip: "canvas",

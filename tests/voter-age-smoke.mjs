@@ -35,7 +35,8 @@ console.log("beat titles found:", beatTitles);
 const expectedTitleFragments = [
   "Voters Skew Older",
   "Midterm Voters Skew Even Older",
-  "Explore every election",
+  "It's not just 2022",
+  "Exploration Sandbox",
 ];
 for (const fragment of expectedTitleFragments) {
   const found = beatTitles.some((t) => t.includes(fragment));
