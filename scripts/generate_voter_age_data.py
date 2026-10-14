@@ -745,7 +745,7 @@ def main():
             "construction": (
                 "byAge: citizen_pop(age,year) = PEP single-year population(age,year) x "
                 "CPS citizen-share(age,year); votes(age,year) = citizen_pop x CPS turnout(age,year). "
-                "See spec v2 S5 for why levels come from PEP and rates from CPS. "
+                "Levels come from PEP (an administrative estimate, low noise) and rates from CPS (a survey: noisy on levels, steady on ratios). "
                 "byDimension: CPS weighted counts straight from the person file, no PEP - PEP has "
                 "no education or income breakdown, and CPS weights are already controlled to "
                 "Census population estimates for the civilian non-institutional population. "

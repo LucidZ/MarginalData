@@ -25,16 +25,15 @@ export const hero = {
   title: "The Shape of the Electorate",
   intro: (
     <>
-The U.S. was founded in part on the principle of representative democracy, 
-yet for most of its early history, the right to vote was restricted to white 
-male landowners. Over the past 250 years, marginalized groups—including women, 
-Black Americans, and young people—have fought, protested, and pushed for legal 
-reforms to secure equal voting rights and political representation.
-
-Despite those historic struggles, voter participation remains surprisingly low, 
-with only about 60% of eligible voters casting ballots in typical presidential 
-elections. This page explores the shape of the electorate versus the 
-broader population it is meant to represent.
+      The U.S. was founded in part on the principle of representative democracy, yet for most of its early history,
+      the right to vote was restricted to white male landowners. Over the past 250 years, marginalized
+      groups—including women, Black Americans, and young people—have fought, protested, and pushed for legal reforms
+      to secure equal voting rights and political representation.
+      <br />
+      <br />
+      Despite those historic struggles, voter participation remains surprisingly low, with only about 60% of eligible
+      voters casting ballots in typical presidential elections. This page explores the shape of the electorate versus
+      the broader population it is meant to represent.
     </>
   ),
 };
@@ -87,8 +86,23 @@ export function sourcesFootnote(meta: VoterAgeData["meta"]): ReactNode {
       Population by single year of age is from the Census Population Estimates Program (PEP), combined with CPS
       turnout and citizen-share rates — see {meta.construction}
       <br />
-      Retrieved {meta.retrieved}. Full derivation, guardrails and known data quirks documented in{" "}
-      <code>.claude/voter-age-spec-v2.md</code> and <code>scripts/generate_voter_age_data.py</code>.
+      Retrieved {meta.retrieved}. Full derivation, guardrails and known data quirks are documented in the{" "}
+      <a
+        href="https://github.com/LucidZ/MarginalData/blob/main/scripts/generate_voter_age_data.py"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        [data pipeline]
+      </a>{" "}
+      and{" "}
+      <a
+        href="https://github.com/LucidZ/MarginalData/blob/main/.claude/voter-age-spec-v2.md"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        [spec]
+      </a>
+      .
     </>
   );
 }
@@ -143,10 +157,7 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
   },
   {
     heading: "But, voters skew older...",
-    body: () => (
-      <p>
-      </p>
-    ),
+    body: () => null,
   },
   {
     heading: "with people 65-and-over voting the most.",
@@ -166,7 +177,7 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     body: () => (
       <>
         <p>
-          And while 100% voter turnout would be ideal, even In elections where the margins of victory tends to be small, this can be significant.
+          And while 100% turnout may be unrealistic, in close elections a gap this size can be decisive.
         </p>
       </>
     ),
@@ -177,7 +188,7 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
         In 2022, a midterm election, the shortfall was <span className="voa-gap-text">{v.shortfall2022Pct}</span> of votes cast.
       </>
     ),
-    body: (v) => (
+    body: () => (
       <p>
         Turnout was lower across all ages, but the older skew of voters was even more pronounced. 
       </p>
@@ -271,7 +282,7 @@ export interface RewindVals {
 }
 
 export const rewindCopy = {
-  heading: (v: RewindVals) => <>This pattern isn't new</>,
+  heading: (_v: RewindVals) => <>This pattern isn't new</>,
   body: () => (
     <p>
       You can see this same pattern going back to at least 2012.
@@ -321,13 +332,13 @@ export interface GoldSummaryVals {
 // Placeholder copy - the gold-view summary at the end of the rewind.
 export const goldSummaryCopy = {
   mergeHeading: "Let's group everything together to get a clearer picture...",
-  merge: (v: { year: string }) => (
+  merge: (_v: { year: string }) => (
     <p>
       The shortfall is still votes needed for each age group to match the 65+ voting rate.
     </p>
   ),
   pctHeading: "and then look at the shortfall as a share of votes cast",
-  pct: (v: GoldSummaryVals) => (
+  pct: (_v: GoldSummaryVals) => (
     <p>
       Shortfalls in midterm elections can be more than double the shortfalls seen in presidential elections.
     </p>
