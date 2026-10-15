@@ -4,15 +4,12 @@ import StickyViz from "./StickyViz";
 import RewindOverlay, { rewindHaze } from "./RewindOverlay";
 import { useStepProgress } from "./useStepProgress";
 import { cohortRows, hopRows } from "./ageRows";
-import { fmtM, fmtPct, fmtPP } from "./format";
+import { fmtM, fmtPct } from "./format";
 import {
   ageBeatsSteps,
-  ageBeatsTitle,
   explorerCopy,
-  midtermsTitle,
   rewindCopy,
   goldSummaryCopy,
-  summaryTitle,
   rewindCardCopy,
   type AgeBeatsVals,
 } from "./copy";
@@ -63,8 +60,6 @@ import type { VoterAgeData } from "./types";
  * step, straight into beat 2's first step (2022) at MORPH_STEP + 1. (A
  * "no president on the ballot" step that used to sit between them was cut.) */
 const MORPH_STEP = 3;
-/** Beat 2's first step - its heading rides in with it. */
-const MIDTERM_STEP = MORPH_STEP + 1;
 /** The 65+ turnout standard's dotted line, on its own. */
 const LINE_STEP = 2;
 /** The gold shortfall under that line, and its total under the chart -
@@ -352,22 +347,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
 
   const stepRef = setStepRef;
 
-  // Running header on the pinned chart: once the section's own title has
-  // scrolled off the top, the current numbered section's title rides with
-  // the chart until the next one replaces it.
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const [titleGone, setTitleGone] = useState(false);
-  useEffect(() => {
-    const el = titleRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(([e]) =>
-      setTitleGone(!e.isIntersecting && e.boundingClientRect.top < 0)
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  const runningTitle = step < MIDTERM_STEP ? ageBeatsTitle : step < REWIND_STEP ? midtermsTitle : summaryTitle;
-
   const copyVals: AgeBeatsVals = {
     age25cvap: fmtM(age25.cvap),
     age75cvap: fmtM(age75.cvap),
@@ -383,14 +362,8 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
 
   return (
     <section className="voa-beat" ref={sectionRef}>
-      <h2 className="voa-beat-title" ref={titleRef}>{ageBeatsTitle}</h2>
       <div className="voa-scrolly">
         <StickyViz>
-          {/* Always mounted, so its space is reserved and fading in moves
-              nothing. Keyed so each new title fades in on its own. */}
-          <div className="voa-running-title" style={{ opacity: titleGone ? 1 : 0 }} aria-hidden="true">
-            <span key={runningTitle}>{runningTitle}</span>
-          </div>
           {/* Scroll state for tests: pos = hops back from 2024, u = within the
               current hop, u0 = within beat 2's hop (2024 -> 2022) only. */}
           <span
@@ -417,37 +390,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             gapLegendLabel="Shortfall"
             // Traces whichever cycle is shown, so its rate follows the morph.
             expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
-            heroGap={{
-              // Snaps to the shown election's own figure - never one read off
-              // lerped rows.
-              items: [
-                {
-                  figure: fmtPct(shortfallPcts[shownYear]),
-                  label: "shortfall, as a share of votes cast",
-                  delta: fmtPP(shortfallPcts["2022"] - shortfallPcts["2024"]),
-                  tone: "gap",
-                },
-              ],
-              // Mounted from first paint (so the space it takes is reserved
-              // and its arrival moves nothing), faded in as the reader
-              // reaches the step that adds the gold up. Dimmed with the plot
-              // mid-morph: a crisp number under a rewinding chart still
-              // invites reading it as the chart's.
-              opacity:
-                clamp01((progress - (TOTAL_STEP - 0.45)) / 0.35) *
-                (1 - 0.65 * rewindHaze(u)) *
-                // Out for the rewind: each rewind card carries its year's
-                // shortfall, so the figure here would only repeat it.
-                (1 - clamp01((progress - (REWIND_STEP - 0.45)) / 0.35)),
-              // Fades in over beat 2's hop's last ~15%. Keyed to raw `u`, the
-              // linear scroll signal, not the eased `t` (whose last 15% is a
-              // much narrower sliver of actual scroll distance). The delta is
-              // 2024 -> 2022 only: it fades back out as the next hop starts,
-              // since a change vs. the previous election would mix election
-              // types.
-              // Gone for good once the rewind starts.
-              deltaOpacity: clamp01((u0 - 0.85) / 0.15) * (1 - clamp01(back / 0.15)),
-            }}
             yDomain={yDomain}
             // Off once the chart is scroll-driven: a time tween there fights
             // the scroll instead of following it.
@@ -471,12 +413,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
           {ageBeatsSteps.map((s, i) => (
             <div className="voa-step" key={i} ref={stepRef(i)}>
               <div className="voa-step-inner">
-                {i === MIDTERM_STEP && (
-                  // Beat 2 starts here. Visually hidden: the running title on
-                  // the pinned chart is the visible header (it's aria-hidden,
-                  // so this one carries the outline).
-                  <h2 className="voa-beat-title voa-beat-title--incolumn">{midtermsTitle}</h2>
-                )}
                 <h3>{typeof s.heading === "function" ? s.heading(copyVals) : s.heading}</h3>
                 {s.body(copyVals)}
               </div>
@@ -489,7 +425,6 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
                 <div className="voa-step-inner">
                   {k === 0 && (
                     <>
-                      <h2 className="voa-beat-title voa-beat-title--incolumn">{summaryTitle}</h2>
                       <h3>{rewindCopy.heading({ firstYear: goldFrom })}</h3>
                       {rewindCopy.body()}
                     </>

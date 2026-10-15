@@ -10,12 +10,8 @@ mkdirSync(OUT, { recursive: true });
 // page-wide `page.$(...)` grabs the first match in DOM order - usually
 // an off-screen Beat1 element - rather than the one actually on screen.
 // Every hit-target query below goes through this section handle instead.
-async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
-  const sectionHandle = await page.evaluateHandle((t) => {
-    const titles = [...document.querySelectorAll(".voa-beat-title")];
-    const title = titles.find((el) => el.textContent.includes(t));
-    return title.closest(".voa-beat");
-  }, titleIncludes);
+async function scrollBeatToStep(page, stepIndex, stepCount) {
+  const sectionHandle = await page.evaluateHandle(() => document.querySelector(".voa-beat"));
   const box = await sectionHandle.evaluate((section) => {
     const rect = section.getBoundingClientRect();
     return { top: rect.top + window.scrollY, height: section.scrollHeight };
@@ -35,10 +31,8 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
-  // Beat1 step 5 (full reveal, count callout) - hover an age bar. stepCount
-  // is 9, not 5: beats 1+2 share one 9-step section since the 2026-09-18
-  // merge (AgeBeats.tsx STEP_COUNT), so step 5 of 9 is the last beat-1 step.
-  let section = await scrollBeatToStep(page, "Voters Skew Older", 5, 9);
+  // An early beat-1 step of the merged 14-step section - hover an age bar.
+  let section = await scrollBeatToStep(page, 1, 14);
   const hit = await section.$("rect.pb-hit");
   const box = await hit.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -65,7 +59,7 @@ async function scrollBeatToStep(page, titleIncludes, stepIndex, stepCount) {
   await page.goto(`${BASE}/2026/ShapeOfTheElectorate/`, { waitUntil: "networkidle" });
   await page.waitForSelector(".voa-root h1");
 
-  const section = await scrollBeatToStep(page, "Voters Skew Older", 5, 9);
+  const section = await scrollBeatToStep(page, 1, 14);
   const hit = await section.$("rect.pb-hit");
   const box = await hit.boundingBox();
   await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);

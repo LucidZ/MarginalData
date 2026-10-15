@@ -25,17 +25,13 @@ const shape = await page.evaluate(() => {
     steps: section.querySelectorAll(".voa-step").length,
     vizPanes: section.querySelectorAll(".voa-scrolly-viz").length,
     charts: section.querySelectorAll(".pb-surface").length,
-    titles: [...section.querySelectorAll(".voa-beat-title")].map((t) => t.textContent.trim()),
   };
 });
 if (shape.steps !== STEPS) throw new Error(`FAIL: expected ${STEPS} steps in the merged section, found ${shape.steps}`);
 if (shape.vizPanes !== 1 || shape.charts !== 1) {
   throw new Error(`FAIL: beats 1+2 must share one chart, found ${shape.vizPanes} sticky panes / ${shape.charts} charts`);
 }
-if (shape.titles.length !== 3 || !shape.titles[1].includes("Midterm Voters") || !shape.titles[2].includes("not just")) {
-  throw new Error(`FAIL: beat 2's and section 3's headings should live inside the merged section, got ${JSON.stringify(shape.titles)}`);
-}
-console.log(`PASS: beats 1-2 and section 3 are one section, one sticky pane, one chart (${shape.titles.join(" / ")})`);
+console.log(`PASS: beats 1-2 and section 3 are one section, one sticky pane, one chart`);
 
 // Scroll a given step's center to viewport center - the same thing
 // useStepProgress measures, so `progress` lands on exactly i.
@@ -51,13 +47,9 @@ async function toStep(i) {
   await page.waitForTimeout(900);
 }
 
-const heroFigs = () =>
-  page.evaluate(() => [...document.querySelectorAll(".voa-beat .pb-gap-hero-figure")].map((e) => parseFloat(e.textContent)));
 const seen = [];
-const hero = {};
 for (let i = 0; i < STEPS; i++) {
   await toStep(i);
-  if (i === 3 || i === 4) hero[i] = await heroFigs();
   await page.screenshot({ path: `${OUT}/age-beats-step-${i}.png` });
   seen.push(
     await page.evaluate(() => {
@@ -78,23 +70,8 @@ if (Math.max(...pinned) - Math.min(...pinned) > 2) {
 }
 console.log(`PASS: chart holds one position across the beat boundary (top=${pinned[0]}px at steps 0-${STEPS - 2})`);
 
-// Step 3 prints 2024's shortfall against its own 65+ rate; step 4, after
-// the rewind, 2022's against its own. Both summed from the data, as a share
-// of that election's votes cast.
-const data = await page.evaluate(() => fetch("/data/voter-age.json").then((r) => r.json()));
-const short = (y) =>
-  (Math.abs(data.byAge[y].rows.reduce((a, r) => a + Math.min(0, r.missing), 0)) / data.byAge[y].totalVotes) * 100;
-const want = { 3: short("2024"), 4: short("2022") };
-for (const k of [3, 4]) {
-  if (hero[k].length !== 1 || Math.abs(hero[k][0] - want[k]) > 0.05) {
-    throw new Error(`FAIL: step-${k} shortfall ${JSON.stringify(hero[k])} should be ${want[k].toFixed(1)}`);
-  }
-}
-console.log(`PASS: shortfall figures match the data (2024 ${hero[3][0]}%, 2022 ${hero[4][0]}%)`);
-
-// Height constant at every step including the last: the hero figure, the
-// delta line and the gap legend all fade in over space reserved from first
-// paint, so nothing they do can nudge the chart (see PopulationBars heroGap).
+// Height constant at every step including the last: the gap legend fades in
+// over space reserved from first paint, so it can't nudge the chart.
 const heights = seen.map((s) => s.height);
 if (Math.max(...heights) - Math.min(...heights) > 1) {
   throw new Error(`FAIL: chart height changed between steps (${Math.min(...heights)}..${Math.max(...heights)}) - something mounted instead of fading in over reserved space`);

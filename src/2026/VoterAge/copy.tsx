@@ -124,9 +124,6 @@ export interface AgeBeatsVals {
   shortfall2022Pct: string;
 }
 
-export const ageBeatsTitle = "1. Voters Skew Older";
-export const midtermsTitle = "2. Midterm Voters Skew Even Older";
-
 export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
   {
     heading: "The country skews younger.",
@@ -269,8 +266,6 @@ export const explorerCopy = {
   rewinding: "rew",
   fastForwarding: "ff",
 };
-
-export const summaryTitle = "3. It's not just 2022";
 
 // ---------------------------------------------------------------------------
 // Section 3 (AgeBeats.tsx): the scroll rewinds 2022 -> first year in the gold

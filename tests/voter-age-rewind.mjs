@@ -39,8 +39,6 @@ const state = (page) =>
       shown: s.shown,
       badge: parseFloat(getComputedStyle(document.querySelector(".voa-vcr")).opacity),
       badgeText: document.querySelector(".voa-vcr").textContent,
-      hero: [...document.querySelectorAll(".voa-beat .pb-gap-hero-figure")].map((e) => parseFloat(e.textContent)),
-      heroOpacity: parseFloat(getComputedStyle(document.querySelector(".voa-beat .pb-gap-summary--hero")).opacity),
       registered: Math.max(
         0,
         ...[...document.querySelectorAll("rect.pb-registered")].map((r) => parseFloat(r.style.opacity) || 0)
@@ -54,7 +52,7 @@ const years = Object.keys(data.byAge).sort(); // oldest first
 const stepIndex = (sel) =>
   page.evaluate((sel) => [...document.querySelectorAll(".voa-beat .voa-step")].findIndex((s) => s.querySelector(sel)), sel);
 const REWIND = await page.evaluate(() =>
-  [...document.querySelectorAll(".voa-beat .voa-step")].findIndex((s) => s.textContent.includes("not just"))
+  [...document.querySelectorAll(".voa-beat .voa-step")].findIndex((s) => s.textContent.includes("isn't new"))
 );
 if (REWIND < 0) fail("no rewind step");
 
@@ -72,10 +70,8 @@ for (const y of rewindYears) {
   await page.waitForTimeout(400);
   s = await state(page);
   if (s.resting !== y) fail(`rewind card ${y}: chart resting on ${s.resting}`);
-  if (s.registered > 0.01 || s.hero.length !== 1) fail(`rewind card ${y}: should be the gold view ${JSON.stringify(s)}`);
+  if (s.registered > 0.01) fail(`rewind card ${y}: should be the gold view ${JSON.stringify(s)}`);
   if (s.badge > 0.01) fail(`rewind card ${y}: badge should be off at rest`);
-  // The card carries the shortfall, so the figure under the chart is out.
-  if (s.heroOpacity > 0.01) fail(`rewind card ${y}: figure under the chart should be hidden (${s.heroOpacity})`);
   const on = await page.$$eval(".voa-year-card.is-on", (els) => els.map((e) => e.dataset.year));
   if (JSON.stringify(on) !== JSON.stringify([y])) fail(`rewind card ${y}: outlined cards ${on}`);
 }
@@ -196,7 +192,7 @@ console.log(`PASS: rewind pass rests on ${rewindYears.join(" ")} in the gold vie
 await toStep(page, REWIND - 1);
 await page.waitForTimeout(400);
 s = await state(page);
-if (s.resting !== "2022" || s.registered > 0.01 || s.hero.length !== 1 || s.heroOpacity < 0.99) fail(`back on beat 2: ${JSON.stringify(s)}`);
+if (s.resting !== "2022" || s.registered > 0.01) fail(`back on beat 2: ${JSON.stringify(s)}`);
 console.log("PASS: scrolling back above section 3 returns to 2022, gold view restored");
 if (errors.length) fail(`console errors: ${errors.slice(0, 3).join(" | ")}`);
 await page.close();
