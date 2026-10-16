@@ -1,0 +1,681 @@
+#!/usr/bin/env python3
+"""
+Generate The Usual Suspects Co-Star Data
+
+Builds a bounded co-star graph for the "type an actor, see every costar they
+have, stacked by films made together" visualization. Two things make the full IMDb actor graph
+unshippable as static data: it's ~1.1M actors / ~13M co-appearance pairs
+across theatrical movies alone, and the graph is a small-world network
+(avg path length ~3.65 - see Watts & Strogatz 1998), so unbounded rings
+explode past legibility within 2-3 hops for any well-connected actor.
+
+So this script bounds the actor pool by fame *before* building edges:
+  1. Filter IMDb to theatrical movies only (titleType=="movie", non-adult,
+     runtime>=40min) - drops tvEpisode/short/video/tvMovie noise.
+  2. For each actor, compute (a) their TOP_N_TRACKED highest single-movie
+     numVotes counts and (b) their theatrical credit count.
+  3. Keep only actors clearing (--min-votes on a single movie OR
+     --min-votes-sum5 summed across their best TOP_N_TRACKED movies) AND
+     --min-movies. The single-movie max alone over-includes bit-players
+     from one blockbuster ensemble (e.g. minor Shawshank Redemption cast)
+     but under-includes prolific stars whose movies are each merely
+     well-watched, never a 500K+-vote outlier (e.g. Adam Sandler - 54
+     theatrical credits, all in the 150K-420K range, none clearing a
+     500K single-movie bar); movies-alone over-includes prolific unknown
+     character actors. --min-votes-sum5 fixes the under-inclusion without
+     reopening the bit-player hole: a one-credit actor still needs that
+     one movie to clear the *sum* threshold on its own. It's optional -
+     omit it to fall back to the original single-max-votes AND
+     movie-count filter, e.g. for pool-b's lower, movies-heavy bar.
+  4. Build the actor-actor co-star graph *within that pool only* -
+     IMDb caps title.principals at ~10 credited actors/title, so this
+     stays a small combinatorial problem even for ensemble films.
+  5. Enrich each kept actor with a TMDB profile photo via TMDB's
+     find-by-external-id endpoint (IMDb nconst -> TMDB profile_path).
+     Photos are hotlinked from image.tmdb.org at runtime, not
+     downloaded/stored here - see project_usual_suspects.md for why.
+
+Usage:
+    python scripts/generate_usual_suspects_data.py --min-votes 500000 --min-votes-sum5 1000000 --min-movies 1 --out pool-a
+    python scripts/generate_usual_suspects_data.py --min-votes 25000 --min-movies 3 --out pool-b
+
+Requires TMDB_READ_ACCESS_TOKEN in .env.local (v4 bearer token).
+"""
+
+import argparse
+import csv
+import datetime
+import gzip
+import http.client
+import itertools
+import json
+import os
+import sys
+import time
+import urllib.request
+from collections import defaultdict
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent
+os.chdir(project_root)
+
+RAW_DIR = Path("data/usual_suspects/imdb")
+TITLE_BASICS = RAW_DIR / "title.basics.tsv.gz"
+TITLE_PRINCIPALS = RAW_DIR / "title.principals.tsv.gz"
+TITLE_RATINGS = RAW_DIR / "title.ratings.tsv.gz"
+NAME_BASICS = RAW_DIR / "name.basics.tsv.gz"
+
+DATASET_URLS = {
+    TITLE_BASICS: "https://datasets.imdbws.com/title.basics.tsv.gz",
+    TITLE_PRINCIPALS: "https://datasets.imdbws.com/title.principals.tsv.gz",
+    TITLE_RATINGS: "https://datasets.imdbws.com/title.ratings.tsv.gz",
+    NAME_BASICS: "https://datasets.imdbws.com/name.basics.tsv.gz",
+}
+
+ACTOR_CATEGORIES = {"actor", "actress"}
+MIN_RUNTIME_MINUTES = 40
+
+
+def load_env_local():
+    """Minimal .env.local reader - avoids a python-dotenv dependency."""
+    env_path = project_root / ".env.local"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+def ensure_raw_data():
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    for path, url in DATASET_URLS.items():
+        if path.exists():
+            continue
+        print(f"Downloading {url} -> {path} ...")
+        urllib.request.urlretrieve(url, path)
+
+
+def tsv_rows(path):
+    """Dict-per-row reader, fine for the small files (title.ratings is ~8MB)."""
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
+        reader = csv.reader(f, delimiter="\t")
+        header = next(reader)
+        for row in reader:
+            yield dict(zip(header, row))
+
+
+def raw_tsv_lines(path):
+    """Bare str.split("\t") reader, no csv module and no dict-per-row -
+    the two big files here (title.basics 216MB, title.principals 745MB
+    compressed - tens of millions of rows once decompressed) are ~5-10x
+    faster this way than csv.reader + dict(zip(...)) per row, since IMDb's
+    TSV export never quotes fields or embeds tabs/newlines in them."""
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
+        header = f.readline().rstrip("\n").split("\t")
+        idx = {name: i for i, name in enumerate(header)}
+        for line in f:
+            yield line.rstrip("\n").split("\t"), idx
+
+
+def load_theatrical_movie_ids():
+    """Returns (movie_ids, movie_titles) - movie_titles covers every theatrical
+    movie, not just ones that end up in an edge, since we don't know which
+    movies matter until after build_edges runs. Trimmed down to just the
+    referenced ones before writing output (see main())."""
+    print("Scanning title.basics for theatrical movies...")
+    movie_ids = set()
+    movie_titles = {}
+    n = 0
+    for row, idx in raw_tsv_lines(TITLE_BASICS):
+        n += 1
+        if row[idx["titleType"]] != "movie":
+            continue
+        if row[idx["isAdult"]] != "0":
+            continue
+        runtime = row[idx["runtimeMinutes"]]
+        if runtime == "\\N" or not runtime.isdigit() or int(runtime) < MIN_RUNTIME_MINUTES:
+            continue
+        tconst = row[idx["tconst"]]
+        movie_ids.add(tconst)
+        movie_titles[tconst] = row[idx["primaryTitle"]]
+    print(f"  scanned {n:,} titles -> {len(movie_ids):,} theatrical movies")
+    return movie_ids, movie_titles
+
+
+def load_votes():
+    print("Loading title.ratings...")
+    votes = {}
+    for row in tsv_rows(TITLE_RATINGS):
+        votes[row["tconst"]] = int(row["numVotes"])
+    return votes
+
+
+TOP_N_TRACKED = 5  # how many of an actor's highest-voted movies we keep for the sum_top5 fame proxy
+
+
+def load_cast(movie_ids, votes):
+    """Returns cast[tconst] -> [nconst, ...] and per-actor (top_votes, movie_count).
+    top_votes[nconst] is that actor's TOP_N_TRACKED highest single-movie vote
+    counts (unsorted, capped list) - enough to derive both a "single-outlier"
+    proxy (max) and a "sustained career" proxy (sum of the top few) without
+    storing every credit's vote count for all ~1.1M actors."""
+    print("Scanning title.principals for actor credits (this is the big one, ~745MB)...")
+    cast = defaultdict(list)
+    top_votes = defaultdict(list)
+    movie_count = defaultdict(int)
+    n = 0
+    for row, idx in raw_tsv_lines(TITLE_PRINCIPALS):
+        n += 1
+        if n % 10_000_000 == 0:
+            print(f"  ...{n:,} rows scanned")
+        if row[idx["category"]] not in ACTOR_CATEGORIES:
+            continue
+        tconst = row[idx["tconst"]]
+        if tconst not in movie_ids:
+            continue
+        nconst = row[idx["nconst"]]
+        cast[tconst].append(nconst)
+        v = votes.get(tconst, 0)
+        lst = top_votes[nconst]
+        if len(lst) < TOP_N_TRACKED:
+            lst.append(v)
+        else:
+            m = min(lst)
+            if v > m:
+                lst[lst.index(m)] = v
+        movie_count[nconst] += 1
+    print(f"  scanned {n:,} rows -> {len(movie_count):,} unique actors across {len(cast):,} movies")
+    return cast, top_votes, movie_count
+
+
+def build_pool(top_votes, movie_count, min_votes, min_votes_sum5, min_movies):
+    """An actor clears the bar via EITHER a single outlier-huge movie
+    (max single-movie votes >= min_votes - catches one-hit blockbuster
+    ensembles) OR sustained, broadly-attended fame across several movies
+    (sum of their top TOP_N_TRACKED movies' votes >= min_votes_sum5 - catches
+    prolific stars like Adam Sandler whose movies are each well short of a
+    500K-vote outlier but who's clearly a "would someone type this name"
+    actor). min_votes_sum5 is optional: omitting it collapses this back to
+    the original single max_votes>=min_votes AND movie_count>=min_movies
+    filter, e.g. for pool-b's lower, movies-heavy bar."""
+    pool = set()
+    for nconst, count in movie_count.items():
+        if count < min_movies:
+            continue
+        votes_list = top_votes[nconst]
+        if not votes_list:
+            continue
+        if max(votes_list) >= min_votes:
+            pool.add(nconst)
+        elif min_votes_sum5 is not None and sum(votes_list) >= min_votes_sum5:
+            pool.add(nconst)
+    if min_votes_sum5 is not None:
+        print(f"Pool: {len(pool):,} actors (sum_top{TOP_N_TRACKED}>={min_votes_sum5:,} "
+              f"OR max_votes>={min_votes:,}, AND movie_count>={min_movies})")
+    else:
+        print(f"Pool: {len(pool):,} actors (max_votes>={min_votes:,} AND movie_count>={min_movies})")
+    return pool
+
+
+def build_edges(cast, pool):
+    """Returns shared_movies[(a, b)] -> [tconst, ...] - which specific movies
+    each pair actually costarred in, not just a bare count, so the frontend
+    can show real film titles on hover instead of a redundant repeat of the
+    weight number the column position already conveys."""
+    print("Building co-star edges within the pool...")
+    shared_movies = defaultdict(list)
+    for tconst, members in cast.items():
+        in_pool = [n for n in members if n in pool]
+        if len(in_pool) < 2:
+            continue
+        for a, b in itertools.combinations(sorted(set(in_pool)), 2):
+            shared_movies[(a, b)].append(tconst)
+    print(f"  {len(shared_movies):,} unique co-star edges")
+    return shared_movies
+
+
+def load_names(pool):
+    print("Resolving actor names from name.basics...")
+    names = {}
+    for row, idx in raw_tsv_lines(NAME_BASICS):
+        nconst = row[idx["nconst"]]
+        if nconst in pool:
+            names[nconst] = row[idx["primaryName"]]
+    return names
+
+
+TMDB_CACHE_PATH = RAW_DIR.parent / "tmdb_cache.json"
+
+
+def load_tmdb_cache():
+    """Keyed by IMDb id (nconst or tconst - never ambiguous, each id is one or
+    the other) -> the resolved /find record, or null for a confirmed miss.
+    Without this, every regeneration re-resolves the same ~16K ids from
+    scratch - this run alone re-fetched actor photos for the 4th time today
+    before it ever got to the new poster/year/rating fields."""
+    if TMDB_CACHE_PATH.exists():
+        return json.loads(TMDB_CACHE_PATH.read_text())
+    return {}
+
+
+def save_tmdb_cache(cache):
+    TMDB_CACHE_PATH.write_text(json.dumps(cache))
+
+
+class TmdbClient:
+    """http.client instead of urllib.request specifically for HTTP/1.1
+    keep-alive - urllib opens a brand new TCP+TLS connection for every single
+    call, and across ~16K calls that handshake overhead (not the API's rate
+    limit, which was never the bottleneck) is what made a fresh-cache run take
+    over an hour. One persistent connection, reconnecting only on drops."""
+
+    def __init__(self, token):
+        self.token = token
+        self.conn = None
+
+    def _connect(self):
+        if self.conn is not None:
+            try:
+                self.conn.close()
+            except Exception:
+                pass
+        self.conn = http.client.HTTPSConnection("api.themoviedb.org", timeout=10)
+
+    def _get(self, path, retries=3):
+        """Raw GET returning the parsed JSON body, or None on a non-200 response
+        or exhausted retries. Shared by find/movie_credits/external_ids so the
+        keep-alive-reconnect dance only lives in one place."""
+        headers = {"Authorization": f"Bearer {self.token}", "Connection": "keep-alive"}
+        for attempt in range(retries):
+            try:
+                if self.conn is None:
+                    self._connect()
+                self.conn.request("GET", path, headers=headers)
+                resp = self.conn.getresponse()
+                body = resp.read()
+                if resp.status == 429:
+                    time.sleep(1.0)
+                    continue
+                if resp.status != 200:
+                    return None
+                return json.loads(body)
+            except Exception:
+                # Server likely closed the idle keep-alive connection - reconnect and retry.
+                self._connect()
+                time.sleep(0.3)
+        return None
+
+    def find(self, imdb_id, result_key):
+        data = self._get(f"/3/find/{imdb_id}?external_source=imdb_id")
+        results = (data or {}).get(result_key) or []
+        return results[0] if results else None
+
+    def movie_credits(self, tmdb_person_id):
+        """Full movie_credits list for a TMDB person id - unlike /find (which only
+        surfaces a handful of "known_for" titles), this returns every movie credit
+        TMDB has on file for them, cast array included. This is what lets a pool
+        actor's own credit list surface costar pairs that IMDb's title.principals
+        ~10-per-title cap drops (see the module docstring's TMDB edge-supplement
+        note). Note this can include non-theatrical "movie"-typed TMDB entries
+        (retrospective specials, concert films, awards-show video) that a costar
+        pair shouldn't be joined on - callers must cross-check the resolved
+        tconst against the same theatrical-movie filter load_theatrical_movie_ids()
+        already applies, not trust every id back."""
+        data = self._get(f"/3/person/{tmdb_person_id}/movie_credits")
+        return (data or {}).get("cast") or []
+
+    def external_ids(self, tmdb_movie_id):
+        """Reverse-lookup a TMDB movie id to its IMDb tconst (among others) - for
+        movies discovered via movie_credits that were never referenced through the
+        IMDb-principals path and so have no known tconst yet."""
+        return self._get(f"/3/movie/{tmdb_movie_id}/external_ids") or {}
+
+    def close(self):
+        if self.conn is not None:
+            self.conn.close()
+
+
+def enrich_with_tmdb(pool, token, cache):
+    print(f"Enriching {len(pool):,} actors with TMDB photos...")
+    client = TmdbClient(token)
+    tmdb_data = {}
+    hits = 0
+    misses = 0
+    for i, nconst in enumerate(sorted(pool), 1):
+        if nconst in cache:
+            person = cache[nconst]
+        else:
+            person = client.find(nconst, "person_results")
+            cache[nconst] = person
+            misses += 1
+            time.sleep(0.025)  # ~40 req/s, well under the 50 req/s TMDB API limit - only paid on a real cache miss
+        if person and person.get("profile_path"):
+            hits += 1
+        tmdb_data[nconst] = {
+            "tmdbId": person.get("id") if person else None,
+            "photo": person.get("profile_path") if person else None,
+        }
+        if i % 200 == 0:
+            print(f"  {i:,}/{len(pool):,} ({hits:,} photos found, {misses:,} fresh API calls so far)")
+            save_tmdb_cache(cache)
+    client.close()
+    save_tmdb_cache(cache)
+    print(f"  done: {hits:,}/{len(pool):,} actors have a TMDB photo ({misses:,} were fresh calls, rest from cache)")
+    return tmdb_data
+
+
+# A TMDB rating built on a handful of votes is noise, not signal - below this
+# we ship no rating rather than an authoritative-looking number derived from
+# three people.
+MIN_TMDB_VOTES_FOR_RATING = 10
+
+
+def enrich_movies_with_tmdb(used_tconsts, token, cache):
+    """Resolves each referenced movie's TMDB id plus the poster/year/rating
+    shown in the detail card. All of this rides along in the same /find
+    response we already need for the id, so the poster and rating cost no
+    extra API calls - see project_usual_suspects.md."""
+    print(f"Enriching {len(used_tconsts):,} movies from TMDB...")
+    client = TmdbClient(token)
+    info = {}
+    hits = 0
+    misses = 0
+    for i, tconst in enumerate(used_tconsts, 1):
+        if tconst in cache:
+            movie = cache[tconst]
+        else:
+            movie = client.find(tconst, "movie_results")
+            cache[tconst] = movie
+            misses += 1
+            time.sleep(0.025)
+        if movie:
+            hits += 1
+            release = movie.get("release_date") or ""
+            votes = movie.get("vote_count") or 0
+            rating = movie.get("vote_average") or 0
+            info[tconst] = {
+                "tmdbId": movie.get("id"),
+                "poster": movie.get("poster_path"),
+                "year": int(release[:4]) if release[:4].isdigit() else None,
+                "rating": round(rating, 1) if votes >= MIN_TMDB_VOTES_FOR_RATING and rating > 0 else None,
+            }
+        if i % 1000 == 0:
+            print(f"  {i:,}/{len(used_tconsts):,} ({hits:,} matched, {misses:,} fresh API calls so far)")
+            save_tmdb_cache(cache)  # so a kill mid-run (this took 80+ minutes once) doesn't lose all progress
+    client.close()
+    save_tmdb_cache(cache)
+    print(f"  done: {hits:,}/{len(used_tconsts):,} movies matched on TMDB ({misses:,} were fresh calls, rest from cache)")
+    return info
+
+
+def enrich_credits(pool, tmdb_data, token, cache):
+    """For every pool actor with a resolved TMDB person id, pull their full
+    movie_credits cast list - this is the actual fix (see module docstring):
+    title.principals caps at ~10 credited actors/title, but a pool actor's own
+    TMDB credit list carries costar movies past that cutoff. Cached per-nconst
+    under a "credits:" prefix so it can't collide with the bare-nconst/tconst
+    keys enrich_with_tmdb/enrich_movies_with_tmdb already use."""
+    print(f"Fetching full TMDB movie credits for {len(pool):,} pool actors...")
+    client = TmdbClient(token)
+    credits_by_nconst = {}
+    hits = 0
+    misses = 0
+    skipped = 0
+    ordered = sorted(pool)
+    for i, nconst in enumerate(ordered, 1):
+        tmdb_id = (tmdb_data.get(nconst) or {}).get("tmdbId")
+        if tmdb_id is None:
+            skipped += 1
+            credits_by_nconst[nconst] = []
+            continue
+        cache_key = f"credits:{nconst}"
+        if cache_key in cache:
+            cast = cache[cache_key]
+        else:
+            cast = client.movie_credits(tmdb_id)
+            cache[cache_key] = cast
+            misses += 1
+            time.sleep(0.025)  # same ~40 req/s budget as enrich_with_tmdb
+        credits_by_nconst[nconst] = cast or []
+        if cast:
+            hits += 1
+        if i % 200 == 0:
+            print(f"  {i:,}/{len(ordered):,} ({hits:,} with credits, {misses:,} fresh calls so far)")
+            save_tmdb_cache(cache)
+    client.close()
+    save_tmdb_cache(cache)
+    print(f"  done: {hits:,}/{len(ordered):,} actors had credits ({misses:,} fresh calls, "
+          f"{skipped:,} skipped - no TMDB id, rest from cache)")
+    return credits_by_nconst
+
+
+def build_supplemental_index(credits_by_nconst):
+    """tmdb_movie_id -> set(nconst) restricted to pool actors mentioning that
+    movie in their own credits. Every nconst here is already a pool member
+    (credits_by_nconst is keyed by pool actors only) - other cast on the same
+    TMDB movie who aren't in the pool are never looked at, so this can only
+    thicken/add edges between actors already in the pool, never grow it."""
+    idx = defaultdict(set)
+    for nconst, cast in credits_by_nconst.items():
+        for c in cast:
+            mid = c.get("id")
+            if mid is not None:
+                idx[mid].add(nconst)
+    # Only pairs (or better) can ever become an edge - drop singletons now so
+    # the movie-identity resolution step below isn't wasted on dead ends.
+    return {mid: ns for mid, ns in idx.items() if len(ns) >= 2}
+
+
+def build_tmdb_movie_reverse_map(cache):
+    """tmdb_movie_id -> tconst, built from the /find movie_results already sitting
+    in tmdb_cache.json (every tconst key's cached value carries its own TMDB id).
+    Lets newly-discovered TMDB movie ids match back to an already-known tconst
+    with zero extra API calls, before falling back to external_ids."""
+    reverse = {}
+    for key, value in cache.items():
+        if key.startswith("tt") and value and isinstance(value, dict) and value.get("id") is not None:
+            reverse[value["id"]] = key
+    return reverse
+
+
+def resolve_movie_ids_to_tconst(tmdb_movie_ids, reverse_map, movie_ids, token, cache):
+    """Resolves each TMDB movie id from the supplemental index to an IMDb tconst,
+    reusing reverse_map where possible and falling back to one /movie/{id}/external_ids
+    call per miss (cached under an "ext:" prefix so a killed run keeps progress).
+    Critically: a resolved tconst is only accepted if it's also in movie_ids, the
+    same theatrical-movie set (titleType=="movie", non-adult, runtime>=40min) the
+    rest of the pipeline is built on - TMDB's movie_credits endpoint also returns
+    non-theatrical "movie"-typed entries (concert films, retrospective specials,
+    awards-show video), and this is the one filter standing between those and a
+    fabricated costar edge. Confirmed live: a Riggle/Helms shared "credit" for a
+    Hangover behind-the-scenes retrospective and an SNL50 concert special both
+    carry real imdb_ids but resolve to titleType "video"/"tvSpecial", not "movie" -
+    this check is what excludes them."""
+    to_check = [mid for mid in tmdb_movie_ids if mid not in reverse_map]
+    print(f"Resolving {len(to_check):,} new TMDB movie ids to IMDb tconsts...")
+    client = TmdbClient(token)
+    resolved = {}
+    misses = 0
+    rejected_non_theatrical = 0
+    no_imdb_id = 0
+    for i, mid in enumerate(to_check, 1):
+        cache_key = f"ext:{mid}"
+        if cache_key in cache:
+            entry = cache[cache_key]
+        else:
+            entry = client.external_ids(mid)
+            cache[cache_key] = entry
+            misses += 1
+            time.sleep(0.025)
+        imdb_id = (entry or {}).get("imdb_id")
+        if not imdb_id:
+            no_imdb_id += 1
+        elif imdb_id not in movie_ids:
+            rejected_non_theatrical += 1
+        else:
+            resolved[mid] = imdb_id
+        if i % 200 == 0:
+            print(f"  {i:,}/{len(to_check):,} ({len(resolved):,} resolved, {misses:,} fresh calls so far)")
+            save_tmdb_cache(cache)
+    client.close()
+    save_tmdb_cache(cache)
+    print(f"  done: {len(resolved):,}/{len(to_check):,} resolved to theatrical tconsts "
+          f"({misses:,} fresh calls, {no_imdb_id:,} had no imdb_id, "
+          f"{rejected_non_theatrical:,} had an imdb_id but weren't a theatrical movie)")
+    full = dict(reverse_map)
+    full.update(resolved)
+    return full
+
+
+def merge_supplemental_edges(shared_movies, supplemental_index, tmdb_id_to_tconst):
+    """Unions each resolved supplemental movie into shared_movies, reusing the
+    exact (a, b) tconst-list shape build_edges already produces so nothing
+    downstream (degree, movie_id_of, edge_list) needs to change."""
+    print("Merging TMDB-credits-supplement edges into shared_movies...")
+    added_pairs = 0
+    added_refs = 0
+    unresolved = 0
+    for tmdb_id, nconsts in supplemental_index.items():
+        tconst = tmdb_id_to_tconst.get(tmdb_id)
+        if tconst is None:
+            unresolved += 1
+            continue
+        for a, b in itertools.combinations(sorted(nconsts), 2):
+            key = (a, b)
+            is_new_pair = key not in shared_movies
+            lst = shared_movies[key]
+            if tconst not in lst:
+                lst.append(tconst)
+                added_refs += 1
+                if is_new_pair:
+                    added_pairs += 1
+    print(f"  +{added_pairs:,} brand-new pairs, +{added_refs:,} movie references added total "
+          f"({unresolved:,} supplemental movies skipped - no resolvable theatrical tconst)")
+    return shared_movies
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--min-votes", type=int, required=True,
+                         help="Min numVotes of the actor's single most-watched movie")
+    parser.add_argument("--min-votes-sum5", type=int, default=None,
+                         help=f"Alternate qualifying path: min summed numVotes across the actor's "
+                              f"top {TOP_N_TRACKED} most-watched movies (OR'd with --min-votes). "
+                              f"Omit to require --min-votes alone")
+    parser.add_argument("--min-movies", type=int, default=1,
+                         help="Min theatrical movie credit count")
+    parser.add_argument("--out", required=True, help="Output name, e.g. 'pool-a'")
+    parser.add_argument("--skip-tmdb", action="store_true",
+                         help="Skip TMDB photo enrichment (faster iteration on graph logic)")
+    args = parser.parse_args()
+
+    load_env_local()
+    token = os.environ.get("TMDB_READ_ACCESS_TOKEN")
+    if not args.skip_tmdb and not token:
+        sys.exit("TMDB_READ_ACCESS_TOKEN not set in .env.local (or pass --skip-tmdb)")
+
+    ensure_raw_data()
+    tmdb_cache = load_tmdb_cache()
+    print(f"TMDB cache: {len(tmdb_cache):,} ids already resolved from a previous run")
+
+    movie_ids, movie_titles = load_theatrical_movie_ids()
+    votes = load_votes()
+    cast, top_votes, movie_count = load_cast(movie_ids, votes)
+    pool = build_pool(top_votes, movie_count, args.min_votes, args.min_votes_sum5, args.min_movies)
+    shared_movies = build_edges(cast, pool)
+    names = load_names(pool)
+
+    tmdb_data = enrich_with_tmdb(pool, token, tmdb_cache) if not args.skip_tmdb else {}
+
+    if not args.skip_tmdb:
+        # Supplement: title.principals caps at ~10 credited actors/title, so a
+        # pool actor's own TMDB credit list can surface real costar pairs the
+        # IMDb-principals-only edge build above missed entirely (see module
+        # docstring / usual-suspects-tmdb-credits-plan.md for the verified
+        # Ed Helms / Rob Riggle / The Hangover case this fixes).
+        credits_by_nconst = enrich_credits(pool, tmdb_data, token, tmdb_cache)
+        supplemental_index = build_supplemental_index(credits_by_nconst)
+        reverse_map = build_tmdb_movie_reverse_map(tmdb_cache)
+        tmdb_id_to_tconst = resolve_movie_ids_to_tconst(
+            supplemental_index.keys(), reverse_map, movie_ids, token, tmdb_cache
+        )
+        shared_movies = merge_supplemental_edges(shared_movies, supplemental_index, tmdb_id_to_tconst)
+
+    # Compact int IDs, most-connected first (nicer default rendering order)
+    degree = defaultdict(int)
+    for (a, b), tconsts in shared_movies.items():
+        degree[a] += len(tconsts)
+        degree[b] += len(tconsts)
+    ordered = sorted(pool, key=lambda n: -degree[n])
+    id_of = {nconst: i for i, nconst in enumerate(ordered)}
+
+    actors = []
+    for nconst in ordered:
+        info = tmdb_data.get(nconst, {})
+        actors.append({
+            "id": id_of[nconst],
+            "name": names.get(nconst, "?"),
+            "nconst": nconst,
+            "tmdbId": info.get("tmdbId"),
+            "photo": info.get("photo"),
+        })
+
+    # Compact int IDs for movies too, but only the ones actually referenced
+    # by an edge - out of ~470K theatrical movies, only a few thousand ever
+    # matter to this pool's edges.
+    used_tconsts = sorted({t for tconsts in shared_movies.values() for t in tconsts})
+    movie_id_of = {tconst: i for i, tconst in enumerate(used_tconsts)}
+    movie_info = enrich_movies_with_tmdb(used_tconsts, token, tmdb_cache) if not args.skip_tmdb else {}
+    # No `tconst` here on purpose: the frontend never reads it, and at ~13.6K
+    # movies the dead string costs more than the poster/year/rating we're
+    # adding. It stays available in the raw IMDb files if ever needed.
+    movies_out = [
+        {
+            "id": movie_id_of[t],
+            "title": movie_titles.get(t, "?"),
+            **{k: v for k, v in (movie_info.get(t) or {}).items() if v is not None},
+        }
+        for t in used_tconsts
+    ]
+
+    edge_list = [
+        [id_of[a], id_of[b], len(tconsts), [movie_id_of[t] for t in tconsts]]
+        for (a, b), tconsts in shared_movies.items()
+    ]
+    # The frontend needs this to draw a fixed, dataset-wide film-count axis
+    # (same x-position = same shared-film count for every actor, even a
+    # blank column where nobody happens to share exactly that count with the
+    # current root) rather than a per-actor axis that only shows the counts
+    # that particular actor happens to have.
+    max_shared_films = max((len(tconsts) for tconsts in shared_movies.values()), default=0)
+
+    out_path = Path("public/data") / f"usual-suspects-{args.out}.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w") as f:
+        json.dump(
+            {
+                # The vintage of the IMDb dump and TMDB pull this file was
+                # built from, so the ⓘ panel can date the data without
+                # anyone hand-editing a string in the frontend and forgetting
+                # to move it on the next regeneration. Date only - the hour
+                # a multi-hour enrichment run happened to finish is noise.
+                "generatedAt": datetime.date.today().isoformat(),
+                "actors": actors,
+                "edges": edge_list,
+                "movies": movies_out,
+                "maxSharedFilms": max_shared_films,
+            },
+            f,
+            separators=(",", ":"),
+        )
+
+    print(f"\nWrote {out_path} ({out_path.stat().st_size / 1024:.0f} KB)")
+    print(f"  {len(actors):,} actors, {len(edge_list):,} edges, {len(movies_out):,} referenced movies, "
+          f"max shared films = {max_shared_films}")
+
+
+if __name__ == "__main__":
+    main()
