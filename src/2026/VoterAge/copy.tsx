@@ -23,17 +23,11 @@ export interface StepCopy<V> {
 
 export const hero = {
   title: "The Shape of the Electorate",
+  // "More than a third" holds for every cycle in the data: non-voting runs 33.4% (2020) to 58.3% (2014).
   intro: (
     <>
-      The U.S. was founded in part on the principle of representative democracy, yet for most of its early history,
-      the right to vote was restricted to white male landowners. Over the past 250 years, marginalized
-      groups—including women, Black Americans, and young people—have fought, protested, and pushed for legal reforms
-      to secure equal voting rights and political representation.
-      <br />
-      <br />
-      Despite those historic struggles, voter participation remains surprisingly low, with only about 60% of eligible
-      voters casting ballots in typical presidential elections. This page explores the shape of the electorate versus
-      the broader population it is meant to represent.
+      In a typical federal election, more than a third of eligible Americans don't vote. Here's who shows up, who
+      doesn't, and how different the electorate looks from the country it represents.
     </>
   ),
 };
