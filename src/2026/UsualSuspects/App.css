@@ -1,4 +1,8 @@
 .tus-root {
+  /* Hands double-tap to the page (DetailCard/selectNode's tap-again-to-
+     recenter) instead of the browser's double-tap-to-zoom. Pinch zoom and
+     scrolling are untouched, and taps stop waiting out the zoom delay. */
+  touch-action: manipulation;
   color-scheme: light;
   --surface-1: #fcfcfb;
   --page: #f9f9f7;
@@ -888,26 +892,50 @@ span.tus-movie-row .tus-movie-title {
   white-space: nowrap;
 }
 
-.tus-card-center {
+/* The card's one primary action: recenter on this actor. Filled, so the
+   TMDB link below it reads as secondary rather than as a competing button. */
+.tus-card-go {
   display: block;
   box-sizing: border-box;
   width: 100%;
-  padding: 0.5rem 0.6rem;
+  padding: 0.6rem;
   border: 1px solid var(--accent);
   border-radius: 6px;
-  background: none;
+  background: var(--accent);
+  color: var(--surface-1);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tus-card-go:hover {
+  filter: brightness(1.1);
+}
+
+.tus-card-go:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tus-card-center {
+  display: block;
+  margin-top: 0.5rem;
   color: var(--accent);
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.82rem;
   text-align: center;
   text-decoration: none;
-  cursor: pointer;
-  font-family: inherit;
 }
 
 .tus-card-center:hover {
-  background: var(--accent);
-  color: var(--surface-1);
+  text-decoration: underline;
+}
+
+/* See SHEET_ARMING_MS in DetailCard.tsx: a just-opened sheet lets the second
+   tap of a double-tap through to the node underneath it. */
+.tus-card-arming {
+  pointer-events: none;
 }
 
 /* On a 390px screen a floating card anchored to a tapped node has nowhere to

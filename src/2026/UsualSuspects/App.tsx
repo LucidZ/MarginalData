@@ -647,6 +647,13 @@ export default function App() {
   // replace - so Back walks through recenter history the same way it would
   // any other navigation, undoing one recenter per press.
   const recenter = (actor: Actor) => {
+    // A touch double-tap can deliver both the second click (selectNode) and
+    // a dblclick (ActorNode's onDoubleClick); without this the second one
+    // pushes a duplicate history entry and Back appears to do nothing.
+    if (actor.id === rootId) {
+      setSelection(null);
+      return;
+    }
     setSearchParams({ actor: actor.nconst });
     setSelection(null);
   };
@@ -843,11 +850,12 @@ export default function App() {
               offers a control. */}
           <p className="tus-interaction-hint">
             {compact ? "Tap" : "Click"} anyone to see the films they share.
-            {/* Desktop-only accelerator (see ActorNode.tsx's
-                onDoubleClick) - left out on touch, where double-tap means
-                zoom and the bottom-sheet card's own photo button is
-                already one tap away. */}
-            {!compact && " Double-click to recenter."}
+            {/* On touch, double-tap is two taps on the same node - open the
+                card, then tap the selected node again (selectNode). .tus-root's
+                touch-action: manipulation keeps the browser from claiming it
+                as zoom, and DetailCard's arming window keeps the sheet from
+                swallowing the second tap. */}
+            {compact ? " Double-tap to recenter." : " Double-click to recenter."}
           </p>
 
           <div className="tus-graph-frame" ref={setFrameEl}>

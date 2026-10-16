@@ -20,6 +20,9 @@ interface Props {
 }
 
 const CARD_WIDTH = 300;
+// How long a freshly opened bottom sheet lets taps fall through to the chart
+// beneath it - roughly a double-tap's own interval. See `arming` below.
+const SHEET_ARMING_MS = 350;
 const GAP = 14;
 const EDGE = 8;
 
@@ -45,6 +48,10 @@ function estimatePosition(clientX: number, clientY: number, movieCount: number):
   };
 }
 
+function possessive(name: string): string {
+  return `${name}’s`;
+}
+
 export default function DetailCard({ selection, rootActor, compact, onCenter, onClose }: Props) {
   const { actor, sharedMovies, clientX, clientY } = selection;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -54,6 +61,22 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   const [style, setStyle] = useState<React.CSSProperties>(() =>
     compact ? {} : estimatePosition(clientX, clientY, sharedMovies.length),
   );
+
+  // Double-tap-to-recenter on touch is two taps on the same node: the first
+  // opens this card, the second hits the already-selected node and App.tsx's
+  // selectNode escalates it to a recenter. On a phone the bottom sheet opens
+  // *on top of* the chart, so for any node in the lower half of the screen
+  // the second tap would land on the sheet instead. For one double-tap's
+  // worth of time after it opens, the sheet ignores pointer events and lets
+  // that tap reach the node underneath. Nobody deliberately taps a sheet
+  // within 350ms of it appearing, so nothing is lost. Desktop's floating
+  // card opens beside the node, never over it, so it doesn't need this.
+  const [arming, setArming] = useState(compact);
+  useEffect(() => {
+    if (!compact) return;
+    const t = window.setTimeout(() => setArming(false), SHEET_ARMING_MS);
+    return () => window.clearTimeout(t);
+  }, [compact]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -122,7 +145,7 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
     <>
       <div
         ref={cardRef}
-        className={`tus-card${compact ? " tus-card-sheet" : ""}`}
+        className={`tus-card${compact ? " tus-card-sheet" : ""}${arming ? " tus-card-arming" : ""}`}
         style={style}
         role="dialog"
         aria-label={actor.name}
@@ -205,6 +228,17 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
             );
           })}
         </ul>
+
+        {/* The recenter as a plain, labelled button. The photo up top does the
+            same thing, but a photo doesn't read as a button, and on touch
+            there's no hover glow to hint that it is one - so this is the
+            path for anyone who never discovers double-tap. Sits at the
+            bottom, in thumb reach on the phone's bottom sheet. */}
+        {!isSelf && (
+          <button type="button" className="tus-card-go" onClick={() => onCenter(actor)}>
+            See {possessive(actor.name)} costars →
+          </button>
+        )}
 
         {actor.tmdbId && (
           <a

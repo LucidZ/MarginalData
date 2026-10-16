@@ -34,9 +34,9 @@ interface Props {
    * already-selected node now also does (see onSelect above). Doesn't touch
    * what a first click means (still just opens the card), so there's no new
    * state to learn - it's an accelerator for people who already recognize
-   * the thumbnail, not a replacement gesture. Left off touch: mobile's
-   * default double-tap-to-zoom would fight it, and the bottom-sheet card's
-   * own photo button is already one tap away there. */
+   * the thumbnail, not a replacement gesture. Touch gets the same gesture
+   * through onSelect's second-tap escalation rather than this handler, since
+   * browsers don't reliably fire dblclick for a double-tap. */
   onCenter: (actor: Actor) => void;
   /** Registers/unregisters this node's real DOM element with App.tsx's
    * roving-tabindex machinery - it needs to call .focus() and

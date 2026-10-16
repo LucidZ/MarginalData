@@ -775,6 +775,92 @@ test.describe("The Usual Suspects", () => {
     await page.close();
   });
 
+  // Touch version of the double-click fast path: a double-tap is two taps on
+  // the same node, the second escalated to a recenter by selectNode. Picks a
+  // node low on the screen on purpose - the bottom sheet opens over it, so
+  // this only passes if the sheet's arming window (DetailCard.tsx) lets the
+  // second tap through to the node, and if touch-action: manipulation keeps
+  // the browser from treating the pair as a zoom.
+  test("double-tapping a node on mobile recenters, even one the sheet opens over", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: MOBILE, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    await page.goto("/2026/UsualSuspects");
+    await selectActor(page, MICHAEL_CAINE);
+    await scrollToDensestRows(page);
+
+    const target = await page.evaluate((vp) => {
+      const candidates = [...document.querySelectorAll(".tus-node")]
+        .map((n) => {
+          const r = n.querySelector("circle")!.getBoundingClientRect();
+          const cx = Math.round(r.x + r.width / 2);
+          const cy = Math.round(r.y + r.height / 2);
+          return { n, cx, cy };
+        })
+        .filter(({ n, cx, cy }) => {
+          if (cx < 0 || cx > vp.width || cy < vp.height * 0.7 || cy > vp.height - 10) return false;
+          const top = document.elementFromPoint(cx, cy);
+          return !!top && (top === n || n.contains(top));
+        });
+      const pick = candidates[0];
+      return pick
+        ? { cx: pick.cx, cy: pick.cy, name: pick.n.getAttribute("aria-label")!.replace(" - open details", "") }
+        : null;
+    }, MOBILE);
+    expect(target, "expected a clickable node in the bottom 30% of the screen").not.toBeNull();
+
+    await page.touchscreen.tap(target!.cx, target!.cy);
+    // The premise: the sheet really does cover the node it was opened for.
+    const covered = await page.locator(".tus-card").evaluate((el, pt) => {
+      const r = el.getBoundingClientRect();
+      return pt.y >= r.top && pt.y <= r.bottom;
+    }, { y: target!.cy });
+    expect(covered).toBe(true);
+    await page.touchscreen.tap(target!.cx, target!.cy);
+
+    await expect(page.locator(".tus-root-name")).toHaveText(target!.name);
+    await expect(page.locator(".tus-card")).toHaveCount(0);
+    await context.close();
+  });
+
+  // Once the arming window has passed, the sheet takes taps normally again -
+  // a tap on it must not fall through to whatever node is underneath.
+  test("after the double-tap window, the mobile sheet takes its own taps", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: MOBILE, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    await page.goto("/2026/UsualSuspects");
+    await selectActor(page, MICHAEL_CAINE);
+
+    const { left: node } = await leftmostAndRightmostClickable(page);
+    const name = (await node.getAttribute("aria-label"))!.replace(" - open details", "");
+    await node.tap();
+    await page.waitForTimeout(500);
+    const box = (await page.locator(".tus-card-name").boundingBox())!;
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(300);
+    await expect(page.locator(".tus-card-name")).toHaveText(name);
+    await context.close();
+  });
+
+  test("the card's \"See X's costars\" button recenters on them", async ({ browser }) => {
+    for (const viewport of [DESKTOP, MOBILE]) {
+      const page = await (await browser.newContext({ viewport })).newPage();
+      await page.goto("/2026/UsualSuspects");
+      await selectActor(page, MICHAEL_CAINE);
+
+      const { left: node } = await leftmostAndRightmostClickable(page);
+      const name = (await node.getAttribute("aria-label"))!.replace(" - open details", "");
+      await node.click();
+      await page.waitForTimeout(500);
+      const go = page.locator(".tus-card-go");
+      await expect(go).toHaveText(`See ${name}\u2019s costars →`);
+      await expect(go).toBeInViewport();
+      await go.click();
+      await expect(page.locator(".tus-root-name")).toHaveText(name);
+      await expect(page.locator(".tus-card")).toHaveCount(0);
+      await page.close();
+    }
+  });
+
   test("search: ArrowDown + Enter selects the highlighted result", async ({ browser }) => {
     const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await page.goto("/2026/UsualSuspects");
