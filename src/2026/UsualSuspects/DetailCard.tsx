@@ -20,9 +20,9 @@ interface Props {
 }
 
 const CARD_WIDTH = 300;
-// How long a freshly opened bottom sheet lets taps fall through to the chart
-// beneath it - roughly a double-tap's own interval. See `arming` below.
-const SHEET_ARMING_MS = 350;
+// How long a tap on a phone waits for a possible second tap before the
+// bottom sheet slides up - roughly a double-tap's own interval. See `waiting`.
+const SHEET_DELAY_MS = 250;
 const GAP = 14;
 const EDGE = 8;
 
@@ -63,18 +63,18 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
   );
 
   // Double-tap-to-recenter on touch is two taps on the same node: the first
-  // opens this card, the second hits the already-selected node and App.tsx's
-  // selectNode escalates it to a recenter. On a phone the bottom sheet opens
-  // *on top of* the chart, so for any node in the lower half of the screen
-  // the second tap would land on the sheet instead. For one double-tap's
-  // worth of time after it opens, the sheet ignores pointer events and lets
-  // that tap reach the node underneath. Nobody deliberately taps a sheet
-  // within 350ms of it appearing, so nothing is lost. Desktop's floating
-  // card opens beside the node, never over it, so it doesn't need this.
-  const [arming, setArming] = useState(compact);
+  // selects it (its blue ring paints at once), the second hits the
+  // already-selected node and App.tsx's selectNode escalates it to a
+  // recenter. On a phone the bottom sheet covers most of the chart, so it
+  // holds off for one double-tap's worth of time before sliding up. A
+  // double-tap never shows the sheet at all; the second tap lands on the
+  // face you can still see. A single tap pays ~250ms, softened by the ring
+  // appearing instantly. Desktop's floating card opens beside the node,
+  // never over it, so it shows immediately.
+  const [waiting, setWaiting] = useState(compact);
   useEffect(() => {
     if (!compact) return;
-    const t = window.setTimeout(() => setArming(false), SHEET_ARMING_MS);
+    const t = window.setTimeout(() => setWaiting(false), SHEET_DELAY_MS);
     return () => window.clearTimeout(t);
   }, [compact]);
 
@@ -145,7 +145,7 @@ export default function DetailCard({ selection, rootActor, compact, onCenter, on
     <>
       <div
         ref={cardRef}
-        className={`tus-card${compact ? " tus-card-sheet" : ""}${arming ? " tus-card-arming" : ""}`}
+        className={`tus-card${compact ? " tus-card-sheet" : ""}${waiting ? " tus-card-waiting" : ""}`}
         style={style}
         role="dialog"
         aria-label={actor.name}

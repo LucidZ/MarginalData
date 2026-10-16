@@ -853,8 +853,8 @@ export default function App() {
             {/* On touch, double-tap is two taps on the same node - open the
                 card, then tap the selected node again (selectNode). .tus-root's
                 touch-action: manipulation keeps the browser from claiming it
-                as zoom, and DetailCard's arming window keeps the sheet from
-                swallowing the second tap. */}
+                as zoom, and DetailCard holds the bottom sheet back until a
+                double-tap has had its chance. */}
             {compact ? " Double-tap to recenter." : " Double-click to recenter."}
           </p>
 

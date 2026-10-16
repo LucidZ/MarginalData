@@ -777,11 +777,11 @@ test.describe("The Usual Suspects", () => {
 
   // Touch version of the double-click fast path: a double-tap is two taps on
   // the same node, the second escalated to a recenter by selectNode. Picks a
-  // node low on the screen on purpose - the bottom sheet opens over it, so
-  // this only passes if the sheet's arming window (DetailCard.tsx) lets the
-  // second tap through to the node, and if touch-action: manipulation keeps
+  // node low on the screen on purpose - the bottom sheet would cover it, so
+  // this only passes if the sheet holds off during a double-tap
+  // (DetailCard.tsx's SHEET_DELAY_MS) and touch-action: manipulation keeps
   // the browser from treating the pair as a zoom.
-  test("double-tapping a node on mobile recenters, even one the sheet opens over", async ({ browser }) => {
+  test("double-tapping a node on mobile recenters without the sheet ever showing", async ({ browser }) => {
     const context = await browser.newContext({ viewport: MOBILE, hasTouch: true, isMobile: true });
     const page = await context.newPage();
     await page.goto("/2026/UsualSuspects");
@@ -809,12 +809,9 @@ test.describe("The Usual Suspects", () => {
     expect(target, "expected a clickable node in the bottom 30% of the screen").not.toBeNull();
 
     await page.touchscreen.tap(target!.cx, target!.cy);
-    // The premise: the sheet really does cover the node it was opened for.
-    const covered = await page.locator(".tus-card").evaluate((el, pt) => {
-      const r = el.getBoundingClientRect();
-      return pt.y >= r.top && pt.y <= r.bottom;
-    }, { y: target!.cy });
-    expect(covered).toBe(true);
+    // Between the taps: the face is ringed at once, the sheet isn't up yet.
+    await expect(page.locator(".tus-node-selected")).toHaveCount(1);
+    await expect(page.locator(".tus-card")).toBeHidden();
     await page.touchscreen.tap(target!.cx, target!.cy);
 
     await expect(page.locator(".tus-root-name")).toHaveText(target!.name);
@@ -822,9 +819,9 @@ test.describe("The Usual Suspects", () => {
     await context.close();
   });
 
-  // Once the arming window has passed, the sheet takes taps normally again -
-  // a tap on it must not fall through to whatever node is underneath.
-  test("after the double-tap window, the mobile sheet takes its own taps", async ({ browser }) => {
+  // A single tap still gets its sheet once the double-tap window passes, and
+  // the sheet then takes taps itself rather than letting them fall through.
+  test("a single tap on mobile slides the sheet up, and the sheet takes its own taps", async ({ browser }) => {
     const context = await browser.newContext({ viewport: MOBILE, hasTouch: true, isMobile: true });
     const page = await context.newPage();
     await page.goto("/2026/UsualSuspects");
@@ -833,7 +830,9 @@ test.describe("The Usual Suspects", () => {
     const { left: node } = await leftmostAndRightmostClickable(page);
     const name = (await node.getAttribute("aria-label"))!.replace(" - open details", "");
     await node.tap();
+    await expect(page.locator(".tus-card")).toBeHidden();
     await page.waitForTimeout(500);
+    await expect(page.locator(".tus-card")).toBeVisible();
     const box = (await page.locator(".tus-card-name").boundingBox())!;
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForTimeout(300);

@@ -932,11 +932,6 @@ span.tus-movie-row .tus-movie-title {
   text-decoration: underline;
 }
 
-/* See SHEET_ARMING_MS in DetailCard.tsx: a just-opened sheet lets the second
-   tap of a double-tap through to the node underneath it. */
-.tus-card-arming {
-  pointer-events: none;
-}
 
 /* On a 390px screen a floating card anchored to a tapped node has nowhere to
    go, so it becomes a bottom sheet instead. */
@@ -949,6 +944,25 @@ span.tus-movie-row .tus-movie-title {
   border-radius: 12px 12px 0 0;
   border-bottom: none;
   padding-bottom: 1.1rem;
+}
+
+/* See SHEET_DELAY_MS in DetailCard.tsx: the sheet waits out a possible
+   double-tap off-screen, then slides up. Only transform transitions;
+   visibility flips at once, so the slide is visible from its first frame. */
+.tus-card-sheet {
+  transition: transform 160ms ease-out;
+}
+
+.tus-card-sheet.tus-card-waiting {
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tus-card-sheet {
+    transition: none;
+  }
 }
 
 .tus-card-sheet .tus-card-movies {
