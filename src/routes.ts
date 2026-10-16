@@ -132,6 +132,17 @@ export const ROUTES: RouteEntry[] = [
     note: "I live in Colorado and kept noticing smokier summers, so I went looking for whether that's a real trend or just my imagination. It is, especially the shift in the Pacific Northwest around 2016.",
   },
   {
+    path: "/2026/ShapeOfTheElectorate",
+    title: "The Shape of the Electorate — Marginal Data",
+    description:
+      "The country skews younger, but its voters skew older. How many votes go uncast compared with the best-voting group, in every election since 2012, by age, education, income and race.",
+    component: () => import("./2026/VoterAge"),
+    group: "Government & Politics",
+    image: "/og/shape-of-the-electorate.jpg",
+    date: "2026-09-03",
+    note: "This is a little exploration into how the demographics of voters don't quite match the demographics of the country as a whole.",
+  },
+  {
     path: "/2025/DecisionVectorizer",
     title: "Decision Vectorizer — Marginal Data",
     description:
