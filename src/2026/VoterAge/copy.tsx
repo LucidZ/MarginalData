@@ -224,8 +224,12 @@ export const explorerCopy = {
     people: "People",
     gap: "Shortfall only",
   },
-  /** The shortfall-only view: each bar's gold, as a share of all votes cast. */
-  gapYLabel: "Shortfall (% of all votes cast)",
+  /** The shortfall-only view: each bar's gold, as a share of all votes cast,
+   * named for the slice's benchmark group. */
+  gapYLabel: (group: string) => `Shortfall vs. ${group} rate (% of all votes cast)`,
+  gapLegendLabel: (group: string) => `Shortfall vs. ${group} rate`,
+  /** Caption under the headline shortfall figure. */
+  heroGapLabel: (group: string) => `shortfall vs. ${group} rate (% of all votes cast)`,
   gapLegend: "Shortfall, as a share of all votes cast",
   /** Tooltip line in the shortfall-only view. */
   gapTip: (short: string, pct: string) => `Shortfall: ${short} (${pct} of all votes cast)`,
@@ -308,7 +312,7 @@ const TurnoutNote = ({ year }: { year: string }) =>
 
 export const rewindCardCopy = (year: string, v: RewindCardVals) => (
   <>
-    <CardFigure value={v.shortfallPct} tone="gap" label="shortfall, as a share of votes cast" />
+    <CardFigure value={v.shortfallPct} tone="gap" label={explorerCopy.heroGapLabel("65+")} />
     <TurnoutNote year={year} />
   </>
 );
@@ -335,6 +339,7 @@ export const goldSummaryCopy = {
   /** The empty slot the summary opens at the end. */
   nextYear: "2026",
   nextHeading: "What will 2026 look like?",
-  pctYLabel: "Shortfall (% of votes cast)",
+  pctYLabel: "Shortfall vs. 65+ rate (% of all votes cast)",
+  gapLegendLabel: "Shortfall vs. 65+ rate",
   xLabel: "Election",
 };

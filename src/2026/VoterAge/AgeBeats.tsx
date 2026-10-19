@@ -387,7 +387,7 @@ export default function AgeBeats({ data }: { data: VoterAgeData }) {
             // and its legend entry go as the merge starts.
             expectedOpacity={step >= LINE_STEP ? 1 - clamp01(goldMerge / 0.15) : 0}
             gapOpacity={step >= TOTAL_STEP ? 1 : 0}
-            gapLegendLabel="Shortfall"
+            gapLegendLabel={goldSummaryCopy.gapLegendLabel}
             // Traces whichever cycle is shown, so its rate follows the morph.
             expectedLineLabel={`at 65+ turnout (${fmtPct(shownCycle.over65Turnout)})`}
             yDomain={yDomain}

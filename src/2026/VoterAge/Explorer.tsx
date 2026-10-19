@@ -412,15 +412,17 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
   // Mid-switch the others fade first, and the labels flip with the axes.
   const fade = 1 - clamp01(gapU / FADE_END);
   const pctLabels = gapU >= 0.8;
+  // Ages are always held to 65+; the other slices to their best-voting group.
+  const benchmarkLabel = dimYear ? benchmarkShort : "65+";
   const measureProps = {
-    yLabel: pctLabels ? explorerCopy.gapYLabel : "People (millions)",
+    yLabel: pctLabels ? explorerCopy.gapYLabel(benchmarkLabel) : "People (millions)",
     trackOpacity: fade,
     votesOpacity: fade,
     expectedOpacity: fade,
     gapOpacity: 1,
     // One label for both: the longer percent one wrapped the legend onto a
     // second line mid-switch, dropping the whole plot. The axis says "%".
-    gapLegendLabel: "Shortfall",
+    gapLegendLabel: explorerCopy.gapLegendLabel(benchmarkLabel),
   };
   /** Mid-switch the chart stays on the people axis, with the percent one
    * cross-fading in over it as the gold resizes. */
@@ -478,7 +480,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
               items: [
                 {
                   figure: fmtPct((dimYear.shortfall / dimYear.totalVotes) * 100),
-                  label: "shortfall, as a share of votes cast",
+                  label: explorerCopy.heroGapLabel(benchmarkLabel),
                   delta: "",
                   tone: "gap",
                 },
@@ -507,7 +509,7 @@ export default function Explorer({ data }: { data: VoterAgeData }) {
               items: [
                 {
                   figure: fmtPct((shortfallOf(shownCycle.rows) / shownCycle.totalVotes) * 100),
-                  label: "shortfall, as a share of votes cast",
+                  label: explorerCopy.heroGapLabel(benchmarkLabel),
                   delta: "",
                   tone: "gap",
                 },

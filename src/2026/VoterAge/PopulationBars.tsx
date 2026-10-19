@@ -226,7 +226,7 @@ const MARGIN_AGE = { top: 16, right: 16, bottom: 34, left: 58 };
  * every pixel of height it takes hides text) the age chart goes shorter and
  * trims its left margin. */
 const COMPACT_W = 440;
-const MARGIN_AGE_COMPACT = { top: 12, right: 10, bottom: 30, left: 54 };
+const MARGIN_AGE_COMPACT = { top: 12, right: 10, bottom: 30, left: 60 };
 const MARGIN_CATEGORY = { top: 28, right: 16, bottom: 60, left: 58 };
 
 function fmtK(v: number): string {
@@ -440,11 +440,20 @@ export default function PopulationBars({
 
     anim(root.select<SVGGElement>("g.pb-axis-y")).call(axisLeft(yScale).ticks(5).tickFormat(yTickFormat as any) as any);
 
-    root
-      .select("text.pb-axis-label-y")
+    const yLabelEl = root
+      .select<SVGTextElement>("text.pb-axis-label-y")
       // Compact: pushed further left so the rotated label clears "4.0M".
-      .attr("transform", `translate(${-margin.left + (compact ? 9 : 16)},${innerH / 2}) rotate(-90)`)
+      .attr("transform", `translate(${-margin.left + (compact ? 12 : 16)},${innerH / 2}) rotate(-90)`)
+      .style("font-size", null)
       .text(yLabel);
+    // Too tall for the short phone chart: the "(...)" unit goes to a second
+    // line, toward the axis, with the pair centred where the one line was.
+    const unitAt = yLabel.indexOf(" (");
+    if (compact && unitAt > 0 && (yLabelEl.node()?.getComputedTextLength() ?? 0) > innerH) {
+      yLabelEl.text(null).style("font-size", "10.5px");
+      yLabelEl.append("tspan").attr("x", 0).attr("dy", "-0.15em").text(yLabel.slice(0, unitAt));
+      yLabelEl.append("tspan").attr("x", 0).attr("dy", "1.05em").text(yLabel.slice(unitAt + 1));
+    }
 
     // Track bars (eligible citizens) - full bandwidth, light fill, always
     // drawn first so the accent votes bar can sit on top of it.
