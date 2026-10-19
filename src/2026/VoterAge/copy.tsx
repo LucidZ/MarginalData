@@ -168,7 +168,8 @@ export const ageBeatsSteps: StepCopy<AgeBeatsVals>[] = [
     body: () => (
       <>
         <p>
-          And while 100% turnout may be unrealistic, in close elections a gap this size can be decisive.
+          Equal representation doesn't need 100% turnout, just equal turnout. If every age voted at the 65-and-over
+          rate, the electorate would look like the country.
         </p>
       </>
     ),
