@@ -99,6 +99,20 @@ DAYS = [
         "slot": "anchor",
         "note": "Sunday after the record New Year's ski weekend. Probably jammed: Twin Tunnels EB flat at ~3,800/hr from 11am to 6pm.",
     },
+    # Busiest days of 2025, from a scan of every 2025 day at all four
+    # counters (55 days had a counter out, incl. the Tunnel Feb 12-24).
+    {
+        "date": "2025-07-27",
+        "label": "Busiest day of 2025",
+        "slot": "busiest",
+        "note": "Most vehicles summed across all four counters in 2025 (254k counts), and #1 at Twin Tunnels and Genesee on their own. Summer Sundays fill most of the top 10.",
+    },
+    {
+        "date": "2025-01-03",
+        "label": "Busiest Tunnel day of 2025",
+        "slot": "busiest",
+        "note": "Most vehicles through the Eisenhower Tunnel in 2025: 52.7k, split almost evenly (26.2k WB / 26.5k EB). Friday at the end of the holiday week.",
+    },
     # Alternate snowy/clear pair, not in v1: adjacent Saturdays, but snow
     # halved the volume (Tunnel WB 9.8k vs 20.2k), so it's mostly a
     # "people stayed home" comparison rather than a shape one.
