@@ -9,6 +9,10 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import { ROUTES } from "./routes";
 
+// Proof of concept, deliberately not in ROUTES: every ROUTES entry lands on
+// the homepage feed. See .claude/i70-traffic-poc-spec.md.
+const I70Traffic = lazy(() => import("./2026/I70Traffic"));
+
 // Hoisted to module scope so lazy() is only called once per route, not on every render.
 const lazyRoutes = ROUTES.map((route) => ({
   path: route.path,
@@ -25,6 +29,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/2026/I70Traffic" element={<I70Traffic />} />
             {lazyRoutes.map(({ path, Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}

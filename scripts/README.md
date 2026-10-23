@@ -4,6 +4,39 @@ Data processing and build scripts for MarginalData visualizations.
 
 ## Available Scripts
 
+### `generate_i70_traffic_data.py`
+
+Builds the dataset for the I-70 mountain traffic toy (`/2026/I70Traffic`, proof of concept, not on
+the homepage): hourly vehicle counts by direction at four CDOT continuous counters (Copper
+Mountain, Eisenhower Tunnel, Twin Tunnels, Genesee) for a hand-picked list of days.
+
+**Purpose**: CDOT OTIS's Traffic Data Explorer runs on an undocumented, unauthenticated JSON API
+with no CORS headers, so the browser can't call it; this script pre-fetches one request per
+station per day. It also pulls NOAA GHCN-Daily snow/precip at Dillon, Georgetown and Loveland
+Basin for each day +/-1, and stores the readings next to the day so the "snowy"/"clear" labels
+can be checked. The day list (and how it was picked) is at the top of the script.
+The four metro Denver counters (Sheridan, Dahlia, Havana, Aurora) are left out on purpose:
+commuter volumes there would flatten the mountain bars.
+
+**Requirements**: standard library only (no API keys)
+
+**Usage**:
+```bash
+python scripts/generate_i70_traffic_data.py
+
+# Re-run without re-fetching (reuses data/i70_traffic/raw/ cache)
+python scripts/generate_i70_traffic_data.py --skip-download
+```
+
+**Output**:
+- File: `public/data/i70-traffic/days.json`
+- Size: ~14KB
+- Prints a sanity table (daily total + peak hour per station x direction)
+
+**Known data quirks**: a missing day comes back as `[]` or without one direction's row (e.g.
+Genesee 2023-07-15, Tunnel WB 2023-01-28); the script keeps it as `null` and the page draws "no
+data" rather than a zero. Single-hour dips (Genesee EB 6 PM on 2020-01-05) are kept as recorded.
+
 ### `generate_voter_age_data.py`
 
 Builds the dataset for "The Shape of the Electorate" (`/2026/ShapeOfTheElectorate`): eligible citizens,
