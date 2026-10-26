@@ -9,6 +9,9 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import { ROUTES } from "./routes";
 
+// Unlisted: routed directly so it stays off the homepage feed.
+const I70Crossfilter = lazy(() => import("./2026/I70Crossfilter"));
+
 // Hoisted to module scope so lazy() is only called once per route, not on every render.
 const lazyRoutes = ROUTES.map((route) => ({
   path: route.path,
@@ -25,6 +28,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/2026/I70Crossfilter" element={<I70Crossfilter />} />
             {lazyRoutes.map(({ path, Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}

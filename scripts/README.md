@@ -4,6 +4,41 @@ Data processing and build scripts for MarginalData visualizations.
 
 ## Available Scripts
 
+### `generate_i70_crossfilter_data.py`
+
+Builds the data for the Eisenhower Tunnel crossfilter explorer (`/2026/I70Crossfilter`, unlisted):
+every hour of traffic through the tunnel by direction, 1996-01-01 to 2026-09-30, joined to daily
+NOAA snow/precipitation. Plan: `.claude/i70-tunnel-crossfilter-spec.md`.
+
+**Purpose**: Fetches CDOT OTIS's annual endpoint (one request = one counter-year) for the Tunnel plus
+Copper Mountain, Twin Tunnels and Genesee (cached only, for later multi-counter work). OTIS reports
+missing hours as `0`, so every Tunnel row with a `0` is re-checked against the per-day endpoint,
+which leaves missing hours blank. Weather is GHCN-Daily from Dillon 1 E, falling back to Georgetown
+(and Loveland Basin SNOTEL for precip/depth). Computes holidays from the federal rules, per-year
+capacity ceilings, saturated hours and likely closures.
+
+**Requirements**: standard library only (no API key). Fetches one request at a time, >= 1 s apart,
+with a 10/20/30 s backoff. A full fetch is ~375 requests (~8 minutes).
+
+**Usage**:
+```bash
+python scripts/generate_i70_crossfilter_data.py
+
+# Re-run from the data/i70_crossfilter/raw/ cache only
+python scripts/generate_i70_crossfilter_data.py --skip-download
+```
+
+It prints rows per station x year, missing/incomplete days per year, the per-day zero checks,
+weather coverage per year, the per-year ceilings and the flagged closures.
+
+**Output**:
+- `public/data/i70-crossfilter/days.json` (~530KB, columnar, one entry per day)
+- `public/data/i70-crossfilter/hours.bin` (~1.05MB, Uint16 little-endian: westbound
+  `days x 24`, then eastbound; 65535 = missing)
+
+**When to run**: to extend past 2026-09-30, change `END` and re-run without `--skip-download`.
+Cached years are never refetched, so delete the partial year's files first.
+
 ### `generate_voter_age_data.py`
 
 Builds the dataset for "The Shape of the Electorate" (`/2026/ShapeOfTheElectorate`): eligible citizens,
