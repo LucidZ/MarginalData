@@ -1,9 +1,10 @@
-import type { Direction, Series } from "./types";
+import type { CounterId, Direction, Series } from "./types";
 import { perDay, seriesColor } from "./compare";
-import { fmtInt, hourLabel } from "./format";
+import { dirWord, fmtInt, hourLabel } from "./format";
 
 interface Props {
   series: Series[];
+  counter: CounterId;
   dir: Direction;
   hours: [number, number] | null;
   highlight: string | null;
@@ -20,12 +21,11 @@ const pctText = (v: number, ref: number) => {
 
 // Totals per series: average vehicles per day (over the brushed hours, if
 // any) and the % difference from the reference line. Doubles as the legend.
-const SeriesTable = ({ series, dir, hours, highlight, onHighlight }: Props) => {
+const SeriesTable = ({ series, counter, dir, hours, highlight, onHighlight }: Props) => {
   const ref = series.find((s) => s.style === "ref") ?? null;
   const others = series.filter((s) => s.style !== "ref");
   const refTotal = ref ? perDay(ref.curve, hours) : null;
   const span = hours ? `${hourLabel(hours[0])}-${hourLabel(hours[1] + 1)}` : null;
-  const dirWord = dir === "wb" ? "westbound" : "eastbound";
   const lcFirst = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
   // Two-line comparisons get a sentence.
@@ -36,7 +36,7 @@ const SeriesTable = ({ series, dir, hours, highlight, onHighlight }: Props) => {
     const when = span ? `from ${span}` : "per day";
     const diff = p === 0 ? "about as many" : `${Math.abs(p)}% ${p < 0 ? "fewer" : "more"}`;
     headline =
-      `${others[0].label}: ${diff} ${dirWord} vehicles ${when} ${p === 0 ? "as" : "than"} ${lcFirst(ref.label)}` +
+      `${others[0].label}: ${diff} ${dirWord(counter, dir)} vehicles ${when} ${p === 0 ? "as" : "than"} ${lcFirst(ref.label)}` +
       ` (${fmtInt(t)} vs ${fmtInt(refTotal)}).`;
   }
 

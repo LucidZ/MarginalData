@@ -10,9 +10,11 @@ Sources (both public, no key):
   by-direction counts in one request:
     /GetDailyTrafficVolumeForStationByYear/{station}/{year}.csv
   Columns: COUNTSTATIONID, COUNTDATE (YYYYMMDD), COUNTDIR (P|S), HOUR0..23.
-  P = eastbound (toward Denver), S = westbound (toward the mountains).
+  Tunnel: P = eastbound (toward Denver), S = westbound (toward the mountains).
+  Berthoud (US-40): P = toward I-70/Denver, S = toward Winter Park. In the
+  page S is "wb" for both: the direction away from Denver.
   Days with no data are missing rows. Missing HOURS come back as 0, so
-  every Tunnel row with a 0 hour is re-checked against the per-day
+  every page-counter row with a 0 hour is re-checked against the per-day
   endpoint, which leaves missing hours blank:
     /GetDailyTrafficVolumeForStationByDay/{station}/true/{YYYY-M-D}.json
 
@@ -25,7 +27,9 @@ Sources (both public, no key):
     precipDay     = PRCP in D+1's report
     snowDepth     = SNWD in D's report
 
-Only the Tunnel (000106) goes into the page. Copper Mountain, Twin Tunnels
+The page shows two counters (COUNTERS): the Tunnel (000106) and US-40
+below Berthoud Pass (000223), which carries everything driving from Denver
+to Winter Park and never touches the Tunnel. Copper Mountain, Twin Tunnels
 and Genesee are downloaded into the cache for later multi-counter work.
 
 The API is fetched one request at a time, >= 1 s apart, with a logged
@@ -37,9 +41,12 @@ Usage:
     python scripts/generate_i70_crossfilter_data.py --skip-download  # cache only
 
 Output:
-    public/data/i70-crossfilter/days.json  - columnar, one entry per day
-    public/data/i70-crossfilter/hours.bin  - Uint16 wb[days*24] then eb[days*24],
-                                             little-endian, 65535 = missing
+    public/data/i70-crossfilter/days.json  - columnar, one entry per day; shared
+                                             fields at the top, per-counter ones
+                                             under "counters"
+    public/data/i70-crossfilter/hours.bin  - Uint16 little-endian, 65535 = missing:
+                                             per counter (in "counters" order)
+                                             wb[days*24] then eb[days*24]
 """
 
 import argparse
@@ -61,13 +68,18 @@ OUT_DIR = ROOT / "public" / "data" / "i70-crossfilter"
 OTIS = "https://dtdapps.codot.gov/otis/API/TRANSYS"
 NOAA = "https://www.ncei.noaa.gov/access/services/data/v1"
 
-TUNNEL = "000106"
 STATIONS = {
     "000106": "Eisenhower Tunnel",
+    "000223": "US-40 below Berthoud Pass",
     "000119": "Copper Mountain",
     "000120": "Twin Tunnels",
     "000107": "Genesee",
 }
+# The counters in the page, in hours.bin order: (id, station, name, title).
+COUNTERS = [
+    ("tunnel", "000106", "Eisenhower Tunnel", "Every hour through the Eisenhower Tunnel"),
+    ("berthoud", "000223", "Berthoud Pass (US-40)", "Every hour over Berthoud Pass"),
+]
 WX_STATIONS = {
     "USC00052281": "Dillon 1 E",
     "USC00053261": "Georgetown",
@@ -175,7 +187,7 @@ def parse_day_value(v: str) -> int | None:
     return int(v) if v else None
 
 
-def resolve_zeros(rows, skip: bool) -> dict:
+def resolve_zeros(station: str, rows, skip: bool) -> dict:
     """Re-check every row containing a 0 against the per-day endpoint.
 
     Blank per-day = missing. A real "0" per-day stays 0. Returns stats.
@@ -183,10 +195,11 @@ def resolve_zeros(rows, skip: bool) -> dict:
     zero_days = sorted({d for (d, _), hrs in rows.items() if 0 in hrs})
     stats = Counter()
     real_zero_examples = []
-    print(f"Per-day zero checks: {sum(1 for hrs in rows.values() if 0 in hrs)} rows on {len(zero_days)} days")
+    print(f"Per-day zero checks ({station}): {sum(1 for hrs in rows.values() if 0 in hrs)} rows"
+          f" on {len(zero_days)} days")
     for d in zero_days:
-        url = f"{OTIS}/GetDailyTrafficVolumeForStationByDay/{TUNNEL}/true/{d.year}-{d.month}-{d.day}.json"
-        path = fetch(url, otis_day_path(TUNNEL, d), skip)
+        url = f"{OTIS}/GetDailyTrafficVolumeForStationByDay/{station}/true/{d.year}-{d.month}-{d.day}.json"
+        path = fetch(url, otis_day_path(station, d), skip)
         if path is None:
             stats["days_unchecked"] += 1
             continue
@@ -219,6 +232,45 @@ def resolve_zeros(rows, skip: bool) -> dict:
                 if len(real_zero_examples) < 8:
                     real_zero_examples.append(f"{d} {direction}: {hrs}")
     stats["real_zero_examples"] = real_zero_examples
+    return stats
+
+
+# OTIS never reports a 0 hour: the per-day endpoint leaves it blank, the
+# same as an outage (checked 2026-10-28: 1,735 rows across both page
+# counters, not one real "0"). On US-40 the blanks pile up at 1-3 AM, so
+# most are empty roads, not outages. A blank night hour (10 PM - 6 AM)
+# whose nearest recorded hours on both sides are both quiet is taken as 0.
+NIGHT_HOURS = {22, 23, 0, 1, 2, 3, 4, 5}
+QUIET = 10  # vehicles/hour
+MAX_ZERO_RUN = 4
+
+
+def fill_quiet_zeros(rows) -> Counter:
+    stats = Counter()
+    for hrs in rows.values():
+        h = 0
+        while h < 24:
+            if hrs[h] is not None:
+                h += 1
+                continue
+            end = h
+            while end + 1 < 24 and hrs[end + 1] is None:
+                end += 1
+            before = hrs[h - 1] if h > 0 else None
+            after = hrs[end + 1] if end < 23 else None
+            run = range(h, end + 1)
+            quiet = [v for v in (before, after) if v is not None]
+            # At the start or end of the day only one neighbor exists.
+            if (all(x in NIGHT_HOURS for x in run) and end - h + 1 <= MAX_ZERO_RUN
+                    and quiet and all(v <= QUIET for v in quiet)
+                    and (len(quiet) == 2 or h == 0 or end == 23)):
+                for x in run:
+                    hrs[x] = 0
+                stats["hours_zeroed"] += end - h + 1
+                stats["runs_zeroed"] += 1
+            else:
+                stats["hours_left_missing"] += end - h + 1
+            h = end + 1
     return stats
 
 
@@ -330,25 +382,10 @@ def percentile(values: list[int], p: float) -> float:
     return s[lo] + (s[hi] - s[lo]) * (k - lo)
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--skip-download", action="store_true", help="use the cache only")
-    args = ap.parse_args()
-    skip = args.skip_download
-
-    download_annual(skip)
-    download_weather(skip)
-
-    # --- per-station coverage (all four counters, from the cache)
-    print("\nRows per station x year (one row = day x direction)")
-    print("  year  " + "  ".join(f"{s}" for s in STATIONS))
-    annual = {s: read_annual(s) for s in STATIONS}
-    for year in YEARS:
-        counts = [sum(1 for (d, _) in annual[s] if d.year == year) for s in STATIONS]
-        print(f"  {year}  " + "  ".join(f"{c:6d}" for c in counts))
-
-    rows = annual[TUNNEL]
-    zstats = resolve_zeros(rows, skip)
+def build_counter(station: str, rows, days: list[date], skip: bool) -> dict:
+    """Hourly arrays and per-day fields for one page counter. Prints its checks."""
+    print(f"\n=== {station} {STATIONS[station]}")
+    zstats = resolve_zeros(station, rows, skip)
     print(f"  rows with a 0 checked per-day: {zstats['rows_checked']}"
           f" ({zstats['days_unchecked']} days not checkable - no cache)")
     print(f"  rows where a 0 was really missing: {zstats['rows_with_missing']}"
@@ -358,22 +395,19 @@ def main() -> None:
           f" {zstats['hours_disagree']} nonzero hours")
     for ex in zstats["real_zero_examples"]:
         print(f"    {ex}")
+    q = fill_quiet_zeros(rows)
+    print(f"  quiet night blanks taken as 0: {q['hours_zeroed']} hours in {q['runs_zeroed']} runs;"
+          f" {q['hours_left_missing']} blank hours left missing")
 
-    days = []
-    d = START
-    while d <= END:
-        days.append(d)
-        d += timedelta(days=1)
     n = len(days)
     idx = {d: i for i, d in enumerate(days)}
-
     wb = [[None] * 24 for _ in range(n)]
     eb = [[None] * 24 for _ in range(n)]
     for (d, direction), hrs in rows.items():
         if d in idx:
             (wb if direction == "S" else eb)[idx[d]] = hrs
 
-    print("\nTunnel missing days (no row in either direction) / incomplete days per year")
+    print("\nMissing days (no row in either direction) / incomplete days per year")
     for year in YEARS:
         yd = [i for i, d in enumerate(days) if d.year == year]
         none = sum(1 for i in yd if all(v is None for v in wb[i]) and all(v is None for v in eb[i]))
@@ -413,6 +447,74 @@ def main() -> None:
                 if v is not None and v < 0.05 * med[(name, d.weekday(), d.month, h)]:
                     closure[i] = True
                     closure_detail.setdefault(i, []).append(f"{name} {h}:00={v}")
+    print(f"\nClosures flagged: {sum(closure)} days. Examples:")
+    for i in sorted(closure_detail)[-12:]:
+        print(f"  {days[i]} {DOW[days[i].weekday()]}: {', '.join(closure_detail[i][:4])}")
+
+    def total(hrs):
+        return None if None in hrs else sum(hrs)
+
+    def saturated(i, arr, name):
+        c = ceilings[(days[i].year, name)]
+        return 0 if c is None else sum(1 for v in arr[i] if v is not None and v >= 0.9 * c)
+
+    net_flow = [None] * n
+    running = None
+    for i, d in enumerate(days):
+        wd = d.weekday()
+        if wd == 4:
+            running = 0
+        if wd in (4, 5, 6) and running is not None:
+            if None in wb[i] or None in eb[i]:
+                running = None
+            else:
+                running += sum(wb[i]) - sum(eb[i])
+            net_flow[i] = running
+        else:
+            running = None
+
+    return {
+        "wb": wb,
+        "eb": eb,
+        "cols": {
+            "ceilings": {str(y): {"wb": round(ceilings[(y, "WB")] or 0), "eb": round(ceilings[(y, "EB")] or 0)}
+                         for y in YEARS},
+            "wbTotal": [total(wb[i]) for i in range(n)],
+            "ebTotal": [total(eb[i]) for i in range(n)],
+            "wbSaturated": [saturated(i, wb, "WB") for i in range(n)],
+            "ebSaturated": [saturated(i, eb, "EB") for i in range(n)],
+            "closure": [int(c) for c in closure],
+            "netFlow": net_flow,
+            "complete": [int(None not in wb[i] and None not in eb[i]) for i in range(n)],
+        },
+    }
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--skip-download", action="store_true", help="use the cache only")
+    args = ap.parse_args()
+    skip = args.skip_download
+
+    download_annual(skip)
+    download_weather(skip)
+
+    # --- per-station coverage (every cached counter)
+    print("\nRows per station x year (one row = day x direction)")
+    print("  year  " + "  ".join(f"{s}" for s in STATIONS))
+    annual = {s: read_annual(s) for s in STATIONS}
+    for year in YEARS:
+        counts = [sum(1 for (d, _) in annual[s] if d.year == year) for s in STATIONS]
+        print(f"  {year}  " + "  ".join(f"{c:6d}" for c in counts))
+
+    days = []
+    d = START
+    while d <= END:
+        days.append(d)
+        d += timedelta(days=1)
+
+    counters = [(cid, station, name, title, build_counter(station, annual[station], days, skip))
+                for cid, station, name, title in COUNTERS]
 
     # --- weather
     wx = read_weather()
@@ -443,32 +545,10 @@ def main() -> None:
         print(f"  {year}  {pct(snow_overnight):6.1f}  {pct(snow_day):6.1f} {pct(precip_day):6.1f}"
               f" {pct(snow_depth):6.1f}   " + ", ".join(f"{k} {v}" for k, v in src.most_common()))
 
-    # --- per-day fields
+    # --- per-day fields shared by every counter
     hol = {}
     for year in range(START.year - 1, END.year + 2):
         hol.update(holidays_for_year(year))
-
-    def total(hrs):
-        return None if None in hrs else sum(hrs)
-
-    def saturated(i, arr, name):
-        c = ceilings[(days[i].year, name)]
-        return sum(1 for v in arr[i] if v is not None and v >= 0.9 * c)
-
-    net_flow = [None] * n
-    running = None
-    for i, d in enumerate(days):
-        wd = d.weekday()
-        if wd == 4:
-            running = 0
-        if wd in (4, 5, 6) and running is not None:
-            if None in wb[i] or None in eb[i]:
-                running = None
-            else:
-                running += sum(wb[i]) - sum(eb[i])
-            net_flow[i] = running
-        else:
-            running = None
 
     out = {
         "start": START.isoformat(),
@@ -476,35 +556,26 @@ def main() -> None:
         "partialYear": END.year,
         "holidays": ["none", "mlk", "presidents", "memorial", "july4", "labor", "thanksgiving", "xmas_ny"],
         "wxStations": ["dillon", "georgetown", "loveland"],
-        "ceilings": {str(y): {"wb": round(ceilings[(y, "WB")]), "eb": round(ceilings[(y, "EB")])} for y in YEARS},
         "holiday": [], "holidayPos": [],
         "snowOvernight": snow_overnight, "snowDay": snow_day,
         "precipDay": precip_day, "snowDepth": snow_depth,
         "wxStation": [],
-        "wbTotal": [], "ebTotal": [], "wbSaturated": [], "ebSaturated": [],
-        "closure": [int(c) for c in closure], "netFlow": net_flow, "complete": [],
+        "counters": [{"id": cid, "station": station, "name": name, "title": title, **c["cols"]}
+                     for cid, station, name, title, c in counters],
     }
     for i, d in enumerate(days):
         h, pos = hol.get(d, ("none", ""))
         out["holiday"].append(out["holidays"].index(h))
         out["holidayPos"].append(pos)
         out["wxStation"].append(out["wxStations"].index(wx_station[i]) if wx_station[i] else -1)
-        out["wbTotal"].append(total(wb[i]))
-        out["ebTotal"].append(total(eb[i]))
-        out["wbSaturated"].append(saturated(i, wb, "WB"))
-        out["ebSaturated"].append(saturated(i, eb, "EB"))
-        out["complete"].append(int(None not in wb[i] and None not in eb[i]))
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / "days.json").write_text(json.dumps(out, separators=(",", ":")))
     with (OUT_DIR / "hours.bin").open("wb") as f:
-        for arr in (wb, eb):
-            flat = [MISSING if v is None else v for hrs in arr for v in hrs]
-            f.write(struct.pack(f"<{len(flat)}H", *flat))
-
-    print(f"\nClosures flagged: {sum(closure)} days. Examples:")
-    for i in sorted(closure_detail)[-12:]:
-        print(f"  {days[i]} {DOW[days[i].weekday()]}: {', '.join(closure_detail[i][:4])}")
+        for *_, c in counters:
+            for arr in (c["wb"], c["eb"]):
+                flat = [MISSING if v is None else v for hrs in arr for v in hrs]
+                f.write(struct.pack(f"<{len(flat)}H", *flat))
 
     for p in sorted(OUT_DIR.iterdir()):
         print(f"wrote {p.relative_to(ROOT)} ({p.stat().st_size / 1024:.0f} KB)")

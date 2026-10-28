@@ -18,7 +18,7 @@ which leaves missing hours blank. Weather is GHCN-Daily from Dillon 1 E, falling
 capacity ceilings, saturated hours and likely closures.
 
 **Requirements**: standard library only (no API key). Fetches one request at a time, >= 1 s apart,
-with a 10/20/30 s backoff. A full fetch is ~375 requests (~8 minutes).
+with a 10/20/30 s backoff. A full fetch is ~1,900 requests (~35 minutes), most of them Berthoud's per-day zero checks.
 
 **Usage**:
 ```bash
@@ -32,9 +32,15 @@ It prints rows per station x year, missing/incomplete days per year, the per-day
 weather coverage per year, the per-year ceilings and the flagged closures.
 
 **Output**:
-- `public/data/i70-crossfilter/days.json` (~530KB, columnar, one entry per day)
-- `public/data/i70-crossfilter/hours.bin` (~1.05MB, Uint16 little-endian: westbound
-  `days x 24`, then eastbound; 65535 = missing)
+- `public/data/i70-crossfilter/days.json` (columnar, one entry per day; calendar and weather
+  fields shared, traffic fields per counter under `counters`)
+- `public/data/i70-crossfilter/hours.bin` (Uint16 little-endian, 65535 = missing: for each
+  counter in `counters` order, westbound `days x 24` then eastbound)
+
+Two counters go into the page: the Eisenhower Tunnel (000106) and US-40 below Berthoud
+Pass (000223). On US-40, OTIS's `S` direction (toward Winter Park) is stored as "wb", the
+direction away from Denver. Berthoud's quiet nights mean ~1,500 days have a 0 hour, so a
+fresh download makes that many per-day checks (~30 min at 1 request/s).
 
 **When to run**: to extend past 2026-09-30, change `END` and re-run without `--skip-download`.
 Cached years are never refetched, so delete the partial year's files first.

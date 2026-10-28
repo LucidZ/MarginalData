@@ -7,6 +7,7 @@
 // < 100 ms, and checks that filtering hours to 7-9 AM doesn't triple the
 // day counts (the distinct-day reduce). Then Compare by + presets: groups
 // partition the matching days, A/B gets a headline, one-line-per-year hover.
+// Switching to the Berthoud counter keeps the filters and preset.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -132,6 +133,24 @@ for (const width of [1000, 390]) {
   check(await page.locator(".i70x-chip.active").count() === 1, "preset chip shows active");
   await hero.scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${OUT}/${tag}-4-snow-ab.png`, fullPage: true });
+
+  // Counter switch: same filters and grouping, Berthoud's counts.
+  await page.getByRole("button", { name: "Berthoud Pass (US-40)" }).click();
+  await page.waitForTimeout(50);
+  const bMs = await page.evaluate(() => window.__i70x.ms);
+  const bHeadline = await page.locator(".i70x-headline").innerText();
+  console.log(`  berthoud headline: ${bHeadline}`);
+  // A counter's first update applies every filter and recomputes its reference bars.
+  check(bMs < 200, `counter switch (filter + read) took ${bMs.toFixed(1)} ms`);
+  // Still eastbound from the direction toggle above: southbound on US-40.
+  check(/southbound/.test(bHeadline), "Berthoud headline says southbound");
+  check(await page.locator(".i70x-chip.active").count() === 1, "counter switch keeps the preset");
+  check((await page.locator("h1").innerText()).includes("Berthoud"), "title follows the counter");
+  await hero.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${OUT}/${tag}-4b-snow-ab-berthoud.png`, fullPage: true });
+  await page.getByRole("button", { name: "Eisenhower Tunnel" }).click();
+  await page.waitForTimeout(50);
+  check((await page.locator(".i70x-headline").innerText()) === headline, "switching back restores the Tunnel numbers");
 
   // Preset: one line per year, hover highlights the nearest.
   await page.getByRole("button", { name: "Winter Saturdays, every year" }).click();

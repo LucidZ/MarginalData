@@ -1,6 +1,6 @@
 import type { Dataset, Direction } from "./types";
 import { DOW_LABELS, holidayLabel, weekday } from "./bins";
-import { fmtDate, fmtInches, fmtInt } from "./format";
+import { dirLabel, dirWord, fmtDate, fmtInches, fmtInt } from "./format";
 
 interface Props {
   data: Dataset;
@@ -14,7 +14,7 @@ const TopDays = ({ data, top, dir }: Props) => {
   return (
     <div className="i70x-card i70x-table-card">
       <div className="i70x-card-head">
-        <h3>Busiest matching days ({dir === "wb" ? "westbound" : "eastbound"})</h3>
+        <h3>Busiest matching days ({dirWord(days.id, dir)})</h3>
       </div>
       {top.length === 0 ? (
         <p className="i70x-readout">No complete days match.</p>
@@ -25,8 +25,8 @@ const TopDays = ({ data, top, dir }: Props) => {
               <tr>
                 <th>Date</th>
                 <th>Day</th>
-                <th className="num">Westbound</th>
-                <th className="num">Eastbound</th>
+                <th className="num">{dirLabel(days.id, "wb")}</th>
+                <th className="num">{dirLabel(days.id, "eb")}</th>
                 <th>Holiday</th>
                 <th className="num">Snow overnight</th>
                 <th className="num">Snow by day</th>

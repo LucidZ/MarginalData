@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useData } from "./useData";
 import { buildBins, describeBins } from "./bins";
-import { createEngine } from "./engine";
+import { createEngine, type Engine } from "./engine";
 import { MAX_CAT, buildGroupings, groupCurves } from "./compare";
 import { buildPresets, type Preset } from "./presetList";
-import type { Direction, FilterId, Filters, Selection, Series, Snapshot } from "./types";
+import type { BinSpec, CounterId, Dataset, Direction, FilterId, Filters, Selection, Series, Snapshot } from "./types";
 import Controls from "./Controls";
 import Presets from "./Presets";
 import CompareControl from "./CompareControl";
@@ -36,11 +36,40 @@ declare global {
 }
 
 const I70Crossfilter = () => {
-  const { data, error } = useData();
-  const specs = useMemo(() => (data ? buildBins(data) : []), [data]);
+  const { data: sets, error } = useData();
+  const [counter, setCounter] = useState<CounterId>("tunnel");
+  const data = sets?.find((s) => s.days.id === counter) ?? null;
+  // One engine per counter, built the first time it's shown and kept, so
+  // switching back is instant. Each engine diffs against its own last filters.
+  const built = useMemo(() => new Map<Dataset, { specs: BinSpec[]; engine: Engine }>(), [sets]);
+  const build = useCallback(
+    (d: Dataset) => {
+      let b = built.get(d);
+      if (!b) {
+        const specs = buildBins(d);
+        b = { specs, engine: createEngine(d, specs) };
+        built.set(d, b);
+      }
+      return b;
+    },
+    [built],
+  );
+  const { specs, engine } = useMemo(() => (data ? build(data) : { specs: [], engine: null }), [build, data]);
+  // Build the other counters' engines once the page is idle, so the first
+  // switch doesn't stall on it.
+  useEffect(() => {
+    if (!sets) return;
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300));
+    let k = 0;
+    const next = () => {
+      if (k >= sets.length) return;
+      build(sets[k++]);
+      idle(next);
+    };
+    idle(next);
+  }, [sets, build]);
   const groupings = useMemo(() => (data ? buildGroupings(data) : []), [data]);
   const presets = useMemo(() => (data ? buildPresets(data) : []), [data]);
-  const engine = useMemo(() => (data ? createEngine(data, specs) : null), [data, specs]);
   const [filters, setFilters] = useState<Filters>(INITIAL);
   const [dir, setDir] = useState<Direction>("wb");
   // The filter charts scope the days; "compare by" splits them into lines.
@@ -118,6 +147,12 @@ const I70Crossfilter = () => {
     setFilters((f) => ({ ...f, bins: { ...f.bins, total: null } }));
     setDir(d);
   };
+  // Everything else carries over: the same days, counted somewhere else.
+  const changeCounter = (c: CounterId) => {
+    setFilters((f) => ({ ...f, bins: { ...f.bins, total: null } }));
+    setHighlight(null);
+    setCounter(c);
+  };
   const changeCompare = (id: string | null) => {
     setPreset(null);
     setHighlight(null);
@@ -136,12 +171,14 @@ const I70Crossfilter = () => {
   return (
     <div className={`i70x-root ${dir}`}>
       <header className="i70x-header">
-        <h1>Every hour through the Eisenhower Tunnel</h1>
+        <h1>{data?.days.title ?? "Every hour through the Eisenhower Tunnel"}</h1>
         <p className="i70x-intro">
           CDOT has counted the cars going each way through the Eisenhower-Johnson Memorial Tunnel on I-70 every hour since
-          1996. Pick any kind of day (Saturdays in February, holiday Mondays, the morning after a foot of snow) with the
+          1996, and on US-40 below Berthoud Pass, the road to Winter Park that never goes through the tunnel. Pick any
+          kind of day (Saturdays in February, holiday Mondays, the morning after a foot of snow) with the
           filter charts, then use <em>Compare by</em> to split those days into groups: snow vs none, weekends vs
-          weekdays, one line per year. Every other chart updates to show only the matching days.
+          weekdays, one line per year. Every other chart updates to show only the matching days. Switch counters to see
+          the same days somewhere else.
         </p>
       </header>
 
@@ -152,6 +189,9 @@ const I70Crossfilter = () => {
         <>
           <Presets presets={presets} active={preset} onPick={pickPreset} />
           <Controls
+            counters={sets!.map((s) => ({ id: s.days.id, name: s.days.name }))}
+            counter={counter}
+            onCounter={changeCounter}
             dir={dir}
             onDir={changeDir}
             includeClosures={filters.includeClosures}
@@ -194,6 +234,7 @@ const I70Crossfilter = () => {
               />
               <SeriesTable
                 series={series}
+                counter={counter}
                 dir={dir}
                 hours={filters.hours}
                 highlight={highlight}
@@ -232,9 +273,18 @@ const I70Crossfilter = () => {
               ways you didn't filter on (snowy days may cluster in some years), so keep the scope tight.
             </p>
             <p>
+              <strong>Two counters.</strong> The Eisenhower Tunnel counter carries I-70 traffic to Summit County and
+              beyond. The Berthoud Pass counter sits on US-40 between Empire and the pass, so it catches everyone driving
+              from Denver to Winter Park and Grand County. Nobody is counted twice: Winter Park traffic never reaches
+              the tunnel. Westbound on I-70 and northbound on US-40 are both the direction away from Denver, so they
+              share a color. The filters pick days, not counts, so switching counters keeps them (except the daily
+              total). Each counter has its own missing hours and closures, so the number of matching days can change.
+            </p>
+            <p>
               <strong>Overnight vs daytime snow.</strong> Weather is the NOAA daily report from Dillon (Georgetown when
               Dillon is missing). It is read at about 8 AM, so "overnight" is that morning's report and "during the day"
-              is the next morning's.
+              is the next morning's. Both counters use the same report. For Berthoud it's a stand-in: Dillon is
+              about 25 miles from Winter Park, and storms don't always hit both.
             </p>
             <p>
               <strong>Missing hours and closures.</strong> Days with any missing hour, and days where a midday hour fell
@@ -243,7 +293,7 @@ const I70Crossfilter = () => {
               doesn't look busier.
             </p>
             <p className="i70x-source">
-              Data: CDOT OTIS traffic counts (station 000106), NOAA GHCN-Daily.
+              Data: CDOT OTIS traffic counts (stations 000106 and 000223), NOAA GHCN-Daily.
             </p>
           </section>
         </>

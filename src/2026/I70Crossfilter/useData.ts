@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Dataset, DaysFile } from "./types";
+import type { Dataset, DaysJson } from "./types";
 
 const daysUrl = "/data/i70-crossfilter/days.json";
 const hoursUrl = "/data/i70-crossfilter/hours.bin";
@@ -10,30 +10,36 @@ const fetchOk = async (url: string) => {
   return res;
 };
 
-/** days.json + hours.bin (Uint16 little-endian: wb[days*24] then eb[days*24]). */
+/**
+ * days.json + hours.bin (Uint16 little-endian; per counter, in days.json's
+ * `counters` order: wb[days*24] then eb[days*24]). One Dataset per counter.
+ */
 export const useData = () => {
-  const [data, setData] = useState<Dataset | null>(null);
+  const [data, setData] = useState<Dataset[] | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetchOk(daysUrl).then((r) => r.json() as Promise<DaysFile>),
+      fetchOk(daysUrl).then((r) => r.json() as Promise<DaysJson>),
       fetchOk(hoursUrl).then((r) => r.arrayBuffer()),
     ])
-      .then(([days, buf]) => {
-        const n = days.holiday.length;
-        if (buf.byteLength !== n * 24 * 2 * 2) throw new Error(`hours.bin size mismatch for ${n} days`);
-        const start = Date.parse(`${days.start}T00:00:00Z`);
+      .then(([json, buf]) => {
+        const { counters, ...shared } = json;
+        const n = shared.holiday.length;
+        const block = n * 24 * 2; // bytes per direction
+        if (buf.byteLength !== counters.length * 2 * block)
+          throw new Error(`hours.bin size mismatch for ${n} days x ${counters.length} counters`);
+        const start = Date.parse(`${shared.start}T00:00:00Z`);
         const dates = Array.from({ length: n }, (_, i) => new Date(start + i * 86400000));
-        if (!cancelled)
-          setData({
-            days,
-            n,
-            dates,
-            wb: new Uint16Array(buf, 0, n * 24),
-            eb: new Uint16Array(buf, n * 24 * 2, n * 24),
-          });
+        const sets = counters.map((c, k) => ({
+          days: { ...shared, ...c },
+          n,
+          dates,
+          wb: new Uint16Array(buf, 2 * k * block, n * 24),
+          eb: new Uint16Array(buf, (2 * k + 1) * block, n * 24),
+        }));
+        if (!cancelled) setData(sets);
       })
       .catch((err: unknown) => {
         if (cancelled) return;

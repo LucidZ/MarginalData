@@ -1,12 +1,12 @@
 // Shape of public/data/i70-crossfilter/days.json (columnar, one entry per
 // day from `start` to `end`). Written by scripts/generate_i70_crossfilter_data.py.
-export interface DaysFile {
+// Day fields (calendar, weather) are shared; traffic fields are per counter.
+interface SharedDays {
   start: string;
   end: string;
   partialYear: number;
   holidays: string[];
   wxStations: string[];
-  ceilings: Record<string, { wb: number; eb: number }>;
   holiday: number[];
   holidayPos: string[];
   snowOvernight: (number | null)[];
@@ -14,6 +14,16 @@ export interface DaysFile {
   precipDay: (number | null)[];
   snowDepth: (number | null)[];
   wxStation: number[];
+}
+
+export interface CounterCols {
+  id: CounterId;
+  /** CDOT OTIS station id. */
+  station: string;
+  name: string;
+  /** Page heading while this counter is showing. */
+  title: string;
+  ceilings: Record<string, { wb: number; eb: number }>;
   wbTotal: (number | null)[];
   ebTotal: (number | null)[];
   wbSaturated: number[];
@@ -23,8 +33,18 @@ export interface DaysFile {
   complete: number[];
 }
 
+export type CounterId = "tunnel" | "berthoud";
+
+export interface DaysJson extends SharedDays {
+  counters: CounterCols[];
+}
+
+/** One counter's view: the shared day fields plus that counter's traffic fields. */
+export type DaysFile = SharedDays & CounterCols;
+
 export type Direction = "wb" | "eb";
 
+/** Everything below is for one counter; there is one Dataset per counter. */
 export interface Dataset {
   days: DaysFile;
   n: number;
