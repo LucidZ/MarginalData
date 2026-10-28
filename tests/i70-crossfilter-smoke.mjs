@@ -5,7 +5,8 @@
 // At 1000px and 390px: applies Saturday + Jan-Mar + snow overnight >= 4",
 // screenshots each step, fails on console errors, checks every filter takes
 // < 100 ms, and checks that filtering hours to 7-9 AM doesn't triple the
-// day counts (the distinct-day reduce).
+// day counts (the distinct-day reduce). Then Compare by + presets: groups
+// partition the matching days, A/B gets a headline, one-line-per-year hover.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -104,24 +105,53 @@ for (const width of [1000, 390]) {
   const dirMs = await page.evaluate(() => window.__i70x.ms);
   check(dirMs < 400, `direction switch took ${dirMs.toFixed(1)} ms (rebuilds 2 dimensions)`);
 
-  // Pin: same day count as the live selection, survives a filter reset.
-  const liveN = await page.evaluate(() => window.__i70x.nMatched);
-  await page.getByRole("button", { name: "Pin as comparison" }).click();
-  const pinLegend = page.locator(".i70x-pin-legend");
-  const pinText = await pinLegend.innerText();
-  const pinN = Number(pinText.match(/\(([\d,]+) days\)/)?.[1].replace(/,/g, ""));
-  console.log(`  pin legend: ${pinText.replace(/\s+/g, " ")}`);
-  check(pinN === liveN, `pinned days (${pinN}) = live matching days (${liveN})`);
+  // Compare by: groups partition the matching days.
+  const tableRows = () =>
+    page.locator(".i70x-series-table tbody tr").evaluateAll((trs) =>
+      trs.map((tr) => ({
+        label: tr.cells[0].innerText.trim(),
+        days: Number(tr.cells[1].innerText.replace(/,/g, "")),
+      })),
+    );
   await page.getByRole("button", { name: "Reset all filters" }).click();
+  await page.locator(".i70x-compare select").selectOption("dow-each");
   await page.waitForTimeout(50);
-  check(await pinLegend.isVisible(), "pin survives Reset all filters");
+  let rows = await tableRows();
+  const nAll = await page.evaluate(() => window.__i70x.nMatched);
+  const groupSum = rows.slice(1).reduce((t, r) => t + r.days, 0);
+  check(rows.length === 8 && groupSum === nAll, `each-day groups (${rows.length - 1}) sum to matching days: ${groupSum} vs ${nAll}`);
+
+  // Preset: A/B with a headline.
+  await page.getByRole("button", { name: "Snowy vs clear winter weekends" }).click();
+  await page.waitForTimeout(50);
+  rows = await tableRows();
+  const headline = await page.locator(".i70x-headline").innerText();
+  const nScope = await page.evaluate(() => window.__i70x.nMatched);
+  console.log(`  headline: ${headline}`);
+  check(rows.length === 2 && rows[0].days + rows[1].days <= nScope, `snow A/B: ${rows.map((r) => r.days)} of ${nScope} days`);
+  check(await page.locator(".i70x-chip.active").count() === 1, "preset chip shows active");
   await hero.scrollIntoViewIfNeeded();
-  const hb2 = await hero.boundingBox();
-  await page.mouse.move(hb2.x + left + 17.5 * hstep, hb2.y + 60);
-  await page.screenshot({ path: `${OUT}/${tag}-4-pinned.png`, fullPage: true });
-  check((await page.locator(".i70x-hero-chart .i70x-readout").innerText()).includes("pinned days"), "readout compares against pinned days");
-  await page.getByRole("button", { name: "Unpin" }).click();
-  check(!(await pinLegend.isVisible()), "unpin restores all days");
+  await page.screenshot({ path: `${OUT}/${tag}-4-snow-ab.png`, fullPage: true });
+
+  // Preset: one line per year, hover highlights the nearest.
+  await page.getByRole("button", { name: "Winter Saturdays, every year" }).click();
+  await page.waitForTimeout(50);
+  rows = await tableRows();
+  check(rows.length >= 25, `every-year preset shows ${rows.length - 1} year lines`);
+  await hero.scrollIntoViewIfNeeded();
+  const hb3 = await hero.boundingBox();
+  await page.mouse.move(hb3.x + left + 8.5 * hstep, hb3.y + 40);
+  await page.waitForTimeout(50);
+  const readout = await page.locator(".i70x-hero-chart .i70x-readout").innerText();
+  console.log(`  readout: ${readout}`);
+  check(/\d{4}/.test(readout) && readout.includes("All matching days"), "hovering picks a year line vs the scope average");
+  await page.screenshot({ path: `${OUT}/${tag}-5-every-year.png`, fullPage: true });
+
+  // A manual filter change drops the preset highlight; reset clears compare.
+  await pickBins("Day of week", 6);
+  check(await page.locator(".i70x-chip.active").count() === 0, "manual change clears preset chip");
+  await page.getByRole("button", { name: "Reset all filters" }).click();
+  check((await page.locator(".i70x-compare select").inputValue()) === "", "reset clears Compare by");
 
   check(errors.length === 0, `no console errors${errors.length ? ": " + errors.join(" | ") : ""}`);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

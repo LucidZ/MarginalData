@@ -13,6 +13,11 @@
   --wb: #2a78d6;
   --eb: #eb6834;
   --off: #d3d2cb;
+  /* Group hues for small unordered splits (blue/orange mean direction). */
+  --cat-1: #1baf7a;
+  --cat-2: #6250d6;
+  --cat-3: #e87ba4;
+  --cat-4: #eda100;
 
   max-width: 1000px;
   margin: 0 auto;
@@ -36,6 +41,10 @@
     --wb: #3987e5;
     --eb: #d95926;
     --off: #3a3a37;
+  --cat-1: #199e70;
+  --cat-2: #9085e9;
+  --cat-3: #d55181;
+  --cat-4: #c98500;
   }
 }
 
@@ -52,6 +61,10 @@
   --wb: #3987e5;
   --eb: #d95926;
   --off: #3a3a37;
+  --cat-1: #199e70;
+  --cat-2: #9085e9;
+  --cat-3: #d55181;
+  --cat-4: #c98500;
 }
 
 .i70x-root h1 {
@@ -138,6 +151,31 @@
 .i70x-key.eb { background: var(--eb); }
 .i70x-key.base { background: var(--muted); }
 
+/* Presets */
+.i70x-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.82rem;
+}
+.i70x-presets-label { color: var(--text-secondary); margin-right: 0.2rem; }
+.i70x-chip {
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font: inherit;
+  cursor: pointer;
+}
+.i70x-chip:hover { background: var(--hover); }
+.i70x-chip.active {
+  border-color: currentColor;
+  font-weight: 600;
+}
+
 /* Hero */
 .i70x-hero {
   display: flex;
@@ -168,9 +206,66 @@
   margin-top: 0.3rem;
 }
 
-.i70x-hero-chart {
+.i70x-hero-main {
   flex: 1;
   min-width: 0;
+}
+
+.i70x-hero-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.4rem 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.i70x-scope {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  flex: 1 1 260px;
+}
+.i70x-scope span { color: var(--text-secondary); }
+
+.i70x-compare {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.i70x-compare select {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.i70x-series-table { margin-top: 0.6rem; }
+.i70x-headline {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.i70x-series-table .i70x-table-wrap.tall {
+  max-height: 260px;
+  overflow-y: auto;
+}
+.i70x-series-table tr.hl td { background: var(--hover); }
+.i70x-series-table td:first-child {
+  white-space: normal;
+  min-width: 10em;
+}
+.i70x-few {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.75rem;
 }
 
 .i70x-hero-svg,
@@ -220,23 +315,21 @@
   stroke-width: 2;
 }
 .i70x-dot { stroke: var(--surface-1); stroke-width: 2; }
+.i70x-series {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.i70x-series.main,
+.i70x-series.hl { stroke-width: 2.5; }
+.i70x-series.ref { stroke-width: 2; stroke-dasharray: 5 3; }
+.i70x-key.ref {
+  background: repeating-linear-gradient(90deg, var(--muted) 0 5px, transparent 5px 8px);
+}
 .i70x-dot.wb { fill: var(--wb); }
 .i70x-dot.eb { fill: var(--eb); }
 .i70x-dot-base { fill: var(--muted); stroke: var(--surface-1); stroke-width: 2; }
-.i70x-line-pin {
-  fill: none;
-  stroke: var(--text-primary);
-  stroke-width: 2;
-  stroke-dasharray: 5 3;
-}
-.i70x-dot-pin { fill: var(--text-primary); stroke: var(--surface-1); stroke-width: 2; }
-.i70x-key.pin {
-  background: repeating-linear-gradient(90deg, var(--text-primary) 0 5px, transparent 5px 8px);
-}
-.i70x-legend .i70x-pin-legend {
-  display: inline;
-}
-.i70x-pin-legend .i70x-clear { margin-left: 0.6rem; }
 .i70x-crosshair { stroke: var(--baseline); stroke-width: 1; }
 .i70x-brush { fill: var(--hover); stroke: var(--baseline); stroke-width: 1; }
 .i70x-hover { fill: var(--hover); }
@@ -332,8 +425,12 @@
 }
 
 @media (max-width: 600px) {
+  .i70x-series-table .i70x-table th,
+  .i70x-series-table .i70x-table td { padding: 5px 4px; }
+  .i70x-series-table td:first-child { min-width: 8em; }
   .i70x-hero {
     flex-direction: column;
+    align-items: stretch;
     gap: 0.5rem;
     padding: 0.75rem;
   }

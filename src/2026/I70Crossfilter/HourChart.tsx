@@ -1,36 +1,29 @@
 import { useMemo, useRef, useState } from "react";
 import { area, curveMonotoneX, line, scaleLinear } from "d3";
-import type { Direction } from "./types";
+import type { Direction, Series } from "./types";
+import { seriesColor } from "./compare";
 import { useContainerWidth } from "./useContainerWidth";
 import { fmtCompact, fmtInt, hourLabel } from "./format";
 
-interface Pin {
-  curve: (number | null)[];
-  nDays: number;
-  label: string;
-}
-
 interface Props {
-  hero: (number | null)[];
-  baseline: (number | null)[];
-  /** When set, the pinned curve replaces the all-days comparison. */
-  pin: Pin | null;
-  canPin: boolean;
-  onPin: () => void;
-  onUnpin: () => void;
+  series: Series[];
+  /** Key of the series to bring forward (hovered here or in the table). */
+  highlight: string | null;
+  onHighlight: (key: string | null) => void;
   dir: Direction;
   hours: [number, number] | null;
   onHours: (h: [number, number] | null) => void;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
+const DRAW_ORDER = { faint: 0, ramp: 0, cat: 0, ref: 1, main: 2 } as const;
 
-// Average vehicles per hour for the matching days, over the all-days curve
-// in grey (or a pinned selection, dashed). Doubles as the hour-of-day
-// filter: drag to pick hours.
-const HourChart = ({ hero, baseline: allDays, pin, canPin, onPin, onUnpin, dir, hours, onHours }: Props) => {
-  const baseline = pin ? pin.curve : allDays;
-  const baseName = pin ? "pinned days" : "all days";
+const pct = (a: number, b: number) => `${a >= b ? "+" : ""}${Math.round((a / b - 1) * 100)}%`;
+
+// Average vehicles per hour by hour of day, one line per series, measured
+// against the dashed reference. Doubles as the hour-of-day filter: drag to
+// pick hours.
+const HourChart = ({ series, highlight, onHighlight, dir, hours, onHours }: Props) => {
   const [ref, width] = useContainerWidth<HTMLDivElement>(900);
   const [hover, setHover] = useState<number | null>(null);
   const drag = useRef<{ anchor: number; moved: boolean } | null>(null);
@@ -42,7 +35,7 @@ const HourChart = ({ hero, baseline: allDays, pin, canPin, onPin, onUnpin, dir, 
 
   const step = innerW / 24;
   const x = (h: number) => (h + 0.5) * step;
-  const max = Math.max(1, ...hero.map((v) => v ?? 0), ...baseline.map((v) => v ?? 0));
+  const max = Math.max(1, ...series.flatMap((s) => s.curve.map((v) => v ?? 0)));
   const y = useMemo(() => scaleLinear().domain([0, max]).nice(4).range([innerH, 0]), [max, innerH]);
 
   const toPts = (vals: (number | null)[]) => HOURS.map((h) => [h, vals[h]] as [number, number | null]);
@@ -58,17 +51,40 @@ const HourChart = ({ hero, baseline: allDays, pin, canPin, onPin, onUnpin, dir, 
     .y1((d) => y(d[1]!))
     .curve(curveMonotoneX);
 
-  const hourAt = (clientX: number, el: SVGSVGElement) => {
-    const px = clientX - el.getBoundingClientRect().left - M.left;
-    return Math.max(0, Math.min(23, Math.floor(px / step)));
+  const refSeries = series.find((s) => s.style === "ref") ?? null;
+  const others = series.filter((s) => s.style !== "ref");
+  // With many lines, hovering picks the nearest one.
+  const pickNearest = others.length > 2;
+  const drawn = [...series].sort((a, b) => {
+    const ha = a.key === highlight ? 3 : DRAW_ORDER[a.style];
+    const hb = b.key === highlight ? 3 : DRAW_ORDER[b.style];
+    return ha - hb;
+  });
+
+  const local = (e: React.PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return [e.clientX - r.left - M.left, e.clientY - r.top - M.top];
   };
+  const hourAt = (px: number) => Math.max(0, Math.min(23, Math.floor(px / step)));
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    drag.current = { anchor: hourAt(e.clientX, e.currentTarget), moved: false };
+    drag.current = { anchor: hourAt(local(e)[0]), moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    const h = hourAt(e.clientX, e.currentTarget);
+    const [px, py] = local(e);
+    const h = hourAt(px);
     setHover(h);
+    if (pickNearest) {
+      let best: Series | null = null;
+      let bestD = Infinity;
+      for (const s of others) {
+        const v = s.curve[h];
+        if (v == null) continue;
+        const d = Math.abs(y(v) - py);
+        if (d < bestD) (bestD = d), (best = s);
+      }
+      onHighlight(best?.key ?? null);
+    }
     const d = drag.current;
     if (!d || (h === d.anchor && !d.moved)) return;
     d.moved = true;
@@ -78,26 +94,44 @@ const HourChart = ({ hero, baseline: allDays, pin, canPin, onPin, onUnpin, dir, 
     const d = drag.current;
     drag.current = null;
     if (!d || d.moved) return;
-    const h = hourAt(e.clientX, e.currentTarget);
+    const h = hourAt(local(e)[0]);
     onHours(hours && hours[0] === h && hours[1] === h ? null : [h, h]);
   };
+  const onPointerLeave = () => {
+    setHover(null);
+    if (pickNearest) onHighlight(null);
+  };
 
-  const hv = hover != null ? hero[hover] : null;
-  const bv = hover != null ? baseline[hover] : null;
+  // Readout: the hovered (or only) series against the reference.
+  const focus = others.find((s) => s.key === highlight) ?? (others.length === 1 ? others[0] : null);
+  const readout = () => {
+    if (hover == null) return <>Average vehicles per hour. Drag across the chart to filter by hour of day.</>;
+    const fv = focus?.curve[hover] ?? null;
+    const rv = refSeries?.curve[hover] ?? null;
+    return (
+      <>
+        {hourLabel(hover)}-{hourLabel(hover + 1)}:{" "}
+        {focus ? (
+          <>
+            {focus.label} <strong>{fv == null ? "n/a" : fmtInt(fv)}</strong>
+          </>
+        ) : (
+          "hover a line"
+        )}
+        {refSeries && (
+          <>
+            {" "}
+            vs {refSeries.label} {rv == null ? "n/a" : fmtInt(rv)}
+            {fv != null && rv ? ` (${pct(fv, rv)})` : ""}
+          </>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="i70x-hero-chart" ref={ref}>
-      <div className="i70x-readout">
-        {hover != null ? (
-          <>
-            {hourLabel(hover)}-{hourLabel(hover + 1)}: <strong>{hv == null ? "n/a" : fmtInt(hv)}</strong> vehicles
-            on matching days vs {bv == null ? "n/a" : fmtInt(bv)} on {baseName}
-            {hv != null && bv ? ` (${hv >= bv ? "+" : ""}${Math.round((hv / bv - 1) * 100)}%)` : ""}
-          </>
-        ) : (
-          <>Average vehicles per hour. Drag across the chart to filter by hour of day.</>
-        )}
-      </div>
+      <div className="i70x-readout">{readout()}</div>
       <svg
         width={width}
         height={height}
@@ -105,9 +139,9 @@ const HourChart = ({ hero, baseline: allDays, pin, canPin, onPin, onUnpin, dir, 
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerLeave={() => setHover(null)}
+        onPointerLeave={onPointerLeave}
         role="img"
-        aria-label="Average vehicles per hour by hour of day, matching days versus all days"
+        aria-label={`Average vehicles per hour by hour of day: ${series.map((s) => s.label).join(", ")}`}
       >
         <g transform={`translate(${M.left},${M.top})`}>
           {hours && (
@@ -127,47 +161,49 @@ const HourChart = ({ hero, baseline: allDays, pin, canPin, onPin, onUnpin, dir, 
               {hourLabel(h)}
             </text>
           ))}
-          <path d={mkLine(toPts(baseline)) ?? ""} className={pin ? "i70x-line-pin" : "i70x-line-base"} />
-          <path d={mkArea(toPts(hero)) ?? ""} className={`i70x-area ${dir}`} />
-          <path d={mkLine(toPts(hero)) ?? ""} className={`i70x-line ${dir}`} />
+          {series
+            .filter((s) => s.style === "main")
+            .map((s) => (
+              <path key={`area-${s.key}`} d={mkArea(toPts(s.curve)) ?? ""} className={`i70x-area ${dir}`} />
+            ))}
+          {drawn.map((s) => {
+            const hl = s.key === highlight;
+            return (
+              <path
+                key={s.key}
+                d={mkLine(toPts(s.curve)) ?? ""}
+                className={`i70x-series ${s.style}${hl ? " hl" : ""}`}
+                style={{ stroke: seriesColor(s, dir, hl) }}
+              />
+            );
+          })}
           {hover != null && (
             <g>
               <line x1={x(hover)} x2={x(hover)} y2={innerH} className="i70x-crosshair" />
-              {bv != null && (
-                <circle cx={x(hover)} cy={y(bv)} r={4} className={pin ? "i70x-dot-pin" : "i70x-dot-base"} />
-              )}
-              {hv != null && <circle cx={x(hover)} cy={y(hv)} r={4.5} className={`i70x-dot ${dir}`} />}
+              {[refSeries, focus].map((s) => {
+                const v = s?.curve[hover];
+                return s && v != null ? (
+                  <circle
+                    key={s.key}
+                    cx={x(hover)}
+                    cy={y(v)}
+                    r={4.5}
+                    className="i70x-dot"
+                    style={{ fill: seriesColor(s, dir, true) }}
+                  />
+                ) : null;
+              })}
             </g>
           )}
         </g>
       </svg>
-      <div className="i70x-legend">
-        <span>
-          <i className={`i70x-key ${dir}`} /> Matching days
-        </span>
-        {pin ? (
-          <span className="i70x-pin-legend">
-            <i className="i70x-key pin" /> Pinned: {pin.label} ({fmtInt(pin.nDays)} days)
-            <button type="button" className="i70x-clear" onClick={onUnpin}>
-              Unpin
-            </button>
-          </span>
-        ) : (
-          <span>
-            <i className="i70x-key base" /> All days
-          </span>
-        )}
-        {canPin && (
-          <button type="button" className="i70x-clear" onClick={onPin}>
-            {pin ? "Pin current selection instead" : "Pin as comparison"}
-          </button>
-        )}
-        {hours && (
+      {hours && (
+        <div className="i70x-legend">
           <button type="button" className="i70x-clear" onClick={() => onHours(null)}>
             Clear hours ({hourLabel(hours[0])}-{hourLabel(hours[1] + 1)})
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

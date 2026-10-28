@@ -195,36 +195,7 @@ export const createEngine = (data: Dataset, specs: BinSpec[]) => {
     return { ...snap, baseline, ms: performance.now() - t0 };
   };
 
-  /**
-   * The hero curve for a pinned set of bin selections, computed directly
-   * rather than through crossfilter so it leaves the live filters alone.
-   * Like the live hero, it ignores the hour filter.
-   */
-  const curveFor = (
-    bins: Filters["bins"],
-    d: Direction,
-    includeClosures: boolean,
-    includeIncomplete: boolean,
-  ): { curve: (number | null)[]; nDays: number } => {
-    const active = specs.filter((s) => bins[s.id] != null);
-    const src = d === "wb" ? wb : eb;
-    const sum = new Float64Array(24);
-    const cnt = new Uint32Array(24);
-    let nDays = 0;
-    for (let day = 0; day < n; day++) {
-      if (!includeClosures && days.closure[day]) continue;
-      if (!includeIncomplete && !days.complete[day]) continue;
-      if (!active.every((s) => bins[s.id]!.has(s.key(day, d)))) continue;
-      nDays++;
-      for (let h = 0; h < 24; h++) {
-        const v = src[day * 24 + h];
-        if (v !== MISSING) (sum[h] += v), cnt[h]++;
-      }
-    }
-    return { curve: Array.from(sum, (s, h) => (cnt[h] ? s / cnt[h] : null)), nDays };
-  };
-
-  return { update, curveFor };
+  return { update };
 };
 
 export type Engine = ReturnType<typeof createEngine>;

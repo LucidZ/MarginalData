@@ -87,3 +87,21 @@ export interface Filters {
   includeClosures: boolean;
   includeIncomplete: boolean;
 }
+
+/**
+ * One line on the hero. "ref" is the dashed reference the others are
+ * measured against; "main" is the single highlighted series (with area);
+ * "ramp" lines step light to dark by `tone`; "cat" lines take hue `tone`
+ * (0-3); "faint" lines stay recessive until highlighted.
+ */
+export type SeriesStyle = "ref" | "main" | "ramp" | "cat" | "faint";
+
+export interface Series {
+  key: string;
+  label: string;
+  curve: (number | null)[];
+  nDays: number;
+  style: SeriesStyle;
+  /** 0-1 position on the ramp ("ramp"), or the hue index ("cat"). */
+  tone: number;
+}
