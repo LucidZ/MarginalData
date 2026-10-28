@@ -113,7 +113,40 @@ export const createEngine = (data: Dataset, specs: BinSpec[]) => {
   };
   let baseline: (number | null)[] = [];
 
-  const read = (): Omit<Snapshot, "baseline" | "ms"> => {
+  const refFor = (f: Filters): Snapshot["ref"] => {
+    const [h0, h1] = f.hours ?? [0, 23];
+    const out = { wb: {}, eb: {} } as Snapshot["ref"];
+    for (const d of ["wb", "eb"] as const) {
+      const src = d === "wb" ? wb : eb;
+      const sums = specs.map((s) => new Float64Array(s.labels.length));
+      const cnts = specs.map((s) => new Uint32Array(s.labels.length));
+      for (let day = 0; day < n; day++) {
+        if (!f.includeClosures && days.closure[day]) continue;
+        if (!f.includeIncomplete && !days.complete[day]) continue;
+        let sum = 0;
+        for (let h = h0; h <= h1; h++) {
+          const v = src[day * 24 + h];
+          if (v !== MISSING) sum += v;
+        }
+        specs.forEach((spec, i) => {
+          const k = spec.key(day, d);
+          if (k < 0 || k >= spec.labels.length) return;
+          sums[i][k] += sum;
+          cnts[i][k]++;
+        });
+      }
+      specs.forEach((spec, i) => {
+        out[d][spec.id] = Array.from(cnts[i], (c, k) => ({
+          days: c,
+          value: spec.measure === "avg" ? (c ? sums[i][k] / c : 0) : c,
+        }));
+      });
+    }
+    return out;
+  };
+  let ref: Snapshot["ref"] | null = null;
+
+  const read = (): Omit<Snapshot, "baseline" | "ref" | "ms"> => {
     const bars = {} as Record<FilterId, BinValue[]>;
     for (const spec of specs) {
       const out: BinValue[] = spec.labels.map(() => ({ value: 0, days: 0 }));
@@ -191,8 +224,9 @@ export const createEngine = (data: Dataset, specs: BinSpec[]) => {
       });
     }
     if (qualityChanged || dirChanged) baseline = baselineFor(next);
+    if (!ref || qualityChanged || prev!.hours !== next.hours) ref = refFor(next);
     const snap = read();
-    return { ...snap, baseline, ms: performance.now() - t0 };
+    return { ...snap, baseline, ref, ms: performance.now() - t0 };
   };
 
   return { update };

@@ -374,6 +374,11 @@
 .i70x-root.wb .i70x-bar { fill: var(--wb); }
 .i70x-root.eb .i70x-bar { fill: var(--eb); }
 .i70x-root .i70x-bar.off { fill: var(--off); }
+/* Tint the whole column so tiny selected bars still read as selected. */
+.i70x-root.wb .i70x-selected { fill: var(--wb); fill-opacity: 0.14; }
+.i70x-root.eb .i70x-selected { fill: var(--eb); fill-opacity: 0.14; }
+/* Unfiltered day count behind the filtered one. */
+.i70x-ghost { fill: var(--muted); fill-opacity: 0.2; }
 
 .i70x-calendar,
 .i70x-table-card {

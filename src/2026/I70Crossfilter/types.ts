@@ -70,6 +70,12 @@ export interface Snapshot {
   hero: (number | null)[];
   /** Same over every day that passes the closure / incomplete toggles. */
   baseline: (number | null)[];
+  /**
+   * Each bar chart with no bar filters applied (hours and the closure /
+   * incomplete toggles still apply), for both directions. Sets the fixed
+   * y-domains and the ghost bars behind day counts.
+   */
+  ref: Record<Direction, Record<FilterId, BinValue[]>>;
   /** 1 if the day matches every filter. */
   matched: Uint8Array;
   nMatched: number;

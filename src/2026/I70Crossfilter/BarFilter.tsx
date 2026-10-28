@@ -7,6 +7,10 @@ import { fmtCompact, fmtInt } from "./format";
 interface Props {
   spec: BinSpec;
   bins: BinValue[];
+  /** The same bins with no bar filters; drawn behind day counts. */
+  ghost: BinValue[];
+  /** Fixed y-domain (unfiltered max over both directions); grows only if a bar exceeds it. */
+  domainMax: number;
   selection: Selection;
   onChange: (sel: Selection) => void;
 }
@@ -15,7 +19,7 @@ const HEIGHT = 120;
 const M = { top: 6, right: 4, bottom: 20, left: 34 };
 
 // Tap a bar to toggle it; drag across bars to select a range.
-const BarFilter = ({ spec, bins, selection, onChange }: Props) => {
+const BarFilter = ({ spec, bins, ghost, domainMax, selection, onChange }: Props) => {
   const [ref, width] = useContainerWidth<HTMLDivElement>(300);
   const [hover, setHover] = useState<number | null>(null);
   const drag = useRef<{ anchor: number; moved: boolean } | null>(null);
@@ -24,9 +28,14 @@ const BarFilter = ({ spec, bins, selection, onChange }: Props) => {
   const innerH = HEIGHT - M.top - M.bottom;
   const keys = useMemo(() => spec.labels.map((_, k) => k), [spec.labels]);
   const x = useMemo(() => scaleBand<number>().domain(keys).range([0, innerW]).paddingInner(0.15).paddingOuter(0.075), [keys, innerW]);
-  const max = Math.max(1, ...bins.map((b) => b.value));
+  const max = Math.max(1, domainMax, ...bins.map((b) => b.value));
   const y = useMemo(() => scaleLinear().domain([0, max]).nice(3).range([innerH, 0]), [max, innerH]);
   const barW = Math.min(x.bandwidth(), 24);
+  const showGhost = spec.measure === "days";
+  const barPath = (cx: number, h: number) => {
+    const r = Math.min(4, barW / 2, h);
+    return `M${cx - barW / 2},${innerH}V${innerH - h + r}q0,${-r} ${r},${-r}h${barW - 2 * r}q${r},0 ${r},${r}V${innerH}Z`;
+  };
   const step = x.step();
   // Thin out labels so they don't collide.
   const labelEvery = Math.max(1, Math.ceil(Math.max(...spec.labels.map((l) => l.length)) * 6.5 / step));
@@ -65,7 +74,9 @@ const BarFilter = ({ spec, bins, selection, onChange }: Props) => {
   const unit = spec.measure === "avg" ? "vehicles/day" : "days";
   const readout =
     readoutKey != null && bins[readoutKey]
-      ? `${spec.labels[readoutKey]}: ${fmtInt(bins[readoutKey].value)} ${unit}` +
+      ? `${spec.labels[readoutKey]}: ${fmtInt(bins[readoutKey].value)}` +
+        (showGhost && ghost[readoutKey] ? ` of ${fmtInt(ghost[readoutKey].value)}` : "") +
+        ` ${unit}` +
         (spec.measure === "avg" ? ` (${fmtInt(bins[readoutKey].days)} days)` : "")
       : spec.measure === "avg"
         ? "Avg vehicles per matching day"
@@ -107,18 +118,17 @@ const BarFilter = ({ spec, bins, selection, onChange }: Props) => {
             const h = innerH - y(b.value);
             const cx = x(k)! + x.bandwidth() / 2;
             const on = !selection || selection.has(k);
-            const r = Math.min(4, barW / 2, h);
+            const gh = showGhost && ghost[k] ? innerH - y(ghost[k].value) : 0;
             return (
               <g key={k}>
+                {selection?.has(k) && (
+                  <rect x={x(k)! - (step - x.bandwidth()) / 2} width={step} height={innerH} className="i70x-selected" />
+                )}
                 {hover === k && (
                   <rect x={x(k)! - (step - x.bandwidth()) / 2} width={step} height={innerH} className="i70x-hover" />
                 )}
-                {h > 0 && (
-                  <path
-                    className={on ? "i70x-bar" : "i70x-bar off"}
-                    d={`M${cx - barW / 2},${innerH}V${innerH - h + r}q0,${-r} ${r},${-r}h${barW - 2 * r}q${r},0 ${r},${r}V${innerH}Z`}
-                  />
-                )}
+                {gh > h && <path className="i70x-ghost" d={barPath(cx, gh)} />}
+                {h > 0 && <path className={on ? "i70x-bar" : "i70x-bar off"} d={barPath(cx, h)} />}
                 {k % labelEvery === 0 && (
                   <text x={cx} y={innerH + 14} textAnchor="middle" className="i70x-tick">
                     {spec.labels[k]}

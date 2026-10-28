@@ -208,6 +208,8 @@ const I70Crossfilter = () => {
                 key={spec.id}
                 spec={spec}
                 bins={snap.bars[spec.id]}
+                ghost={snap.ref[dir][spec.id]}
+                domainMax={Math.max(...snap.ref.wb[spec.id].map((b) => b.value), ...snap.ref.eb[spec.id].map((b) => b.value))}
                 selection={filters.bins[spec.id]}
                 onChange={(sel) => setBins(spec.id, sel)}
               />
