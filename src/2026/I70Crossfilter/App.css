@@ -223,6 +223,20 @@
 .i70x-dot.wb { fill: var(--wb); }
 .i70x-dot.eb { fill: var(--eb); }
 .i70x-dot-base { fill: var(--muted); stroke: var(--surface-1); stroke-width: 2; }
+.i70x-line-pin {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+.i70x-dot-pin { fill: var(--text-primary); stroke: var(--surface-1); stroke-width: 2; }
+.i70x-key.pin {
+  background: repeating-linear-gradient(90deg, var(--text-primary) 0 5px, transparent 5px 8px);
+}
+.i70x-legend .i70x-pin-legend {
+  display: inline;
+}
+.i70x-pin-legend .i70x-clear { margin-left: 0.6rem; }
 .i70x-crosshair { stroke: var(--baseline); stroke-width: 1; }
 .i70x-brush { fill: var(--hover); stroke: var(--baseline); stroke-width: 1; }
 .i70x-hover { fill: var(--hover); }

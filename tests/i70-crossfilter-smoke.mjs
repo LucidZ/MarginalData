@@ -104,6 +104,25 @@ for (const width of [1000, 390]) {
   const dirMs = await page.evaluate(() => window.__i70x.ms);
   check(dirMs < 400, `direction switch took ${dirMs.toFixed(1)} ms (rebuilds 2 dimensions)`);
 
+  // Pin: same day count as the live selection, survives a filter reset.
+  const liveN = await page.evaluate(() => window.__i70x.nMatched);
+  await page.getByRole("button", { name: "Pin as comparison" }).click();
+  const pinLegend = page.locator(".i70x-pin-legend");
+  const pinText = await pinLegend.innerText();
+  const pinN = Number(pinText.match(/\(([\d,]+) days\)/)?.[1].replace(/,/g, ""));
+  console.log(`  pin legend: ${pinText.replace(/\s+/g, " ")}`);
+  check(pinN === liveN, `pinned days (${pinN}) = live matching days (${liveN})`);
+  await page.getByRole("button", { name: "Reset all filters" }).click();
+  await page.waitForTimeout(50);
+  check(await pinLegend.isVisible(), "pin survives Reset all filters");
+  await hero.scrollIntoViewIfNeeded();
+  const hb2 = await hero.boundingBox();
+  await page.mouse.move(hb2.x + left + 17.5 * hstep, hb2.y + 60);
+  await page.screenshot({ path: `${OUT}/${tag}-4-pinned.png`, fullPage: true });
+  check((await page.locator(".i70x-hero-chart .i70x-readout").innerText()).includes("pinned days"), "readout compares against pinned days");
+  await page.getByRole("button", { name: "Unpin" }).click();
+  check(!(await pinLegend.isVisible()), "unpin restores all days");
+
   check(errors.length === 0, `no console errors${errors.length ? ": " + errors.join(" | ") : ""}`);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   check(!overflow, "no horizontal page scroll");

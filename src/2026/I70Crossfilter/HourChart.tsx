@@ -4,9 +4,20 @@ import type { Direction } from "./types";
 import { useContainerWidth } from "./useContainerWidth";
 import { fmtCompact, fmtInt, hourLabel } from "./format";
 
+interface Pin {
+  curve: (number | null)[];
+  nDays: number;
+  label: string;
+}
+
 interface Props {
   hero: (number | null)[];
   baseline: (number | null)[];
+  /** When set, the pinned curve replaces the all-days comparison. */
+  pin: Pin | null;
+  canPin: boolean;
+  onPin: () => void;
+  onUnpin: () => void;
   dir: Direction;
   hours: [number, number] | null;
   onHours: (h: [number, number] | null) => void;
@@ -15,8 +26,11 @@ interface Props {
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 // Average vehicles per hour for the matching days, over the all-days curve
-// in grey. Doubles as the hour-of-day filter: drag to pick hours.
-const HourChart = ({ hero, baseline, dir, hours, onHours }: Props) => {
+// in grey (or a pinned selection, dashed). Doubles as the hour-of-day
+// filter: drag to pick hours.
+const HourChart = ({ hero, baseline: allDays, pin, canPin, onPin, onUnpin, dir, hours, onHours }: Props) => {
+  const baseline = pin ? pin.curve : allDays;
+  const baseName = pin ? "pinned days" : "all days";
   const [ref, width] = useContainerWidth<HTMLDivElement>(900);
   const [hover, setHover] = useState<number | null>(null);
   const drag = useRef<{ anchor: number; moved: boolean } | null>(null);
@@ -77,7 +91,7 @@ const HourChart = ({ hero, baseline, dir, hours, onHours }: Props) => {
         {hover != null ? (
           <>
             {hourLabel(hover)}-{hourLabel(hover + 1)}: <strong>{hv == null ? "n/a" : fmtInt(hv)}</strong> vehicles
-            on matching days vs {bv == null ? "n/a" : fmtInt(bv)} on all days
+            on matching days vs {bv == null ? "n/a" : fmtInt(bv)} on {baseName}
             {hv != null && bv ? ` (${hv >= bv ? "+" : ""}${Math.round((hv / bv - 1) * 100)}%)` : ""}
           </>
         ) : (
@@ -113,13 +127,15 @@ const HourChart = ({ hero, baseline, dir, hours, onHours }: Props) => {
               {hourLabel(h)}
             </text>
           ))}
-          <path d={mkLine(toPts(baseline)) ?? ""} className="i70x-line-base" />
+          <path d={mkLine(toPts(baseline)) ?? ""} className={pin ? "i70x-line-pin" : "i70x-line-base"} />
           <path d={mkArea(toPts(hero)) ?? ""} className={`i70x-area ${dir}`} />
           <path d={mkLine(toPts(hero)) ?? ""} className={`i70x-line ${dir}`} />
           {hover != null && (
             <g>
               <line x1={x(hover)} x2={x(hover)} y2={innerH} className="i70x-crosshair" />
-              {bv != null && <circle cx={x(hover)} cy={y(bv)} r={4} className="i70x-dot-base" />}
+              {bv != null && (
+                <circle cx={x(hover)} cy={y(bv)} r={4} className={pin ? "i70x-dot-pin" : "i70x-dot-base"} />
+              )}
               {hv != null && <circle cx={x(hover)} cy={y(hv)} r={4.5} className={`i70x-dot ${dir}`} />}
             </g>
           )}
@@ -129,9 +145,23 @@ const HourChart = ({ hero, baseline, dir, hours, onHours }: Props) => {
         <span>
           <i className={`i70x-key ${dir}`} /> Matching days
         </span>
-        <span>
-          <i className="i70x-key base" /> All days
-        </span>
+        {pin ? (
+          <span className="i70x-pin-legend">
+            <i className="i70x-key pin" /> Pinned: {pin.label} ({fmtInt(pin.nDays)} days)
+            <button type="button" className="i70x-clear" onClick={onUnpin}>
+              Unpin
+            </button>
+          </span>
+        ) : (
+          <span>
+            <i className="i70x-key base" /> All days
+          </span>
+        )}
+        {canPin && (
+          <button type="button" className="i70x-clear" onClick={onPin}>
+            {pin ? "Pin current selection instead" : "Pin as comparison"}
+          </button>
+        )}
         {hours && (
           <button type="button" className="i70x-clear" onClick={() => onHours(null)}>
             Clear hours ({hourLabel(hours[0])}-{hourLabel(hours[1] + 1)})

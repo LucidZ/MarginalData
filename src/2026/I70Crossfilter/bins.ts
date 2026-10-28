@@ -17,10 +17,8 @@ const edgeKey = (edges: number[]) => (v: number | null) => (v == null ? -1 : bis
 const snowKey = edgeKey([0.1, 1, 2, 4, 6, 8, 12]);
 const SNOW_LABELS = ["0", "<1", "1-2", "2-4", "4-6", "6-8", "8-12", "12+"];
 const precipKey = edgeKey([0.01, 0.1, 0.25, 0.5, 1]);
-const depthKey = edgeKey([1, 6, 12, 24, 36, 48]);
 
 export const TOTAL_STEP = 2500;
-const SATURATED_CAP = 10;
 
 /** Monday-first weekday, 0 = Mon. */
 export const weekday = (d: Date) => (d.getUTCDay() + 6) % 7;
@@ -92,13 +90,6 @@ export const buildBins = (data: Dataset): BinSpec[] => {
       key: (i) => precipKey(days.precipDay[i]),
     },
     {
-      id: "snowDepth",
-      title: "Snow on the ground (in)",
-      measure: "days",
-      labels: ["0", "1-6", "6-12", "12-24", "24-36", "36-48", "48+"],
-      key: (i) => depthKey(days.snowDepth[i]),
-    },
-    {
       id: "total",
       title: "Daily total (vehicles)",
       measure: "days",
@@ -109,13 +100,24 @@ export const buildBins = (data: Dataset): BinSpec[] => {
         return t == null ? -1 : Math.floor(t / TOTAL_STEP);
       },
     },
-    {
-      id: "saturated",
-      title: "Hours near capacity",
-      measure: "days",
-      directional: true,
-      labels: Array.from({ length: SATURATED_CAP + 1 }, (_, k) => (k === SATURATED_CAP ? `${k}+` : String(k))),
-      key: (i, dir) => Math.min(dir === "wb" ? days.wbSaturated[i] : days.ebSaturated[i], SATURATED_CAP),
-    },
   ];
 };
+
+/** "Month: Jan to Mar · Snow overnight (in): 4-6 to 12+" for a set of bin selections. */
+export const describeBins = (specs: BinSpec[], bins: Record<string, Set<number> | null>) =>
+  specs
+    .filter((s) => bins[s.id] != null)
+    .map((s) => {
+      const keys = [...bins[s.id]!].sort((a, b) => a - b);
+      // Collapse runs of 3+ adjacent bins into "first to last".
+      const parts: string[] = [];
+      for (let i = 0; i < keys.length; ) {
+        let j = i;
+        while (j + 1 < keys.length && keys[j + 1] === keys[j] + 1) j++;
+        if (j - i >= 2) parts.push(`${s.labels[keys[i]]} to ${s.labels[keys[j]]}`);
+        else for (let k = i; k <= j; k++) parts.push(s.labels[keys[k]]);
+        i = j + 1;
+      }
+      return `${s.title}: ${parts.join(", ")}`;
+    })
+    .join(" · ");

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useData } from "./useData";
-import { buildBins } from "./bins";
+import { buildBins, describeBins } from "./bins";
 import { createEngine } from "./engine";
 import type { Direction, FilterId, Filters, Selection, Snapshot } from "./types";
 import Controls from "./Controls";
@@ -19,9 +19,7 @@ const EMPTY_BINS: Record<FilterId, Selection> = {
   snowOvernight: null,
   snowDay: null,
   precipDay: null,
-  snowDepth: null,
   total: null,
-  saturated: null,
 };
 
 const INITIAL: Filters = { bins: EMPTY_BINS, hours: null, includeClosures: false, includeIncomplete: false };
@@ -39,7 +37,21 @@ const I70Crossfilter = () => {
   const [filters, setFilters] = useState<Filters>(INITIAL);
   const [dir, setDir] = useState<Direction>("wb");
 
+  // Pinned bin selections become the comparison curve in place of "all days".
+  // Direction and the closure / incomplete toggles follow the live controls.
+  const [pinned, setPinned] = useState<Filters["bins"] | null>(null);
+
   const snap = useMemo(() => (engine ? engine.update(filters, dir) : null), [engine, filters, dir]);
+  const pin = useMemo(
+    () =>
+      engine && pinned
+        ? {
+            ...engine.curveFor(pinned, dir, filters.includeClosures, filters.includeIncomplete),
+            label: describeBins(specs, pinned),
+          }
+        : null,
+    [engine, specs, pinned, dir, filters.includeClosures, filters.includeIncomplete],
+  );
 
   // Exposed for the smoke test (filter timing, day counts).
   useEffect(() => {
@@ -51,12 +63,18 @@ const I70Crossfilter = () => {
     [],
   );
   const changeDir = (d: Direction) => {
-    // The daily-total and saturated-hours bins mean different things per direction.
-    setFilters((f) => ({ ...f, bins: { ...f.bins, total: null, saturated: null } }));
+    // The daily-total bins mean different things per direction.
+    setFilters((f) => ({ ...f, bins: { ...f.bins, total: null } }));
+    setPinned((p) => {
+      if (!p) return p;
+      const next = { ...p, total: null };
+      return Object.values(next).some((s) => s != null) ? next : null;
+    });
     setDir(d);
   };
 
-  const anyFilter = filters.hours != null || Object.values(filters.bins).some((s) => s != null);
+  const anyBin = Object.values(filters.bins).some((s) => s != null);
+  const anyFilter = filters.hours != null || anyBin;
 
   return (
     <div className={`i70x-root ${dir}`}>
@@ -98,6 +116,10 @@ const I70Crossfilter = () => {
             <HourChart
               hero={snap.hero}
               baseline={snap.baseline}
+              pin={pin}
+              canPin={anyBin && filters.bins !== pinned}
+              onPin={() => setPinned(filters.bins)}
+              onUnpin={() => setPinned(null)}
               dir={dir}
               hours={filters.hours}
               onHours={(h) => setFilters((f) => ({ ...f, hours: h }))}
@@ -123,8 +145,7 @@ const I70Crossfilter = () => {
             <h2>What you're looking at</h2>
             <p>
               <strong>Counts, not speeds.</strong> The counter records how many vehicles pass each hour, by direction.
-              A low count can mean an empty road or a jammed one. Hours near capacity (90% of that year's 99.5th
-              percentile hour) are the clearest jam signal a single counter gives.
+              A low count can mean an empty road or a jammed one.
             </p>
             <p>
               <strong>Overnight vs daytime snow.</strong> Weather is the NOAA daily report from Dillon (Georgetown when

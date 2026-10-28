@@ -45,9 +45,7 @@ export type FilterId =
   | "snowOvernight"
   | "snowDay"
   | "precipDay"
-  | "snowDepth"
-  | "total"
-  | "saturated";
+  | "total";
 
 export interface BinSpec {
   id: FilterId;
