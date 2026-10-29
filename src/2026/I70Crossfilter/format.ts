@@ -19,6 +19,7 @@ export const hourLabel = (h: number) => {
 // "wb" is the direction away from Denver on every counter. US-40 runs north
 // over Berthoud Pass, so there it's northbound.
 const DIR_WORDS: Record<CounterId, Record<Direction, string>> = {
+  twin: { wb: "westbound", eb: "eastbound" },
   tunnel: { wb: "westbound", eb: "eastbound" },
   berthoud: { wb: "northbound", eb: "southbound" },
 };

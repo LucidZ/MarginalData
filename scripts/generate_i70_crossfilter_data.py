@@ -10,7 +10,7 @@ Sources (both public, no key):
   by-direction counts in one request:
     /GetDailyTrafficVolumeForStationByYear/{station}/{year}.csv
   Columns: COUNTSTATIONID, COUNTDATE (YYYYMMDD), COUNTDIR (P|S), HOUR0..23.
-  Tunnel: P = eastbound (toward Denver), S = westbound (toward the mountains).
+  I-70: P = eastbound (toward Denver), S = westbound (toward the mountains).
   Berthoud (US-40): P = toward I-70/Denver, S = toward Winter Park. In the
   page S is "wb" for both: the direction away from Denver.
   Days with no data are missing rows. Missing HOURS come back as 0, so
@@ -27,10 +27,11 @@ Sources (both public, no key):
     precipDay     = PRCP in D+1's report
     snowDepth     = SNWD in D's report
 
-The page shows two counters (COUNTERS): the Tunnel (000106) and US-40
-below Berthoud Pass (000223), which carries everything driving from Denver
-to Winter Park and never touches the Tunnel. Copper Mountain, Twin Tunnels
-and Genesee are downloaded into the cache for later multi-counter work.
+The page shows three counters (COUNTERS): Twin Tunnels (000120), on I-70
+west of where US-6 joins, so it carries both Denver feeders; the Tunnel
+(000106); and US-40 below Berthoud Pass (000223), which carries everything
+driving from Denver to Winter Park and never touches the Tunnel. Copper
+Mountain and Genesee are downloaded into the cache for later work.
 
 The API is fetched one request at a time, >= 1 s apart, with a logged
 10/20/30 s backoff on errors. Every raw response is cached in
@@ -76,7 +77,10 @@ STATIONS = {
     "000107": "Genesee",
 }
 # The counters in the page, in hours.bin order: (id, station, name, title).
+# Twin Tunnels is the trunk (west of the US-6 junction, so it carries both
+# Denver feeders); it splits into the Tunnel, Berthoud and everything else.
 COUNTERS = [
+    ("twin", "000120", "Twin Tunnels", "Every hour through the Twin Tunnels"),
     ("tunnel", "000106", "Eisenhower Tunnel", "Every hour through the Eisenhower Tunnel"),
     ("berthoud", "000223", "Berthoud Pass (US-40)", "Every hour over Berthoud Pass"),
 ]

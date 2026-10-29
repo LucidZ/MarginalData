@@ -37,7 +37,7 @@ weather coverage per year, the per-year ceilings and the flagged closures.
 - `public/data/i70-crossfilter/hours.bin` (Uint16 little-endian, 65535 = missing: for each
   counter in `counters` order, westbound `days x 24` then eastbound)
 
-Two counters go into the page: the Eisenhower Tunnel (000106) and US-40 below Berthoud
+Three counters go into the page: Twin Tunnels (000120), the Eisenhower Tunnel (000106) and US-40 below Berthoud
 Pass (000223). On US-40, OTIS's `S` direction (toward Winter Park) is stored as "wb", the
 direction away from Denver. Berthoud's quiet nights mean ~1,500 days have a 0 hour, so a
 fresh download makes that many per-day checks (~30 min at 1 request/s).

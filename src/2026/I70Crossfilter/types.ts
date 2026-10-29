@@ -33,7 +33,7 @@ export interface CounterCols {
   complete: number[];
 }
 
-export type CounterId = "tunnel" | "berthoud";
+export type CounterId = "twin" | "tunnel" | "berthoud";
 
 export interface DaysJson extends SharedDays {
   counters: CounterCols[];

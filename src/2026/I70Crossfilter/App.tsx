@@ -174,8 +174,9 @@ const I70Crossfilter = () => {
         <h1>{data?.days.title ?? "Every hour through the Eisenhower Tunnel"}</h1>
         <p className="i70x-intro">
           CDOT has counted the cars going each way through the Eisenhower-Johnson Memorial Tunnel on I-70 every hour since
-          1996, and on US-40 below Berthoud Pass, the road to Winter Park that never goes through the tunnel. Pick any
-          kind of day (Saturdays in February, holiday Mondays, the morning after a foot of snow) with the
+          1996. It also counts at the Twin Tunnels near Idaho Springs, where nearly all mountain traffic from Denver
+          shares one road, and on US-40 below Berthoud Pass, the road to Winter Park that never goes through the tunnel.
+          Pick any kind of day (Saturdays in February, holiday Mondays, the morning after a foot of snow) with the
           filter charts, then use <em>Compare by</em> to split those days into groups: snow vs none, weekends vs
           weekdays, one line per year. Every other chart updates to show only the matching days. Switch counters to see
           the same days somewhere else.
@@ -273,11 +274,13 @@ const I70Crossfilter = () => {
               ways you didn't filter on (snowy days may cluster in some years), so keep the scope tight.
             </p>
             <p>
-              <strong>Two counters.</strong> The Eisenhower Tunnel counter carries I-70 traffic to Summit County and
-              beyond. The Berthoud Pass counter sits on US-40 between Empire and the pass, so it catches everyone driving
-              from Denver to Winter Park and Grand County. Nobody is counted twice: Winter Park traffic never reaches
-              the tunnel. Westbound on I-70 and northbound on US-40 are both the direction away from Denver, so they
-              share a color. The filters pick days, not counts, so switching counters keeps them (except the daily
+              <strong>Three counters.</strong> Twin Tunnels is on I-70 just east of Idaho Springs, past the point where
+              US-6 from Golden joins, so it carries both roads up from Denver. West of it the traffic splits. The
+              Eisenhower Tunnel counter carries I-70 traffic to Summit County and beyond. The Berthoud Pass counter sits
+              on US-40 between Empire and the pass, so it catches everyone driving to Winter Park and Grand County; that
+              traffic never reaches the tunnel. The rest of Twin Tunnels' traffic goes to Idaho Springs, Georgetown,
+              Loveland and over Loveland Pass, none of which has its own counter. Westbound on I-70 and northbound on
+              US-40 are both the direction away from Denver, so they share a color. The filters pick days, not counts, so switching counters keeps them (except the daily
               total). Each counter has its own missing hours and closures, so the number of matching days can change.
             </p>
             <p>
@@ -293,7 +296,7 @@ const I70Crossfilter = () => {
               doesn't look busier.
             </p>
             <p className="i70x-source">
-              Data: CDOT OTIS traffic counts (stations 000106 and 000223), NOAA GHCN-Daily.
+              Data: CDOT OTIS traffic counts (stations 000120, 000106 and 000223), NOAA GHCN-Daily.
             </p>
           </section>
         </>
