@@ -4,7 +4,9 @@ import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
 import "../widgets.css";
 import "./FlowVsSpeed.css";
 
-const SPEEDS_MPH = [10, 20, 30, 40, 50, 60, 70];
+// Top to bottom. Cars drive left to right, so the top lane is the driver's
+// left: fast lane on top, like a real passing lane.
+const SPEEDS_MPH = [70, 60, 50, 40, 30, 20, 10];
 const MPS_PER_MPH = 0.44704;
 const FT_PER_M = 3.28084;
 const ROAD_M = 200; // visible stretch, same for every lane
