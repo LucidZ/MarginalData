@@ -1,0 +1,82 @@
+.fvs-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.fvs-controls button {
+  font: inherit;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.fvs-controls button:hover {
+  background: var(--hover);
+}
+
+.fvs-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.fvs-flow output {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  min-width: 3.5em;
+}
+
+.fvs-tally {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fvs-tally strong {
+  color: var(--counter);
+}
+
+.fvs-canvas-wrap {
+  width: 100%;
+}
+
+.fvs-canvas-wrap canvas {
+  display: block;
+}
+
+.fvs-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.5rem 0 1.5rem;
+}
+
+.fvs-table {
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fvs-table th,
+.fvs-table td {
+  padding: 0.35rem 1rem 0.35rem 0;
+  text-align: right;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.fvs-table th:first-child,
+.fvs-table td:first-child {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.fvs-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}

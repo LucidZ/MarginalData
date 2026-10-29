@@ -1,0 +1,116 @@
+/* Shared tokens for the I-70 widget pages. Same palette as I70Crossfilter. */
+.i70w-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --hover: rgba(11, 11, 11, 0.04);
+  --road: #e9e8e3;
+  --car: #2a78d6;
+  --counter: #eb6834;
+
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text-primary);
+  background: var(--page);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .i70w-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --hover: rgba(255, 255, 255, 0.05);
+    --road: #1f1f1d;
+    --car: #3987e5;
+    --counter: #d95926;
+  }
+}
+
+:root[data-theme="dark"] .i70w-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --hover: rgba(255, 255, 255, 0.05);
+  --road: #1f1f1d;
+  --car: #3987e5;
+  --counter: #d95926;
+}
+
+.i70w-root h1 {
+  font-size: 1.75rem;
+  margin: 0 0 0.5rem;
+}
+
+.i70w-intro {
+  color: var(--text-secondary);
+  max-width: 44rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.i70w-back {
+  display: inline-block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* Hub */
+.i70w-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.i70w-card {
+  display: block;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: inherit;
+  text-decoration: none;
+}
+
+.i70w-card:hover {
+  background: var(--hover);
+}
+
+.i70w-card h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.25rem;
+}
+
+.i70w-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.i70w-tag {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-left: 0.5rem;
+  font-weight: normal;
+}
