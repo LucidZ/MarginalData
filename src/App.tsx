@@ -9,8 +9,12 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import { ROUTES } from "./routes";
 
-// Unlisted: routed directly so it stays off the homepage feed.
+// I-70 sketches, deliberately not in ROUTES: every ROUTES entry lands on the
+// homepage feed. /2026/I70Widgets is the index that links them all.
 const I70Crossfilter = lazy(() => import("./2026/I70Crossfilter"));
+const I70Traffic = lazy(() => import("./2026/I70Traffic"));
+const I70Widgets = lazy(() => import("./2026/I70Widgets"));
+const I70FlowVsSpeed = lazy(() => import("./2026/I70Widgets/FlowVsSpeed"));
 
 // Hoisted to module scope so lazy() is only called once per route, not on every render.
 const lazyRoutes = ROUTES.map((route) => ({
@@ -29,6 +33,9 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/2026/I70Crossfilter" element={<I70Crossfilter />} />
+            <Route path="/2026/I70Traffic" element={<I70Traffic />} />
+            <Route path="/2026/I70Widgets" element={<I70Widgets />} />
+            <Route path="/2026/I70Widgets/FlowVsSpeed" element={<I70FlowVsSpeed />} />
             {lazyRoutes.map(({ path, Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}

@@ -1,0 +1,408 @@
+.i70-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  /* Direction: categorical slots 1-2. Validated (dataviz validate_palette.js)
+     in both modes. */
+  --wb: #2a78d6;
+  --eb: #eb6834;
+  /* Station steps within a direction, west (faint) to east (strong).
+     Validated as --ordinal ramps against each mode's surface. */
+  --wb-1: #86b6ef;
+  --wb-2: #3987e5;
+  --wb-3: #1c5cab;
+  --wb-4: #0d366b;
+  --eb-1: #ef9670;
+  --eb-2: #eb6834;
+  --eb-3: #b4461a;
+  --eb-4: #76290b;
+  --road: #d9d8d2;
+  --road-edge: #fcfcfb;
+  --centerline: #e0a11c;
+  --missing: #898781;
+
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text-primary);
+  background: var(--page);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .i70-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --wb: #3987e5;
+    --eb: #d95926;
+    --wb-1: #184f95;
+    --wb-2: #256abf;
+    --wb-3: #5598e7;
+    --wb-4: #9ec5f4;
+    --eb-1: #8f3913;
+    --eb-2: #bd4c1e;
+    --eb-3: #ec7f52;
+    --eb-4: #f7b597;
+    --road: #2f2f2d;
+    --road-edge: #5a5955;
+    --centerline: #c98500;
+  }
+}
+
+:root[data-theme="dark"] .i70-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --wb: #3987e5;
+  --eb: #d95926;
+  --wb-1: #184f95;
+  --wb-2: #256abf;
+  --wb-3: #5598e7;
+  --wb-4: #9ec5f4;
+  --eb-1: #8f3913;
+  --eb-2: #bd4c1e;
+  --eb-3: #ec7f52;
+  --eb-4: #f7b597;
+  --road: #2f2f2d;
+  --road-edge: #5a5955;
+  --centerline: #c98500;
+}
+
+.i70-root h1,
+.i70-root h2,
+.i70-root h3 {
+  color: var(--text-primary);
+}
+
+.i70-root h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  margin: 0 0 0.75rem;
+}
+
+.i70-root h2 {
+  font-size: 1.25rem;
+  margin: 2.5rem 0 0.25rem;
+}
+
+.i70-intro {
+  max-width: 680px;
+  color: var(--text-secondary);
+}
+
+.i70-error {
+  color: var(--text-primary);
+}
+
+/* Controls + chips stay on screen while scrolling the stack. */
+.i70-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--page);
+  padding: 0.75rem 0 0.6rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+
+.i70-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.i70-root button {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.i70-root button:hover {
+  border-color: var(--baseline);
+}
+
+.i70-play {
+  min-width: 5.5rem;
+  font-weight: 600;
+}
+
+.i70-clock {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 5.5rem;
+}
+
+.i70-clock-hour {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.i70-clock-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.i70-scrubber {
+  flex: 1 1 180px;
+  min-width: 140px;
+  accent-color: var(--text-secondary);
+}
+
+.i70-speed {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.i70-speed button.is-on,
+.i70-chip.is-on {
+  background: var(--text-primary);
+  color: var(--page);
+  border-color: var(--text-primary);
+}
+
+.i70-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+}
+
+.i70-root .i70-chip {
+  font-size: 0.8rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+}
+
+.i70-strip-wrap {
+  margin-top: 1.25rem;
+}
+
+.i70-day-header h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.i70-day-date {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-left: 0.35rem;
+}
+
+.i70-day-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0.15rem 0 0.25rem;
+  max-width: 760px;
+}
+
+.i70-strip,
+.i70-curve-panel {
+  display: block;
+  overflow: visible;
+}
+
+.i70-road {
+  fill: var(--road);
+}
+
+.i70-road-edge {
+  stroke: var(--road-edge);
+  stroke-width: 1;
+}
+
+.i70-centerline {
+  stroke: var(--centerline);
+  stroke-width: 1.5;
+}
+
+.i70-lane-text {
+  font-size: 10px;
+  fill: var(--text-secondary);
+}
+
+.i70-arrow-wb {
+  fill: var(--wb);
+}
+
+.i70-arrow-eb {
+  fill: var(--eb);
+}
+
+.i70-station-name {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.i70-bar-wb {
+  fill: var(--wb);
+}
+
+.i70-bar-eb {
+  fill: var(--eb);
+}
+
+.i70-bar-value {
+  font-size: 11px;
+  fill: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.i70-bar-missing-text {
+  fill: var(--muted);
+  font-style: italic;
+}
+
+.i70-missing {
+  fill: none;
+  stroke: var(--missing);
+  stroke-dasharray: 2 2;
+}
+
+.i70-landmark {
+  font-size: 10px;
+  fill: var(--muted);
+}
+
+.i70-landmark-tick {
+  stroke: var(--baseline);
+}
+
+.i70-section-note {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+}
+
+.i70-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.i70-legend li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.i70-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--c);
+}
+
+.i70-swatch + .i70-swatch {
+  margin-right: 4px;
+}
+
+.i70-wb-1 { --c: var(--wb-1); }
+.i70-wb-2 { --c: var(--wb-2); }
+.i70-wb-3 { --c: var(--wb-3); }
+.i70-wb-4 { --c: var(--wb-4); }
+.i70-eb-1 { --c: var(--eb-1); }
+.i70-eb-2 { --c: var(--eb-2); }
+.i70-eb-3 { --c: var(--eb-3); }
+.i70-eb-4 { --c: var(--eb-4); }
+
+.i70-curves-wrap {
+  margin-top: 1rem;
+}
+
+.i70-curves-day {
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem;
+}
+
+.i70-curves {
+  display: flex;
+}
+
+.i70-panel-title {
+  font-size: 11px;
+  fill: var(--text-secondary);
+}
+
+.i70-gridline {
+  stroke: var(--gridline);
+}
+
+.i70-baseline {
+  stroke: var(--baseline);
+}
+
+.i70-axis-text {
+  font-size: 10px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.i70-clock-line {
+  stroke: var(--text-secondary);
+  stroke-dasharray: 3 3;
+}
+
+.i70-curve-line {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.i70-curve-dot {
+  fill: var(--c);
+  stroke: var(--surface-1);
+  stroke-width: 2;
+}
+
+.i70-notes ul {
+  padding-left: 1.1rem;
+  max-width: 720px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.i70-notes li {
+  margin-bottom: 0.6rem;
+}
+
+.i70-notes strong {
+  color: var(--text-primary);
+}
+
+.i70-source {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
