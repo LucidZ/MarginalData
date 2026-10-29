@@ -114,3 +114,115 @@
   margin-left: 0.5rem;
   font-weight: normal;
 }
+
+/* Lane widgets: controls, canvas, table */
+.i70w-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.i70w-controls button {
+  font: inherit;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.i70w-controls button:hover {
+  background: var(--hover);
+}
+
+.i70w-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.i70w-flow output {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  min-width: 3.5em;
+}
+
+.i70w-tally {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.i70w-tally strong {
+  color: var(--counter);
+}
+
+.i70w-canvas-wrap {
+  width: 100%;
+}
+
+.i70w-canvas-wrap canvas {
+  display: block;
+}
+
+.i70w-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.5rem 0 1.5rem;
+}
+
+.i70w-table {
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.i70w-table th,
+.i70w-table td {
+  padding: 0.35rem 1rem 0.35rem 0;
+  text-align: right;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.i70w-table td {
+  white-space: nowrap;
+}
+
+.i70w-table th:first-child,
+.i70w-table td:first-child {
+  text-align: left;
+}
+
+.i70w-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.i70w-seg {
+  display: inline-flex;
+}
+
+.i70w-controls .i70w-seg button {
+  border-radius: 0;
+  margin-left: -1px;
+  padding: 0.35rem 0.65rem;
+}
+
+.i70w-controls .i70w-seg button:first-child {
+  border-radius: 6px 0 0 6px;
+  margin-left: 0;
+}
+
+.i70w-controls .i70w-seg button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.i70w-controls .i70w-seg button[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--page);
+  border-color: var(--text-primary);
+}

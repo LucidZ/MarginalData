@@ -4,6 +4,13 @@ import "./widgets.css";
 // Every I-70 sketch, newest first. Candidates for a scrollyteller later.
 const WIDGETS = [
   {
+    path: "/2026/I70Widgets/TwoCounters",
+    title: "Two counters, one rhythm",
+    tag: "concept",
+    blurb:
+      "The same seven lanes with a second counter 2.33 miles on, the shortest gap where both click in unison. Same counts at both; only the trip time differs.",
+  },
+  {
     path: "/2026/I70Widgets/FlowVsSpeed",
     title: "Same count, different road",
     tag: "concept",

@@ -3,7 +3,8 @@
 //
 // At 1000px and 390px: hub lists every widget, the widget animates (canvas
 // pixels change between frames), the tally climbs, Pause freezes the canvas,
-// and the flow slider resets the tally. Fails on console errors.
+// and the flow slider resets the tally. Then the two-counter widget animates
+// and its A/B tallies match. Fails on console errors.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -34,10 +35,10 @@ for (const [name, viewport] of [
   check(cards >= 3, `hub lists ${cards} widgets`);
   await page.screenshot({ path: `${OUT}/i70-widgets-hub-${name}.png`, fullPage: true });
 
-  await page.locator(".i70w-card").first().click();
+  await page.locator('.i70w-card[href$="/FlowVsSpeed"]').click();
   await page.waitForSelector("canvas");
   const snap = () => page.locator("canvas").evaluate((c) => c.toDataURL());
-  const tally = async () => Number(await page.locator(".fvs-tally strong").textContent());
+  const tally = async () => Number(await page.locator(".i70w-tally strong").textContent());
 
   const a = await snap();
   await page.waitForTimeout(500);
@@ -55,12 +56,26 @@ for (const [name, viewport] of [
   check(p1 === (await snap()), "pause freezes the canvas");
   await page.getByRole("button", { name: "Play" }).click();
 
-  await page.locator(".fvs-flow input").fill("900");
+  await page.locator(".i70w-flow input").fill("900");
   await page.waitForTimeout(100);
   check((await tally()) <= 1, "changing the flow resets the tally");
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   check(!overflow, "no horizontal scroll");
+
+  // Two counters: animates, 20x fast-forward climbs the tally quickly.
+  await page.goto(`${BASE}/2026/I70Widgets/TwoCounters`);
+  await page.waitForSelector("canvas");
+  const c1 = await snap();
+  await page.waitForTimeout(500);
+  check(c1 !== (await snap()), "two counters: canvas animates");
+  await page.getByRole("button", { name: "20×" }).click();
+  await page.waitForTimeout(3000);
+  const ab = await page.locator(".i70w-tally strong").allTextContents();
+  check(Number(ab[0]) >= 20 && ab[0] === ab[1], `two counters: A and B tally match at 20x (${ab.join(", ")})`);
+  await page.screenshot({ path: `${OUT}/i70-two-counters-${name}.png`, fullPage: true });
+  const overflow2 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  check(!overflow2, "two counters: no horizontal scroll");
   check(errors.length === 0, `no console errors${errors.length ? ": " + errors.join(" | ") : ""}`);
   await page.close();
 }

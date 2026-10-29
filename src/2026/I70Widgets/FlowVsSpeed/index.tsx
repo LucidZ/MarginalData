@@ -1,24 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
+import { CAR_M, FLASH_S, FT_PER_M, MPS_PER_MPH, SPEEDS_MPH, prefersReducedMotion } from "../lanes";
 import "../widgets.css";
-import "./FlowVsSpeed.css";
 
-// Top to bottom. Cars drive left to right, so the top lane is the driver's
-// left: fast lane on top, like a real passing lane.
-const SPEEDS_MPH = [70, 60, 50, 40, 30, 20, 10];
-const MPS_PER_MPH = 0.44704;
-const FT_PER_M = 3.28084;
 const ROAD_M = 200; // visible stretch, same for every lane
 const COUNTER_M = ROAD_M / 2;
-const CAR_M = 4.5; // drawn to scale along the road
 const FLOW_MIN = 600;
 const FLOW_MAX = 2400;
 const FLOW_DEFAULT = 1800;
-const FLASH_S = 0.15;
-
-const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function FlowVsSpeed() {
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
@@ -180,14 +170,14 @@ export default function FlowVsSpeed() {
         those cars are nearly bumper to bumper, at 70 mph they're spread out.
       </p>
 
-      <div className="fvs-controls">
+      <div className="i70w-controls">
         <button type="button" onClick={() => setPlaying((p) => !p)}>
           {playing ? "Pause" : "Play"}
         </button>
         <button type="button" onClick={restart}>
           Restart
         </button>
-        <label className="fvs-flow">
+        <label className="i70w-flow">
           <span>Cars per hour, each lane</span>
           <input
             type="range"
@@ -199,12 +189,12 @@ export default function FlowVsSpeed() {
           />
           <output>{flow.toLocaleString()}</output>
         </label>
-        <span className="fvs-tally" aria-live="off">
+        <span className="i70w-tally" aria-live="off">
           Counted so far: <strong>{tally}</strong> in every lane
         </span>
       </div>
 
-      <div ref={wrapRef} className="fvs-canvas-wrap">
+      <div ref={wrapRef} className="i70w-canvas-wrap">
         <canvas
           ref={canvasRef}
           style={{ width: `${width}px`, height: `${height}px` }}
@@ -212,12 +202,12 @@ export default function FlowVsSpeed() {
           aria-label={`Seven lanes at 10 to 70 miles per hour, each passing ${flow} cars per hour through a counter in the middle. Slow lanes are densely packed, fast lanes sparse.`}
         />
       </div>
-      <p className="fvs-note">
+      <p className="i70w-note">
         A {ROAD_M} m (about {Math.round((ROAD_M * FT_PER_M) / 10) * 10} ft) stretch. Car length is to
         scale along the road; lanes are drawn wider than life so the cars are visible.
       </p>
 
-      <table className="fvs-table">
+      <table className="i70w-table">
         <thead>
           <tr>
             <th>Speed</th>
