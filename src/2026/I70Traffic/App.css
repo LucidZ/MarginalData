@@ -35,56 +35,6 @@
   background: var(--page);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .i70-root {
-    color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #f0efec;
-    --text-secondary: #c3c2b7;
-    --gridline: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --wb: #3987e5;
-    --eb: #d95926;
-    --wb-1: #184f95;
-    --wb-2: #256abf;
-    --wb-3: #5598e7;
-    --wb-4: #9ec5f4;
-    --eb-1: #8f3913;
-    --eb-2: #bd4c1e;
-    --eb-3: #ec7f52;
-    --eb-4: #f7b597;
-    --road: #2f2f2d;
-    --road-edge: #5a5955;
-    --centerline: #c98500;
-  }
-}
-
-:root[data-theme="dark"] .i70-root {
-  color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #f0efec;
-  --text-secondary: #c3c2b7;
-  --gridline: #2c2c2a;
-  --baseline: #383835;
-  --border: rgba(255, 255, 255, 0.1);
-  --wb: #3987e5;
-  --eb: #d95926;
-  --wb-1: #184f95;
-  --wb-2: #256abf;
-  --wb-3: #5598e7;
-  --wb-4: #9ec5f4;
-  --eb-1: #8f3913;
-  --eb-2: #bd4c1e;
-  --eb-3: #ec7f52;
-  --eb-4: #f7b597;
-  --road: #2f2f2d;
-  --road-edge: #5a5955;
-  --centerline: #c98500;
-}
-
 .i70-root h1,
 .i70-root h2,
 .i70-root h3 {

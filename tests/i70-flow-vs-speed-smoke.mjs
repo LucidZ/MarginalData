@@ -4,7 +4,8 @@
 // At 1000px and 390px: hub lists every widget, the widget animates (canvas
 // pixels change between frames), the tally climbs, Pause freezes the canvas,
 // and the flow slider resets the tally. Then the two-counter widget animates
-// and its A/B tallies match. Fails on console errors.
+// and its A/B tallies match, and the daily-vs-peak scatter draws and
+// follows the counter switch. Fails on console errors.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -76,6 +77,20 @@ for (const [name, viewport] of [
   await page.screenshot({ path: `${OUT}/i70-two-counters-${name}.png`, fullPage: true });
   const overflow2 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   check(!overflow2, "two counters: no horizontal scroll");
+
+  // Daily vs peak: scatter draws, switching counter redraws, a note counts the days.
+  await page.goto(`${BASE}/2026/I70Widgets/DailyVsPeak`);
+  await page.waitForSelector("canvas");
+  await page.waitForFunction(() => /\d+ days at/.test(document.querySelector(".i70w-note")?.textContent ?? ""));
+  const s1 = await snap();
+  await page.getByRole("button", { name: "Eisenhower Tunnel" }).click();
+  await page.waitForTimeout(200);
+  check(s1 !== (await snap()), "daily vs peak: switching counter redraws");
+  const note = await page.locator(".i70w-note").textContent();
+  check(/Eisenhower Tunnel/.test(note ?? ""), "daily vs peak: note follows the counter");
+  await page.screenshot({ path: `${OUT}/i70-daily-vs-peak-${name}.png`, fullPage: true });
+  const overflow3 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  check(!overflow3, "daily vs peak: no horizontal scroll");
   check(errors.length === 0, `no console errors${errors.length ? ": " + errors.join(" | ") : ""}`);
   await page.close();
 }

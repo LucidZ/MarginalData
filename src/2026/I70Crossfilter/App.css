@@ -27,46 +27,6 @@
   background: var(--page);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .i70x-root {
-    color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #f0efec;
-    --text-secondary: #c3c2b7;
-    --gridline: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --hover: rgba(255, 255, 255, 0.05);
-    --wb: #3987e5;
-    --eb: #d95926;
-    --off: #3a3a37;
-  --cat-1: #199e70;
-  --cat-2: #9085e9;
-  --cat-3: #d55181;
-  --cat-4: #c98500;
-  }
-}
-
-:root[data-theme="dark"] .i70x-root {
-  color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #f0efec;
-  --text-secondary: #c3c2b7;
-  --gridline: #2c2c2a;
-  --baseline: #383835;
-  --border: rgba(255, 255, 255, 0.1);
-  --hover: rgba(255, 255, 255, 0.05);
-  --wb: #3987e5;
-  --eb: #d95926;
-  --off: #3a3a37;
-  --cat-1: #199e70;
-  --cat-2: #9085e9;
-  --cat-3: #d55181;
-  --cat-4: #c98500;
-}
-
 .i70x-root h1 {
   font-size: clamp(1.6rem, 4vw, 2.2rem);
   margin: 0 0 0.75rem;

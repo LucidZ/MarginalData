@@ -16,6 +16,8 @@ const I70Traffic = lazy(() => import("./2026/I70Traffic"));
 const I70Widgets = lazy(() => import("./2026/I70Widgets"));
 const I70FlowVsSpeed = lazy(() => import("./2026/I70Widgets/FlowVsSpeed"));
 const I70TwoCounters = lazy(() => import("./2026/I70Widgets/TwoCounters"));
+const I70DailyVsPeak = lazy(() => import("./2026/I70Widgets/DailyVsPeak"));
+const I70TravelTime = lazy(() => import("./2026/I70Widgets/TravelTime"));
 
 // Hoisted to module scope so lazy() is only called once per route, not on every render.
 const lazyRoutes = ROUTES.map((route) => ({
@@ -38,6 +40,8 @@ function App() {
             <Route path="/2026/I70Widgets" element={<I70Widgets />} />
             <Route path="/2026/I70Widgets/FlowVsSpeed" element={<I70FlowVsSpeed />} />
             <Route path="/2026/I70Widgets/TwoCounters" element={<I70TwoCounters />} />
+            <Route path="/2026/I70Widgets/DailyVsPeak" element={<I70DailyVsPeak />} />
+            <Route path="/2026/I70Widgets/TravelTime" element={<I70TravelTime />} />
             {lazyRoutes.map(({ path, Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}

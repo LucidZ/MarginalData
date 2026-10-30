@@ -13,6 +13,10 @@
   --road: #e9e8e3;
   --car: #2a78d6;
   --counter: #eb6834;
+  --off: #d3d2cb;
+  --cat-1: #1baf7a;
+  --cat-2: #6250d6;
+  --cat-4: #eda100;
 
   max-width: 1000px;
   margin: 0 auto;
@@ -20,38 +24,6 @@
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text-primary);
   background: var(--page);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .i70w-root {
-    color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #f0efec;
-    --text-secondary: #c3c2b7;
-    --gridline: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --hover: rgba(255, 255, 255, 0.05);
-    --road: #1f1f1d;
-    --car: #3987e5;
-    --counter: #d95926;
-  }
-}
-
-:root[data-theme="dark"] .i70w-root {
-  color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #f0efec;
-  --text-secondary: #c3c2b7;
-  --gridline: #2c2c2a;
-  --baseline: #383835;
-  --border: rgba(255, 255, 255, 0.1);
-  --hover: rgba(255, 255, 255, 0.05);
-  --road: #1f1f1d;
-  --car: #3987e5;
-  --counter: #d95926;
 }
 
 .i70w-root h1 {
@@ -225,4 +197,183 @@
   background: var(--text-primary);
   color: var(--page);
   border-color: var(--text-primary);
+}
+
+/* Scatter widgets */
+.i70w-scatter {
+  position: relative;
+}
+
+.i70w-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.i70w-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: -1px;
+}
+
+.i70w-tip {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: 178px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.i70w-tip strong {
+  color: var(--text-primary);
+}
+
+/* Chart widgets (SVG) */
+.i70w-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.i70w-controls .i70w-chips button[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--page);
+  border-color: var(--text-primary);
+}
+
+.i70w-controls input[type="date"] {
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.i70w-summary {
+  max-width: 44rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0.5rem 0 1rem;
+}
+
+.i70w-summary strong {
+  color: var(--text-primary);
+}
+
+.i70w-fig {
+  margin: 0 0 1.5rem;
+}
+
+.i70w-fig figcaption {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+}
+
+.i70w-fig figcaption .i70w-legend {
+  font-weight: normal;
+  margin: 0;
+}
+
+.i70w-fig svg {
+  display: block;
+  touch-action: pan-y;
+}
+
+.i70w-grid {
+  stroke: var(--gridline);
+}
+
+.i70w-axis {
+  stroke: var(--baseline);
+}
+
+.i70w-cross {
+  stroke: var(--muted);
+  stroke-dasharray: 3 3;
+}
+
+.i70w-band {
+  fill: var(--cat-1);
+  opacity: 0.15;
+}
+
+.i70w-tick {
+  font-size: 11px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.i70w-direct {
+  font-size: 12px;
+  fill: var(--text-secondary);
+}
+
+.i70w-readout {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin: 0.25rem 0 0;
+  min-height: 1.3em;
+}
+
+.i70w-h2 {
+  font-size: 1.15rem;
+  margin: 2rem 0 0.5rem;
+}
+
+.i70w-notes {
+  max-width: 44rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  padding-left: 1.2rem;
+}
+
+.i70w-notes li {
+  margin-bottom: 0.6rem;
+}
+
+.i70w-notes strong {
+  color: var(--text-primary);
+}
+
+.i70w-impossible {
+  fill: var(--muted);
+  opacity: 0.12;
+}
+
+.i70w-legend i.i70w-dash {
+  width: 14px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed var(--text-secondary);
+  vertical-align: 3px;
+}
+
+.i70w-legend i.i70w-dot-line {
+  width: 14px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dotted var(--muted);
+  vertical-align: 3px;
 }

@@ -4,6 +4,20 @@ import "./widgets.css";
 // Every I-70 sketch, newest first. Candidates for a scrollyteller later.
 const WIDGETS = [
   {
+    path: "/2026/I70Widgets/TravelTime",
+    title: "Counting the cars in between",
+    tag: "experiment",
+    blurb:
+      "How many cars are between Twin Tunnels and the Eisenhower Tunnel, from the gap between two running totals, and the speed that implies.",
+  },
+  {
+    path: "/2026/I70Widgets/DailyVsPeak",
+    title: "Busy hour, busy day",
+    tag: "data",
+    blurb:
+      "Every day since 1996 as a dot: its busiest hour against its total. Where the hourly ceiling sits, and how far a day can grow past it.",
+  },
+  {
     path: "/2026/I70Widgets/TwoCounters",
     title: "Two counters, one rhythm",
     tag: "concept",
