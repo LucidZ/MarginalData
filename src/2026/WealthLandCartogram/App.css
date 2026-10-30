@@ -16,30 +16,6 @@
   background: var(--page);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .wlc-root {
-    color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted: #898781;
-    --gridline: #2c2c2a;
-    --baseline: #383835;
-  }
-}
-
-:root[data-theme="dark"] .wlc-root {
-  color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --muted: #898781;
-  --gridline: #2c2c2a;
-  --baseline: #383835;
-}
-
 .wlc-header {
   margin-bottom: 1.5rem;
 }

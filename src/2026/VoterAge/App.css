@@ -15,14 +15,12 @@
   --gap-edge: #a97407;
   /* The shortfall's two parts. Turnout = the single wedge's gold, so the
      split reads as its upper part deepening; registration = a deeper ochre.
-     Validated (dataviz validate_palette.js) with --series-3: light passes
-     every check; dark passes CVD/normal-vision/contrast, and its gold sits
-     above the lightness band, as --gap always has - a gold dim enough to
-     fit goes muddy on the dark surface. */
+     Validated (dataviz validate_palette.js) with --series-3: passes every
+     check. */
   --gap-turnout: var(--gap);
   --gap-reg: #a8640a;
-  /* Summary bars' registered-but-didn't-vote band. Mixed from the votes
-     green and the surface, so dark mode follows without its own value. */
+  /* Summary bars' registered-but-didn't-vote band, mixed from the votes
+     green and the surface. */
   --registered: color-mix(in srgb, var(--series-3) 38%, var(--surface-1));
   --border: rgba(11, 11, 11, 0.1);
   /* Midterm tint for the timeline's buttons, its key and the year cards. */
@@ -34,48 +32,6 @@
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text-primary);
   background: var(--page);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .voa-root {
-    color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted: #898781;
-    --gridline: #2c2c2a;
-    --baseline: #383835;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --diverge-bad: #e66767;
-    --gap: #f0b942;
-    --gap-edge: #f8d68c;
-    --gap-reg: #bf7a18;
-    --border: rgba(255, 255, 255, 0.1);
-    --midterm-band: #272725;
-  }
-}
-
-:root[data-theme="dark"] .voa-root {
-  color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --muted: #898781;
-  --gridline: #2c2c2a;
-  --baseline: #383835;
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --diverge-bad: #e66767;
-  --gap: #f0b942;
-  --gap-edge: #f8d68c;
-  --gap-reg: #bf7a18;
-  --border: rgba(255, 255, 255, 0.1);
-  --midterm-band: #272725;
 }
 
 /* ---------- Header ---------- */
@@ -844,7 +800,7 @@
   font-size: clamp(1.25rem, 2.8vw, 1.6rem);
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--text-primary); /* the site's global h2 navy vanishes in dark mode */
+  color: var(--text-primary);
   margin: 0 0 0.6rem;
 }
 .voa-cta p {
@@ -858,9 +814,8 @@
   color: var(--text-primary);
 }
 /* The chart's votes green ("add yourself to the green bar"), not a party
-   color. Light mode darkens it so white text passes (the chart green is
-   2.8:1 with white; #137a55 is 5.3:1); dark mode keeps the chart green
-   with dark text (5.7:1). */
+   color. Darkened so white text passes (the chart green is 2.8:1 with
+   white; #137a55 is 5.3:1). */
 .voa-cta-button {
   display: inline-block;
   padding: 0.8rem 1.4rem;
@@ -899,26 +854,6 @@
 .voa-cta-button:focus-visible {
   outline: 3px solid var(--series-3);
   outline-offset: 3px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .voa-cta-button {
-    color: #0d0d0d;
-    background: #199e70;
-  }
-  :root:where(:not([data-theme="light"])) .voa-cta-button:hover {
-    color: #0d0d0d;
-    background: #2bbf88;
-    box-shadow: 0 4px 14px rgb(43 191 136 / 0.3);
-  }
-}
-:root[data-theme="dark"] .voa-cta-button {
-  color: #0d0d0d;
-  background: #199e70;
-}
-:root[data-theme="dark"] .voa-cta-button:hover {
-  color: #0d0d0d;
-  background: #2bbf88;
-  box-shadow: 0 4px 14px rgb(43 191 136 / 0.3);
 }
 .voa-cta .voa-cta-note {
   font-size: 0.82rem;

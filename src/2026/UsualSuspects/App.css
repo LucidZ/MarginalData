@@ -17,12 +17,9 @@
      a search field, a canvas, a detail card - and the reading measure it
      used to inherit was actively harmful: the chart broke out of it to
      100vw (see .tus-graph-frame), so everything past 1100px sat on the site
-     `body`, which stays #ffffff even under prefers-color-scheme: dark (the
-     site shell never goes dark; this story's dark mode is a per-route
-     opt-in via the tokens above). At 1440px that put 340px of chart on a
-     white background with the dark surface stopping mid-column, and made
-     the scroll-edge gradients - painted in var(--page) - fade dark-to-dark
-     against white, i.e. invisible. Now the surface IS the viewport.
+     `body` instead of this page's surface, and the scroll-edge gradients -
+     painted in var(--page) - stopped mid-column. Now the surface IS the
+     viewport.
      min-height rather than height: the site Footer still sits below and
      stays reachable by scrolling; the chart itself is sized to fit the
      first screenful by App.tsx's own height budget. */
@@ -39,50 +36,6 @@
    canvas below runs edge to edge. */
 .tus-chrome {
   padding: 0.9rem 1.5rem 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .tus-root {
-    color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted: #898781;
-    --gridline: #2c2c2a;
-    --accent: #3987e5;
-  }
-  /* h1 otherwise falls through to the sitewide `h1 { color: var(--color-heading) }`
-     rule (src/index.css) - #1e3a5f, a navy tuned for that rule's own
-     permanently-light background (the site shell never goes dark itself;
-     confirmed body stays #ffffff under prefers-color-scheme: dark - dark
-     mode here is purely a per-story opt-in via .tus-root's own tokens
-     above). Against *this* page's own dark --page (#0d0d0d), that navy
-     measures 1.69:1 - nowhere near the 3:1 floor for large text. Overriding
-     locally with --accent (already dark-mode-correct one block up, ~5.3:1
-     here) rather than touching --color-heading itself, which is shared by
-     every other page on the site and would need its own light-mode value
-     preserved for pages that never asked to go dark - see the dark-mode
-     audit note in project_usual_suspects.md for why this couldn't be a
-     sitewide fix. */
-  :root:where(:not([data-theme="light"])) .tus-title {
-    color: var(--accent);
-  }
-}
-
-:root[data-theme="dark"] .tus-root {
-  color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --muted: #898781;
-  --gridline: #2c2c2a;
-  --accent: #3987e5;
-}
-
-:root[data-theme="dark"] .tus-title {
-  color: var(--accent);
 }
 
 /* Quiet top-left label, not a masthead - the centered hero below (photo +
@@ -931,7 +884,6 @@ span.tus-movie-row .tus-movie-title {
 .tus-card-center:hover {
   text-decoration: underline;
 }
-
 
 /* On a 390px screen a floating card anchored to a tapped node has nowhere to
    go, so it becomes a bottom sheet instead. */
