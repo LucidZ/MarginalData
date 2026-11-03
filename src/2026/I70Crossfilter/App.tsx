@@ -174,8 +174,8 @@ const I70Crossfilter = () => {
         <h1>{data?.days.title ?? "Every hour through the Eisenhower Tunnel"}</h1>
         <p className="i70x-intro">
           CDOT has counted the cars going each way through the Eisenhower-Johnson Memorial Tunnel on I-70 every hour since
-          1996. It also counts at the Twin Tunnels near Idaho Springs, where nearly all mountain traffic from Denver
-          shares one road, and on US-40 below Berthoud Pass, the road to Winter Park that never goes through the tunnel.
+          1996. It also counts at Genesee in the foothills, at the Twin Tunnels near Idaho Springs, where nearly all
+          mountain traffic from Denver shares one road, and on US-40 below Berthoud Pass, the road to Winter Park that never goes through the tunnel.
           Pick any kind of day (Saturdays in February, holiday Mondays, the morning after a foot of snow) with the
           filter charts, then use <em>Compare by</em> to split those days into groups: snow vs none, weekends vs
           weekdays, one line per year. Every other chart updates to show only the matching days. Switch counters to see
@@ -274,7 +274,9 @@ const I70Crossfilter = () => {
               ways you didn't filter on (snowy days may cluster in some years), so keep the scope tight.
             </p>
             <p>
-              <strong>Three counters.</strong> Twin Tunnels is on I-70 just east of Idaho Springs, past the point where
+              <strong>Four counters.</strong> Genesee is on I-70 in the foothills west of Denver, before the Evergreen
+              and Floyd Hill exits, so it mixes mountain traffic with foothills commuters; it doesn't see US-6 traffic
+              from Golden. Twin Tunnels is on I-70 just east of Idaho Springs, past the point where
               US-6 from Golden joins, so it carries both roads up from Denver. West of it the traffic splits. The
               Eisenhower Tunnel counter carries I-70 traffic to Summit County and beyond. The Berthoud Pass counter sits
               on US-40 between Empire and the pass, so it catches everyone driving to Winter Park and Grand County; that
@@ -286,7 +288,7 @@ const I70Crossfilter = () => {
             <p>
               <strong>Overnight vs daytime snow.</strong> Weather is the NOAA daily report from Dillon (Georgetown when
               Dillon is missing). It is read at about 8 AM, so "overnight" is that morning's report and "during the day"
-              is the next morning's. Both counters use the same report. For Berthoud it's a stand-in: Dillon is
+              is the next morning's. Every counter uses the same report. For Berthoud it's a stand-in: Dillon is
               about 25 miles from Winter Park, and storms don't always hit both.
             </p>
             <p>
@@ -296,7 +298,7 @@ const I70Crossfilter = () => {
               doesn't look busier.
             </p>
             <p className="i70x-source">
-              Data: CDOT OTIS traffic counts (stations 000120, 000106 and 000223), NOAA GHCN-Daily.
+              Data: CDOT OTIS traffic counts (stations 000107, 000120, 000106 and 000223), NOAA GHCN-Daily.
             </p>
           </section>
         </>
