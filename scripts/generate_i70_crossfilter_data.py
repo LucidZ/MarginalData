@@ -27,11 +27,13 @@ Sources (both public, no key):
     precipDay     = PRCP in D+1's report
     snowDepth     = SNWD in D's report
 
-The page shows three counters (COUNTERS): Twin Tunnels (000120), on I-70
-west of where US-6 joins, so it carries both Denver feeders; the Tunnel
-(000106); and US-40 below Berthoud Pass (000223), which carries everything
-driving from Denver to Winter Park and never touches the Tunnel. Copper
-Mountain and Genesee are downloaded into the cache for later work.
+The page shows four counters (COUNTERS): Genesee (000107), on I-70 in the
+foothills at the Denver end, before the Evergreen and Floyd Hill exits;
+Twin Tunnels (000120), on I-70 west of where US-6 joins, so it carries both
+Denver feeders; the Tunnel (000106); and US-40 below Berthoud Pass (000223),
+which carries everything driving from Denver to Winter Park and never
+touches the Tunnel. Copper Mountain is downloaded into the cache for later
+work.
 
 The API is fetched one request at a time, >= 1 s apart, with a logged
 10/20/30 s backoff on errors. Every raw response is cached in
@@ -77,9 +79,10 @@ STATIONS = {
     "000107": "Genesee",
 }
 # The counters in the page, in hours.bin order: (id, station, name, title).
-# Twin Tunnels is the trunk (west of the US-6 junction, so it carries both
+# Genesee is the foothills end. Twin Tunnels is the trunk (west of the US-6 junction, so it carries both
 # Denver feeders); it splits into the Tunnel, Berthoud and everything else.
 COUNTERS = [
+    ("genesee", "000107", "Genesee", "Every hour past Genesee"),
     ("twin", "000120", "Twin Tunnels", "Every hour through the Twin Tunnels"),
     ("tunnel", "000106", "Eisenhower Tunnel", "Every hour through the Eisenhower Tunnel"),
     ("berthoud", "000223", "Berthoud Pass (US-40)", "Every hour over Berthoud Pass"),
