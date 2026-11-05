@@ -18,6 +18,8 @@
   --cat-2: #6250d6;
   --cat-3: #e87ba4;
   --cat-4: #eda100;
+  /* CDOT capacity band. Validated against every hue above (ΔE >= 15.6 vs --eb). */
+  --capacity: #b8323a;
 
   max-width: 1000px;
   margin: 0 auto;
@@ -292,6 +294,20 @@
 .i70x-dot-base { fill: var(--muted); stroke: var(--surface-1); stroke-width: 2; }
 .i70x-crosshair { stroke: var(--baseline); stroke-width: 1; }
 .i70x-brush { fill: var(--hover); stroke: var(--baseline); stroke-width: 1; }
+.i70x-cap-band { fill: var(--capacity); fill-opacity: 0.18; }
+.i70x-cap-over { fill: var(--capacity); fill-opacity: 0.08; }
+.i70x-cap-label {
+  fill: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.i70x-cap-note {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+  max-width: 760px;
+}
 .i70x-hover { fill: var(--hover); }
 
 .i70x-grid { stroke: var(--gridline); stroke-width: 1; }

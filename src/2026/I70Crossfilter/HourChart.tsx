@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
-import { area, curveMonotoneX, line, scaleLinear } from "d3";
-import type { Direction, Series } from "./types";
+import { area, curveMonotoneX, line, scaleLinear, tickIncrement } from "d3";
+import type { CounterId, Direction, Series } from "./types";
+import { capacityFor, capacityNote } from "./capacity";
 import { seriesColor } from "./compare";
 import { useContainerWidth } from "./useContainerWidth";
 import { fmtCompact, fmtInt, hourLabel } from "./format";
@@ -10,7 +11,10 @@ interface Props {
   /** Key of the series to bring forward (hovered here or in the table). */
   highlight: string | null;
   onHighlight: (key: string | null) => void;
+  counter: CounterId;
   dir: Direction;
+  /** Fixed top of the y-axis for this counter; grows only if a line would pass it. */
+  yTop: number;
   hours: [number, number] | null;
   onHours: (h: [number, number] | null) => void;
 }
@@ -22,8 +26,8 @@ const pct = (a: number, b: number) => `${a >= b ? "+" : ""}${Math.round((a / b -
 
 // Average vehicles per hour by hour of day, one line per series, measured
 // against the dashed reference. Doubles as the hour-of-day filter: drag to
-// pick hours.
-const HourChart = ({ series, highlight, onHighlight, dir, hours, onHours }: Props) => {
+// pick hours. The red band is CDOT's capacity for this counter and direction.
+const HourChart = ({ series, highlight, onHighlight, counter, dir, yTop, hours, onHours }: Props) => {
   const [ref, width] = useContainerWidth<HTMLDivElement>(900);
   const [hover, setHover] = useState<number | null>(null);
   const drag = useRef<{ anchor: number; moved: boolean } | null>(null);
@@ -35,8 +39,14 @@ const HourChart = ({ series, highlight, onHighlight, dir, hours, onHours }: Prop
 
   const step = innerW / 24;
   const x = (h: number) => (h + 0.5) * step;
-  const max = Math.max(1, ...series.flatMap((s) => s.curve.map((v) => v ?? 0)));
-  const y = useMemo(() => scaleLinear().domain([0, max]).nice(4).range([innerH, 0]), [max, innerH]);
+  const max = Math.max(yTop, ...series.flatMap((s) => s.curve.map((v) => v ?? 0)));
+  // Round up by one fine step (finer than the 4 labelled ticks, and unlike
+  // .nice() not repeated), so the capacity band sits just under the top.
+  const y = useMemo(() => {
+    const step = Math.max(1, tickIncrement(0, max, 6));
+    return scaleLinear().domain([0, Math.ceil(max / step) * step]).range([innerH, 0]);
+  }, [max, innerH]);
+  const cap = capacityFor(counter, dir);
 
   const toPts = (vals: (number | null)[]) => HOURS.map((h) => [h, vals[h]] as [number, number | null]);
   const mkLine = line<[number, number | null]>()
@@ -141,9 +151,20 @@ const HourChart = ({ series, highlight, onHighlight, dir, hours, onHours }: Prop
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerLeave}
         role="img"
-        aria-label={`Average vehicles per hour by hour of day: ${series.map((s) => s.label).join(", ")}`}
+        aria-label={`Average vehicles per hour by hour of day: ${series.map((s) => s.label).join(", ")}${
+          cap ? `. CDOT capacity ${fmtInt(cap.lo)} to ${fmtInt(cap.hi)}` : ""
+        }`}
       >
         <g transform={`translate(${M.left},${M.top})`}>
+          {cap && (
+            <g className="i70x-cap">
+              <rect width={innerW} height={y(cap.hi)} className="i70x-cap-over" />
+              <rect y={y(cap.hi)} width={innerW} height={y(cap.lo) - y(cap.hi)} className="i70x-cap-band" />
+              <text x={innerW - 4} y={y(cap.hi) - 4} textAnchor="end" className="i70x-cap-label">
+                CDOT capacity {fmtInt(cap.lo)}–{fmtInt(cap.hi)}
+              </text>
+            </g>
+          )}
           {hours && (
             <rect x={hours[0] * step} width={(hours[1] - hours[0] + 1) * step} height={innerH} className="i70x-brush" />
           )}
@@ -204,6 +225,7 @@ const HourChart = ({ series, highlight, onHighlight, dir, hours, onHours }: Prop
           </button>
         </div>
       )}
+      <p className="i70x-cap-note">{capacityNote(counter)}</p>
     </div>
   );
 };

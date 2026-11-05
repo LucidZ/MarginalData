@@ -4,7 +4,7 @@ import { buildBins, describeBins } from "./bins";
 import { createEngine, type Engine } from "./engine";
 import { MAX_CAT, buildGroupings, groupCurves } from "./compare";
 import { buildPresets, type Preset } from "./presetList";
-import type { BinSpec, CounterId, Dataset, Direction, FilterId, Filters, Selection, Series, Snapshot } from "./types";
+import { MISSING, type BinSpec, type CounterId, type Dataset, type Direction, type FilterId, type Filters, type Selection, type Series, type Snapshot } from "./types";
 import Controls from "./Controls";
 import Presets from "./Presets";
 import CompareControl from "./CompareControl";
@@ -14,6 +14,7 @@ import BarFilter from "./BarFilter";
 import CalendarStrip from "./CalendarStrip";
 import TopDays from "./TopDays";
 import { fmtInt } from "./format";
+import { CAPACITY_HEADROOM, capacityTop } from "./capacity";
 import "./App.css";
 
 const EMPTY_BINS: Record<FilterId, Selection> = {
@@ -93,6 +94,29 @@ const I70Crossfilter = () => {
     }
     return k;
   }, [data, filters.includeClosures, filters.includeIncomplete]);
+
+  // The hero's y-axis holds still across filters and directions: sized to the
+  // CDOT capacity band, or with no band (Berthoud) to the busier direction's
+  // all-days average. It only grows if a line would go off the top.
+  const yTop = useMemo(() => {
+    if (!data) return 1;
+    const top = capacityTop(data.days.id);
+    if (top != null) return top;
+    let best = 1;
+    for (const counts of [data.wb, data.eb]) {
+      const sum = new Float64Array(24);
+      const n = new Float64Array(24);
+      for (let d = 0; d < data.n; d++) {
+        if (data.days.closure[d] || !data.days.complete[d]) continue;
+        for (let h = 0; h < 24; h++) {
+          const v = counts[d * 24 + h];
+          if (v !== MISSING) (sum[h] += v), n[h]++;
+        }
+      }
+      for (let h = 0; h < 24; h++) if (n[h]) best = Math.max(best, sum[h] / n[h]);
+    }
+    return best * CAPACITY_HEADROOM;
+  }, [data]);
 
   const series = useMemo((): Series[] => {
     if (!data || !snap) return [];
@@ -226,7 +250,9 @@ const I70Crossfilter = () => {
                 series={series}
                 highlight={highlight}
                 onHighlight={setHighlight}
+                counter={counter}
                 dir={dir}
+                yTop={yTop}
                 hours={filters.hours}
                 onHours={(h) => {
                   setPreset(null);

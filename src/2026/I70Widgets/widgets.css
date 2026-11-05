@@ -17,6 +17,8 @@
   --cat-1: #1baf7a;
   --cat-2: #6250d6;
   --cat-4: #eda100;
+  /* CDOT capacity band, same as I70Crossfilter. */
+  --capacity: #b8323a;
 
   max-width: 1000px;
   margin: 0 auto;
@@ -145,6 +147,14 @@
   font-size: 0.8rem;
   color: var(--muted);
   margin: 0.5rem 0 1.5rem;
+}
+
+.i70w-cap-note {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted);
+  max-width: 44rem;
+  margin: -1rem 0 1.5rem;
 }
 
 .i70w-table {

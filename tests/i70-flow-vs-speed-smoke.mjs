@@ -88,6 +88,21 @@ for (const [name, viewport] of [
   check(s1 !== (await snap()), "daily vs peak: switching counter redraws");
   const note = await page.locator(".i70w-note").textContent();
   check(/Eisenhower Tunnel/.test(note ?? ""), "daily vs peak: note follows the counter");
+  // Capacity band: per direction, hidden for both ways and for Berthoud.
+  const capAttr = () => page.locator("canvas").getAttribute("data-capacity");
+  const capNote = () => page.locator(".i70w-cap-note").textContent();
+  check((await capAttr()) === "2430-2630" && /^Red:/.test(await capNote()), "daily vs peak: Tunnel westbound band");
+  await page.getByRole("button", { name: "Eastbound" }).click();
+  check((await capAttr()) === "2400-2850", "daily vs peak: Tunnel eastbound band");
+  await page.getByRole("button", { name: "Both ways" }).click();
+  check((await capAttr()) === "" && /per direction/.test(await capNote()), "daily vs peak: no band for both ways");
+  await page.getByRole("button", { name: "Westbound" }).click();
+  await page.getByRole("button", { name: "Berthoud Pass" }).click();
+  check((await capAttr()) === "" && /no red band/.test(await capNote()), "daily vs peak: no band at Berthoud");
+  await page.getByRole("button", { name: "Twin Tunnels" }).click();
+  check((await capAttr()) === "3420-3570" && /express lanes/.test(await capNote()), "daily vs peak: Twin band + lane note");
+  await page.getByRole("button", { name: "Eisenhower Tunnel" }).click();
+  await page.waitForTimeout(200);
   await page.screenshot({ path: `${OUT}/i70-daily-vs-peak-${name}.png`, fullPage: true });
   const overflow3 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   check(!overflow3, "daily vs peak: no horizontal scroll");
