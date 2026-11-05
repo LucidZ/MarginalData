@@ -91,16 +91,19 @@ for (const [name, viewport] of [
   // Capacity band: per direction, hidden for both ways and for Berthoud.
   const capAttr = () => page.locator("canvas").getAttribute("data-capacity");
   const capNote = () => page.locator(".i70w-cap-note").textContent();
-  check((await capAttr()) === "2430-2630" && /^Red:/.test(await capNote()), "daily vs peak: Tunnel westbound band");
+  const slowAttr = () => page.locator("canvas").getAttribute("data-slowdown");
+  check((await capAttr()) === "2430-2630" && /^Red band:.*Pale band:/.test(await capNote()), "daily vs peak: Tunnel westbound band");
+  check((await slowAttr()) === "1500-1620", "daily vs peak: Tunnel westbound slowdown");
   await page.getByRole("button", { name: "Eastbound" }).click();
-  check((await capAttr()) === "2400-2850", "daily vs peak: Tunnel eastbound band");
+  check((await capAttr()) === "2400-2850" && (await slowAttr()) === "2070-2460", "daily vs peak: Tunnel eastbound bands");
+  await page.screenshot({ path: `${OUT}/i70-daily-vs-peak-eb-${name}.png`, fullPage: true });
   await page.getByRole("button", { name: "Both ways" }).click();
-  check((await capAttr()) === "" && /per direction/.test(await capNote()), "daily vs peak: no band for both ways");
+  check((await capAttr()) === "" && (await slowAttr()) === "" && /per direction/.test(await capNote()), "daily vs peak: no bands for both ways");
   await page.getByRole("button", { name: "Westbound" }).click();
   await page.getByRole("button", { name: "Berthoud Pass" }).click();
   check((await capAttr()) === "" && /no red band/.test(await capNote()), "daily vs peak: no band at Berthoud");
   await page.getByRole("button", { name: "Twin Tunnels" }).click();
-  check((await capAttr()) === "3420-3570" && /express lanes/.test(await capNote()), "daily vs peak: Twin band + lane note");
+  check((await capAttr()) === "3420-3570" && (await slowAttr()) === "2660-2780" && /express lanes/.test(await capNote()), "daily vs peak: Twin bands + lane note");
   await page.getByRole("button", { name: "Eisenhower Tunnel" }).click();
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${OUT}/i70-daily-vs-peak-${name}.png`, fullPage: true });

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { area, curveMonotoneX, line, scaleLinear, tickIncrement } from "d3";
 import type { CounterId, Direction, Series } from "./types";
-import { capacityFor, capacityNote } from "./capacity";
+import { capacityNote, thresholdsFor } from "./capacity";
 import { seriesColor } from "./compare";
 import { useContainerWidth } from "./useContainerWidth";
 import { fmtCompact, fmtInt, hourLabel } from "./format";
@@ -26,7 +26,7 @@ const pct = (a: number, b: number) => `${a >= b ? "+" : ""}${Math.round((a / b -
 
 // Average vehicles per hour by hour of day, one line per series, measured
 // against the dashed reference. Doubles as the hour-of-day filter: drag to
-// pick hours. The red band is CDOT's capacity for this counter and direction.
+// pick hours. Behind it: where speeds start to drop, and CDOT's capacity.
 const HourChart = ({ series, highlight, onHighlight, counter, dir, yTop, hours, onHours }: Props) => {
   const [ref, width] = useContainerWidth<HTMLDivElement>(900);
   const [hover, setHover] = useState<number | null>(null);
@@ -46,7 +46,7 @@ const HourChart = ({ series, highlight, onHighlight, counter, dir, yTop, hours, 
     const step = Math.max(1, tickIncrement(0, max, 6));
     return scaleLinear().domain([0, Math.ceil(max / step) * step]).range([innerH, 0]);
   }, [max, innerH]);
-  const cap = capacityFor(counter, dir);
+  const th = thresholdsFor(counter, dir);
 
   const toPts = (vals: (number | null)[]) => HOURS.map((h) => [h, vals[h]] as [number, number | null]);
   const mkLine = line<[number, number | null]>()
@@ -152,16 +152,27 @@ const HourChart = ({ series, highlight, onHighlight, counter, dir, yTop, hours, 
         onPointerLeave={onPointerLeave}
         role="img"
         aria-label={`Average vehicles per hour by hour of day: ${series.map((s) => s.label).join(", ")}${
-          cap ? `. CDOT capacity ${fmtInt(cap.lo)} to ${fmtInt(cap.hi)}` : ""
+          th
+            ? `. Speeds start to drop at ${fmtInt(th.slow.lo)} to ${fmtInt(th.slow.hi)}; CDOT capacity ${fmtInt(th.cap.lo)} to ${fmtInt(th.cap.hi)}`
+            : ""
         }`}
       >
         <g transform={`translate(${M.left},${M.top})`}>
-          {cap && (
+          {th && (
             <g className="i70x-cap">
-              <rect width={innerW} height={y(cap.hi)} className="i70x-cap-over" />
-              <rect y={y(cap.hi)} width={innerW} height={y(cap.lo) - y(cap.hi)} className="i70x-cap-band" />
-              <text x={innerW - 4} y={y(cap.hi) - 4} textAnchor="end" className="i70x-cap-label">
-                CDOT capacity {fmtInt(cap.lo)}–{fmtInt(cap.hi)}
+              <rect width={innerW} height={y(th.cap.hi)} className="i70x-cap-over" />
+              <rect y={y(th.cap.hi)} width={innerW} height={y(th.cap.lo) - y(th.cap.hi)} className="i70x-cap-band" />
+              <rect y={y(th.cap.lo)} width={innerW} height={Math.max(0, y(th.slow.lo) - y(th.cap.lo))} className="i70x-slow-zone" />
+              {[th.slow.lo, th.slow.hi]
+                .filter((v, i) => v < th.cap.lo && (i === 0 || v !== th.slow.lo))
+                .map((v) => (
+                  <line key={v} x2={innerW} y1={y(v)} y2={y(v)} className="i70x-slow-line" />
+                ))}
+              <text x={innerW - 4} y={y(th.cap.hi) - 4} textAnchor="end" className="i70x-cap-label">
+                Capacity, stop-and-go likely {fmtInt(th.cap.lo)}–{fmtInt(th.cap.hi)}
+              </text>
+              <text x={innerW - 4} y={y(th.slow.lo) + 13} textAnchor="end" className="i70x-cap-label i70x-slow-label">
+                ↑ Speeds start to drop {fmtInt(th.slow.lo)}–{fmtInt(th.slow.hi)}
               </text>
             </g>
           )}

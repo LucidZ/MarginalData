@@ -296,6 +296,8 @@
 .i70x-brush { fill: var(--hover); stroke: var(--baseline); stroke-width: 1; }
 .i70x-cap-band { fill: var(--capacity); fill-opacity: 0.18; }
 .i70x-cap-over { fill: var(--capacity); fill-opacity: 0.08; }
+.i70x-slow-zone { fill: var(--capacity); fill-opacity: 0.06; }
+.i70x-slow-line { stroke: var(--capacity); stroke-opacity: 0.55; stroke-width: 1; stroke-dasharray: 4 3; }
 .i70x-cap-label {
   fill: var(--text-secondary);
   font-size: 11px;

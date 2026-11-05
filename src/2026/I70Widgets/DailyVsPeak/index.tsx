@@ -1,7 +1,7 @@
 import { Delaunay, extent, max, quantile, scaleLinear } from "d3";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CAPACITY_HEADROOM, capacityFor, capacityNote } from "../../I70Crossfilter/capacity";
+import { CAPACITY_HEADROOM, capacityNote, thresholdsFor } from "../../I70Crossfilter/capacity";
 import { dirLabel, fmtDate, fmtInt, hourLabel } from "../../I70Crossfilter/format";
 import { MISSING, type CounterId, type Dataset } from "../../I70Crossfilter/types";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
@@ -99,8 +99,8 @@ export default function DailyVsPeak() {
   );
 
   // CDOT's capacities are per direction, and the two directions peak at
-  // different hours, so there's no band for "Both ways".
-  const cap = dir === "both" ? null : capacityFor(counter, dir);
+  // different hours, so there are no bands for "Both ways".
+  const th = dir === "both" ? null : thresholdsFor(counter, dir);
 
   const compact = width < 560;
   const height = compact ? 380 : 520;
@@ -112,9 +112,9 @@ export default function DailyVsPeak() {
     // everything else; cap at the 99.95th percentile and pin those to the edge.
     // Always far enough to show the capacity band with some room past it.
     const hi = quantile(allPoints, 0.9995, (p) => p.peak) ?? 1;
-    const top = Math.max(hi * 1.08, cap ? cap.hi * CAPACITY_HEADROOM : 0);
+    const top = Math.max(hi * 1.08, th ? th.cap.hi * CAPACITY_HEADROOM : 0);
     return scaleLinear([0, top], [m.left, width - m.right]).nice();
-  }, [allPoints, cap, width, m.left, m.right]);
+  }, [allPoints, th, width, m.left, m.right]);
   const y = useMemo(() => {
     const hi = max(allPoints, (p) => p.total) ?? 1;
     return scaleLinear([0, hi * 1.03], [height - m.bottom, m.top]).nice();
@@ -144,23 +144,46 @@ export default function DailyVsPeak() {
 
     ctx.clearRect(0, 0, width, height);
 
-    // Capacity band behind everything, plus a lighter tint for everything past it.
-    if (cap) {
+    // Behind everything: a pale zone from where speeds start to drop, dashed
+    // lines for that range, the capacity band, and a tint for everything past it.
+    if (th) {
       const plotTop = m.top;
-      const plotH = height - m.bottom - m.top;
-      const xLo = x(cap.lo);
-      const xHi = x(cap.hi);
+      const plotBottom = height - m.bottom;
+      const plotH = plotBottom - plotTop;
+      const xSlow = x(th.slow.lo);
+      const xLo = x(th.cap.lo);
+      const xHi = x(th.cap.hi);
       ctx.fillStyle = v("--capacity");
+      ctx.globalAlpha = 0.06;
+      ctx.fillRect(xSlow, plotTop, Math.max(0, xLo - xSlow), plotH);
       ctx.globalAlpha = 0.08;
       ctx.fillRect(xHi, plotTop, width - m.right - xHi, plotH);
       ctx.globalAlpha = 0.18;
       ctx.fillRect(xLo, plotTop, xHi - xLo, plotH);
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = v("--capacity");
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      for (const s of new Set([th.slow.lo, th.slow.hi])) {
+        if (s >= th.cap.lo) continue;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(x(s)) + 0.5, plotTop);
+        ctx.lineTo(Math.round(x(s)) + 0.5, plotBottom);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
       ctx.globalAlpha = 1;
       ctx.font = `${compact ? 10 : 11}px system-ui, sans-serif`;
       ctx.fillStyle = v("--text-secondary");
       ctx.textAlign = "right";
       ctx.textBaseline = "bottom";
-      ctx.fillText(`CDOT capacity ${fmtInt(cap.lo)}–${fmtInt(cap.hi)}`, xHi, plotTop - 4);
+      ctx.fillText(`Capacity, stop-and-go likely ${fmtInt(th.cap.lo)}–${fmtInt(th.cap.hi)}`, xHi, plotTop - 4);
+      // Low daily totals with a big busiest hour don't happen, so the bottom of
+      // the plot is empty there. Right of the line if it fits, else left of it.
+      const slowText = `Speeds start to drop ${fmtInt(th.slow.lo)}–${fmtInt(th.slow.hi)} →`;
+      const fits = xSlow + 4 + ctx.measureText(slowText).width <= width - m.right;
+      ctx.textAlign = fits ? "left" : "right";
+      ctx.fillText(slowText, fits ? xSlow + 4 : xSlow - 4, plotBottom - 6);
     }
 
     // Grid + axes
@@ -218,7 +241,7 @@ export default function DailyVsPeak() {
       ctx.strokeStyle = v("--surface-1");
       ctx.stroke();
     }
-  }, [points, x, y, cap, width, height, compact, colorBy, hover, m.left, m.right, m.top, m.bottom]);
+  }, [points, x, y, th, width, height, compact, colorBy, hover, m.left, m.right, m.top, m.bottom]);
 
   const onMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -300,10 +323,13 @@ export default function DailyVsPeak() {
           style={{ width, height }}
           onPointerMove={onMove}
           onPointerLeave={() => setHover(null)}
-          data-capacity={cap ? `${cap.lo}-${cap.hi}` : ""}
+          data-capacity={th ? `${th.cap.lo}-${th.cap.hi}` : ""}
+          data-slowdown={th ? `${th.slow.lo}-${th.slow.hi}` : ""}
           role="img"
           aria-label={`Scatter of ${points.length} days: busiest hour against daily total${
-            cap ? `. CDOT capacity ${fmtInt(cap.lo)} to ${fmtInt(cap.hi)} vehicles an hour` : ""
+            th
+              ? `. Speeds start to drop at ${fmtInt(th.slow.lo)} to ${fmtInt(th.slow.hi)} vehicles an hour; CDOT capacity ${fmtInt(th.cap.lo)} to ${fmtInt(th.cap.hi)}`
+              : ""
           }`}
         />
         {hover && ds && (
@@ -337,7 +363,7 @@ export default function DailyVsPeak() {
       </p>
       <p className="i70w-cap-note">
         {dir === "both" && counter !== "berthoud"
-          ? "No red band for both ways combined: CDOT's capacities are per direction, and the two directions peak at different hours, so adding them up means nothing. Pick one direction to see it."
+          ? "No red bands for both ways combined: CDOT's capacities are per direction, and the two directions peak at different hours, so adding them up means nothing. Pick one direction to see them."
           : capacityNote(counter)}
       </p>
     </div>

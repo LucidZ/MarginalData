@@ -57,21 +57,24 @@ for (const width of [1000, 390]) {
         band: !!band,
         bandTop: band ? Number(band.getAttribute("y")) : null,
         label: document.querySelector(".i70x-cap-label")?.textContent ?? "",
+        slow: document.querySelector(".i70x-slow-label")?.textContent ?? "",
+        slowLines: document.querySelectorAll(".i70x-slow-line").length,
         ticks: [...document.querySelectorAll(".i70x-hero-svg g > g > text.i70x-tick")].map((t) => t.textContent).join(","),
         note: document.querySelector(".i70x-cap-note")?.textContent ?? "",
       };
     });
-  for (const [name, lo, hi] of [
-    ["Genesee", "4,200", "4,720"],
-    ["Twin Tunnels", "3,420", "3,570"],
-    ["Eisenhower Tunnel", "2,430", "2,630"],
+  for (const [name, lo, hi, slow] of [
+    ["Genesee", "4,200", "4,720", "2,590–2,910"],
+    ["Twin Tunnels", "3,420", "3,570", "2,660–2,780"],
+    ["Eisenhower Tunnel", "2,430", "2,630", "1,500–1,620"],
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
     await page.waitForTimeout(50);
     const wbCap = await capState();
     check(wbCap.band && wbCap.label.includes(`${lo}–${hi}`), `${name} westbound band: "${wbCap.label}"`);
+    check(wbCap.slow.includes(slow) && wbCap.slowLines === 2, `${name} westbound slowdown: "${wbCap.slow}", ${wbCap.slowLines} lines`);
     check(wbCap.bandTop > 0, `${name} band sits below the top of the plot (y=${wbCap.bandTop?.toFixed(1)})`);
-    check(name === "Twin Tunnels" ? /express lanes/.test(wbCap.note) : /^Red:/.test(wbCap.note), `${name} note`);
+    check(name === "Twin Tunnels" ? /express lanes/.test(wbCap.note) : /^Red band:.*Pale band:/.test(wbCap.note), `${name} note`);
     await page.getByRole("button", { name: "Eastbound" }).click();
     await page.waitForTimeout(50);
     const ebCap = await capState();
@@ -82,7 +85,7 @@ for (const width of [1000, 390]) {
   await page.getByRole("button", { name: "Berthoud Pass (US-40)" }).click();
   await page.waitForTimeout(50);
   const bCap = await capState();
-  check(!bCap.band && /no red band/.test(bCap.note), "Berthoud: no band, note says why");
+  check(!bCap.band && !bCap.slow && /no red band/.test(bCap.note), "Berthoud: no bands, note says why");
   await page.getByRole("button", { name: "Eisenhower Tunnel", exact: true }).click();
   await page.waitForTimeout(50);
 
