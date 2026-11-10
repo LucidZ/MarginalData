@@ -126,7 +126,7 @@ export default function HeroCurve() {
           </>
         ) : (
           <>
-            {tCur.e != null && `${fmtInt(tCur.e)} eastbound; `}westbound not shown (recorder clock off)
+            {tCur.e != null && `${fmtInt(tCur.e)} eastbound; `}westbound unavailable
           </>
         )}
         <span style={{ color: "var(--muted)" }}>
@@ -156,9 +156,10 @@ export default function HeroCurve() {
         Eisenhower Tunnel, cars per hour averaged over usable January–March days of each weekday: days missing any
         hour, flagged closures, MLK and Presidents' Day weekends and Jan 1–2 are left out. With the 3-season average
         on, each season blends with the one before and after, weighted by days. Multi-day spans lay each weekday's
-        average end to end, so they show a typical week, not a real one. Westbound isn't drawn for {DRIFT_WB.from}–
-        {DRIFT_WB.to} because the recorder's clock ran up to 1¼ hours early until the counter was serviced in May
-        2010.
+        average end to end, so they show a typical week, not a real one. *Westbound {DRIFT_WB.from}–{DRIFT_WB.to} is shown
+        as recorded, but the recorder's clock appears to have run up to 1¼ hours early until the counter was serviced
+        in May 2010, so those curves likely sit a little early in the day. They're kept out of neighboring seasons'
+        averages.
       </p>
     </div>
   );

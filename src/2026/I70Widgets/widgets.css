@@ -19,6 +19,8 @@
   --cat-4: #eda100;
   /* CDOT capacity band, same as I70Crossfilter. */
   --capacity: #b8323a;
+  /* HeroChart net line: running westbound minus eastbound. */
+  --net: #d03b3b;
 
   max-width: 1000px;
   margin: 0 auto;
@@ -466,6 +468,10 @@
   stroke: var(--surface-1);
   stroke-width: 3px;
   stroke-linejoin: round;
+}
+.i70w-net-axis .i70w-tick,
+.i70w-net-axis .i70w-direct {
+  fill: var(--net);
 }
 .i70w-mark .i70w-mark-hour {
   font-weight: 600;

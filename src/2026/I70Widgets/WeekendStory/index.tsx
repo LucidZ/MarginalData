@@ -53,6 +53,7 @@ export default function WeekendStory() {
   const pins = scrubbing || view.pin ? [first] : [];
   const showTrail = scrubbing || view.trail;
   const marks = scrubbing ? [] : view.marks;
+  const showNet = !!view.net;
 
   const dows = SPANS[view.span].dows;
   const label = (yr: number) => seasonLabel(yr, "smooth", first, last);
@@ -82,6 +83,7 @@ export default function WeekendStory() {
             data-season={season}
             data-span={view.span}
             data-marks={marks?.length ?? 0}
+            data-net={showNet ? 1 : 0}
             hidden
           />
           <p className="i70w-readout i70s-readout">
@@ -105,6 +107,7 @@ export default function WeekendStory() {
               pins={pins}
               showTrail={showTrail}
               marks={marks}
+              showNet={showNet}
               height={phone ? 270 : 440}
             />
           )}
@@ -125,8 +128,10 @@ export default function WeekendStory() {
         Eisenhower Tunnel (CDOT counter 000106), cars per hour averaged over January–March days, each season blended
         with the one before and after. Days missing any hour, flagged closures, MLK and Presidents' Day weekends and Jan
         1–2 are left out. "1996" is 1996–97 and "today" is 2024–26. Multi-day views lay each weekday's average end to
-        end, so they show a typical week, not a real one. Westbound isn't drawn for {DRIFT_WB.from}–{DRIFT_WB.to}{" "}
-        because the counter's clock ran up to 1¼ hours early until it was serviced in May 2010.
+        end, so they show a typical week, not a real one. The red net line counts westbound minus eastbound from the
+        start of the view, so it shows the change in vehicles west of the tunnel, not the total up there. *Westbound {DRIFT_WB.from}–{DRIFT_WB.to} is shown as recorded,
+        but the counter's clock appears to have run up to 1¼ hours early until it was serviced in May 2010, so those
+        curves likely sit a little early in the day. They're kept out of neighboring seasons' averages.
       </p>
     </div>
   );

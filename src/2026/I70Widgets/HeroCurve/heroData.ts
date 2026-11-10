@@ -19,7 +19,8 @@ export const SPANS: Record<Span, { label: string; dows: number[] }> = {
 
 const SKIP_HOLIDAYS = ["mlk", "presidents", "xmas_ny"];
 // Tunnel WB timestamps ran up to ~1.25 h early from 2006 until the counter
-// was serviced in May 2010. Those seasons' westbound shapes aren't drawn.
+// was serviced in May 2010. Those seasons are still drawn, flagged with an
+// asterisk, but kept out of clean seasons' 3-season averages.
 export const DRIFT_WB = { from: 2006, to: 2010 };
 export const isDrift = (y: number) => y >= DRIFT_WB.from && y <= DRIFT_WB.to;
 
@@ -65,7 +66,7 @@ export const buildProfiles = (ds: Dataset, mode: Mode): Profiles => {
         const acc = new Array(24).fill(0);
         let n = 0;
         for (const wy of window) {
-          if (dir === "wb" && isDrift(wy)) continue;
+          if (dir === "wb" && !isDrift(y) && isDrift(wy)) continue;
           const s = sums.get(wy)?.[dow];
           if (!s || !s.n) continue;
           for (let h = 0; h < 24; h++) acc[h] += s[dir][h];
@@ -73,8 +74,7 @@ export const buildProfiles = (ds: Dataset, mode: Mode): Profiles => {
         }
         return n ? { vals: acc.map((v) => v / n), n } : null;
       };
-      // The current season itself must be clean for WB to show, even when smoothing.
-      const wb = isDrift(y) ? null : avg("wb");
+      const wb = avg("wb");
       const eb = avg("eb");
       profs.push({ wb: wb?.vals ?? null, eb: eb?.vals ?? null, n: eb?.n ?? 0 });
     }

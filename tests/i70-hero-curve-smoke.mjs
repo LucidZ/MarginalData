@@ -3,7 +3,7 @@
 // Run with: BASE_URL=http://localhost:<port> node tests/i70-hero-curve-smoke.mjs
 //
 // At 1000px and 390px: the chart draws, the season slider moves the current
-// curve, the drift seasons hide westbound with a note, Play advances the
+// curve, the drift seasons draw westbound with an asterisk note, Play advances the
 // season, the span control widens the x-axis to Wed–Wed, no horizontal
 // scroll. Fails on console errors.
 import { chromium } from "playwright";
@@ -47,7 +47,9 @@ for (const [name, viewport] of [
 
   await setSeason(2008);
   const r2008 = await readout.textContent();
-  check(/recorder clock off/.test(r2008 ?? ""), "2008: westbound hidden with note");
+  check(/vehicles both ways/.test(r2008 ?? ""), "2008: westbound drawn");
+  check((await page.locator(".i70w-scatter text", { hasText: "likely ran" }).count()) === 1, "2008: asterisk note shown");
+  await page.screenshot({ path: `${OUT}/i70-hero-curve-2008-${name}.png`, fullPage: true });
 
   await setSeason(2019);
   const r2019 = await readout.textContent();

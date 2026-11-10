@@ -14,6 +14,8 @@ export interface Step {
   pin: boolean;
   trail: boolean;
   marks?: Mark[];
+  /** Red running total, westbound minus eastbound, from the span's start. */
+  net?: boolean;
   /** Scrolling from this step to the next plays the seasons from 1996 to today. */
   scrub?: boolean;
   heading: string;
@@ -98,18 +100,48 @@ export const STEPS: Step[] = [
     ),
   },
   {
+    span: "sat",
+    season: "today",
+    pin: true,
+    trail: true,
+    net: true,
+    heading: "Who's up there",
+    body: (
+      <>
+        <p>
+          The red line keeps a running count from midnight: each car heading west adds one, each car heading east takes
+          one away. It shows how many more vehicles are up in the mountains than when the day began (scale on the right).
+        </p>
+        <p>
+          Today the count tops out around 3,400 by noon. In 1996 it kept climbing until 3pm, to 3,800. By 7pm it drops
+          below zero: more cars come home on a Saturday than go up, so some of them went up before Saturday.
+        </p>
+      </>
+    ),
+  },
+  {
     span: "friSun",
     season: "today",
     pin: true,
     trail: true,
+    net: true,
     heading: "The weekend got longer",
-    body: <p>Widen the view to the whole weekend, Friday through Sunday. Together those three days grew 40%.</p>,
+    body: (
+      <>
+        <p>Widen the view to the whole weekend, Friday through Sunday. Together those three days grew 40%.</p>
+        <p>
+          Counting from Friday at midnight, about 10,500 extra cars are up the hill at Saturday's peak, up from 7,200 in
+          1996.
+        </p>
+      </>
+    ),
   },
   {
     span: "thuMon",
     season: "first",
     pin: false,
     trail: false,
+    net: true,
     scrub: true,
     heading: "Thursday to Monday",
     body: <p>Add Thursday and Monday, go back to 1996, and run it forward again.</p>,
@@ -119,11 +151,13 @@ export const STEPS: Step[] = [
     season: "today",
     pin: true,
     trail: true,
+    net: true,
     heading: "Friday caught up",
     body: (
       <p>
         In 1996 Friday ran well behind Saturday, 28,100 vehicles to 33,800. Now they're level: 44,200 and 43,500.
-        Thursday and Monday each grew about 70%, Saturday 28%.
+        Thursday and Monday each grew about 70%, Saturday 28%. Counting from Thursday, the crowd up the hill peaks at
+        about 14,700 cars by Saturday noon, nearly double 1996's 8,200.
       </p>
     ),
   },
@@ -132,6 +166,7 @@ export const STEPS: Step[] = [
     season: "today",
     pin: true,
     trail: true,
+    net: true,
     heading: "Explore",
     body: (
       <p>

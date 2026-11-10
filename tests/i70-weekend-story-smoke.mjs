@@ -3,7 +3,7 @@
 //
 // At 1000px and 390px: scrolls each step's centre to the reading line and checks
 // the chart state (step, season, span, highlight marks); checks the first scrub
-// plays seasons forward mid-way and that the drift seasons hide westbound; no
+// plays seasons forward mid-way and that the drift seasons flag westbound; no
 // horizontal scroll, no console errors. Screenshots each step.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -18,17 +18,18 @@ const check = (ok, msg) => {
   if (!ok) failures.push(msg);
 };
 
-// Expected chart state when each step is centred: [season, span, marks].
+// Expected chart state when each step is centred: [season, span, marks, net line].
 const EXPECT = [
-  [2025, "sat", 0],
-  [1996, "sat", 0],
-  [2025, "sat", 0],
-  [2025, "sat", 2],
-  [2025, "sat", 2],
-  [2025, "friSun", 0],
-  [1996, "thuMon", 0],
-  [2025, "thuMon", 0],
-  [2025, "thuMon", 0],
+  [2025, "sat", 0, 0],
+  [1996, "sat", 0, 0],
+  [2025, "sat", 0, 0],
+  [2025, "sat", 2, 0],
+  [2025, "sat", 2, 0],
+  [2025, "sat", 0, 1],
+  [2025, "friSun", 0, 1],
+  [1996, "thuMon", 0, 1],
+  [2025, "thuMon", 0, 1],
+  [2025, "thuMon", 0, 1],
 ];
 
 const browser = await chromium.launch();
@@ -70,10 +71,12 @@ for (const [name, viewport] of [
     await scrollTo(k);
     await page.waitForTimeout(250);
     const s = await state();
-    const [season, span, marks] = EXPECT[k];
+    const [season, span, marks, net] = EXPECT[k];
+    const netPaths = await page.locator('.i70s-viz svg path[stroke="var(--net)"]').count();
     check(
-      Number(s.step) === k && Number(s.season) === season && s.span === span && Number(s.marks) === marks,
-      `step ${k}: step=${s.step} season=${s.season} span=${s.span} marks=${s.marks}`,
+      Number(s.step) === k && Number(s.season) === season && s.span === span && Number(s.marks) === marks &&
+        Number(s.net) === net && (netPaths > 0) === !!net,
+      `step ${k}: step=${s.step} season=${s.season} span=${s.span} marks=${s.marks} net=${s.net} (${netPaths} paths)`,
     );
     await page.screenshot({ path: `${OUT}/i70-weekend-story-${k}-${name}.png` });
   }
@@ -84,16 +87,16 @@ for (const [name, viewport] of [
   check(Number(mid.season) > 1996 && Number(mid.season) < 2025, `scrub mid-way plays forward (season ${mid.season})`);
   await page.screenshot({ path: `${OUT}/i70-weekend-story-scrub-${name}.png` });
 
-  // Somewhere in the scrub the drift seasons hide westbound.
+  // Somewhere in the scrub the drift seasons flag westbound's clock.
   let sawDrift = false;
   for (let f = 0.3; f < 0.7 && !sawDrift; f += 0.02) {
     await scrollTo(1, f);
     await page.waitForTimeout(80);
     const s = await state();
     if (Number(s.season) >= 2006 && Number(s.season) <= 2010)
-      sawDrift = await page.locator(".i70s-viz svg text", { hasText: "not shown" }).count() > 0;
+      sawDrift = await page.locator(".i70s-viz svg text", { hasText: "clock likely ran" }).count() > 0;
   }
-  check(sawDrift, "drift seasons show the westbound-hidden note during the scrub");
+  check(sawDrift, "drift seasons show the clock note during the scrub");
 
   const sw = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check(sw <= 0, `no horizontal scroll (${sw}px)`);
