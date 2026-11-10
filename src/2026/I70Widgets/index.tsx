@@ -4,6 +4,27 @@ import "./widgets.css";
 // Every I-70 sketch, newest first. Candidates for a scrollyteller later.
 const WIDGETS = [
   {
+    path: "/2026/I70Widgets/WeekendSpread",
+    title: "The weekend got bigger, and longer",
+    tag: "data",
+    blurb:
+      "Winter days since 1996 by day of the week: Saturdays grew, Fridays and Mondays grew faster, and Saturday's busiest hour hit a ceiling, so traffic spread into an earlier start and a fuller midday.",
+  },
+  {
+    path: "/2026/I70Widgets/PopVsWeekend",
+    title: "More Denver, more traffic?",
+    tag: "data",
+    blurb:
+      "One dot per year: Denver's population against the average weekend day at each counter. Does mountain traffic grow with the city?",
+  },
+  {
+    path: "/2026/I70Widgets/BrakeWave",
+    title: "One tap, ten lanes",
+    tag: "simulation",
+    blurb:
+      "Ten lanes of simulated drivers, arriving from one car every 5 seconds to one a second. Pull on reaction time, following gap and random braking, and see where flow tops out and waves start.",
+  },
+  {
     path: "/2026/I70Widgets/TravelTime",
     title: "Counting the cars in between",
     tag: "experiment",

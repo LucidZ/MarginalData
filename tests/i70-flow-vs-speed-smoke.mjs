@@ -5,7 +5,8 @@
 // pixels change between frames), the tally climbs, Pause freezes the canvas,
 // and the flow slider resets the tally. Then the two-counter widget animates
 // and its A/B tallies match, and the daily-vs-peak scatter draws and
-// follows the counter switch. Fails on console errors.
+// follows the counter switch, and the brake-wave sim responds to its levers.
+// Fails on console errors.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -109,6 +110,31 @@ for (const [name, viewport] of [
   await page.screenshot({ path: `${OUT}/i70-daily-vs-peak-${name}.png`, fullPage: true });
   const overflow3 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   check(!overflow3, "daily vs peak: no horizontal scroll");
+  // Brake wave: animates, the following gap caps flow, extreme reaction warns.
+  await page.goto(`${BASE}/2026/I70Widgets/BrakeWave`);
+  await page.waitForSelector("canvas");
+  const w1 = await snap();
+  await page.waitForTimeout(500);
+  check(w1 !== (await snap()), "brake wave: canvas animates");
+  await page.getByRole("button", { name: "5×" }).click();
+  await page.getByRole("button", { name: "Tap the brakes" }).click();
+  await page.getByRole("slider", { name: "Following gap" }).fill("3");
+  await page.getByRole("button", { name: "Restart" }).click();
+  await page.waitForTimeout(3000);
+  const flowCol = async () =>
+    (await page.locator(".i70w-table td:nth-child(3)").allTextContents()).map((t) => Number(t.replace(/,/g, "")));
+  const flows = await flowCol();
+  check(flows[0] >= 600 && flows[0] <= 840, `brake wave: top lane carries its arrivals (${flows[0]}/hr)`);
+  check(flows[9] <= 1250, `brake wave: a 3 s gap caps the bottom lane (${flows[9]}/hr)`);
+  await page.getByRole("button", { name: "Reset levers" }).click();
+  await page.getByRole("button", { name: "Restart" }).click();
+  await page.waitForTimeout(2000);
+  await page.screenshot({ path: `${OUT}/i70-brake-wave-${name}.png`, fullPage: true });
+  await page.getByRole("slider", { name: "Reaction time" }).fill("2");
+  await page.waitForSelector(".i70w-warn", { timeout: 20000 });
+  check(true, "brake wave: extreme reaction time shows the model warning");
+  const overflow4 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  check(!overflow4, "brake wave: no horizontal scroll");
   check(errors.length === 0, `no console errors${errors.length ? ": " + errors.join(" | ") : ""}`);
   await page.close();
 }

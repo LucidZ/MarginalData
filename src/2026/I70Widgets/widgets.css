@@ -387,3 +387,68 @@
   border-top: 2px dotted var(--muted);
   vertical-align: 3px;
 }
+
+.i70w-ramp {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.5rem;
+}
+
+.i70w-ramp i {
+  display: block;
+  width: 140px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.i70w-levers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 0.9rem 1.5rem;
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.i70w-lever {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.i70w-lever output {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.i70w-lever input {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0;
+}
+
+.i70w-lever small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.i70w-warn {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+  background: var(--surface-1);
+  border: 1px solid var(--counter);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0 0;
+}

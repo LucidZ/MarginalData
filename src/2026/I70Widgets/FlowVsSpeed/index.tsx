@@ -9,6 +9,15 @@ const COUNTER_M = ROAD_M / 2;
 const FLOW_MIN = 600;
 const FLOW_MAX = 2400;
 const FLOW_DEFAULT = 1800;
+const TRIP_MI = 70;
+
+// "3h 30m", or "7h" on the hour.
+function formatTrip(mph: number) {
+  const minutes = Math.round((TRIP_MI / mph) * 60);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
 
 export default function FlowVsSpeed() {
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
@@ -69,7 +78,7 @@ export default function FlowVsSpeed() {
       ctx.textAlign = "left";
       ctx.fillText("Speed", 0, headerH - 10);
       ctx.textAlign = "right";
-      ctx.fillText(compact ? "Cars/mi" : "Cars per mile", width, headerH - 10);
+      ctx.fillText(`Time to go ${TRIP_MI} miles`, width, headerH - 10);
       ctx.textAlign = "center";
       ctx.fillStyle = v("--counter");
       ctx.fillText("Counter", xOf(COUNTER_M), headerH - 10);
@@ -129,7 +138,7 @@ export default function FlowVsSpeed() {
         ctx.font = `${compact ? 12 : 14}px system-ui, sans-serif`;
         ctx.fillStyle = v("--text-secondary");
         ctx.textAlign = "right";
-        ctx.fillText(Math.round(flow / mph).toString(), width, yMid);
+        ctx.fillText(formatTrip(mph), width, yMid);
       });
     };
 
@@ -150,7 +159,7 @@ export default function FlowVsSpeed() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [width, height, headway, flow, playing, compact, leftGutter, rightGutter, laneH]);
+  }, [width, height, headway, playing, compact, leftGutter, rightGutter, laneH]);
 
   const restart = () => {
     tRef.current = headway * 0.5;
