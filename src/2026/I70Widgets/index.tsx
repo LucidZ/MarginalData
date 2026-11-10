@@ -4,6 +4,13 @@ import "./widgets.css";
 // Every I-70 sketch, newest first. Candidates for a scrollyteller later.
 const WIDGETS = [
   {
+    path: "/2026/I70Widgets/HeroCurve",
+    title: "The winter weekend, season by season",
+    tag: "data",
+    blurb:
+      "Hero chart candidate: the average winter Saturday (or Fri–Sun, Thu–Mon, Wed–Wed) hour by hour at the Eisenhower Tunnel, westbound above and eastbound below, played back from 1996 with a faint trail and pinned seasons.",
+  },
+  {
     path: "/2026/I70Widgets/WeekendSpread",
     title: "The weekend got bigger, and longer",
     tag: "data",
