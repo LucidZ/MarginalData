@@ -452,3 +452,103 @@
   padding: 0.5rem 0.75rem;
   margin: 0.5rem 0 0;
 }
+
+/* Highlight marks on the hero chart (HeroChart `marks`). */
+.i70w-mark-band {
+  fill: var(--counter);
+  opacity: 0.12;
+}
+.i70w-mark text {
+  font-size: 12px;
+  fill: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--surface-1);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.i70w-mark .i70w-mark-hour {
+  font-weight: 600;
+}
+
+/* WeekendStory: sticky hero chart beside scrolling steps (the voter-age
+   layout); on phones the chart pins across the top and steps read below. */
+.i70s-root {
+  max-width: 1180px;
+}
+.i70s-scrolly {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+.i70s-viz {
+  position: sticky;
+  top: max(1rem, calc(50vh - 260px));
+  flex: 0 0 62%;
+  min-width: 0;
+}
+.i70s-readout {
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 0.4rem;
+  min-height: 1.4em;
+}
+.i70s-steps {
+  flex: 1;
+  min-width: 0;
+}
+.i70s-step {
+  min-height: 75vh;
+  display: flex;
+  align-items: center;
+  padding: 1.5rem 0;
+}
+.i70s-step:first-child {
+  min-height: 60vh;
+}
+.i70s-step:last-child {
+  min-height: 60vh;
+}
+.i70s-step-inner {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+  line-height: 1.5;
+  opacity: 0.45;
+  transition: opacity 200ms;
+}
+.i70s-step-inner.is-active {
+  opacity: 1;
+}
+.i70s-step-inner h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+.i70s-step-inner p {
+  margin: 0 0 0.5rem;
+}
+.i70s-step-inner p:last-child {
+  margin-bottom: 0;
+}
+@media (max-width: 720px) {
+  .i70s-scrolly {
+    flex-direction: column;
+    gap: 0;
+  }
+  .i70s-viz {
+    top: 0;
+    width: 100%;
+    z-index: 1;
+    background: var(--page);
+    padding: 0.3rem 0 0.35rem;
+    border-bottom: 1px solid var(--gridline);
+  }
+  .i70s-readout {
+    font-size: 0.8rem;
+  }
+  .i70s-step {
+    min-height: 45vh;
+    padding: 1rem 0;
+  }
+}

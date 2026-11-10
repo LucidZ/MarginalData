@@ -4,6 +4,13 @@ import "./widgets.css";
 // Every I-70 sketch, newest first. Candidates for a scrollyteller later.
 const WIDGETS = [
   {
+    path: "/2026/I70Widgets/WeekendStory",
+    title: "The winter weekend warrior (story shell)",
+    tag: "story",
+    blurb:
+      "Scrollyteller draft built around the hero chart: one Saturday today, rewind to 1996 and scroll forward, the dawn start and the earlier trip home, then the longer weekend.",
+  },
+  {
     path: "/2026/I70Widgets/HeroCurve",
     title: "The winter weekend, season by season",
     tag: "data",
