@@ -3,12 +3,14 @@ import { useMemo, useState } from "react";
 import { fmtInt, hourLabel } from "../../I70Crossfilter/format";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
 import { DOW_SHORT, DRIFT_WB, fmtPct, isDrift, type Dir, type Profiles } from "../HeroCurve/heroData";
-import { CHARTS, clockHour, dayName, lensSeries, netSeries, season as seasonOf, topPeak, type ChartId, type Lens, type Peak } from "./lensData";
+import { CHARTS, clockHour, dayName, lensSeries, netAt, netSegments, netSeries, season as seasonOf, topPeak, type ChartId, type Lens, type Peak } from "./lensData";
 
 // The story's chart: 3am to 3am, westbound above the axis and eastbound
 // below, today in green over a dashed green 1996. A lens adds one gold layer:
-// busiest-hour dots, the gap between the two seasons filled, or the running
-// net up the hill on its own right-hand scale.
+// busiest-hour dots, the gap between the two seasons filled (with westbound's
+// change per day above the chart and eastbound's below it), or the net up
+// the hill on its own right-hand scale: running from the chart's start, or
+// starting over each day where the chart resets daily.
 
 interface Props {
   profiles: Profiles;
@@ -35,7 +37,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   const years = useMemo(() => [...profiles.keys()], [profiles]);
   const first = years[0] ?? 1996;
 
-  const { dows } = CHARTS[chart];
+  const { dows, dailyNet } = CHARTS[chart];
   const nDays = dows.length;
   const nHours = nDays * 24;
   const multi = nDays > 1;
@@ -43,8 +45,8 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
 
   const compact = width < 560;
   const showNet = lens === "net";
-  // Room up top for day names and the lens's per-day row.
-  const m = { top: multi ? 46 : 30, right: compact ? (showNet ? 34 : 10) : 56, bottom: 26, left: compact ? 40 : 52 };
+  // Room up top for day names and the lens's per-day row, and below the hour ticks for eastbound's row.
+  const m = { top: multi ? 46 : 30, right: compact ? (showNet ? 34 : 10) : 56, bottom: 42, left: compact ? 40 : 52 };
 
   // Hourly scale fixed per chart over every season, so it holds still during the scrub.
   const yMax = useMemo(() => {
@@ -67,10 +69,13 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   const curEb = series(cur, "eb");
   const pinYr = pin != null && pin !== cur && profiles.has(pin) ? pin : null;
   const then = pinYr != null ? seasonOf(profiles, pinYr, chart) : null;
+  const nowSegs = now ? netSegments(now.net, chart) : [];
+  const thenSegs = then ? netSegments(then.net, chart) : [];
   // Net scale fits just the seasons shown (the net lens never plays back), so 2017's westbound over-read doesn't flatten it.
-  const netMax = Math.max(1, ...[now, then].flatMap((s) => (s ? s.net.map(Math.abs) : []))) * 1.1;
+  const netMax = Math.max(1, ...[...nowSegs, ...thenSegs].flat().map(Math.abs)) * 1.1;
   const yNet = scaleLinear([-netMax, netMax], [y(-yTop), y(yTop)]).nice();
-  const netPath = (vals: number[] | null) => (vals ? (line<number>((_, i) => x(i), (v) => yNet(v))(vals) ?? "") : "");
+  // Segment k starts at hour k × 24 (there's only one segment on a running line).
+  const netPath = (vals: number[], k: number) => line<number>((_, i) => x(k * 24 + i), (v) => yNet(v))(vals) ?? "";
 
   // Total lens: the gap between the pin and today, gold where today is higher, pale where lower.
   const gapArea = (dir: Dir, gain: boolean) => {
@@ -114,14 +119,20 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
     return left ? "end" : "start";
   };
 
+  // Total lens: one direction's cars that day, as a change on 1996.
+  const totalText = (dir: Dir, d: number) => {
+    if (!now) return "";
+    const [a, b] = [then?.dayDir[dir][d], now.dayDir[dir][d]];
+    const t = a ? fmtPct((b / a - 1) * 100) : fmtInt(b);
+    return multi ? t : `${dir === "wb" ? "↑" : "↓"} ${a ? `${fmtInt(a)} → ` : ""}${fmtInt(b)} cars (${t})`;
+  };
+  const ebRow = lens === "total" && now ? dows.map((_, d) => totalText("eb", d)) : [];
+
   // The lens's per-day row under the day names.
   const dayRow = (() => {
     if (!now || (lens !== "total" && lens !== "net")) return [];
     return dows.map((_, d) => {
-      if (lens === "total") {
-        const t = then ? fmtPct((now.dayTotal[d] / then.dayTotal[d] - 1) * 100) : fmtInt(now.dayTotal[d]);
-        return multi ? t : `${then ? `${fmtInt(then.dayTotal[d])} → ` : ""}${fmtInt(now.dayTotal[d])} cars (${t})`;
-      }
+      if (lens === "total") return totalText("wb", d);
       const n = fmtK(now.dayNet[d]);
       if (!then) return n;
       if (multi) return compact || nDays > 3 ? n : `${fmtK(then.dayNet[d])} → ${n}`;
@@ -205,10 +216,26 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
                   {dayRow[d]}
                 </text>
               )}
+              {ebRow[d] != null && (
+                <text className="i70s-dayrow" x={x(d * 24 + 12)} y={height - 6} textAnchor="middle">
+                  {ebRow[d]}
+                </text>
+              )}
             </g>
           ))}
+          {/* which row is which, where the days share one */}
+          {multi && ebRow.length > 0 && (
+            <g className="i70s-dayrow">
+              <text x={m.left - 6} y={m.top - 12} textAnchor="end">
+                ↑
+              </text>
+              <text x={m.left - 6} y={height - 6} textAnchor="end">
+                ↓
+              </text>
+            </g>
+          )}
           {hourTicks.map((i) => (
-            <text key={i} className="i70w-tick" x={x(i)} y={height - 8} textAnchor="middle">
+            <text key={i} className="i70w-tick" x={x(i)} y={height - m.bottom + 18} textAnchor="middle">
               {hourLabel(clockHour(i))}
             </text>
           ))}
@@ -257,10 +284,35 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
                   {t === 0 ? "0" : fmtK(t)}
                 </text>
               ))}
-              {then && <path d={netPath(then.net)} fill="none" stroke="var(--gold)" strokeWidth={1.75} strokeDasharray="4 3" opacity={0.7} />}
-              <path d={netPath(now.net)} fill="none" stroke="var(--gold)" strokeWidth={3} strokeLinejoin="round" />
+              {thenSegs.map((seg, k) => (
+                <path key={`t${k}`} d={netPath(seg, k)} fill="none" stroke="var(--gold)" strokeWidth={1.75} strokeDasharray="4 3" opacity={0.7} />
+              ))}
+              {nowSegs.map((seg, k) => (
+                <path key={`n${k}`} d={netPath(seg, k)} fill="none" stroke="var(--gold)" strokeWidth={3} strokeLinejoin="round" />
+              ))}
+              {/* where each day lands, so the restart at 3am doesn't read as a drop */}
+              {dailyNet &&
+                [...thenSegs.map((seg, k) => ({ seg, k, isThen: true })), ...nowSegs.map((seg, k) => ({ seg, k, isThen: false }))].map(
+                  ({ seg, k, isThen }) => (
+                    <circle
+                      key={`${isThen}${k}`}
+                      cx={x((k + 1) * 24)}
+                      cy={yNet(seg[seg.length - 1])}
+                      r={isThen ? 3 : 4}
+                      fill={isThen ? "var(--surface-1)" : "var(--gold)"}
+                      stroke={isThen ? "var(--gold-ink)" : "var(--surface-1)"}
+                      strokeWidth={1.5}
+                    />
+                  ),
+                )}
               <text className="i70w-direct i70s-net-label" x={width - m.right - 6} y={compact ? height - m.bottom - 8 : m.top + 14} textAnchor="end">
-                {compact ? "Net up the hill" : "Net up the hill since 3am (right scale)"}
+                {dailyNet
+                  ? compact
+                    ? "Net up the hill, per day"
+                    : "Net up the hill, each day from 3am (right scale)"
+                  : compact
+                    ? "Net up the hill"
+                    : "Net up the hill since 3am (right scale)"}
               </text>
             </g>
           )}
@@ -308,7 +360,8 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           {[cur, ...(pinYr != null ? [pinYr] : [])].map((yr) => {
             const w = series(yr, "wb")?.[hoverI];
             const e = series(yr, "eb")?.[hoverI];
-            const n = showNet ? netSeries(series(yr, "wb"), series(yr, "eb"))?.[hoverI + 1] : undefined;
+            const net = showNet ? netSeries(series(yr, "wb"), series(yr, "eb")) : null;
+            const n = net ? netAt(net, chart, hoverI) : undefined;
             return (
               <span key={yr} style={yr === cur ? { color: "var(--text-primary)" } : undefined}>
                 {yr}: {w != null ? fmtInt(w) : "–"} west · {e != null ? fmtInt(e) : "–"} east

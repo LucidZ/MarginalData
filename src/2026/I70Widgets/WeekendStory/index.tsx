@@ -4,9 +4,9 @@ import { fmtInt } from "../../I70Crossfilter/format";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
 import { useData } from "../../I70Crossfilter/useData";
 import "../widgets.css";
-import { buildProfiles, DRIFT_WB, fmtPct } from "../HeroCurve/heroData";
+import { buildProfiles, DRIFT_WB, fmtPct, type Dir } from "../HeroCurve/heroData";
 import LensChart from "./LensChart";
-import { buildFacts, CHART_IDS, CHARTS, LENS_IDS, LENSES, season as seasonOf } from "./lensData";
+import { buildFacts, CHART_IDS, CHARTS, dayName, LENS_IDS, LENSES, season as seasonOf } from "./lensData";
 import { cellText, stepIndexOf, STEPS } from "./steps";
 import { useStepProgress } from "./useStepProgress";
 
@@ -64,14 +64,26 @@ export default function WeekendStory() {
     if (!cur) return { head, text: "" };
     if (!showPin || !base) return { head, text: `${season}, ${fmtInt(cur.total)} vehicles` };
     if (lens === "net") {
-      const end = (s: typeof cur) => s.net[s.net.length - 1];
       const sign = (v: number) => `${v < 0 ? "−" : "+"}${fmtInt(Math.abs(v))}`;
+      if (CHARTS[view.chart].dailyNet) {
+        // The two days that send the most people up, in week order.
+        const fills = (s: typeof cur) =>
+          s.dayNet
+            .map((v, d) => ({ v, d }))
+            .sort((a, b) => b.v - a.v)
+            .slice(0, 2)
+            .sort((a, b) => a.d - b.d)
+            .map(({ v, d }) => `${dayName(view.chart, d)} ${sign(v)}`)
+            .join(", ");
+        return { head, text: `filled by ${first} ${fills(base)} → ${season} ${fills(cur)}` };
+      }
+      const end = (s: typeof cur) => s.net[s.net.length - 1];
       return { head, text: `${first} ${sign(end(base))} → ${season} ${sign(end(cur))} left up the hill by 3am` };
     }
-    return {
-      head,
-      text: `${first} ${fmtInt(base.total)} → ${season} ${fmtInt(cur.total)} vehicles (${fmtPct((cur.total / base.total - 1) * 100)})`,
-    };
+    const both = `${first} ${fmtInt(base.total)} → ${season} ${fmtInt(cur.total)} vehicles (${fmtPct((cur.total / base.total - 1) * 100)})`;
+    if (lens !== "total") return { head, text: both };
+    const g = (dir: Dir) => fmtPct((cur.totalDir[dir] / base.totalDir[dir] - 1) * 100);
+    return { head, text: `${both} · westbound ${g("wb")}, eastbound ${g("eb")}` };
   })();
 
   return (
@@ -165,9 +177,12 @@ export default function WeekendStory() {
         at a time, so a big or thin snow year shows up as it was. Days missing any hour, flagged closures, MLK and
         Presidents' Day weekends and Jan 1–2 are left out. "Today" is {last}. Each chart runs 3am to 3am, so the night's
         last cars count with the day they belong to, and multi-day charts lay each weekday's average end to end: a
-        typical week, not a real one. The net line counts westbound minus eastbound from the chart's start, so it shows
-        the change in vehicles west of the tunnel, not the total up there. The counter's westbound side reads about 2%
-        above eastbound in recent years, so a full week ends a few thousand above zero instead of at it. *Westbound{" "}
+        typical week, not a real one. The net line counts westbound minus eastbound, so it shows the change in vehicles
+        west of the tunnel, not the total up there. On Saturday and Fri–Sun it runs from the chart's start; on Wed–Tue it
+        starts over at 3am each day. A typical week doesn't net to zero: over a full year the counter's westbound side
+        reads 1–2% above eastbound lately (and about 2% below in {first}), and January–March catches the season filling up
+        but not all of its drain in late March and April. Reset daily, that leftover stays a few hundred cars a day
+        instead of piling up across the week. *Westbound{" "}
         {DRIFT_WB.from}–{DRIFT_WB.to} is shown as recorded, but the counter's clock appears to have run up to 1¼ hours
         early until it was serviced in May 2010.
       </p>

@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { fmtInt } from "../../I70Crossfilter/format";
 import { fmtPct } from "../HeroCurve/heroData";
-import { CHART_IDS, CHARTS, clockHour, dayPeak, LENS_IDS, LENSES, topPeak, type ChartId, type Facts, type Lens, type Season } from "./lensData";
+import type { Dir } from "../HeroCurve/heroData";
+import { CHART_IDS, CHARTS, clockHour, dayNetLine, dayPeak, LENS_IDS, LENSES, topPeak, type ChartId, type Facts, type Lens, type Season } from "./lensData";
 
 // What the chart shows at each step, and the draft copy beside it. The story
 // is three charts (Saturday → Fri–Sun → Wed–Tue), each read through the same
@@ -31,6 +32,8 @@ const pct = (a: number, b: number) => fmtPct((b / a - 1) * 100);
 const pctWord = (a: number, b: number) => pct(a, b).replace("+", "");
 const signed = (v: number) => `${v > 0.5 ? "+" : v < -0.5 ? "−" : ""}${fmtInt(Math.abs(v))}`;
 const sumDays = (s: Season, days: number[]) => days.reduce((t, d) => t + s.dayTotal[d], 0);
+/** A day's change on the first season, one way. */
+const dayGrowth = (then: Season, now: Season, dir: Dir, d: number) => now.dayDir[dir][d] / then.dayDir[dir][d] - 1;
 // Wed–Tue day indices.
 const WT = { wed: 0, thu: 1, fri: 2, sat: 3, sun: 4, mon: 5, tue: 6 };
 const MIDWEEK = [WT.mon, WT.tue, WT.wed, WT.thu];
@@ -88,13 +91,19 @@ export const STEPS: Step[] = [
     pin: true,
     lens: "total",
     heading: "Saturday · total cars",
-    body: (f, { first, last }) => (
-      <p>
-        Now the gold is every car {last} adds over {first}. Saturday carries {pctWord(f.sat.then.total, f.sat.now.total)} more
-        traffic, {fmtInt(f.sat.then.total)} → {fmtInt(f.sat.now.total)}. Little of the gold sits on the old peaks. It went
-        into the early morning and the middle of the day.
-      </p>
-    ),
+    body: (f, { first, last }) => {
+      const { then, now } = f.sat;
+      const way = (dir: Dir) =>
+        `${pctWord(then.totalDir[dir], now.totalDir[dir])} more (${fmtInt(then.totalDir[dir])} → ${fmtInt(now.totalDir[dir])})`;
+      return (
+        <p>
+          Now the gold is every car {last} adds over {first}. Saturday carries {pctWord(then.total, now.total)} more
+          traffic, {fmtInt(then.total)} → {fmtInt(now.total)}, but the two directions didn't grow alike: heading up,{" "}
+          {way("wb")}; coming home, {way("eb")}. Little of the gold sits on the old peaks. It went into the early
+          morning and the middle of the day.
+        </p>
+      );
+    },
   },
   {
     chart: "sat",
@@ -144,14 +153,19 @@ export const STEPS: Step[] = [
     lens: "total",
     heading: "Fri–Sun · total cars",
     body: (f) => {
-      const order = [0, 1, 2]
-        .map((d) => ({ d, g: f.friSun.now.dayTotal[d] / f.friSun.then.dayTotal[d] - 1 }))
-        .sort((a, b) => b.g - a.g);
+      const { then, now } = f.friSun;
+      const g = (dir: Dir, d: number) => fmtPct(dayGrowth(then, now, dir, d) * 100).replace("+", "");
+      const [w, e] = [now.totalDir.wb / then.totalDir.wb - 1, now.totalDir.eb / then.totalDir.eb - 1];
+      // Days whose trips home grew faster than their trips up.
+      const homeHeavy = [0, 1, 2].filter((d) => dayGrowth(then, now, "eb", d) > dayGrowth(then, now, "wb", d));
       return (
         <p>
-          The weekend carries {pctWord(f.friSun.then.total, f.friSun.now.total)} more cars. {FRI_SUN[order[0].d]} grew most (
-          {fmtPct(order[0].g * 100)}), then {FRI_SUN[order[1].d]} ({fmtPct(order[1].g * 100)}) and {FRI_SUN[order[2].d]} (
-          {fmtPct(order[2].g * 100)}).
+          The weekend carries {pctWord(then.total, now.total)} more cars:{" "}
+          {Math.abs(w - e) < 0.03 ? "nearly the same each way, " : ""}
+          {fmtPct(w * 100).replace("+", "")} more heading up and {fmtPct(e * 100).replace("+", "")} more coming home. Day by
+          day it splits. Trips up grew {g("wb", 0)} on Friday, {g("wb", 1)} on Saturday and {g("wb", 2)} on Sunday; trips
+          home grew {g("eb", 0)}, {g("eb", 1)} and {g("eb", 2)}.
+          {homeHeavy.length === 1 && ` Only on ${FRI_SUN[homeHeavy[0]]} did the trip home grow faster than the trip up.`}
         </p>
       );
     },
@@ -211,6 +225,11 @@ export const STEPS: Step[] = [
             A Wednesday today ({fmtInt(now.dayTotal[WT.wed])} vehicles) is as busy as a Friday was in {first} (
             {fmtInt(then.dayTotal[WT.fri])}).
           </p>
+          <p className="i70s-howto">
+            Over a whole week the two directions should grow alike, since what goes up comes back. Westbound shows{" "}
+            {pct(then.totalDir.wb, now.totalDir.wb)} and eastbound {pct(then.totalDir.eb, now.totalDir.eb)}; most of that
+            gap is the counter, whose westbound side read below eastbound in {first} and reads above it now.
+          </p>
         </>
       );
     },
@@ -224,16 +243,27 @@ export const STEPS: Step[] = [
     body: (f, { first }) => {
       const { then, now } = f.wedTue;
       const pair = (d: number) => `${signed(then.dayNet[d])} → ${signed(now.dayNet[d])}`;
+      // Saturday's high point, to the nearest hundred.
+      const satHigh = Math.round(Math.max(...dayNetLine(now.net, WT.sat)) / 100) * 100;
+      const roundTrip = Math.abs(now.dayNet[WT.sat]) < satHigh / 2;
       return (
         <>
           <p>
-            Over the week, people go up Wednesday to Friday and come down at the weekend's end. In {first}, Friday and
-            Saturday did the filling. Now Thursday and Friday do: Thursday {pair(WT.thu)}, Friday {pair(WT.fri)}, Saturday{" "}
-            {pair(WT.sat)}.
+            Now the gold starts over at 3am each day and ends on that day's net. People go up Wednesday to Friday and come
+            down at the weekend's end. In {first}, Friday and Saturday did the filling. Now Thursday and Friday do:
+            Thursday {pair(WT.thu)}, Friday {pair(WT.fri)}.
           </p>
+          {roundTrip && (
+            <p>
+              Saturday became a round trip. The gold still climbs through the morning, to about {signed(satHigh)} by
+              midday, but it's back to {signed(now.dayNet[WT.sat])} by 3am. In {first}, Saturday left{" "}
+              {signed(then.dayNet[WT.sat])} up the hill overnight.
+            </p>
+          )}
           <p className="i70s-howto">
-            The line should end the week near zero. It ends at {signed(now.net[now.net.length - 1])} because the westbound
-            counter reads about 2% high.
+            Added up, the days don't come back to zero. Part of that is the counter, whose westbound side reads a little
+            high, and part is the calendar: January to March catches the ski season filling up but not all of its drain in
+            late March and April.
           </p>
         </>
       );
@@ -259,10 +289,7 @@ export const STEPS: Step[] = [
 /** One short line per cell of the 3×3: the tracker above the chart and the closing table. */
 export const cellText = (f: Facts, chart: ChartId, lens: Lens): string => {
   const { then, now } = f[chart];
-  if (lens === "total") {
-    if (chart !== "wedTue") return pct(then.total, now.total);
-    return `${pct(then.total, now.total)} (Mon–Thu ${pct(sumDays(then, MIDWEEK), sumDays(now, MIDWEEK))})`;
-  }
+  if (lens === "total") return `↑ ${pct(then.totalDir.wb, now.totalDir.wb)}  ↓ ${pct(then.totalDir.eb, now.totalDir.eb)}`;
   if (lens === "peak") {
     if (chart === "sat") {
       const [a, b] = [topPeak(then, "wb"), topPeak(now, "wb")];

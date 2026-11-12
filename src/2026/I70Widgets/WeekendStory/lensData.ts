@@ -11,11 +11,15 @@ export type Lens = "peak" | "total" | "net";
 /** Hours each chart starts after midnight. */
 export const OFFSET = 3;
 
-// getUTCDay() order: 0 = Sunday.
-export const CHARTS: Record<ChartId, { label: string; dows: number[] }> = {
-  sat: { label: "Saturday", dows: [6] },
-  friSun: { label: "Fri–Sun", dows: [5, 6, 0] },
-  wedTue: { label: "Wed–Tue", dows: [3, 4, 5, 6, 0, 1, 2] },
+// getUTCDay() order: 0 = Sunday. `dailyNet`: the net line starts over at
+// 3am each day instead of running from the chart's start. A typical week
+// doesn't net to zero (the counter reads westbound high, and January–March
+// catches the season filling up but not all of its drain), and a running line
+// piles that up into the week's end; reset daily, it stays a few hundred cars.
+export const CHARTS: Record<ChartId, { label: string; dows: number[]; dailyNet: boolean }> = {
+  sat: { label: "Saturday", dows: [6], dailyNet: false },
+  friSun: { label: "Fri–Sun", dows: [5, 6, 0], dailyNet: false },
+  wedTue: { label: "Wed–Tue", dows: [3, 4, 5, 6, 0, 1, 2], dailyNet: true },
 };
 export const CHART_IDS: ChartId[] = ["sat", "friSun", "wedTue"];
 
@@ -51,6 +55,17 @@ export const netSeries = (wb: number[] | null, eb: number[] | null) => {
   return out;
 };
 
+/** Net up the hill through one day, from 0 at its 3am: 25 points. */
+export const dayNetLine = (net: number[], d: number) => net.slice(d * 24, d * 24 + 25).map((v) => v - net[d * 24]);
+
+/** The net line as drawn: one running segment, or one per day where the chart resets daily. Segment k starts at hour k × 24. */
+export const netSegments = (net: number[], chart: ChartId) =>
+  CHARTS[chart].dailyNet ? CHARTS[chart].dows.map((_, d) => dayNetLine(net, d)) : [net];
+
+/** The drawn net at the end of hour i. */
+export const netAt = (net: number[], chart: ChartId, i: number) =>
+  net[i + 1] - (CHARTS[chart].dailyNet ? net[Math.floor(i / 24) * 24] : 0);
+
 export interface Peak {
   day: number; // index into the chart's days
   dir: Dir;
@@ -65,11 +80,15 @@ export interface Season {
   net: number[];
   /** Each day's total, both ways, 3am to 3am. */
   dayTotal: number[];
+  /** Each day's total one way, 3am to 3am. */
+  dayDir: Record<Dir, number[]>;
   /** Each day's net up the hill, 3am to 3am. */
   dayNet: number[];
   /** Busiest hour per day and direction. */
   peaks: Peak[];
   total: number;
+  /** The chart's total one way. */
+  totalDir: Record<Dir, number>;
 }
 
 export const season = (profiles: Profiles, yr: number, chart: ChartId): Season | null => {
@@ -87,15 +106,18 @@ export const season = (profiles: Profiles, yr: number, chart: ChartId): Season |
     }
   });
   const daySum = (vals: number[], d: number) => vals.slice(d * 24, (d + 1) * 24).reduce((s, v) => s + v, 0);
+  const dayDir = { wb: dows.map((_, d) => daySum(wb, d)), eb: dows.map((_, d) => daySum(eb, d)) };
   return {
     yr,
     wb,
     eb,
     net,
-    dayTotal: dows.map((_, d) => daySum(wb, d) + daySum(eb, d)),
+    dayTotal: dows.map((_, d) => dayDir.wb[d] + dayDir.eb[d]),
+    dayDir,
     dayNet: dows.map((_, d) => net[(d + 1) * 24] - net[d * 24]),
     peaks,
     total: (sum(wb) ?? 0) + (sum(eb) ?? 0),
+    totalDir: { wb: sum(wb) ?? 0, eb: sum(eb) ?? 0 },
   };
 };
 
