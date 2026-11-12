@@ -1,177 +1,309 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import type { Mark } from "../HeroCurve/HeroChart";
-import type { Span } from "../HeroCurve/heroData";
+import { fmtInt } from "../../I70Crossfilter/format";
+import { fmtPct } from "../HeroCurve/heroData";
+import { CHART_IDS, CHARTS, clockHour, dayPeak, LENS_IDS, LENSES, topPeak, type ChartId, type Facts, type Lens, type Season } from "./lensData";
 
-// What the hero chart shows at each step, and the draft copy beside it.
-// Numbers are the chart's own: 3-season averages, "1996" = 1996–97 and
-// "today" = 2024–26 (see TODAY in index.tsx), Jan–Mar, holiday weekends out.
+// What the chart shows at each step, and the draft copy beside it. The story
+// is three charts (Saturday → Fri–Sun → Wed–Tue), each read through the same
+// three lenses (busiest hour → total cars → net up the hill). Copy numbers
+// come from the data (`Facts`: 1996 and today on each chart, 3am to 3am), so
+// they follow whichever season `last` is in index.tsx.
 
 export interface Step {
-  span: Span;
+  chart: ChartId;
   season: "first" | "today";
-  /** Keep 1996 as a dashed reference line. */
+  /** Keep 1996 as the dashed reference. */
   pin: boolean;
-  trail: boolean;
-  marks?: Mark[];
-  /** Red running total, westbound minus eastbound, from the span's start. */
-  net?: boolean;
+  lens: Lens | null;
   /** Scrolling from this step to the next plays the seasons from 1996 to today. */
   scrub?: boolean;
   heading: string;
-  body: ReactNode;
+  body: (f: Facts, yrs: { first: number; last: number }) => ReactNode;
 }
+
+const clock = (i: number) => {
+  const h = clockHour(i);
+  return h === 0 ? "midnight" : h === 12 ? "noon" : h < 12 ? `${h}am` : `${h - 12}pm`;
+};
+const pct = (a: number, b: number) => fmtPct((b / a - 1) * 100);
+/** For prose ("30% more"): no plus sign. */
+const pctWord = (a: number, b: number) => pct(a, b).replace("+", "");
+const signed = (v: number) => `${v > 0.5 ? "+" : v < -0.5 ? "−" : ""}${fmtInt(Math.abs(v))}`;
+const sumDays = (s: Season, days: number[]) => days.reduce((t, d) => t + s.dayTotal[d], 0);
+// Wed–Tue day indices.
+const WT = { wed: 0, thu: 1, fri: 2, sat: 3, sun: 4, mon: 5, tue: 6 };
+const MIDWEEK = [WT.mon, WT.tue, WT.wed, WT.thu];
+const WEEKEND = [WT.fri, WT.sat, WT.sun];
+const FRI_SUN = ["Friday", "Saturday", "Sunday"];
+const fsDay = (i: number) => FRI_SUN[Math.floor(i / 24)];
 
 export const STEPS: Step[] = [
   {
-    span: "sat",
-    season: "today",
-    pin: false,
-    trail: false,
-    heading: "One winter Saturday",
-    body: (
-      <>
-        <p>
-          This is an average winter Saturday at the Eisenhower Tunnel, hour by hour. Above the line are cars heading
-          west, up to the ski areas. Below it are cars heading east, home to Denver.
-        </p>
-        <p>A wave goes up in the morning and a wave comes home in the afternoon: about 43,000 vehicles in all.</p>
-      </>
-    ),
-  },
-  {
-    span: "sat",
+    chart: "sat",
     season: "first",
     pin: false,
-    trail: false,
+    lens: null,
     scrub: true,
-    heading: "Rewind to 1996",
-    body: (
+    heading: "One winter Saturday",
+    body: (f, { first }) => (
       <>
-        <p>The same Saturday in 1996: about 34,000 vehicles.</p>
+        <p>
+          This is an average winter Saturday at the Eisenhower Tunnel in {first}, hour by hour from 3am to 3am. Above the
+          line are cars heading west, up to the ski areas. Below it are cars heading east, home to Denver.
+        </p>
+        <p>A wave goes up in the morning and a wave comes home in the afternoon: about {fmtInt(f.sat.then.total)} vehicles.</p>
         <p>Keep scrolling to run it forward, one ski season at a time.</p>
       </>
     ),
   },
   {
-    span: "sat",
+    chart: "sat",
     season: "today",
     pin: true,
-    trail: true,
-    heading: "28% more cars",
-    body: (
+    lens: "peak",
+    heading: "Saturday · the busiest hour",
+    body: (f, { first, last }) => {
+      const [tw, nw] = [topPeak(f.sat.then, "wb"), topPeak(f.sat.now, "wb")];
+      const [te, ne] = [topPeak(f.sat.then, "eb"), topPeak(f.sat.now, "eb")];
+      return (
+        <>
+          <p className="i70s-howto">
+            We'll read each chart three ways: its busiest hour, its total, and how many people it leaves in the
+            mountains. Gold marks the one we're on.
+          </p>
+          <p>
+            The gold dots are the busiest hour each way, hollow for {first} and filled for {last}. Heading up, it's{" "}
+            {nw.v <= tw.v * 1.03 ? "no busier than" : `${pctWord(tw.v, nw.v)} busier than`} in {first}: {fmtInt(tw.v)} cars at{" "}
+            {clock(tw.i)} then, {fmtInt(nw.v)} at {clock(nw.i)} now. Coming home, it moved from {clock(te.i)} to{" "}
+            {clock(ne.i)} and grew {pctWord(te.v, ne.v)}.
+          </p>
+        </>
+      );
+    },
+  },
+  {
+    chart: "sat",
+    season: "today",
+    pin: true,
+    lens: "total",
+    heading: "Saturday · total cars",
+    body: (f, { first, last }) => (
       <p>
-        Saturday traffic grew 28%. But the extra cars didn't pile onto the busiest hours. They went around them.
+        Now the gold is every car {last} adds over {first}. Saturday carries {pctWord(f.sat.then.total, f.sat.now.total)} more
+        traffic, {fmtInt(f.sat.then.total)} → {fmtInt(f.sat.now.total)}. Little of the gold sits on the old peaks. It went
+        into the early morning and the middle of the day.
       </p>
     ),
   },
   {
-    span: "sat",
+    chart: "sat",
     season: "today",
     pin: true,
-    trail: true,
-    marks: [
-      { dir: "wb", hour: 6, anchor: "end" },
-      { dir: "wb", hour: 8, anchor: "start" },
-    ],
-    heading: "Up before dawn",
-    body: (
-      <p>
-        Heading up, 1996's busiest hour, 8 to 9am, is a little quieter now: 1,805 cars then, 1,622 now. The hour before
-        it filled instead. Four times as many cars go through between 6 and 7am as in 1996.
-      </p>
-    ),
+    lens: "net",
+    heading: "Saturday · net up the hill",
+    body: (f, { first }) => {
+      const [t, n] = [f.sat.then.dayNet[0], f.sat.now.dayNet[0]];
+      return (
+        <>
+          <p>
+            The gold line keeps a running count from 3am: each car heading west adds one, each car heading east takes one
+            away (scale on the right).
+          </p>
+          <p>
+            In {first}, Saturday left {fmtInt(t)} more vehicles in the mountains than it brought home. Now it's {signed(n)}
+            {n < 0 ? ": more go home on a Saturday than go up" : ""}. Saturday doesn't fill the mountains any more.
+            Somebody got there first.
+          </p>
+        </>
+      );
+    },
   },
   {
-    span: "sat",
+    chart: "friSun",
     season: "today",
     pin: true,
-    trail: true,
-    marks: [
-      { dir: "eb", hour: 14, anchor: "end" },
-      { dir: "eb", hour: 16, anchor: "start" },
-    ],
-    heading: "Home by 2",
-    body: (
-      <p>
-        Coming home, the busiest hour moved two hours earlier, from 4–5pm to 2–3pm. The old peak hour barely changed. 2
-        to 3pm doubled, and the noon hour went from 925 cars to 1,676.
-      </p>
-    ),
-  },
-  {
-    span: "sat",
-    season: "today",
-    pin: true,
-    trail: true,
-    net: true,
-    heading: "Who's up there",
-    body: (
-      <>
+    lens: "peak",
+    heading: "Fri–Sun · the busiest hour",
+    body: (f, { first }) => {
+      const [tw, nw] = [topPeak(f.friSun.then, "wb"), topPeak(f.friSun.now, "wb")];
+      const satNow = f.friSun.now.peaks.find((p) => p.day === 1 && p.dir === "wb")!;
+      return (
         <p>
-          The red line keeps a running count from midnight: each car heading west adds one, each car heading east takes
-          one away. It shows how many more vehicles are up in the mountains than when the day began (scale on the right).
+          Widen to the whole weekend. In {first} the busiest hour heading up was {fsDay(tw.i)} at {clock(tw.i)} (
+          {fmtInt(tw.v)} cars). Now it's {fsDay(nw.i)} at {clock(nw.i)} ({fmtInt(nw.v)}), while Saturday tops out at{" "}
+          {fmtInt(satNow.v)}.
         </p>
+      );
+    },
+  },
+  {
+    chart: "friSun",
+    season: "today",
+    pin: true,
+    lens: "total",
+    heading: "Fri–Sun · total cars",
+    body: (f) => {
+      const order = [0, 1, 2]
+        .map((d) => ({ d, g: f.friSun.now.dayTotal[d] / f.friSun.then.dayTotal[d] - 1 }))
+        .sort((a, b) => b.g - a.g);
+      return (
         <p>
-          Today the count tops out around 3,400 by noon. In 1996 it kept climbing until 3pm, to 3,800. By 7pm it drops
-          below zero: more cars come home on a Saturday than go up, so some of them went up before Saturday.
+          The weekend carries {pctWord(f.friSun.then.total, f.friSun.now.total)} more cars. {FRI_SUN[order[0].d]} grew most (
+          {fmtPct(order[0].g * 100)}), then {FRI_SUN[order[1].d]} ({fmtPct(order[1].g * 100)}) and {FRI_SUN[order[2].d]} (
+          {fmtPct(order[2].g * 100)}).
+        </p>
+      );
+    },
+  },
+  {
+    chart: "friSun",
+    season: "today",
+    pin: true,
+    lens: "net",
+    heading: "Fri–Sun · net up the hill",
+    body: (f, { first }) => {
+      const [t, n] = [f.friSun.then.dayNet, f.friSun.now.dayNet];
+      return (
+        <p>
+          Counting from Friday at 3am: Friday now leaves {fmtInt(n[0])} more vehicles up than it brings back, up from {fmtInt(t[0])}{" "}
+          in {first}. Saturday nets {signed(n[1])}, and Sunday brings {fmtInt(Math.abs(n[2]))} home. The mountains
+          fill up a day earlier.
+        </p>
+      );
+    },
+  },
+  {
+    chart: "wedTue",
+    season: "today",
+    pin: true,
+    lens: "peak",
+    heading: "Wed–Tue · the busiest hour",
+    body: (f) => {
+      const g = (d: number) => dayPeak(f.wedTue.now, d).v / dayPeak(f.wedTue.then, d).v - 1;
+      const mid = MIDWEEK.map(g);
+      return (
+        <p>
+          Now the whole week, Wednesday to Tuesday, with each day's busiest hour each way. The weekend's peaks barely
+          rose: Saturday's {fmtPct(g(WT.sat) * 100)}, Sunday's {fmtPct(g(WT.sun) * 100)}. Monday through Thursday's rose{" "}
+          {fmtPct(Math.min(...mid) * 100).replace("+", "")} to {fmtPct(Math.max(...mid) * 100).replace("+", "")}.
+        </p>
+      );
+    },
+  },
+  {
+    chart: "wedTue",
+    season: "today",
+    pin: true,
+    lens: "total",
+    heading: "Wed–Tue · total cars",
+    body: (f, { first }) => {
+      const { then, now } = f.wedTue;
+      const [mt, mn, wt, wn] = [sumDays(then, MIDWEEK), sumDays(now, MIDWEEK), sumDays(then, WEEKEND), sumDays(now, WEEKEND)];
+      return (
+        <>
+          <p>
+            A winter week carries {pctWord(then.total, now.total)} more cars than in {first}. Most of the extra cars didn't
+            come on the weekend: Monday to Thursday added {fmtInt(mn - mt)} a week ({pct(mt, mn)}), Friday to Sunday{" "}
+            {fmtInt(wn - wt)} ({pct(wt, wn)}).
+          </p>
+          <p>
+            A Wednesday today ({fmtInt(now.dayTotal[WT.wed])} vehicles) is as busy as a Friday was in {first} (
+            {fmtInt(then.dayTotal[WT.fri])}).
+          </p>
+        </>
+      );
+    },
+  },
+  {
+    chart: "wedTue",
+    season: "today",
+    pin: true,
+    lens: "net",
+    heading: "Wed–Tue · net up the hill",
+    body: (f, { first }) => {
+      const { then, now } = f.wedTue;
+      const pair = (d: number) => `${signed(then.dayNet[d])} → ${signed(now.dayNet[d])}`;
+      return (
+        <>
+          <p>
+            Over the week, people go up Wednesday to Friday and come down at the weekend's end. In {first}, Friday and
+            Saturday did the filling. Now Thursday and Friday do: Thursday {pair(WT.thu)}, Friday {pair(WT.fri)}, Saturday{" "}
+            {pair(WT.sat)}.
+          </p>
+          <p className="i70s-howto">
+            The line should end the week near zero. It ends at {signed(now.net[now.net.length - 1])} because the westbound
+            counter reads about 2% high.
+          </p>
+        </>
+      );
+    },
+  },
+  {
+    chart: "wedTue",
+    season: "today",
+    pin: true,
+    lens: null,
+    heading: "Three charts, three readings",
+    body: (f) => (
+      <>
+        <SummaryTable f={f} />
+        <p>
+          Try other seasons and spans in the <Link to="/2026/I70Widgets/HeroCurve">full chart</Link>.
         </p>
       </>
-    ),
-  },
-  {
-    span: "friSun",
-    season: "today",
-    pin: true,
-    trail: true,
-    net: true,
-    heading: "The weekend got longer",
-    body: (
-      <>
-        <p>Widen the view to the whole weekend, Friday through Sunday. Together those three days grew 40%.</p>
-        <p>
-          Counting from Friday at midnight, about 10,500 extra cars are up the hill at Saturday's peak, up from 7,200 in
-          1996.
-        </p>
-      </>
-    ),
-  },
-  {
-    span: "thuMon",
-    season: "first",
-    pin: false,
-    trail: false,
-    net: true,
-    scrub: true,
-    heading: "Thursday to Monday",
-    body: <p>Add Thursday and Monday, go back to 1996, and run it forward again.</p>,
-  },
-  {
-    span: "thuMon",
-    season: "today",
-    pin: true,
-    trail: true,
-    net: true,
-    heading: "Friday caught up",
-    body: (
-      <p>
-        In 1996 Friday ran well behind Saturday, 28,100 vehicles to 33,800. Now they're level: 44,200 and 43,500.
-        Thursday and Monday each grew about 70%, Saturday 28%. Counting from Thursday, the crowd up the hill peaks at
-        about 14,700 cars by Saturday noon, nearly double 1996's 8,200.
-      </p>
-    ),
-  },
-  {
-    span: "thuMon",
-    season: "today",
-    pin: true,
-    trail: true,
-    net: true,
-    heading: "Explore",
-    body: (
-      <p>
-        Try other seasons, spans and pins in the <Link to="/2026/I70Widgets/HeroCurve">full chart</Link>.
-      </p>
     ),
   },
 ];
+
+/** One short line per cell of the 3×3: the tracker above the chart and the closing table. */
+export const cellText = (f: Facts, chart: ChartId, lens: Lens): string => {
+  const { then, now } = f[chart];
+  if (lens === "total") {
+    if (chart !== "wedTue") return pct(then.total, now.total);
+    return `${pct(then.total, now.total)} (Mon–Thu ${pct(sumDays(then, MIDWEEK), sumDays(now, MIDWEEK))})`;
+  }
+  if (lens === "peak") {
+    if (chart === "sat") {
+      const [a, b] = [topPeak(then, "wb"), topPeak(now, "wb")];
+      return b.v <= a.v * 1.03 ? "No busier going up" : `Up ${pct(a.v, b.v)}`;
+    }
+    if (chart === "friSun") {
+      const short = (i: number) => fsDay(i).slice(0, 3);
+      return `Busiest trip up: ${short(topPeak(then, "wb").i)} → ${short(topPeak(now, "wb").i)}`;
+    }
+    const g = (d: number) => dayPeak(now, d).v / dayPeak(then, d).v - 1;
+    const mid = MIDWEEK.map(g);
+    return `Weekend ${fmtPct(Math.max(g(WT.sat), g(WT.sun)) * 100)}, Mon–Thu ${fmtPct(Math.max(...mid) * 100)}`;
+  }
+  if (chart === "sat") return `${signed(then.dayNet[0])} → ${signed(now.dayNet[0])}`;
+  if (chart === "friSun") return `Fri ${signed(then.dayNet[0])} → ${signed(now.dayNet[0])}`;
+  return "Fills Thu–Fri, not Sat";
+};
+
+export const stepIndexOf = (chart: ChartId, lens: Lens) => STEPS.findIndex((s) => s.chart === chart && s.lens === lens);
+
+function SummaryTable({ f }: { f: Facts }) {
+  return (
+    <table className="i70s-summary">
+      <thead>
+        <tr>
+          <th />
+          {LENS_IDS.map((l) => (
+            <th key={l}>{LENSES[l]}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {CHART_IDS.map((c) => (
+          <tr key={c}>
+            <th>{CHARTS[c].label}</th>
+            {LENS_IDS.map((l) => (
+              <td key={l}>{cellText(f, c, l)}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}

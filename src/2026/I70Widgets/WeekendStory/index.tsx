@@ -4,29 +4,30 @@ import { fmtInt } from "../../I70Crossfilter/format";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
 import { useData } from "../../I70Crossfilter/useData";
 import "../widgets.css";
-import HeroChart from "../HeroCurve/HeroChart";
-import { buildProfiles, DRIFT_WB, fmtPct, seasonLabel, spanTotal, SPANS } from "../HeroCurve/heroData";
-import { STEPS } from "./steps";
+import { buildProfiles, DRIFT_WB, fmtPct } from "../HeroCurve/heroData";
+import LensChart from "./LensChart";
+import { buildFacts, CHART_IDS, CHARTS, LENS_IDS, LENSES, season as seasonOf } from "./lensData";
+import { cellText, stepIndexOf, STEPS } from "./steps";
 import { useStepProgress } from "./useStepProgress";
 
-// Scrollyteller shell for "the evolution of the winter weekend warrior": one
-// sticky hero chart, each step changing only its span, season, pin, trail or
-// highlight. Scrolling across a `scrub` step plays the seasons 1996 → today.
+// Scrollyteller for "the evolution of the winter weekend warrior": three
+// charts (Saturday, Fri–Sun, Wed–Tue), each read through the same three
+// lenses (busiest hour, total cars, net up the hill), 1996 against today.
+// A 3×3 tracker above the chart fills in as the reader goes.
 // Gameplan: .claude/i70-weekend-warrior-spec.md (main worktree).
 
-// "Today" = the 2024–26 centered average. 2026 itself only has 2025 to
-// average with, and was a thin-snow season.
-const TODAY = 2025;
 const PHONE_QUERY = "(max-width: 720px)";
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 export default function WeekendStory() {
   const { data, error } = useData();
   const ds = data?.find((d) => d.days.id === "tunnel") ?? null;
-  const profiles = useMemo(() => (ds ? buildProfiles(ds, "smooth") : null), [ds]);
+  const profiles = useMemo(() => (ds ? buildProfiles(ds, "raw") : null), [ds]);
   const years = profiles ? [...profiles.keys()] : [];
   const first = years[0] ?? 1996;
+  // "Today" is the latest season on its own, weather and all.
   const last = years[years.length - 1] ?? 2026;
+  const facts = useMemo(() => (profiles ? buildFacts(profiles, first, last) : null), [profiles, first, last]);
 
   // On phones the chart is pinned across the top, so measure steps against
   // the middle of the band below it (same as the voter-age story).
@@ -46,20 +47,32 @@ export default function WeekendStory() {
   const scrubbing = !!STEPS[i]?.scrub && u > 0;
   const view = scrubbing ? STEPS[i] : STEPS[activeStep];
   const season = scrubbing
-    ? Math.round(first + (TODAY - first) * clamp01(u / 0.85))
+    ? Math.round(first + (last - first) * clamp01(u / 0.85))
     : view.season === "first"
       ? first
-      : TODAY;
-  const pins = scrubbing || view.pin ? [first] : [];
-  const showTrail = scrubbing || view.trail;
-  const marks = scrubbing ? [] : view.marks;
-  const showNet = !!view.net;
+      : last;
+  const pin = scrubbing || view.pin ? first : null;
+  const lens = scrubbing ? null : view.lens;
 
-  const dows = SPANS[view.span].dows;
-  const label = (yr: number) => seasonLabel(yr, "smooth", first, last);
-  const tCur = profiles ? spanTotal(profiles, season, dows) : null;
-  const tBase = profiles ? spanTotal(profiles, first, dows) : null;
+  const cur = profiles ? seasonOf(profiles, season, view.chart) : null;
+  const base = profiles ? seasonOf(profiles, first, view.chart) : null;
   const phone = vizWidth > 0 && vizWidth < 560;
+  const showPin = pin != null && season !== first;
+
+  const readout = (() => {
+    const head = `${CHARTS[view.chart].label}${lens ? ` · ${LENSES[lens].toLowerCase()}` : ""}`;
+    if (!cur) return { head, text: "" };
+    if (!showPin || !base) return { head, text: `${season}, ${fmtInt(cur.total)} vehicles` };
+    if (lens === "net") {
+      const end = (s: typeof cur) => s.net[s.net.length - 1];
+      const sign = (v: number) => `${v < 0 ? "−" : "+"}${fmtInt(Math.abs(v))}`;
+      return { head, text: `${first} ${sign(end(base))} → ${season} ${sign(end(cur))} left up the hill by 3am` };
+    }
+    return {
+      head,
+      text: `${first} ${fmtInt(base.total)} → ${season} ${fmtInt(cur.total)} vehicles (${fmtPct((cur.total / base.total - 1) * 100)})`,
+    };
+  })();
 
   return (
     <div className="i70w-root i70s-root">
@@ -68,8 +81,8 @@ export default function WeekendStory() {
       </Link>
       <h1>The winter weekend warrior</h1>
       <p className="i70w-intro">
-        Draft shell. Thirty winters of traffic through the Eisenhower Tunnel, the gateway from Denver to Summit County's
-        ski areas, on one chart.
+        Draft. Thirty winters of traffic through the Eisenhower Tunnel, the gateway from Denver to Summit County's ski
+        areas: three charts, each read three ways.
       </p>
       {error && <p className="i70w-note">Couldn't load data: {error.message}</p>}
 
@@ -81,34 +94,57 @@ export default function WeekendStory() {
             data-progress={progress.toFixed(3)}
             data-step={activeStep}
             data-season={season}
-            data-span={view.span}
-            data-marks={marks?.length ?? 0}
-            data-net={showNet ? 1 : 0}
+            data-chart={view.chart}
+            data-lens={lens ?? ""}
             hidden
           />
+          {facts && (
+            <table className="i70s-tracker" aria-label="Where you are: three charts, three readings">
+              <thead>
+                <tr>
+                  <th />
+                  {LENS_IDS.map((l) => (
+                    <th key={l} className={l === lens ? "is-on" : undefined}>
+                      {LENSES[l]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {CHART_IDS.map((c) => (
+                  <tr key={c} className={c === view.chart ? "is-on" : undefined}>
+                    <th>{CHARTS[c].label}</th>
+                    {LENS_IDS.map((l) => {
+                      const at = stepIndexOf(c, l);
+                      const reached = activeStep >= at;
+                      const here = c === view.chart && l === lens;
+                      return (
+                        <td key={l} className={`${reached ? "is-done" : ""}${here ? " is-here" : ""}`}>
+                          {reached ? cellText(facts, c, l) : ""}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
           <p className="i70w-readout i70s-readout">
-            <strong>
-              {SPANS[view.span].label}, {label(season)}:
-            </strong>{" "}
-            {tCur?.both != null ? (
-              <>
-                {fmtInt(tCur.both)} vehicles
-                {tBase?.both != null && season !== first && ` (${fmtPct((tCur.both / tBase.both - 1) * 100)} vs ${label(first)})`}
-              </>
-            ) : (
-              tCur?.e != null && `${fmtInt(tCur.e)} eastbound`
-            )}
+            <strong>{readout.head}:</strong> {readout.text}
           </p>
+          <div className="i70s-key" aria-hidden>
+            <span className="i70s-key-now">{season}</span>
+            {showPin && <span className="i70s-key-then">{first}</span>}
+          </div>
           {profiles && (
-            <HeroChart
+            <LensChart
               profiles={profiles}
-              span={view.span}
+              chart={view.chart}
               season={season}
-              pins={pins}
-              showTrail={showTrail}
-              marks={marks}
-              showNet={showNet}
-              height={phone ? 270 : 440}
+              pin={pin}
+              showTrail={scrubbing}
+              lens={lens}
+              height={phone ? 270 : 420}
             />
           )}
         </div>
@@ -117,7 +153,7 @@ export default function WeekendStory() {
             <div className="i70s-step" key={k} ref={setStepRef(k)}>
               <div className={`i70s-step-inner${k === activeStep ? " is-active" : ""}`}>
                 <h3>{s.heading}</h3>
-                {s.body}
+                {facts && s.body(facts, { first, last })}
               </div>
             </div>
           ))}
@@ -125,13 +161,15 @@ export default function WeekendStory() {
       </section>
 
       <p className="i70w-note">
-        Eisenhower Tunnel (CDOT counter 000106), cars per hour averaged over January–March days, each season blended
-        with the one before and after. Days missing any hour, flagged closures, MLK and Presidents' Day weekends and Jan
-        1–2 are left out. "1996" is 1996–97 and "today" is 2024–26. Multi-day views lay each weekday's average end to
-        end, so they show a typical week, not a real one. The red net line counts westbound minus eastbound from the
-        start of the view, so it shows the change in vehicles west of the tunnel, not the total up there. *Westbound {DRIFT_WB.from}–{DRIFT_WB.to} is shown as recorded,
-        but the counter's clock appears to have run up to 1¼ hours early until it was serviced in May 2010, so those
-        curves likely sit a little early in the day. They're kept out of neighboring seasons' averages.
+        Eisenhower Tunnel (CDOT counter 000106), cars per hour averaged over each season's January–March days, one season
+        at a time, so a big or thin snow year shows up as it was. Days missing any hour, flagged closures, MLK and
+        Presidents' Day weekends and Jan 1–2 are left out. "Today" is {last}. Each chart runs 3am to 3am, so the night's
+        last cars count with the day they belong to, and multi-day charts lay each weekday's average end to end: a
+        typical week, not a real one. The net line counts westbound minus eastbound from the chart's start, so it shows
+        the change in vehicles west of the tunnel, not the total up there. The counter's westbound side reads about 2%
+        above eastbound in recent years, so a full week ends a few thousand above zero instead of at it. *Westbound{" "}
+        {DRIFT_WB.from}–{DRIFT_WB.to} is shown as recorded, but the counter's clock appears to have run up to 1¼ hours
+        early until it was serviced in May 2010.
       </p>
     </div>
   );
