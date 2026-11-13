@@ -494,17 +494,12 @@
   flex: 0 0 62%;
   min-width: 0;
 }
-.i70s-readout {
-  font-variant-numeric: tabular-nums;
-  margin: 0 0 0.4rem;
-  min-height: 1.4em;
-}
 .i70s-steps {
   flex: 1;
   min-width: 0;
 }
 .i70s-step {
-  min-height: 75vh;
+  min-height: 70vh;
   display: flex;
   align-items: center;
   padding: 1.5rem 0;
@@ -515,27 +510,21 @@
 .i70s-step:last-child {
   min-height: 60vh;
 }
+/* One sentence per step, no box (the voter-age story's step text). */
 .i70s-step-inner {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1rem 1.1rem;
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-weight: 600;
   line-height: 1.5;
-  opacity: 0.45;
+  color: var(--text-primary);
+  opacity: 0.35;
   transition: opacity 200ms;
 }
 .i70s-step-inner.is-active {
   opacity: 1;
 }
-.i70s-step-inner h3 {
-  margin: 0 0 0.4rem;
-  font-size: 1.05rem;
-}
-.i70s-step-inner p {
-  margin: 0 0 0.5rem;
-}
-.i70s-step-inner p:last-child {
-  margin-bottom: 0;
+.i70s-gold {
+  color: var(--gold-ink);
 }
 @media (max-width: 720px) {
   .i70s-scrolly {
@@ -550,68 +539,20 @@
     padding: 0.3rem 0 0.35rem;
     border-bottom: 1px solid var(--gridline);
   }
-  .i70s-readout {
-    font-size: 0.8rem;
-  }
   .i70s-step {
     min-height: 45vh;
     padding: 1rem 0;
   }
 }
 
-/* WeekendStory, 3×3 version: green base (today solid, 1996 dashed), gold
-   for the one lens being read. Greens and gold are Shape of the Electorate's
+/* WeekendStory: green base (today solid, 1996 dashed), gold for the one
+   highlight being read. Greens and gold are Shape of the Electorate's
    (--series-3 #1baf7a family, --gap #e0a11c / --gap-edge #a97407). */
 .i70s-root {
   --now: #0f8a5f;
   --then: #7cc9a8;
   --gold: #e0a11c;
   --gold-ink: #a97407;
-}
-.i70s-tracker {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 0.72rem;
-  margin: 0 0 0.5rem;
-  font-variant-numeric: tabular-nums;
-}
-.i70s-tracker th,
-.i70s-tracker td {
-  padding: 0.2rem 0.4rem;
-  text-align: left;
-  border: 1px solid var(--gridline);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.i70s-tracker thead th {
-  color: var(--muted);
-  font-weight: 500;
-  border-top: 0;
-}
-.i70s-tracker thead th:first-child,
-.i70s-tracker tbody th {
-  width: 4.6rem;
-  border-left: 0;
-  color: var(--muted);
-  font-weight: 500;
-}
-.i70s-tracker thead th.is-on,
-.i70s-tracker tr.is-on th {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-.i70s-tracker td {
-  color: var(--text-secondary);
-  height: 1.3em;
-}
-.i70s-tracker td.is-here {
-  background: color-mix(in srgb, var(--gold) 18%, var(--surface-1));
-  outline: 2px solid var(--gold);
-  outline-offset: -2px;
-  color: var(--text-primary);
-  font-weight: 600;
 }
 .i70s-key {
   display: flex;
@@ -657,30 +598,8 @@
   font-weight: 500;
   fill: var(--text-secondary);
 }
-.i70s-howto {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-.i70s-summary {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  margin: 0.2rem 0 0.8rem;
-  font-variant-numeric: tabular-nums;
-}
-.i70s-summary th,
-.i70s-summary td {
-  text-align: left;
-  vertical-align: top;
-  padding: 0.3rem 0.35rem;
-  border-bottom: 1px solid var(--gridline);
-}
-.i70s-summary thead th {
-  color: var(--muted);
-  font-weight: 500;
-}
-@media (max-width: 720px) {
-  .i70s-tracker {
-    display: none;
-  }
+/* A gap highlight's window. */
+.i70s-window {
+  fill: var(--gold);
+  opacity: 0.08;
 }

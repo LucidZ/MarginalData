@@ -1,8 +1,8 @@
-// Smoke test for the WeekendStory scrollyteller (sticky LensChart, 3 charts x 3 lenses, scroll-driven steps).
+// Smoke test for the WeekendStory scrollyteller (sticky LensChart, 3 charts, one sentence + one gold highlight per step).
 // Run with: BASE_URL=http://localhost:<port> node tests/i70-weekend-story-smoke.mjs
 //
 // At 1000px and 390px: scrolls each step's centre to the reading line and checks
-// the chart state (step, season, chart, lens and its gold layer, tracker cell); checks the first scrub
+// the chart state (step, season, chart, highlight and its gold layer); checks the scrub
 // plays seasons forward mid-way and that the drift seasons flag westbound; no
 // horizontal scroll, no console errors. Screenshots each step.
 import { chromium } from "playwright";
@@ -18,23 +18,26 @@ const check = (ok, msg) => {
   if (!ok) failures.push(msg);
 };
 
-// Expected chart state when each step is centred: [season, chart, lens].
+// Expected chart state when each step is centred: [season, chart, highlight, shaded windows].
 const L = 2026;
 const EXPECT = [
-  [1996, "sat", ""],
-  [L, "sat", "peak"],
-  [L, "sat", "total"],
-  [L, "sat", "net"],
-  [L, "friSun", "peak"],
-  [L, "friSun", "total"],
-  [L, "friSun", "net"],
-  [L, "wedTue", "peak"],
-  [L, "wedTue", "total"],
-  [L, "wedTue", "net"],
-  [L, "wedTue", ""],
+  [1996, "sat", "", 0],
+  [1996, "sat", "peak", 0],
+  [1996, "sat", "", 0],
+  [L, "sat", "gap", 0],
+  [L, "sat", "gap", 1],
+  [L, "sat", "gap", 0],
+  [L, "friSun", "peak", 0],
+  [L, "friSun", "net", 0],
+  [L, "friSun", "net", 0],
+  [L, "wedTue", "gap", 1],
+  [L, "wedTue", "gap", 2],
+  [L, "wedTue", "net", 0],
 ];
-// The gold layer each lens draws.
-const LAYER = { peak: ".i70s-peak", total: ".i70s-gap path", net: ".i70s-net path" };
+// The scrub runs from this step to the next.
+const SCRUB = 2;
+// The gold layer each highlight draws.
+const LAYER = { peak: ".i70s-peak", gap: ".i70s-gap path", net: ".i70s-net path" };
 
 const browser = await chromium.launch();
 for (const [name, viewport] of [
@@ -75,20 +78,19 @@ for (const [name, viewport] of [
     await scrollTo(k);
     await page.waitForTimeout(250);
     const s = await state();
-    const [season, chart, lens] = EXPECT[k];
+    const [season, chart, hl, windows] = EXPECT[k];
     const layers = {};
     for (const [l, sel] of Object.entries(LAYER)) layers[l] = await page.locator(`.i70s-viz svg ${sel}`).count();
-    const layersOk = Object.entries(layers).every(([l, n]) => (n > 0) === (l === lens));
-    const here = await page.locator(".i70s-tracker td.is-here").count();
+    const layersOk = Object.entries(layers).every(([l, n]) => (n > 0) === (l === hl));
+    const win = await page.locator(".i70s-viz svg .i70s-window").count();
     check(
-      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.lens === lens && layersOk &&
-        (name === "mobile" || here === (lens ? 1 : 0)),
-      `step ${k}: step=${s.step} season=${s.season} chart=${s.chart} lens=${s.lens} layers=${JSON.stringify(layers)} tracker=${here}`,
+      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && layersOk && win === windows,
+      `step ${k}: step=${s.step} season=${s.season} chart=${s.chart} hl=${s.hl} layers=${JSON.stringify(layers)} windows=${win}`,
     );
     await page.screenshot({ path: `${OUT}/i70-weekend-story-${k}-${name}.png` });
   }
 
-  await scrollTo(0, 0.5);
+  await scrollTo(SCRUB, 0.5);
   await page.waitForTimeout(250);
   const mid = await state();
   check(Number(mid.season) > 1996 && Number(mid.season) < L, `scrub mid-way plays forward (season ${mid.season})`);
@@ -97,7 +99,7 @@ for (const [name, viewport] of [
   // Somewhere in the scrub the drift seasons flag westbound's clock.
   let sawDrift = false;
   for (let f = 0.3; f < 0.7 && !sawDrift; f += 0.02) {
-    await scrollTo(0, f);
+    await scrollTo(SCRUB, f);
     await page.waitForTimeout(80);
     const s = await state();
     if (Number(s.season) >= 2006 && Number(s.season) <= 2010)

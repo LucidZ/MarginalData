@@ -1,12 +1,22 @@
 import { DOW_SHORT, sum, type Dir, type Profiles } from "../HeroCurve/heroData";
 
-// The story's three charts (Saturday, Fri–Sun, Wed–Tue), each read through
-// three lenses (busiest hour, total cars, net up the hill). Every chart runs
+// The story's three charts (Saturday, Fri–Sun, Wed–Tue) and the gold
+// highlights a step can lay over them. Every chart runs
 // 3am to 3am, so a day's net is the change in its own window and the night's
 // stragglers count with the day they belong to.
 
 export type ChartId = "sat" | "friSun" | "wedTue";
-export type Lens = "peak" | "total" | "net";
+
+/**
+ * One step's gold layer. peak: busiest-hour dots. gap: the cars today adds
+ * over 1996, limited to `ranges` (series hours [from, to)) when given, with
+ * each day's change per direction printed when `rows`. net: the net up the
+ * hill, with `days` (indices into the chart's days) drawn strong and the rest faint.
+ */
+export type Highlight =
+  | { kind: "peak"; dirs: Dir[] }
+  | { kind: "gap"; dirs: Dir[]; ranges?: [number, number][]; rows?: boolean }
+  | { kind: "net"; days?: number[] };
 
 /** Hours each chart starts after midnight. */
 export const OFFSET = 3;
@@ -23,13 +33,6 @@ export const CHARTS: Record<ChartId, { label: string; dows: number[]; dailyNet: 
   wedTue: { label: "Wed–Tue", dows: [3, 4, 5, 6, 0, 1, 2], dailyNet: true },
 };
 export const CHART_IDS: ChartId[] = ["sat", "friSun", "wedTue"];
-
-export const LENSES: Record<Lens, string> = {
-  peak: "Busiest hour",
-  total: "Total cars",
-  net: "Net up the hill",
-};
-export const LENS_IDS: Lens[] = ["peak", "total", "net"];
 
 /** Clock hour (0–23) of an index into a chart's series. */
 export const clockHour = (i: number) => (i + OFFSET) % 24;
