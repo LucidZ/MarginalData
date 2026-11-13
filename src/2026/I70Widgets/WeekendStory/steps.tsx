@@ -52,7 +52,7 @@ export const STEPS: Step[] = [
     body: (f, { first }) => (
       <>
         <p>
-          This is an average winter Saturday at the Eisenhower Tunnel in {first}, hour by hour from 3am to 3am. Above the
+          This is an average Saturday from January to March at the Eisenhower Tunnel in {first}, hour by hour from 3am to 3am. Above the
           line are cars heading west, up to the ski areas. Below it are cars heading east, home to Denver.
         </p>
         <p>A wave goes up in the morning and a wave comes home in the afternoon: about {fmtInt(f.sat.then.total)} vehicles.</p>
@@ -179,11 +179,14 @@ export const STEPS: Step[] = [
     body: (f, { first }) => {
       const [t, n] = [f.friSun.then.dayNet, f.friSun.now.dayNet];
       return (
-        <p>
-          Counting from Friday at 3am: Friday now leaves {fmtInt(n[0])} more vehicles up than it brings back, up from {fmtInt(t[0])}{" "}
-          in {first}. Saturday nets {signed(n[1])}, and Sunday brings {fmtInt(Math.abs(n[2]))} home. The mountains
-          fill up a day earlier.
-        </p>
+        <>
+          <p>Now the gold starts over at 3am each day, and the dot is where that day ends.</p>
+          <p>
+            Friday now leaves {fmtInt(n[0])} more vehicles up than it brings back, up from {fmtInt(t[0])} in {first}.
+            Saturday nets {signed(n[1])}, and Sunday brings {fmtInt(Math.abs(n[2]))} home. The mountains fill up a day
+            earlier.
+          </p>
+        </>
       );
     },
   },
@@ -249,7 +252,7 @@ export const STEPS: Step[] = [
       return (
         <>
           <p>
-            Now the gold starts over at 3am each day and ends on that day's net. People go up Wednesday to Friday and come
+            Each day's gold still starts over at 3am. People go up Wednesday to Friday and come
             down at the weekend's end. In {first}, Friday and Saturday did the filling. Now Thursday and Friday do:
             Thursday {pair(WT.thu)}, Friday {pair(WT.fri)}.
           </p>

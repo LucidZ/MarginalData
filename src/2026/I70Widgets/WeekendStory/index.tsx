@@ -66,10 +66,11 @@ export default function WeekendStory() {
     if (lens === "net") {
       const sign = (v: number) => `${v < 0 ? "−" : "+"}${fmtInt(Math.abs(v))}`;
       if (CHARTS[view.chart].dailyNet) {
-        // The two days that send the most people up, in week order.
+        // The (up to) two days that send the most people up, in week order.
         const fills = (s: typeof cur) =>
           s.dayNet
             .map((v, d) => ({ v, d }))
+            .filter(({ v }) => v > 0)
             .sort((a, b) => b.v - a.v)
             .slice(0, 2)
             .sort((a, b) => a.d - b.d)

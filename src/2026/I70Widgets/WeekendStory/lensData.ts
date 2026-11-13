@@ -15,10 +15,11 @@ export const OFFSET = 3;
 // 3am each day instead of running from the chart's start. A typical week
 // doesn't net to zero (the counter reads westbound high, and January–March
 // catches the season filling up but not all of its drain), and a running line
-// piles that up into the week's end; reset daily, it stays a few hundred cars.
+// piles that up into the week's end; reset daily, each day carries only its
+// own error. Fri–Sun resets too, so the Wed–Tue chart reads the same way.
 export const CHARTS: Record<ChartId, { label: string; dows: number[]; dailyNet: boolean }> = {
   sat: { label: "Saturday", dows: [6], dailyNet: false },
-  friSun: { label: "Fri–Sun", dows: [5, 6, 0], dailyNet: false },
+  friSun: { label: "Fri–Sun", dows: [5, 6, 0], dailyNet: true },
   wedTue: { label: "Wed–Tue", dows: [3, 4, 5, 6, 0, 1, 2], dailyNet: true },
 };
 export const CHART_IDS: ChartId[] = ["sat", "friSun", "wedTue"];

@@ -17,7 +17,6 @@ export const SPANS: Record<Span, { label: string; dows: number[] }> = {
   wedWed: { label: "Wed–Wed", dows: [3, 4, 5, 6, 0, 1, 2, 3] },
 };
 
-const SKIP_HOLIDAYS = ["mlk", "presidents", "xmas_ny"];
 // Tunnel WB timestamps ran up to ~1.25 h early from 2006 until the counter
 // was serviced in May 2010. Those seasons are still drawn, flagged with an
 // asterisk, but kept out of clean seasons' 3-season averages.
@@ -32,13 +31,12 @@ export interface Prof {
 /** profiles[year][dow] */
 export type Profiles = Map<number, Prof[]>;
 
-/** Hourly sums per season and weekday over usable days (Jan–Mar, complete, no closure, no holiday weekend). */
+/** Hourly sums per season and weekday over usable days (Jan–Mar, complete, no closure; holiday weekends included). */
 const buildSums = (ds: Dataset) => {
   const sums = new Map<number, { wb: number[]; eb: number[]; n: number }[]>();
   for (let i = 0; i < ds.n; i++) {
     const d = ds.dates[i];
     if (d.getUTCMonth() > 2) continue;
-    if (SKIP_HOLIDAYS.includes(ds.days.holidays[ds.days.holiday[i]])) continue;
     if (!ds.days.complete[i] || ds.days.closure[i]) continue;
     const y = d.getUTCFullYear();
     let yr = sums.get(y);
