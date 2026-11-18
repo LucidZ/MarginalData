@@ -123,7 +123,45 @@ python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-ve
       Smoke test: `node tests/bikenet-photo-check.mjs <html> <shot_dir>` (needs network).
       Builder-only env: `uv pip install geopandas pyogrio shapely pandas numpy` is enough.
       Also fixed crash severity labels (source typos NOPN-INCAPACITATING, POSSIBLY INJURY).
-- [ ] **NEXT**: verify top gaps on the ground / imagery (use the photo panel)
+- [ ] verify top gaps on the ground / imagery (use the photo panel)
+- [~] **Routing de-risk** (2026-11-18, `scripts/boulder_bikenet/route_test.py` → `data/boulder_bikenet/routing/`
+      route-test.html + .csv; OSM graph cached as graphml). osmnx `network_type="all"` on city + 1 km,
+      motorway/trunk/steps/bicycle=no/private dropped, oneway respected + `oneway:bicycle=no` contraflow,
+      largest strongly connected component (30.7k nodes). Edge classes reuse the audit `categorize()`:
+      protected / painted / quiet street / busy street (primary–tertiary, no lane) / untagged path or
+      sidewalk. Profiles = length multipliers: shortest (all 1), balanced (painted 1.2, painted on
+      arterial 1.5, quiet 1.3, untagged path 1.6, busy 3), cautious (1.5/2.2/1.6/2.2/6).
+      Test pairs (Lucas): from South (Table Mesa/Moorhead), North (Broadway/Violet), East
+      (Arapahoe/Cherryvale) to Downtown Pearl (14th), East Pearl/Google (30th), CU (Norlin) — pins are
+      my guesses, Lucas to adjust. Balanced: detour +0–17% over shortest, protected share 48–79% (vs
+      2–45% on shortest), busy-street share 0% on all 9. Looks plausible on the map (Broadway path
+      S→downtown, Arapahoe path E→downtown, 13th St lanes N→downtown). Sidepaths along arterials
+      count as protected (driveway/intersection crossings not penalized). Lucas: "pretty good".
+- [x] Client-side routing feasible (measured 2026-11-18): graph ≈ 0.5 MB gzip as packed binary
+      (30.7k nodes, 44k edges, shapes), JS A* all three profiles 1.5 ms. Static site, no server needed.
+- [~] **Commute prototype** `scripts/boulder_bikenet/build_commute_proto.py` →
+      `data/boulder_bikenet/routing/commute-proto.html` (3.1 MB, graph inlined as JSON; MVP should ship
+      packed binary). Drop/drag A-B pins, Shortest/Balanced/Cautious toggle (Lucas wants all three kept:
+      riders differ), split bar, compare table, other styles as dashed ghosts, test-pair picker.
+      Results match route_test.py exactly. 2026-11-18: "shortest" (pure distance) replaced by
+      "direct" (busy ×1.1, arterial painted ×1.05, untagged path ×1.05, quiet ×1.03, painted ×1.02):
+      pure distance took Broadway's roadway over the side path next to it on a few meters of mapping
+      noise (Lucas spotted it at Broadway/Euclid). Direct adds ≤70 m (1.5%) on the 9 pairs and cuts
+      busy share e.g. E→Pearl 76%→10%, S→Pearl 39%→2%; "extra" now measured vs direct. Next: Lucas tries his real commute; then "what if version X's
+      first N km were built" re-labelling.
+- Shared-sidewalk class tried and reverted (2026-11-18). Lucas: a curbed, bike-designated sidewalk
+  counts as protected; exposure shows up at the crossings (already purple). Hanover Ave is tagged
+  `highway=cycleway` "Hanover Multi-use Path", 10' (2025 Street View: wider-than-average sidewalk,
+  planting strip in places) — stays protected. Graph cache is now `boulder-street-graph-v2.graphml`
+  (adds `footway` tag; fresher OSM, small shifts in route numbers).
+  If more rigour is wanted later, without photos: (1) geometric side-path test — ~88 of 276 km of
+  protected paths run within 20 m of a road centreline, stable across 60–90% thresholds (Hanover 100%);
+  (2) Level of Traffic Stress (PeopleForBikes BNA rules on OSM); (3) check for a City of Boulder
+  bike-facility inventory layer.
+- Mapillary token handling (2026-11-18): never in HTML. Preview loads gitignored sibling
+  `mapillary-token.js` written by the builder; builder refuses to write HTML containing the token.
+  Token never in git history (checked all branches). MVP caveat: a `VITE_` var is bundled into the
+  deployed JS (gh-pages commits) — decide: accept (it's a client token) or proxy.
 - [ ] Fix gap `name` isn't stable across runs: the same 581 m gap is "Ludlow Street" in v1 and
       "Toedtli Drive" in v2 (it runs along Toedtli). Label gaps with `street_names()` like Grow does.
 - [ ] MVP port to site

@@ -39,8 +39,8 @@ FILES = {
 
 
 def mapillary_token():
-    """VITE_MAPILLARY_TOKEN from the env or the repo's .env.local. The preview is local-only and
-    gitignored, so embedding the client token in it is fine; never publish the built HTML."""
+    """VITE_MAPILLARY_TOKEN from the env or the repo's .env.local. Never written into the HTML:
+    main() puts it in a sibling mapillary-token.js (gitignored with the rest of data/)."""
     if os.environ.get("VITE_MAPILLARY_TOKEN"):
         return os.environ["VITE_MAPILLARY_TOKEN"]
     env = Path(__file__).resolve().parents[2] / ".env.local"
@@ -132,8 +132,11 @@ def desire_lines(trips, cell_m=600, top=250):
 
 def main(work, audit_dir, out_path):
     work, audit_dir = Path(work), Path(audit_dir)
-    D = {"versions": VERSIONS, "differs": DIFFERS, "tools": {}, "mly": mapillary_token()}
-    if not D["mly"]:
+    D = {"versions": VERSIONS, "differs": DIFFERS, "tools": {}}
+    token, token_js = mapillary_token(), Path(out_path).parent / "mapillary-token.js"
+    if token:
+        token_js.write_text(f"window.MLY_TOKEN = {json.dumps(token)};\n")
+    else:
         print("warning: no VITE_MAPILLARY_TOKEN, photo panel disabled")
 
     audit = gpd.read_file(audit_dir / "boulder-osm-bike-audit.gpkg")
@@ -167,6 +170,8 @@ def main(work, audit_dir, out_path):
     D["commute_total"] = int(trips.num.sum())
 
     html = TEMPLATE.replace("__DATA__", json.dumps(D, separators=(",", ":")))
+    if token and token in html:
+        sys.exit("refusing to write: Mapillary token found in the HTML")
     Path(out_path).write_text(html)
     print("wrote", out_path, f"{len(html) / 1e6:.1f} MB")
 
@@ -176,6 +181,7 @@ TEMPLATE = r"""<!doctype html><html><head><meta charset="utf-8">
 <title>Boulder BikeNetKit Versions</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="mapillary-token.js"></script><!-- optional, gitignored; written by the builder -->
 <style>
 :root{--ink:#1d1d1f;--muted:#6b6b70;--line:#e3e3e6;--bg:#fff;--accent:#e8590c}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 system-ui,sans-serif}
@@ -241,6 +247,7 @@ Click any line, crash, list item or spot on the map for the nearest street-level
 </div></div></div>
 <script>
 const D = __DATA__;
+const MLY = window.MLY_TOKEN || '';
 const TOOLS = {
   fix: {label: 'FixBikeNet top-50 gaps', color: '#d62728', on: true},
   link: {label: 'LinkBikeNet links', color: '#7b3fb5', on: false},
@@ -422,7 +429,7 @@ map.on('click', e => photoAt(e.latlng, null, 'Clicked spot'));
 async function fetchImages(ll, r) {
   const dLat = r / M_LAT, dLon = r / M_LON;
   const bbox = [ll.lng - dLon, ll.lat - dLat, ll.lng + dLon, ll.lat + dLat].map(v => v.toFixed(6)).join(',');
-  const res = await fetch(`https://graph.mapillary.com/images?access_token=${D.mly}&fields=${FIELDS}&bbox=${bbox}&limit=500`);
+  const res = await fetch(`https://graph.mapillary.com/images?access_token=${MLY}&fields=${FIELDS}&bbox=${bbox}&limit=500`);
   if (!res.ok) throw new Error(`Mapillary ${res.status}`);
   const here = [ll.lng, ll.lat];
   return ((await res.json()).data || []).map(m => {
@@ -441,7 +448,7 @@ async function photoAt(ll, bearing, title) {
   for (const b of ['prev', 'next', 'flip']) ph(b).disabled = true;
   photoLayer.clearLayers();
   L.circleMarker(ll, {radius: 6, color: '#111', weight: 2, fill: false, interactive: false}).addTo(photoLayer);
-  if (!D.mly) { ph('img').textContent = 'No Mapillary token (VITE_MAPILLARY_TOKEN in .env.local) at build time.'; return; }
+  if (!MLY) { ph('img').textContent = 'No mapillary-token.js next to this page (rebuild with VITE_MAPILLARY_TOKEN in .env.local).'; return; }
   ph('img').textContent = 'Looking for photos…';
   try {
     let imgs = await fetchImages(ll, 25);
