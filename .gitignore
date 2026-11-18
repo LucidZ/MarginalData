@@ -59,3 +59,4 @@ yarn-error.log
 tests/screenshots/
 tests/results/
 playwright-report/
+/cache/

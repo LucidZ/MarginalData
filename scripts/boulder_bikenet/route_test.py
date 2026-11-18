@@ -6,8 +6,9 @@ the routes plus a CSV of the stats.
 Usage:
     python -I route_test.py <work_dir> <out_dir>
 
-<work_dir> = data/boulder_bikenet (city boundary from v1's Fix gpkg). The OSM graph is cached in
-<out_dir>/boulder-street-graph-v2.graphml (v2 adds the footway tag).
+<work_dir> = data/boulder_bikenet (city boundary from v1's Fix gpkg). The street graph is built from
+the local Geofabrik extract in data/osm/ (see osm_extract.py; no Overpass calls) and cached in
+<out_dir>/boulder-street-graph-v3.graphml (v3: built from the extract; v2 was Overpass + footway tag).
 """
 
 import json
@@ -21,7 +22,9 @@ import pandas as pd
 from shapely.geometry import LineString
 
 sys.path.insert(0, str(Path(__file__).parent))
-from audit_osm_tagging import categorize  # noqa: E402  (also extends ox.settings.useful_tags_way)
+from osm_extract import PBF_NAME, graph_from_extract  # noqa: E402
+from audit_osm_tagging import (CYCLEWAY_COLS, categorize, direction_level, is_true,  # noqa: E402
+                               undirected_level)  # (importing also extends ox.settings.useful_tags_way)
 
 ox.settings.useful_tags_way += ["oneway:bicycle", "maxspeed", "lanes", "footway"]
 
@@ -61,26 +64,47 @@ def first(v):
 
 
 def load_graph(work, out):
-    cache = out / "boulder-street-graph-v2.graphml"
+    cache = out / "boulder-street-graph-v3.graphml"
     if cache.exists():
         return ox.load_graphml(cache)
     fix = next((work / "v1" / "results").glob("boulder-fixbikenet-gaps.gpkg"))
     city = gpd.read_file(fix, layer="City boundary").to_crs(26913).buffer(1000).to_crs(4326).iloc[0]
-    g = ox.graph_from_polygon(city, network_type="all", simplify=True, retain_all=False)
+    osm = work.parent / "osm"
+    g = graph_from_extract(osm / PBF_NAME, city, osm / "boulder-buffered.osm")
     ox.save_graphml(g, cache)
     return g
 
 
+def travel_direction(d):
+    """Which side's cycleway tags apply to this directed edge (see audit direction_level). A
+    simplified edge merged from ways drawn both ways has reversed=[False, True]: no single side."""
+    if d.get("contraflow"):
+        return "contraflow"
+    if is_true(d.get("oneway")):
+        return "oneway"
+    rev = d.get("reversed")
+    if isinstance(rev, list) and len(set(rev)) > 1:
+        return None
+    return "backward" if is_true(rev) else "forward"
+
+
 def bike_class(d):
-    row = {k: first(d.get(k)) for k in ["highway", "bicycle", "access", "cycleway", "cycleway:right",
-                                         "cycleway:left", "cycleway:both", "cyclestreet", "bicycle_road"]}
-    cat = categorize(row)
+    row = {k: d.get(k) for k in ["highway", "bicycle", "access", "cyclestreet", "bicycle_road",
+                                 "oneway", "oneway:bicycle"] + CYCLEWAY_COLS}
+    row.update({k: first(row[k]) for k in ["highway", "bicycle", "access", "cyclestreet", "bicycle_road",
+                                           "oneway:bicycle"]})
+    # Off-street classes come from the way itself; on-street lanes depend on direction of travel
+    cat = categorize({**row, **{c: None for c in CYCLEWAY_COLS}})
     if cat == "protected (counted)":
         return "protected"
-    if cat == "painted lane (ignored)":
-        return "painted"
     if cat == "path, bike access untagged (ignored)":
         return "path/sidewalk (untagged)"
+    direction = travel_direction(d)
+    level = undirected_level(row) if direction is None else direction_level(row, direction)
+    if level == 2:
+        return "protected"
+    if level == 1:
+        return "painted"
     return "busy street" if row["highway"] in ARTERIAL else "quiet street"
 
 
@@ -98,7 +122,8 @@ def prepare(g):
     add = []
     for u, v, k, d in g.edges(keys=True, data=True):
         if first(d.get("oneway:bicycle")) == "no" and not g.has_edge(v, u):
-            r = dict(d)
+            r = dict(d, contraflow=True)
+            r["cls"] = bike_class(r)
             if "geometry" in r:
                 r["geometry"] = LineString(r["geometry"].coords[::-1])
             add.append((v, u, r))

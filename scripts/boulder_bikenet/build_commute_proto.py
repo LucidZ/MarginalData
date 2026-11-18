@@ -43,10 +43,17 @@ def export(g):
             e = merged[key] = {"dirs": set(), "pts": pts, "name": name_i[name]}
         e["dirs"].add(a < b)
 
+    # Streets whose class depends on direction of travel (e.g. climbing lane + downhill sharrow);
+    # the context map shows these at the lesser class.
+    seen = {}
+    for (a, b, length, cls, art) in merged:
+        seen.setdefault((a, b, length), set()).add(cls)
+
     E, SO, SP = [], [0], []
     for (a, b, length, cls, art), e in merged.items():
         ow = 0 if len(e["dirs"]) == 2 else 1 if True in e["dirs"] else 2  # 1: a->b only, 2: b->a only
-        E += [a, b, round(length * 10), cls_i[cls] | (int(art) << 3) | (ow << 4), e["name"]]
+        mixed = len(seen[(a, b, length)]) > 1
+        E += [a, b, round(length * 10), cls_i[cls] | (int(art) << 3) | (ow << 4) | (int(mixed) << 6), e["name"]]
         for x, y in e["pts"]:
             SP += [round(x * COORD), round(y * COORD)]
         SO.append(len(SP) // 2)
@@ -143,7 +150,7 @@ for (let i = 0; i < N; i++) { X[i] = D.xy[2 * i] / 1e6 * MX; Y[i] = D.xy[2 * i +
 const EA = new Int32Array(E), EB = new Int32Array(E), ELEN = new Float64Array(E), ECLS = new Uint8Array(E), EART = new Uint8Array(E), ENAME = new Int32Array(E);
 const deg = new Int32Array(N + 1);
 for (let k = 0; k < E; k++) {
-  const a = D.e[5 * k], b = D.e[5 * k + 1], f = D.e[5 * k + 3], ow = f >> 4;
+  const a = D.e[5 * k], b = D.e[5 * k + 1], f = D.e[5 * k + 3], ow = (f >> 4) & 3;
   EA[k] = a; EB[k] = b; ELEN[k] = D.e[5 * k + 2] / 10; ECLS[k] = f & 7; EART[k] = (f >> 3) & 1; ENAME[k] = D.e[5 * k + 4];
   if (ow !== 2) deg[a + 1]++;
   if (ow !== 1) deg[b + 1]++;
@@ -151,7 +158,7 @@ for (let k = 0; k < E; k++) {
 for (let i = 0; i < N; i++) deg[i + 1] += deg[i];
 const ADJ = new Int32Array(deg[N]), fill = deg.slice(0, N); // ADJ holds edge id, negated-1 when traversed b->a
 for (let k = 0; k < E; k++) {
-  const ow = D.e[5 * k + 3] >> 4;
+  const ow = (D.e[5 * k + 3] >> 4) & 3;
   if (ow !== 2) ADJ[fill[EA[k]]++] = k;
   if (ow !== 1) ADJ[fill[EB[k]]++] = -k - 1;
 }
@@ -237,7 +244,7 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_L
   {attribution: 'Tiles &copy; Esri | Streets &copy; OpenStreetMap contributors', maxZoom: 19, maxNativeZoom: 16}).addTo(map);
 (() => { // faint protected network for context
   const lines = [];
-  for (let k = 0; k < E; k++) if (ECLS[k] === 0) lines.push(edgeCoords(k));
+  for (let k = 0; k < E; k++) if (ECLS[k] === 0 && !(D.e[5 * k + 3] & 64)) lines.push(edgeCoords(k));
   L.polyline(lines, {color: COL.protected, weight: 1.5, opacity: .35, interactive: false}).addTo(map);
 })();
 

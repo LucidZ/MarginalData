@@ -63,9 +63,17 @@ W=data/boulder_bikenet
 python -I scripts/boulder_bikenet/fetch_crashes.py $W/data
 python -I scripts/boulder_bikenet/fetch_lodes.py <dl_dir> $W/v1/results/boulder-fixbikenet-gaps.gpkg 2024  # then copy lodes_trips.csv to $W/data
 for v in v0 v1 v2 v3 v4; do (cd $W/$v && python -I ../../../scripts/boulder_bikenet/run_bikenetkit.py $v ../data); done
-python -I scripts/boulder_bikenet/audit_osm_tagging.py   # from $W/audit/.. writes ./results
+# OSM for our own scripts comes from a local Geofabrik extract, never public Overpass (their policy
+# asks scripted clients not to). Refresh = re-download + delete the v3 graphml. BikeNetKit is fine
+# as is: bikenetlib points osmnx at the toolkit's own server, overpass.bikenetkit.org.
+python -I scripts/boulder_bikenet/osm_extract.py download data/osm      # Colorado .pbf, md5-checked
+python -I scripts/boulder_bikenet/route_test.py $W $W/routing           # builds routing/boulder-street-graph-v3.graphml
+python -I scripts/boulder_bikenet/build_commute_proto.py $W $W/routing/commute-proto.html
+(cd <tmp> && python -I .../audit_osm_tagging.py $W/routing/boulder-street-graph-v3.graphml \
+   $W/v1/results/boulder-fixbikenet-gaps.gpkg)                           # writes ./results -> copy to $W/audit
 python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-versions.html
 ```
+(Python env for our scripts: osmnx osmium geopandas pyogrio shapely pandas scikit-learn.)
 (fetch_lodes needs a v1 Fix gpkg only for the city boundary layer.) Full v0–v4 run ≈ 15 min.
 
 ## Results (2026-11-12)
@@ -154,6 +162,31 @@ python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-ve
   `highway=cycleway` "Hanover Multi-use Path", 10' (2025 Street View: wider-than-average sidewalk,
   planting strip in places) — stays protected. Graph cache is now `boulder-street-graph-v2.graphml`
   (adds `footway` tag; fresher OSM, small shifts in route numbers).
+- **Direction-aware lanes + sharrow fix** (2026-11-18). Lucas spotted 17th St (curve near 40.011,
+  -105.2725: climbing lane one way, sharrow the other, tagged `cycleway:left=lane` +
+  `cycleway:right=shared_lane`) drawn the same as Folsom's real lanes. Two bugs in `categorize()`:
+  (1) `has(..., "lane")` is a substring match, so every `shared_lane` (sharrow) counted as painted;
+  (2) any side's lane counted for both directions. Now `audit_osm_tagging.py` has
+  `side_level`/`direction_level`/`undirected_level`; the router classes each directed edge by its
+  side (right = along the way, left = against; one-way: both sides, contraflow edges use left /
+  `opposite_*`; merged edges with mixed `reversed` fall back to lesser). Maps without a direction
+  (audit painted layer, proto's faint protected layer via bit 64 "mixed") show the **lesser** class.
+  Same graph: painted 164 km -> 75 km + 90 km sharrows; only 8.7 km of street has a lane one way
+  only — the sharrow bug was most of it. Routes barely move (≤ +90 m); painted share drops a lot
+  (e.g. N->Pearl balanced 44% -> 21%), sharrow streets now count as quiet/busy. Audit can now run on
+  the routing cache (`audit_osm_tagging.py <graphml> <v1 fix gpkg>`) — Overpass refused the
+  scripted download that day; audit and router now share one OSM snapshot.
+- **OSM from a local extract** (2026-11-18). `osm_extract.py`: Geofabrik `colorado-latest.osm.pbf`
+  (389 MB, `data/osm/`, snapshot 2026-11-17T21:24Z, recorded in the graph's `osm_source`) ->
+  pyosmium cut of network ways around the buffered polygon -> OSM XML -> same steps as
+  `ox.graph_from_polygon(network_type="all")`. Matches the Overpass v2 graph: same tags on every
+  way, 3 ways missing (added to OSM after the snapshot). One deliberate difference: simplification
+  no longer merges ways whose bike tags differ (`edge_attrs_differ`). Before, merged edges stored
+  tags as lists in arbitrary set order and `first()` picked one, so ~23 km of edges flipped class
+  between builds (v2 vs first v3). Graph 32.7k -> 35.9k nodes; rebuilds are now byte-identical.
+  Route effect vs v2: lengths within 90 m, busy share unchanged, protected share down 0–4.5 pts
+  (merged half-path edges no longer count as all-protected). Audit: painted 73 km, sharrows 90,
+  protected 240, untagged path 391.
   If more rigour is wanted later, without photos: (1) geometric side-path test — ~88 of 276 km of
   protected paths run within 20 m of a road centreline, stable across 60–90% thresholds (Hanover 100%);
   (2) Level of Traffic Stress (PeopleForBikes BNA rules on OSM); (3) check for a City of Boulder
