@@ -114,6 +114,35 @@ python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-ve
   $14/1k after 5k free (2026 pricing). ~10 images per walkthrough → ~1k free walkthroughs/mo; viral
   50k walkthroughs ≈ $2.9k. Possible capped fallback for stops without Mapillary coverage.
 
+## Site page (2026-11-18, unlisted, not deployed)
+`/2026/BoulderBikeNet` (registered in `src/App.tsx` outside ROUTES, like the I-70 sketches). Lucas: build
+and refine, don't publish the network-only MVP; "plot your own path" likely ships in the first public
+version. One page, two modes on one Leaflet map: **The network** (preview map port: versions, diff vs v1,
+Grow km slider, inputs, top-10 Fix / Grow lists) and **Your route** (prototype port: pins, 3 styles,
+split bar, compare table, examples). Shared Mapillary photo panel (`VITE_MAPILLARY_TOKEN`, inlined into
+the page chunk at build: client token, acceptable; consider a separate site token restricted by domain).
+Code: `src/2026/BoulderBikeNet/` (routing.ts = A* port, photos.ts, networkLayers.ts, routeLayers.ts).
+Data: `python -I scripts/boulder_bikenet/export_site_data.py $W $W/audit public/data/boulder-bikenet`.
+Payload (gzip, GitHub Pages compresses JSON): network.json 0.25 MB (5 versions share 758 geometries),
+graph.json 0.71 MB (fetched on first route-mode open; shapes simplified 1.5e-5°), page JS 10 KB,
+leaflet 42 KB, + Esri tiles and Mapillary images (~100–300 KB per photo). Smoke test:
+`node tests/bikenet-page-check.mjs http://localhost:<port> <shot_dir>`.
+
+Revisions after Lucas's first look (2026-11-18):
+- 63rd St north of Jay "protected" was right: OSM maps a separate concrete sidepath (`highway=cycleway`,
+  ~8 m off centerline); Mapillary Oct 2024 photos confirm. Lucas: keep side paths as protected.
+- Network mode simplified: default = v1 data + "Extend today's network" (grow_existing) only. Method
+  (radio, one at a time) and data versions live under a collapsed "Advanced". Panel shows that
+  method's first/top 10; clicking one outlines it on the map, fades the rest, frames it, opens a photo;
+  clicking a map line selects its list item. Plain names: Extend today's network / Build from scratch
+  / Close the worst gaps / Connect isolated pieces. Link features now carry street names.
+- Route mode: Google-Maps-style From/To search, all in-page (Lucas chose this over Nominatim to keep
+  "nothing leaves your browser"): `places.json` (0.30 MB gz) = 30.1k OSM addresses + 3.4k named
+  places (incl. multipolygon areas, neighbourhoods; bus stops deduped by name) from the local extract.
+  Nicknames: CU, CU Boulder, 29th St Mall. Dropped/dragged pins are labelled "Near <address>".
+  "Use my location" (browser geolocation), swap, A/B as fixed slots. Search ≈ 7 ms per keystroke.
+- Open: the Extend list includes near-zero links (e.g. "Canal Path 0.0 km") from BikeNetKit's run.
+
 ## Status
 - [x] v0–v4 runs, crash + LODES data, versioned preview map
 - [x] commit scripts + spec on `boulder-bikenet`
