@@ -32,8 +32,9 @@ const bothWays = (s: Season, ranges: [number, number][]) =>
   ranges.reduce((t, r) => t + sumRange(s.wb, r) + sumRange(s.eb, r), 0);
 const Gold = ({ children }: { children: ReactNode }) => <span className="i70s-gold">{children}</span>;
 
-// Saturday hours 3am–8am: the early start.
-const SAT_EARLY: [number, number][] = [[0, 5]];
+// Saturday hours westbound: 7am to 3am, the rest of the day, and 3am–7am, the early start.
+const SAT_DAY: [number, number][] = [[4, 24]];
+const SAT_EARLY: [number, number][] = [[0, 4]];
 // Wed–Tue: Friday 3pm to the end of Sunday's day (3am Monday), and the rest of the week.
 const WEEKEND: [number, number][] = [[2 * 24 + 12, 5 * 24]];
 const REST: [number, number][] = [
@@ -57,8 +58,8 @@ export const STEPS: Step[] = [
     hl: null,
     text: (_, { first }) => (
       <>
-        This is an average winter Saturday at the Eisenhower Tunnel in {first}: cars heading up to the ski areas
-        above the line, cars heading home to Denver below it.
+        This was an average winter Saturday at the Eisenhower Tunnel in {first}. Vehicles heading up into Summit County
+        above the line, and then heading towards Denver below it.
       </>
     ),
   },
@@ -68,8 +69,8 @@ export const STEPS: Step[] = [
     hl: { kind: "peak", dirs: ["wb", "eb"] },
     text: (f) => (
       <>
-        It's the classic weekend warrior: drive up in the morning (busiest at{" "}
-        <Gold>{clock(topPeak(f.sat.then, "wb").i)}</Gold>), ski, and drive home in the afternoon (busiest at{" "}
+        It reflects the classic weekend warrior driving up in the morning (peak traffic at{" "}
+        <Gold>{clock(topPeak(f.sat.then, "wb").i)}</Gold>), skiing, and driving home in the afternoon (peak traffic at{" "}
         <Gold>{clock(topPeak(f.sat.then, "eb").i)}</Gold>).
       </>
     ),
@@ -79,46 +80,44 @@ export const STEPS: Step[] = [
     season: "first",
     hl: null,
     scrub: true,
-    text: (_, { first }) => <>Over the next 30 winters, Denver grew by about {Math.round((popGrowth(first).pct * 100) / 5) * 5}%…</>,
-  },
-  {
-    chart: "sat",
-    season: "today",
-    hl: { kind: "gap", dirs: ["wb", "eb"] },
     text: (f) => (
       <>
-        …and winter Saturday traffic grew by <Gold>{pctWord(f.sat.then.total, f.sat.now.total)}</Gold>.
+        Over the next 30 winters, Saturday traffic grew by <Gold>{pctWord(f.sat.then.total, f.sat.now.total)}</Gold>.
       </>
     ),
   },
   {
     chart: "sat",
     season: "today",
-    hl: { kind: "gap", dirs: ["wb"], ranges: SAT_EARLY },
+    hl: { kind: "gap", dirs: ["wb", "eb"] },
+    text: () => (
+      <>
+        ...but the shape of that traffic changed as well.
+      </>
+    ),
+  },
+  {
+    chart: "sat",
+    season: "today",
+    hl: { kind: "gap", dirs: ["wb"], ranges: SAT_DAY, shade: false },
+    text: () => (
+      <>
+        Instead of a defined peak early in the morning, westbound traffic stays consistently high through most of the
+        day.
+      </>
+    ),
+  },
+  {
+    chart: "sat",
+    season: "today",
+    hl: { kind: "gap", dirs: ["wb"], ranges: SAT_EARLY, shade: false },
     text: (f) => {
       // The 6am hour, westbound.
       const r = f.sat.now.wb[3] / f.sat.then.wb[3];
       return (
         <>
-          With more people heading up, drivers started leaving earlier to beat the traffic: the 6am hour now carries{" "}
+          And some of it starts earlier, ahead of the traffic: the 6am hour now carries{" "}
           <Gold>{r >= 1.95 ? `${Math.round(r)} times` : `${pctWord(1, r)} more`}</Gold> {r >= 1.95 ? "as many cars" : "cars"}.
-        </>
-      );
-    },
-  },
-  {
-    chart: "sat",
-    season: "today",
-    hl: { kind: "gap", dirs: ["wb", "eb"], rows: true },
-    text: (f) => {
-      const { then, now } = f.sat;
-      const [w, e] = [now.totalDir.wb / then.totalDir.wb - 1, now.totalDir.eb / then.totalDir.eb - 1];
-      const ratio = e / w;
-      const vs = ratio >= 1.7 && ratio <= 2.3 ? "nearly double" : ratio > 1.2 ? "well ahead of" : "about the same as";
-      return (
-        <>
-          But traffic home grew <Gold>{pctWord(then.totalDir.eb, now.totalDir.eb)}</Gold>, {vs} the{" "}
-          <Gold>{pctWord(then.totalDir.wb, now.totalDir.wb)}</Gold> heading up. Why?
         </>
       );
     },

@@ -52,7 +52,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   // Net days drawn strong (all of them unless the step names some).
   const strong = (k: number) => hl?.kind !== "net" || !hl.days || !dailyNet || hl.days.includes(k);
   // Room up top for day names and the highlight's per-day row, and below the hour ticks for eastbound's row.
-  const m = { top: multi ? 46 : 30, right: compact ? (showNet ? 34 : 10) : 56, bottom: 42, left: compact ? 40 : 52 };
+  const m = { top: multi ? 46 : 30, right: compact ? (showNet ? 34 : 10) : 56, bottom: 42, left: compact ? 54 : 68 };
 
   // Hourly scale fixed per chart over every season, so it holds still during the scrub.
   const yMax = useMemo(() => {
@@ -88,15 +88,29 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
     const a = series(pinYr ?? cur, dir);
     const b = series(cur, dir);
     if (!a || !b) return "";
-    const idx = a.map((_, i) => i).slice(from, to);
+    // Sample the lines as drawn (points at mid-hour, straight between): the range's edges,
+    // each hour inside it, and wherever the lines cross, so the fill switches sides right there.
+    const at = (v: number[], t: number) => {
+      const i = Math.max(0, Math.min(Math.floor(t - 0.5), v.length - 2));
+      return v[i] + (v[i + 1] - v[i]) * (t - 0.5 - i);
+    };
+    const diff = (t: number) => at(b, t) - at(a, t);
+    const [t0, t1] = [Math.max(from, 0.5), Math.min(to, a.length - 0.5)];
+    const knots = [t0, ...a.map((_, i) => i + 0.5).filter((t) => t > t0 && t < t1), t1];
+    const ts: number[] = [];
+    knots.forEach((t, k) => {
+      const prev = knots[k - 1];
+      if (k > 0 && diff(prev) * diff(t) < 0) ts.push(prev + ((t - prev) * diff(prev)) / (diff(prev) - diff(t)));
+      ts.push(t);
+    });
     const sign = dir === "wb" ? 1 : -1;
-    const lo = (i: number) => (gain ? a[i] : Math.min(a[i], b[i]));
-    const hi = (i: number) => (gain ? Math.max(a[i], b[i]) : a[i]);
+    const lo = (t: number) => (gain ? at(a, t) : Math.min(at(a, t), at(b, t)));
+    const hi = (t: number) => (gain ? Math.max(at(a, t), at(b, t)) : at(a, t));
     return (
       area<number>()
-        .x((i) => x(i + 0.5))
-        .y0((i) => y(sign * lo(i)))
-        .y1((i) => y(sign * hi(i)))(idx) ?? ""
+        .x((t) => x(t))
+        .y0((t) => y(sign * lo(t)))
+        .y1((t) => y(sign * hi(t)))(ts) ?? ""
     );
   };
 
@@ -182,7 +196,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           {/* gap: the added cars, under everything, over a shaded window when it has one */}
           {gap && pinYr != null && (
             <g className="i70s-gap">
-              {gap.ranges?.map(([from, to]) => (
+              {gap.shade !== false && gap.ranges?.map(([from, to]) => (
                 <rect key={from} className="i70s-window" x={x(from)} width={x(to) - x(from)} y={m.top} height={height - m.bottom - m.top} />
               ))}
               {gap.dirs.map((dir) =>
@@ -211,6 +225,14 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
               </text>
             </g>
           ))}
+          <text
+            className="i70w-tick"
+            transform={`translate(${compact ? 10 : 14},${y(0)}) rotate(-90)`}
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            Avg. vehicles per hour
+          </text>
           {dows.map((_, d) => (
             <g key={d}>
               {d > 0 && <line x1={x(d * 24)} x2={x(d * 24)} y1={m.top} y2={height - m.bottom} stroke="var(--baseline)" />}
