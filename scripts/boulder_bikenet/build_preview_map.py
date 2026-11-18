@@ -10,6 +10,7 @@ to v1's output (their inputs are identical).
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -35,6 +36,19 @@ FILES = {
     "grow": ("boulder-growbikenet-*-from_scratch.gpkg", "Grown bike network"),
     "grow_existing": ("boulder-growbikenet-*-from_bikenw.gpkg", "Grown bike network"),
 }
+
+
+def mapillary_token():
+    """VITE_MAPILLARY_TOKEN from the env or the repo's .env.local. The preview is local-only and
+    gitignored, so embedding the client token in it is fine; never publish the built HTML."""
+    if os.environ.get("VITE_MAPILLARY_TOKEN"):
+        return os.environ["VITE_MAPILLARY_TOKEN"]
+    env = Path(__file__).resolve().parents[2] / ".env.local"
+    for line in env.read_text().splitlines() if env.exists() else []:
+        key, _, val = line.partition("=")
+        if key.strip() == "VITE_MAPILLARY_TOKEN":
+            return val.strip().strip("'\"")
+    return ""
 
 
 def to_geojson(gdf, cols, simplify_m=2):
@@ -118,7 +132,9 @@ def desire_lines(trips, cell_m=600, top=250):
 
 def main(work, audit_dir, out_path):
     work, audit_dir = Path(work), Path(audit_dir)
-    D = {"versions": VERSIONS, "differs": DIFFERS, "tools": {}}
+    D = {"versions": VERSIONS, "differs": DIFFERS, "tools": {}, "mly": mapillary_token()}
+    if not D["mly"]:
+        print("warning: no VITE_MAPILLARY_TOKEN, photo panel disabled")
 
     audit = gpd.read_file(audit_dir / "boulder-osm-bike-audit.gpkg")
     audit["name"] = audit["name"].fillna("")
@@ -141,7 +157,9 @@ def main(work, audit_dir, out_path):
                 print(v, tool, "from", src, len(g))
 
     crashes = gpd.read_file(work / "data" / "crashes_bike.gpkg")
-    crashes["severity"] = crashes["Severity"].fillna("").str.title()
+    crashes["severity"] = crashes["Severity"].fillna("").replace(  # source typos: NOPN-, POSSIBLY
+        {"NOPN-INCAPACITATING INJURY": "Non-incapacitating injury", "POSSIBLY INJURY": "Possible injury"}
+    ).str.capitalize()
     crashes["year"] = crashes["ReportedYear"].fillna(0).astype(int)
     D["crashes"] = json.loads(crashes[["year", "severity", "geometry"]].to_json(drop_id=True))
     trips = pd.read_csv(work / "data" / "lodes_trips.csv")
@@ -164,6 +182,22 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1
 #wrap{display:flex;height:100%}
 #panel{width:330px;flex:none;overflow-y:auto;border-right:1px solid var(--line);padding:14px 16px;box-sizing:border-box}
 #map{flex:1}
+#mapwrap{flex:1;position:relative;display:flex}
+#photo{position:absolute;top:10px;right:10px;width:380px;max-width:calc(100% - 20px);z-index:1000;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.14);padding:10px 12px;box-sizing:border-box}
+#photo[hidden]{display:none}
+.ph-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.ph-head b{font-size:13px}
+#ph-close{border:0;background:none;font-size:18px;line-height:1;cursor:pointer;color:var(--muted);padding:0 2px}
+#ph-img{background:#f2f2f4;border-radius:5px;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);text-align:center}
+#ph-img img{display:block;width:100%;height:auto}
+#ph-meta{margin:6px 0 4px}
+.ph-ctl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ph-ctl button{border:1px solid var(--line);background:#fafafa;border-radius:6px;padding:3px 8px;font:inherit;cursor:pointer}
+.ph-ctl button:disabled{opacity:.4;cursor:default}
+.ph-ctl a{margin-left:auto}
+.ph-attr{font-size:11px;color:var(--muted);margin-top:4px}
+a{color:#1c5fa8}
+li.go{cursor:pointer}li.go:hover{text-decoration:underline}
 h1{font-size:16px;margin:0 0 2px}h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 6px}
 .sub{color:var(--muted);margin:0 0 8px}
 .vbtns{display:flex;flex-wrap:wrap;gap:4px}
@@ -176,10 +210,12 @@ label{display:flex;align-items:center;gap:6px;margin:3px 0;cursor:pointer}
 ol{margin:4px 0;padding-left:22px}li{margin:1px 0}
 li.new{color:var(--accent);font-weight:600}
 input[type=range]{width:100%}
-@media (max-width:700px){#wrap{flex-direction:column}#panel{width:100%;height:45%;border-right:0;border-bottom:1px solid var(--line)}}
+@media (max-width:700px){#wrap{flex-direction:column}#panel{width:100%;height:45%;border-right:0;border-bottom:1px solid var(--line)}
+#photo{top:auto;bottom:10px;width:auto;left:10px;right:10px}#ph-img img{max-height:30vh;object-fit:contain}}
 </style></head><body><div id="wrap"><div id="panel">
 <h1>Boulder bike network, five ways</h1>
-<p class="sub">BikeNetKit runs on Boulder, CO. Versions differ only in the data fed in.</p>
+<p class="sub">BikeNetKit runs on Boulder, CO. Versions differ only in the data fed in.
+Click any line, crash, list item or spot on the map for the nearest street-level photo.</p>
 <h2>Version</h2><div class="vbtns" id="vbtns"></div>
 <p class="sub" id="vnote"></p>
 <label><input type="checkbox" id="diff" checked> Highlight changes vs v1</label>
@@ -191,9 +227,18 @@ input[type=range]{width:100%}
 <label><input type="checkbox" id="l_painted"><span class="sw" style="background:#e9a23b"></span>Painted lanes (ignored by tools)</label>
 <label><input type="checkbox" id="l_crashes"><span class="sw" style="background:#c2255c;height:8px;width:8px;border-radius:4px"></span>Bike crashes 2018–24 (<span id="ncr"></span>)</label>
 <label><input type="checkbox" id="l_commutes"><span class="sw" style="background:#5f3dc4"></span>Intra-city commutes, LODES 2024</label>
-<h2>Top 10 Fix gaps</h2><ol id="fixlist"></ol>
+<h2>Top 10 Fix gaps <span class="tag">(click to inspect)</span></h2><ol id="fixlist"></ol>
 <h2>Grow (from scratch): first 10 links</h2><ol id="growlist"></ol>
-</div><div id="map"></div></div>
+</div><div id="mapwrap"><div id="map"></div>
+<div id="photo" hidden>
+  <div class="ph-head"><b id="ph-title"></b><button id="ph-close" title="Close">&times;</button></div>
+  <div id="ph-img"></div>
+  <div id="ph-meta" class="tag"></div>
+  <div class="ph-ctl"><button id="ph-prev" title="Previous candidate">&lsaquo;</button><span id="ph-n" class="tag"></span>
+    <button id="ph-next" title="Next candidate">&rsaquo;</button><button id="ph-flip">Look the other way</button>
+    <a id="ph-open" target="_blank" rel="noopener">Open in Mapillary &#8599;</a></div>
+  <div class="ph-attr" id="ph-attr"></div>
+</div></div></div>
 <script>
 const D = __DATA__;
 const TOOLS = {
@@ -208,7 +253,10 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_L
   {attribution: 'Tiles &copy; Esri | Data &copy; OpenStreetMap contributors, City of Boulder, US Census LODES', maxZoom: 16}).addTo(map);
 L.geoJSON(D.boundary, {style: {color: '#888', weight: 1, fill: false, dashArray: '4 4'}, interactive: false}).addTo(map);
 const tip = p => Object.entries(p).filter(([k]) => k !== 'key').map(([k, v]) => `${k}: ${v}`).join('<br>');
-const bind = (f, l) => l.bindTooltip(tip(f.properties), {sticky: true});
+const bind = (f, l) => {
+  l.bindTooltip(tip(f.properties), {sticky: true});
+  l.on('click', e => { L.DomEvent.stopPropagation(e); inspect(f, e.latlng); });
+};
 
 let version = 'v1';
 const state = {fix: true, link: false, grow: false, grow_existing: false};
@@ -257,7 +305,10 @@ function render() {
       const cur = new Set(feats.map(f => f.properties.key));
       const gone = v1keys[t].filter(f => inBudget(t, f) && !cur.has(f.properties.key));
       group.addLayer(L.geoJSON({type: 'FeatureCollection', features: gone},
-        {style: {color: '#555', weight: 2.5, dashArray: '3 5', opacity: .9}, onEachFeature: (f, l) => l.bindTooltip('dropped vs v1<br>' + tip(f.properties), {sticky: true})}));
+        {style: {color: '#555', weight: 2.5, dashArray: '3 5', opacity: .9}, onEachFeature: (f, l) => {
+          l.bindTooltip('dropped vs v1<br>' + tip(f.properties), {sticky: true});
+          l.on('click', e => { L.DomEvent.stopPropagation(e); inspect(f, e.latlng, 'Dropped vs v1'); });
+        }}));
     }
     layers[t] = group.addTo(map);
   }
@@ -275,11 +326,17 @@ function lists(showDiff) {
   const fix = D.tools[version].fix.geo.features.slice(0, 10);
   const fixBase = new Set(v1keys.fix.slice(0, 10).map(f => f.properties.key));
   document.getElementById('fixlist').innerHTML = fix.map(f =>
-    `<li class="${showDiff && D.differs[version].includes('fix') && !fixBase.has(f.properties.key) ? 'new' : ''}">${f.properties.name} <span class="tag">${f.properties.length} m</span></li>`).join('');
+    `<li class="go ${showDiff && D.differs[version].includes('fix') && !fixBase.has(f.properties.key) ? 'new' : ''}">${f.properties.name} <span class="tag">${f.properties.length} m</span></li>`).join('');
   const gr = D.tools[version].grow.geo.features.slice(0, 10);
   const grBase = new Set(v1keys.grow.slice(0, 10).map(f => f.properties.key));
   document.getElementById('growlist').innerHTML = gr.map(f =>
-    `<li class="${showDiff && D.differs[version].includes('grow') && !grBase.has(f.properties.key) ? 'new' : ''}">${f.properties.streets} <span class="tag">${(f.properties.length / 1000).toFixed(1)} km, cum ${(f.properties.length_cumulative / 1000).toFixed(1)} km</span></li>`).join('');
+    `<li class="go ${showDiff && D.differs[version].includes('grow') && !grBase.has(f.properties.key) ? 'new' : ''}">${f.properties.streets} <span class="tag">${(f.properties.length / 1000).toFixed(1)} km, cum ${(f.properties.length_cumulative / 1000).toFixed(1)} km</span></li>`).join('');
+  const go = (id, feats, kind) => [...document.getElementById(id).children].forEach((li, i) => li.onclick = () => {
+    const f = feats[i];
+    map.fitBounds(L.geoJSON(f).getBounds(), {maxZoom: 17, padding: [60, 60]});
+    inspect(f, midpoint(f.geometry), kind);
+  });
+  go('fixlist', fix, 'fix'); go('growlist', gr, 'grow');
 }
 
 const NOTES = {
@@ -308,6 +365,137 @@ for (const id of ['diff', 'l_protected', 'l_painted', 'l_crashes', 'l_commutes']
 const km = document.getElementById('km');
 km.oninput = () => { document.getElementById('kmv').textContent = km.value; render(); };
 document.getElementById('kmv').textContent = km.value;
+
+// ---- Street-level photo panel (Mapillary Graph API, single image per click) ----
+const M_LAT = 110540, M_LON = 111320 * Math.cos(40.015 * Math.PI / 180);
+const xy = ([lon, lat]) => [lon * M_LON, lat * M_LAT];
+const lines = g => g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : [];
+const angDiff = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
+const dist = (a, b) => { const [ax, ay] = xy(a), [bx, by] = xy(b); return Math.hypot(ax - bx, ay - by); };
+
+function bearingAt(geom, ll) { // compass bearing of the segment nearest to ll, or null for points
+  const [px, py] = xy([ll.lng, ll.lat]);
+  let best = null, bd = Infinity;
+  for (const cs of lines(geom)) for (let i = 1; i < cs.length; i++) {
+    const [ax, ay] = xy(cs[i - 1]), [bx, by] = xy(cs[i]), dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+    const d = Math.hypot(ax + t * dx - px, ay + t * dy - py);
+    if (d < bd) { bd = d; best = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360; }
+  }
+  return best;
+}
+function midpoint(geom) { // along-length midpoint of the longest part
+  const cs = lines(geom).sort((a, b) => b.length - a.length)[0];
+  if (!cs) return L.latLng(geom.coordinates[1], geom.coordinates[0]);
+  const seg = cs.slice(1).map((c, i) => dist(cs[i], c)), half = seg.reduce((a, b) => a + b, 0) / 2;
+  let acc = 0;
+  for (let i = 0; i < seg.length; i++) {
+    if (acc + seg[i] >= half) { const t = (half - acc) / (seg[i] || 1), a = cs[i], b = cs[i + 1];
+      return L.latLng(a[1] + t * (b[1] - a[1]), a[0] + t * (b[0] - a[0])); }
+    acc += seg[i];
+  }
+  return L.latLng(cs[0][1], cs[0][0]);
+}
+
+function featureTitle(f, kind) {
+  const p = f.properties;
+  if (kind === 'fix' || (p.benefit !== undefined)) return `Fix gap #${p.ordering + 1}: ${p.name}`;
+  if (kind === 'grow' || p.length_cumulative !== undefined) return `Grow link #${p.ordering + 1}: ${p.streets}`;
+  if (p.link_length !== undefined) return `Link #${p.ordering + 1} (${p.link_length} m)`;
+  if (p.severity !== undefined) return `Bike crash ${p.year}${p.severity ? ', ' + p.severity.toLowerCase() : ''}`;
+  if (p.workers !== undefined) return `Commute flow (${p.workers} workers)`;
+  if (p.name !== undefined) return `Painted lane${p.name ? ': ' + p.name : ''}`;
+  return 'Selected line';
+}
+
+const ph = id => document.getElementById('ph-' + id);
+const photoLayer = L.layerGroup().addTo(map);
+const P = {req: 0, ll: null, bearing: null, imgs: [], list: [], i: 0, flipped: false};
+const FIELDS = 'id,captured_at,compass_angle,computed_compass_angle,geometry,computed_geometry,is_pano,thumb_1024_url,creator';
+
+function inspect(f, ll, kind) {
+  const prefix = kind === 'Dropped vs v1' ? 'Dropped vs v1 — ' : '';
+  photoAt(ll, bearingAt(f.geometry, ll), prefix + featureTitle(f, kind));
+}
+map.on('click', e => photoAt(e.latlng, null, 'Clicked spot'));
+
+async function fetchImages(ll, r) {
+  const dLat = r / M_LAT, dLon = r / M_LON;
+  const bbox = [ll.lng - dLon, ll.lat - dLat, ll.lng + dLon, ll.lat + dLat].map(v => v.toFixed(6)).join(',');
+  const res = await fetch(`https://graph.mapillary.com/images?access_token=${D.mly}&fields=${FIELDS}&bbox=${bbox}&limit=500`);
+  if (!res.ok) throw new Error(`Mapillary ${res.status}`);
+  const here = [ll.lng, ll.lat];
+  return ((await res.json()).data || []).map(m => {
+    const at = (m.computed_geometry || m.geometry).coordinates;
+    return {...m, at, angle: m.computed_compass_angle ?? m.compass_angle, d: dist(at, here)};
+  }).filter(m => m.d <= r);
+}
+
+async function photoAt(ll, bearing, title) {
+  const req = ++P.req;
+  Object.assign(P, {ll, bearing, imgs: [], list: [], i: 0, flipped: false});
+  document.getElementById('photo').hidden = false;
+  ph('title').textContent = title;
+  ph('meta').textContent = ph('attr').textContent = ph('n').textContent = '';
+  ph('open').style.visibility = 'hidden';
+  for (const b of ['prev', 'next', 'flip']) ph(b).disabled = true;
+  photoLayer.clearLayers();
+  L.circleMarker(ll, {radius: 6, color: '#111', weight: 2, fill: false, interactive: false}).addTo(photoLayer);
+  if (!D.mly) { ph('img').textContent = 'No Mapillary token (VITE_MAPILLARY_TOKEN in .env.local) at build time.'; return; }
+  ph('img').textContent = 'Looking for photos…';
+  try {
+    let imgs = await fetchImages(ll, 25);
+    if (!imgs.length) imgs = await fetchImages(ll, 50);
+    if (req !== P.req) return;
+    P.imgs = imgs;
+    if (!imgs.length) { ph('img').textContent = 'No Mapillary photos within 50 m.'; return; }
+    rank(true); show();
+  } catch (err) {
+    if (req === P.req) ph('img').textContent = 'Photo lookup failed: ' + err.message;
+  }
+}
+
+// Order: flat photos facing the wanted way (most recent first), then 360° panoramas, then the rest.
+// No street bearing (crash / empty map click): just most recent first; "other way" flips the first pick.
+function rank(auto) {
+  let want = P.bearing;
+  if (want !== null && P.flipped) want = (want + 180) % 360;
+  if (want === null && P.flipped && P.first) want = (P.first.angle + 180) % 360;
+  const tier = m => want === null ? (m.is_pano ? 1 : 0) : m.is_pano ? 1 : angDiff(m.angle, want) <= 40 ? 0 : 2;
+  P.list = [...P.imgs].sort((a, b) => tier(a) - tier(b) || b.captured_at - a.captured_at || a.d - b.d);
+  // a street has two directions: start with whichever has an aligned photo
+  if (auto && P.bearing !== null && !P.flipped && tier(P.list[0]) !== 0 && P.imgs.some(m => !m.is_pano && angDiff(m.angle, P.bearing) > 140)) {
+    P.flipped = true; return rank();
+  }
+  P.want = want; P.tier = tier; P.i = 0;
+  if (!P.flipped) P.first = P.list[0];
+}
+
+function show() {
+  const m = P.list[P.i], tier = P.tier(m);
+  ph('img').innerHTML = `<img alt="Mapillary street-level photo" src="${m.thumb_1024_url}">`;
+  const when = new Date(m.captured_at).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'});
+  const facing = m.is_pano ? '360° panorama' : `facing ${Math.round(m.angle)}°` +
+    (P.want === null ? '' : tier === 0 ? (P.bearing === null ? ' (opposite view)' : ' (along the street)')
+      : ` (${Math.round(angDiff(m.angle, P.want))}° off ${P.bearing === null ? 'the opposite view' : 'the street'})`);
+  const none = P.want !== null && P.tier(P.list[0]) !== 0 ? 'No flat photo faces this way within range. ' : '';
+  ph('meta').innerHTML = `${none}<b>${when}</b> · ${Math.round(m.d)} m away · ${facing}`;
+  ph('n').textContent = `${P.i + 1} / ${P.list.length}`;
+  ph('prev').disabled = P.i === 0; ph('next').disabled = P.i === P.list.length - 1; ph('flip').disabled = false;
+  ph('open').href = `https://www.mapillary.com/app/?pKey=${m.id}&focus=photo`;
+  ph('open').style.visibility = 'visible';
+  ph('attr').textContent = `© ${m.creator?.username || 'contributor'}, Mapillary, CC-BY-SA`;
+  photoLayer.clearLayers();
+  L.circleMarker(P.ll, {radius: 6, color: '#111', weight: 2, fill: false, interactive: false}).addTo(photoLayer);
+  const [lon, lat] = m.at, a = m.angle * Math.PI / 180, r = 18;
+  const tipLL = [lat + Math.cos(a) * r / M_LAT, lon + Math.sin(a) * r / M_LON];
+  if (!m.is_pano) L.polyline([[lat, lon], tipLL], {color: '#111', weight: 3, interactive: false}).addTo(photoLayer);
+  L.circleMarker([lat, lon], {radius: 5, color: '#fff', weight: 1.5, fillColor: '#111', fillOpacity: 1, interactive: false}).addTo(photoLayer);
+}
+ph('prev').onclick = () => { P.i--; show(); };
+ph('next').onclick = () => { P.i++; show(); };
+ph('flip').onclick = () => { P.flipped = !P.flipped; rank(); show(); };
+ph('close').onclick = () => { document.getElementById('photo').hidden = true; photoLayer.clearLayers(); P.req++; };
 boxes(); render();
 </script></body></html>"""
 

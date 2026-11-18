@@ -111,11 +111,21 @@ python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-ve
 - [x] commit scripts + spec on `boulder-bikenet`
 - [x] Mapillary token in `.env.local` verified 2026-11-18 (Graph API `/images?bbox=…` works; near the
       Toedtli Dr gap: 148 images, 91 from 2025, 47 panos)
-- [ ] **NEXT**: add Mapillary click-to-see photo panel to `build_preview_map.py` (read token from
-      `.env.local`; the preview HTML is local-only, so embedding the token there is fine), rebuild
-      `data/boulder_bikenet/boulder-versions.html`. Python env: recreate the uv py3.12 venv (old one was
-      in a session scratchpad).
-- [ ] verify top gaps on the ground / imagery (use the photo panel)
+- [x] Mapillary photo panel in `build_preview_map.py` (2026-11-18, uncommitted). Token read from
+      `VITE_MAPILLARY_TOKEN` env or `.env.local` and embedded in the local-only HTML (never publish it;
+      the MVP must take the token from Vite env instead). Click a line / crash / empty map spot / Fix or
+      Grow list item → Graph API `/images?bbox` ±25 m (falls back to ±50 m). Ranking: flat photos within
+      40° of the street bearing at the click (most recent first), then 360° panos, then the rest; if
+      only the opposite direction has aligned photos it starts there. ‹ › cycles candidates, "Look the
+      other way" flips the wanted bearing, photo position + view direction drawn on the map. Uses
+      `computed_compass_angle`/`computed_geometry` when present. All v1 top-10 gaps had a photo
+      (8–128 candidates each; 7 of 10 from 2024–25). No coverage layer (needs vector tiles).
+      Smoke test: `node tests/bikenet-photo-check.mjs <html> <shot_dir>` (needs network).
+      Builder-only env: `uv pip install geopandas pyogrio shapely pandas numpy` is enough.
+      Also fixed crash severity labels (source typos NOPN-INCAPACITATING, POSSIBLY INJURY).
+- [ ] **NEXT**: verify top gaps on the ground / imagery (use the photo panel)
+- [ ] Fix gap `name` isn't stable across runs: the same 581 m gap is "Ludlow Street" in v1 and
+      "Toedtli Drive" in v2 (it runs along Toedtli). Label gaps with `street_names()` like Grow does.
 - [ ] MVP port to site
 - [ ] next experiment: real-destination seed points (CU, Pearl, schools, transit) as a new axis
 - [ ] decide whether to report the bikenetlib tag bug upstream (ask Lucas first)
