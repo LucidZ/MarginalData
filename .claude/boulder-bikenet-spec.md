@@ -80,6 +80,32 @@ python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-ve
   the existing network length (~202 km); map rebases it.
 - Link: 54% of 233 km protected network in largest component; ~7 km of links -> 80%.
 
+## Roadmap (agreed with Lucas 2026-11-18)
+- **MVP**: publish the current versioned map as a site route. Port preview HTML to the site's
+  React/Vite stack (light mode only), shrink payload (3.8 MB inline now: simplify geometry, lazy-load
+  per version), phone layout, label fixes (source typo "NOPN-INCAPACITATING" → Non-incapacitating),
+  methods note (tag bug, painted lanes ignored, LODES blind spots, sources), OG card.
+  **Plus Mapillary click-to-see panel** (moved up from v3, 2026-11-18): click any line/crash → nearest
+  Mapillary photo in the side panel (most recent within ~25 m whose compass angle aligns with the
+  street; capture date shown; "look the other way" toggle; "open in Mapillary" link). Optional
+  coverage layer. Single image via Graph API, not MapillaryJS (save the full viewer for v3).
+  Attribution: Mapillary, CC-BY-SA. Build it into the preview map first so Lucas can use it to
+  ground-truth the top gaps, then carry into the MVP port.
+  Token: `VITE_MAPILLARY_TOKEN` in `.env.local` (gitignored); Lucas creates the Mapillary dev app
+  (don't sign up on Lucas's behalf). Preview builder should read the same var.
+- **v1**: brief guided tutorial (3–4 steps: legend → switch to crashes version → km slider → one gap
+  + its photo → explore).
+- **v2**: user route. Dropped pins (no geocoding, nothing leaves the browser), client-side routing on
+  a bundled Boulder street graph with a bike cost function (protected < painted < nothing, arterial
+  penalty). Stats: % protected / painted / none today, and % protected if the selected version's
+  first N km were built. De-risk first: validate routing against Lucas's commute + known routes.
+- **v3**: ride-along walkthrough. Auto-generated stops along the route (status stretches, Fix gaps /
+  early Grow links, crashes within ~30 m), scroll-driven follow camera, nearest Mapillary image per
+  stop (reuses the MVP photo lookup; Lucas says Boulder coverage is good), MapillaryJS viewer here.
+- Street View considered and set aside as default: Static $7/1k images after 10k free/mo, Dynamic
+  $14/1k after 5k free (2026 pricing). ~10 images per walkthrough → ~1k free walkthroughs/mo; viral
+  50k walkthroughs ≈ $2.9k. Possible capped fallback for stops without Mapillary coverage.
+
 ## Status
 - [x] v0–v4 runs, crash + LODES data, versioned preview map
 - [x] commit scripts + spec on `boulder-bikenet`
