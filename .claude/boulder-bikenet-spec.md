@@ -109,6 +109,13 @@ python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-ve
 ## Status
 - [x] v0–v4 runs, crash + LODES data, versioned preview map
 - [x] commit scripts + spec on `boulder-bikenet`
-- [ ] verify top gaps on the ground / imagery
+- [x] Mapillary token in `.env.local` verified 2026-11-18 (Graph API `/images?bbox=…` works; near the
+      Toedtli Dr gap: 148 images, 91 from 2025, 47 panos)
+- [ ] **NEXT**: add Mapillary click-to-see photo panel to `build_preview_map.py` (read token from
+      `.env.local`; the preview HTML is local-only, so embedding the token there is fine), rebuild
+      `data/boulder_bikenet/boulder-versions.html`. Python env: recreate the uv py3.12 venv (old one was
+      in a session scratchpad).
+- [ ] verify top gaps on the ground / imagery (use the photo panel)
+- [ ] MVP port to site
 - [ ] next experiment: real-destination seed points (CU, Pearl, schools, transit) as a new axis
 - [ ] decide whether to report the bikenetlib tag bug upstream (ask Lucas first)
