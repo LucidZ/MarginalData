@@ -1,4 +1,4 @@
-import { line, scaleLinear } from "d3";
+import { curveStepAfter, line, scaleLinear } from "d3";
 import { useMemo, useState } from "react";
 import { fmtInt, hourLabel } from "../../I70Crossfilter/format";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
@@ -70,9 +70,12 @@ export default function HeroChart({ profiles, span, season: cur, pins, showTrail
   const yTop = y.domain()[1];
   const yNet = scaleLinear([-netMax, netMax], [y(-yTop), y(yTop)]).nice();
   const netPath = (vals: number[] | null) => (vals ? (line<number>((_, i) => x(i), (v) => yNet(v))(vals) ?? "") : "");
-  // Points sit at the middle of their hour.
+  // Each hour's count is drawn flat across its hour, since that's what it counts: a step per hour,
+  // the last value repeated at the end so the final hour gets its full width.
   const path = (vals: number[] | null, sign: 1 | -1) =>
-    vals ? (line<number>((_, i) => x(i + 0.5), (v) => y(sign * v))(vals) ?? "") : "";
+    vals
+      ? (line<number>((_, i) => x(i), (v) => y(sign * v)).curve(curveStepAfter)([...vals, vals[vals.length - 1]]) ?? "")
+      : "";
 
   const curWb = series(cur, "wb");
   const curEb = series(cur, "eb");

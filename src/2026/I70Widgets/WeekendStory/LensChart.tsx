@@ -1,4 +1,4 @@
-import { area, line, scaleLinear } from "d3";
+import { area, curveStepAfter, line, scaleLinear } from "d3";
 import { useMemo, useState } from "react";
 import { fmtInt, hourLabel } from "../../I70Crossfilter/format";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
@@ -66,9 +66,12 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   const x = scaleLinear([0, nHours], [m.left, width - m.right]);
   const y = scaleLinear([-yMax, yMax], [height - m.bottom, m.top]).nice();
   const yTop = y.domain()[1];
-  // Points sit at the middle of their hour.
+  // Each hour's count is drawn flat across its hour, since that's what it counts: a step per hour,
+  // the last value repeated at the end so the final hour gets its full width.
   const path = (vals: number[] | null, sign: 1 | -1) =>
-    vals ? (line<number>((_, i) => x(i + 0.5), (v) => y(sign * v))(vals) ?? "") : "";
+    vals
+      ? (line<number>((_, i) => x(i), (v) => y(sign * v)).curve(curveStepAfter)([...vals, vals[vals.length - 1]]) ?? "")
+      : "";
 
   const now = seasonOf(profiles, cur, chart);
   const curWb = series(cur, "wb");
@@ -83,31 +86,22 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   // Segment k starts at hour k × 24 (there's only one segment on a running line).
   const netPath = (vals: number[], k: number) => line<number>((_, i) => x(k * 24 + i), (v) => yNet(v))(vals) ?? "";
 
-  // Gap: the gap between the pin and today, gold where today is higher, pale where lower.
+  // Gap: the gap between the pin and today, gold where today is higher, pale where lower. Stepped
+  // like the lines, so the gold is one rectangle per hour and its area is the hours' summed counts.
   const gapArea = (dir: Dir, gain: boolean, [from, to]: [number, number]) => {
     const a = series(pinYr ?? cur, dir);
     const b = series(cur, dir);
     if (!a || !b) return "";
-    // Sample the lines as drawn (points at mid-hour, straight between): the range's edges,
-    // each hour inside it, and wherever the lines cross, so the fill switches sides right there.
-    const at = (v: number[], t: number) => {
-      const i = Math.max(0, Math.min(Math.floor(t - 0.5), v.length - 2));
-      return v[i] + (v[i + 1] - v[i]) * (t - 0.5 - i);
-    };
-    const diff = (t: number) => at(b, t) - at(a, t);
-    const [t0, t1] = [Math.max(from, 0.5), Math.min(to, a.length - 0.5)];
-    const knots = [t0, ...a.map((_, i) => i + 0.5).filter((t) => t > t0 && t < t1), t1];
     const ts: number[] = [];
-    knots.forEach((t, k) => {
-      const prev = knots[k - 1];
-      if (k > 0 && diff(prev) * diff(t) < 0) ts.push(prev + ((t - prev) * diff(prev)) / (diff(prev) - diff(t)));
-      ts.push(t);
-    });
+    for (let t = Math.max(from, 0); t <= Math.min(to, a.length); t++) ts.push(t);
+    // The closing point repeats the range's last hour.
+    const hr = (t: number) => Math.min(t, to - 1);
     const sign = dir === "wb" ? 1 : -1;
-    const lo = (t: number) => (gain ? at(a, t) : Math.min(at(a, t), at(b, t)));
-    const hi = (t: number) => (gain ? Math.max(at(a, t), at(b, t)) : at(a, t));
+    const lo = (t: number) => (gain ? a[hr(t)] : Math.min(a[hr(t)], b[hr(t)]));
+    const hi = (t: number) => (gain ? Math.max(a[hr(t)], b[hr(t)]) : a[hr(t)]);
     return (
       area<number>()
+        .curve(curveStepAfter)
         .x((t) => x(t))
         .y0((t) => y(sign * lo(t)))
         .y1((t) => y(sign * hi(t)))(ts) ?? ""
