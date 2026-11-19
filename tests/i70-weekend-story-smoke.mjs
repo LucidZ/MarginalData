@@ -18,29 +18,32 @@ const check = (ok, msg) => {
   if (!ok) failures.push(msg);
 };
 
-// Expected chart state when each step is centred: [season, chart, highlight, shaded windows].
+// Expected chart state when each step is centred: [season, chart, highlight, shaded windows, flow, gold layer].
 const L = 2026;
 const EXPECT = [
-  [1996, "sat", "", 0],
-  [1996, "sat", "peak", 0],
-  [1996, "sat", "", 0],
-  [L, "sat", "", 0],
-  [L, "sat", "gap", 0],
-  [L, "sat", "gap", 0],
-  [L, "sat", "gap", 0],
-  [L, "friSun", "", 0],
-  [L, "friSun", "net", 0],
-  [L, "friSun", "net", 0],
-  [L, "wedTue", "gap", 1],
-  [L, "wedTue", "gap", 2],
-  [L, "wedTue", "net", 0],
+  [1996, "sat", "", 0, 0, ""],
+  [1996, "sat", "peak", 0, 0, "peak"],
+  [1996, "sat", "", 0, 0, ""],
+  [L, "sat", "", 0, 0, ""],
+  [L, "sat", "gap", 0, 0, "gap"],
+  [L, "sat", "gap", 0, 0, "gap"],
+  [L, "sat", "gap", 0, 0, "gap"],
+  [L, "friSun", "", 0, 0, ""],
+  [L, "friSun", "", 0, 1, "flow"],
+  [L, "friSun", "", 0, 2, "flow"],
+  [L, "friSun", "net", 0, 3, "flow"],
+  [L, "wedTue", "gap", 1, 0, "gap"],
+  [L, "wedTue", "gap", 2, 0, "gap"],
+  [L, "wedTue", "net", 0, 0, "net"],
 ];
+// The net plays from these steps to the next: cancel (0 → 1), stack (1 → 2), 1996 drawn in (2 → 3).
+const PLAY = [7, 8, 9];
 // The scrub runs from this step to the next.
 const SCRUB = 2;
 // The zoom from Saturday out to Fri–Sun runs from this step to the next.
 const ZOOM = 6;
 // The gold layer each highlight draws.
-const LAYER = { peak: ".i70s-peak-bar", gap: ".i70s-gap path", net: ".i70s-net path" };
+const LAYER = { peak: ".i70s-peak-bar", gap: ".i70s-gap path", net: ".i70s-net path", flow: ".i70s-flow rect" };
 
 const browser = await chromium.launch();
 for (const [name, viewport] of [
@@ -81,14 +84,14 @@ for (const [name, viewport] of [
     await scrollTo(k);
     await page.waitForTimeout(250);
     const s = await state();
-    const [season, chart, hl, windows] = EXPECT[k];
+    const [season, chart, hl, windows, flow, layer] = EXPECT[k];
     const layers = {};
     for (const [l, sel] of Object.entries(LAYER)) layers[l] = await page.locator(`.i70s-viz svg ${sel}`).count();
-    const layersOk = Object.entries(layers).every(([l, n]) => (n > 0) === (l === hl));
+    const layersOk = Object.entries(layers).every(([l, n]) => (n > 0) === (l === layer));
     const win = await page.locator(".i70s-viz svg .i70s-window").count();
     check(
-      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && layersOk && win === windows,
-      `step ${k}: step=${s.step} season=${s.season} chart=${s.chart} hl=${s.hl} layers=${JSON.stringify(layers)} windows=${win}`,
+      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && layersOk && win === windows && Number(s.flow) === flow,
+      `step ${k}: step=${s.step} season=${s.season} chart=${s.chart} hl=${s.hl} flow=${s.flow} layers=${JSON.stringify(layers)} windows=${win}`,
     );
     await page.screenshot({ path: `${OUT}/i70-weekend-story-${k}-${name}.png` });
   }
@@ -108,6 +111,17 @@ for (const [name, viewport] of [
     check(z.chart === "friSun" && t > 0 && t < 1 && z.hl === "", `zoom at ${f}: chart=${z.chart} t=${z.zoom} hl=${z.hl}`);
     await page.screenshot({ path: `${OUT}/i70-weekend-story-zoom-${Math.round(f * 10)}-${name}.png` });
   }
+
+  // Mid-play: the flow between its two steps, no highlight; screenshots along the way.
+  for (const k of PLAY)
+    for (const f of [0.2, 0.5, 0.8]) {
+      await scrollTo(k, f);
+      await page.waitForTimeout(250);
+      const p = await state();
+      const v = Number(p.flow);
+      check(v > k - 7 && v < k - 6 && p.hl === "", `play ${k} at ${f}: flow=${p.flow} hl=${p.hl}`);
+      await page.screenshot({ path: `${OUT}/i70-weekend-story-flow-${k}-${Math.round(f * 10)}-${name}.png` });
+    }
 
   // Somewhere in the scrub the drift seasons flag westbound's clock.
   let sawDrift = false;

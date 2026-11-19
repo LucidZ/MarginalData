@@ -47,17 +47,23 @@ export default function WeekendStory() {
   // chart with the scroll, done at the same point the scrub lands.
   const zooming = !!STEPS[i]?.zoom && u > 0 && !!STEPS[i + 1];
   const zoom = zooming ? { from: STEPS[i].chart, t: clamp01(u / 0.85) } : null;
-  const view = scrubbing ? STEPS[i] : zooming ? STEPS[i + 1] : STEPS[activeStep];
+  // Between a play step and the next, the gold net bars follow the scroll from one step's flow to the next's.
+  const playing = !!STEPS[i]?.play && u > 0 && !!STEPS[i + 1];
+  const view = scrubbing || playing ? STEPS[i] : zooming ? STEPS[i + 1] : STEPS[activeStep];
+  const flow = playing
+    ? (STEPS[i].flow ?? 0) + ((STEPS[i + 1].flow ?? 0) - (STEPS[i].flow ?? 0)) * clamp01(u / 0.85)
+    : (view.flow ?? 0);
   const season = scrubbing
     ? Math.round(first + (last - first) * clamp01(u / 0.85))
     : view.season === "first"
       ? first
       : last;
   const pin = scrubbing || view.season === "today" ? first : null;
-  const hl = scrubbing || zooming ? null : view.hl;
+  const hl = scrubbing || zooming || playing ? null : view.hl;
 
   const phone = vizWidth > 0 && vizWidth < 560;
-  const showPin = pin != null && season !== first;
+  // 1996 steps out while today's net is built, and comes back with its own.
+  const showPin = pin != null && season !== first && (flow === 0 || flow > 2);
 
   return (
     <div className="i70w-root i70s-root">
@@ -82,6 +88,7 @@ export default function WeekendStory() {
             data-chart={view.chart}
             data-hl={hl?.kind ?? ""}
             data-zoom={zoom ? zoom.t.toFixed(2) : ""}
+            data-flow={flow.toFixed(2)}
             hidden
           />
           <div className="i70s-key" aria-hidden>
@@ -97,6 +104,7 @@ export default function WeekendStory() {
               showTrail={scrubbing}
               hl={hl}
               zoom={zoom}
+              flow={flow}
               height={phone ? 270 : 420}
             />
           )}

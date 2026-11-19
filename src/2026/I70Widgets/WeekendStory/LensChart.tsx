@@ -15,6 +15,17 @@ import { CHARTS, clockHour, dayName, lensSeries, netAt, netSegments, netSeries, 
 // resets daily, with the step's days drawn strong. While zooming, the
 // view widens from one chart's days (Saturday) out to this chart's, the
 // hour and vehicle scales easing between the two.
+//
+// `flow` breaks the net into its two steps, played by the scroll: 0 → 1,
+// each hour's westbound and eastbound bars shrink by the smaller of the two
+// and what's left darkens (that hour's net, on the vehicle scale); 1 → 2,
+// the flows fade out, the scale turns over to the running net and, left to
+// right, each hour's bar lifts onto the one before it (a waterfall, starting
+// over at 3am where the chart resets daily), then the bars settle into
+// today's green step; 2 → 3, 1996's running net draws in as a dashed step.
+// 1996's flows leave as the cancel starts, so the subtraction is only ever
+// today's up minus today's home. Green and dashed still mean today and 1996,
+// the signed axis says it's the net, and gold stays for the step's days.
 
 interface Props {
   profiles: Profiles;
@@ -27,6 +38,8 @@ interface Props {
   height: number;
   /** Mid-zoom: t = 0 frames just `from`'s days (a run within this chart's), t = 1 the whole chart. */
   zoom?: { from: ChartId; t: number } | null;
+  /** 0 plain, 1 hourly net bars, 2 stacked into the running net, 3 with 1996's net drawn in (see above). */
+  flow?: number;
 }
 
 const fmtK = (v: number) => {
@@ -38,8 +51,12 @@ const fmtK = (v: number) => {
 const signed = (v: number) => `${v > 0.5 ? "+" : v < -0.5 ? "−" : ""}${fmtInt(Math.abs(v))}`;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const ease = (t: number) => t * t * (3 - 2 * t);
+/** Hours a bar takes to lift onto the stack as the sweep passes it. */
+const LIFT = 4;
 
-export default function LensChart({ profiles, chart, season: cur, pin, showTrail, hl, height, zoom = null }: Props) {
+export default function LensChart({ profiles, chart, season: cur, pin, showTrail, hl, height, zoom = null, flow = 0 }: Props) {
   const [hoverX, setHoverX] = useState<number | null>(null);
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
   const clipId = `i70s-clip-${useId().replace(/:/g, "")}`;
@@ -53,7 +70,20 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   const series = (yr: number, dir: Dir) => lensSeries(profiles, yr, dows, dir);
 
   const compact = width < 560;
-  const showNet = hl?.kind === "net";
+  // The net line is the plain view's; with flow on, the green net carries it.
+  const showNet = hl?.kind === "net" && flow === 0;
+  const cancel = clamp01(flow);
+  const stack = clamp01(flow - 1);
+  // Stacking: the flows fade and the scale turns over, the bars sweep left to right, then settle into a line.
+  const rescale = ease(clamp01(stack / 0.2));
+  const sweep = clamp01((stack - 0.2) / 0.6);
+  const settle = ease(clamp01((stack - 0.8) / 0.2));
+  // 1996: its flows fade out early in the cancel, its net draws in after today's has settled.
+  const thenFlowOp = 1 - ease(clamp01(flow / 0.3));
+  const thenReveal = clamp01(flow - 2);
+  const thenAt = thenReveal * nHours;
+  const sweepAt = sweep * (nHours + LIFT);
+  const lift = (i: number) => ease(clamp01((sweepAt - i) / LIFT));
   const gap = hl?.kind === "gap" ? hl : null;
   const gapRanges: [number, number][] = gap?.ranges ?? [[0, nHours]];
   const rows = !!gap?.rows;
@@ -89,9 +119,31 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   const lo = lerp(off, 0, zt);
   const hi = lerp(off + fromDows.length * 24, nHours, zt);
   const x = scaleLinear([lo, hi], [m.left, width - m.right]);
+  const now = seasonOf(profiles, cur, chart);
+  const pinYr = pin != null && pin !== cur && profiles.has(pin) ? pin : null;
+  const then = pinYr != null ? seasonOf(profiles, pinYr, chart) : null;
+  const inFlow = flow > 0 && !!now;
+  // The running net's scale: every hour's bar, top and bottom, today and the pin.
+  const flowTop = (() => {
+    let mx = 1;
+    for (const s of [now, then])
+      if (s)
+        for (let i = 0; i < nHours; i++) {
+          const cum = netAt(s.net, chart, i);
+          mx = Math.max(mx, Math.abs(cum), Math.abs(cum - (s.wb[i] - s.eb[i])));
+        }
+    return scaleLinear([-mx * 1.1, mx * 1.1], [1, 0]).nice().domain()[1];
+  })();
   const y = zoom
     ? scaleLinear([-1, 1].map((k) => k * lerp(niceTop(zoom.from), niceTop(chart), zt)), [height - m.bottom, m.top])
-    : scaleLinear([-yMaxOf[chart], yMaxOf[chart]], [height - m.bottom, m.top]).nice();
+    : rescale > 0
+      ? scaleLinear([-1, 1].map((k) => k * lerp(niceTop(chart), flowTop, rescale)), [height - m.bottom, m.top])
+      : scaleLinear([-yMaxOf[chart], yMaxOf[chart]], [height - m.bottom, m.top]).nice();
+  const netAxis = rescale >= 0.5;
+  // The flows leave as the scale turns over to the net: one measure on screen at a time.
+  const greenOp = 1 - rescale;
+  // Gold: the days the step names.
+  const goldDay = (d: number) => hl?.kind === "net" && !!hl.days?.includes(d);
   const yTop = y.domain()[1];
   // Each hour's count is drawn flat across its hour, since that's what it counts: a step per hour,
   // the last value repeated at the end so the final hour gets its full width.
@@ -100,11 +152,8 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
       ? (line<number>((_, i) => x(i), (v) => y(sign * v)).curve(curveStepAfter)([...vals, vals[vals.length - 1]]) ?? "")
       : "";
 
-  const now = seasonOf(profiles, cur, chart);
   const curWb = series(cur, "wb");
   const curEb = series(cur, "eb");
-  const pinYr = pin != null && pin !== cur && profiles.has(pin) ? pin : null;
-  const then = pinYr != null ? seasonOf(profiles, pinYr, chart) : null;
   const nowSegs = now ? netSegments(now.net, chart) : [];
   const thenSegs = then ? netSegments(then.net, chart) : [];
   // Net scale fits just the seasons shown (the net never plays back), so 2017's westbound over-read doesn't flatten it.
@@ -116,8 +165,11 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   // Today's bars, axis to count, over hours [from, to): stepped like the lines, so each hour is one
   // rectangle and a range's area is its summed counts. Green by default, gold where a step points.
   const bars = (dir: Dir, [from, to]: [number, number]) => {
-    const v = series(cur, dir);
-    if (!v) return "";
+    const raw = series(cur, dir);
+    if (!raw) return "";
+    // Mid-flow, each hour gives up the part the other direction cancels.
+    const other = series(cur, dir === "wb" ? "eb" : "wb");
+    const v = inFlow && other ? raw.map((w, i) => w - cancel * Math.min(w, other[i])) : raw;
     const ts: number[] = [];
     for (let t = Math.max(from, 0); t <= Math.min(to, v.length); t++) ts.push(t);
     // The closing point repeats the range's last hour.
@@ -169,12 +221,13 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
 
   // The highlight's per-day row under the day names.
   const dayRow = (() => {
-    if (!now || (!rows && !showNet)) return [];
+    if (!now || (!rows && !showNet && flow < 2)) return [];
     return dows.map((_, d) => {
       if (rows) return totalText("wb", d);
       if (!strong(d)) return null;
       const n = fmtK(now.dayNet[d]);
-      if (!then) return n;
+      // While today's net is built on its own, so are its numbers.
+      if (!then || (inFlow && thenReveal < 1)) return n;
       if (multi) return compact || nDays > 3 ? n : `${fmtK(then.dayNet[d])} → ${n}`;
       return `Net, 3am to 3am: ${signed(then.dayNet[d])} → ${signed(now.dayNet[d])}`;
     });
@@ -225,7 +278,8 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
               ))}
 
             {/* today's bars: light green, gold over the hours the step is about */}
-            <g className="i70s-bars">
+            {/* once stacking starts, the flow layer's bars below take over */}
+            <g className="i70s-bars" opacity={inFlow && stack > 0 ? 0 : 1}>
               {(["wb", "eb"] as const).map((dir) => (
                 <path key={dir} d={bars(dir, [0, nHours])} />
               ))}
@@ -263,17 +317,18 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
                 y2={y(t)}
               />
               <text className="i70w-tick" x={m.left - 6} y={y(t)} textAnchor="end" dominantBaseline="middle">
-                {fmtInt(Math.abs(t))}
+                  {netAxis ? (t === 0 ? "0" : fmtK(t)) : fmtInt(Math.abs(t))}
               </text>
             </g>
           ))}
           <text
             className="i70w-tick"
+            style={netAxis ? { fill: "var(--text-primary)", fontWeight: 600 } : undefined}
             transform={`translate(${compact ? 10 : 14},${y(0)}) rotate(-90)`}
             textAnchor="middle"
             dominantBaseline="middle"
           >
-            Avg. vehicles per hour
+            {netAxis ? "Net vehicles up the hill" : "Avg. vehicles per hour"}
           </text>
           {/* day dividers and names; mid-zoom the names fade in as the other days arrive */}
           <g clipPath={`url(#${clipId})`} opacity={zoom ? zt : 1}>
@@ -288,6 +343,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
               {dayRow[d] != null && (
                 <text
                   className="i70s-dayrow"
+                  style={inFlow && !goldDay(d) ? { fill: "var(--text-primary)" } : undefined}
                   x={x(d * 24 + 12)}
                   y={m.top - (multi ? 12 : 10)}
                   textAnchor="middle"
@@ -319,7 +375,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
               {hourLabel(clockHour(i))}
             </text>
           ))}
-          <text className="i70w-direct" x={m.left + 6} y={m.top + 14}>
+          <text className="i70w-direct" x={m.left + 6} y={m.top + 14} opacity={1 - rescale}>
             ↑ Westbound, to the mountains{isDrift(cur) && "*"}
           </text>
           {isDrift(cur) && (
@@ -329,11 +385,11 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
                 : `*${DRIFT_WB.from}–${DRIFT_WB.to}: the recorder's clock likely ran up to 1¼ hours early`}
             </text>
           )}
-          <text className="i70w-direct" x={m.left + 6} y={height - m.bottom - 8}>
+          <text className="i70w-direct" x={m.left + 6} y={height - m.bottom - 8} opacity={1 - rescale}>
             ↓ Eastbound, home
           </text>
 
-          <g clipPath={`url(#${clipId})`}>
+          <g clipPath={`url(#${clipId})`} opacity={greenOp}>
           {/* trail: every earlier season, fading out with age */}
           {showTrail &&
             years
@@ -349,7 +405,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
               })}
 
           {pinYr != null && (
-            <g className="i70s-then">
+            <g className="i70s-then" opacity={thenFlowOp}>
               <path d={path(series(pinYr, "wb"), 1)} fill="none" stroke="var(--then)" strokeWidth={1.75} strokeDasharray="4 3" />
               <path d={path(series(pinYr, "eb"), -1)} fill="none" stroke="var(--then)" strokeWidth={1.75} strokeDasharray="4 3" />
             </g>
@@ -357,6 +413,96 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           <path d={path(curWb, 1)} fill="none" stroke="var(--now)" strokeWidth={2.5} strokeLinejoin="round" />
           <path d={path(curEb, -1)} fill="none" stroke="var(--now)" strokeWidth={2.5} strokeLinejoin="round" />
           </g>
+
+          {/* flow: each hour's net as a darker green bar, lifting onto the stack as the sweep passes */}
+          {inFlow && now && (() => {
+            // Running net as a step, hour by hour, over one day (or the whole chain where it doesn't reset).
+            const stepPath = (net: number[], d: number) => {
+              const at = (i: number) => netAt(net, chart, i);
+              const start = CHARTS[chart].dailyNet || d === 0 ? 0 : at(d * 24 - 1);
+              let dd = `M${x(d * 24)},${y(start)}`;
+              for (let h = 0; h < 24; h++) dd += `V${y(at(d * 24 + h))}H${x(d * 24 + h + 1)}`;
+              return dd;
+            };
+            return (
+              <g className="i70s-flow">
+                <clipPath id={`${clipId}-sweep`}>
+                  <rect x={m.left - 2} y={0} width={Math.max(0, x(thenAt) - m.left + 2)} height={height} />
+                </clipPath>
+                {/* 1996's running net, dark dashed like its flows, drawn in left to right once today's has settled */}
+                {then && thenReveal > 0 && (
+                  <g clipPath={`url(#${clipId}-sweep)`}>
+                    {dows.map((_, d) => (
+                      <path key={d} d={stepPath(then.net, d)} fill="none" stroke="var(--then)" strokeWidth={1.75} strokeDasharray="4 3" />
+                    ))}
+                  </g>
+                )}
+                <g opacity={1 - settle}>
+                  {now.wb.map((w, i) => {
+                    const n = w - now.eb[i];
+                    const base = (netAt(now.net, chart, i) - n) * lift(i);
+                    const x0 = x(i);
+                    const bw = x(i + 1) - x0;
+                    // Before stacking, the leftover sits over the flow bars and darkens in; then it's the bar.
+                    const pad = stack > 0 && bw > 4 ? 0.5 : 0;
+                    return (
+                      <rect
+                        key={i}
+                        x={x0 + pad}
+                        width={Math.max(0, bw - 2 * pad)}
+                        y={Math.min(y(base), y(base + n))}
+                        height={Math.abs(y(base) - y(base + n))}
+                        fill="var(--now)"
+                        opacity={0.55 * cancel}
+                      />
+                    );
+                  })}
+                </g>
+                {/* today's running net: green, gold over the step's days */}
+                {settle > 0 &&
+                  dows.map((_, d) => (
+                    <path
+                      key={d}
+                      d={stepPath(now.net, d)}
+                      fill="none"
+                      stroke={goldDay(d) ? "var(--gold)" : "var(--now)"}
+                      strokeWidth={goldDay(d) ? 3 : 2.5}
+                      strokeLinejoin="round"
+                      opacity={settle}
+                    />
+                  ))}
+                {/* where each day lands, once its last hour is stacked */}
+                {dows.map((_, d) => {
+                  const end = (d + 1) * 24 - 1;
+                  if (lift(end) < 1) return null;
+                  return (
+                    <g key={d}>
+                      {then && thenAt >= end + 1 && (
+                        <circle cx={x(end + 1)} cy={y(netAt(then.net, chart, end))} r={3} fill="var(--surface-1)" stroke="var(--then)" strokeWidth={1.5} />
+                      )}
+                      <circle
+                        cx={x(end + 1)}
+                        cy={y(netAt(now.net, chart, end))}
+                        r={4}
+                        fill={goldDay(d) ? "var(--gold)" : "var(--now)"}
+                        stroke="var(--surface-1)"
+                        strokeWidth={1.5}
+                      />
+                    </g>
+                  );
+                })}
+                <text className="i70w-direct" x={width - m.right - 6} y={compact ? height - m.bottom - 8 : m.top + 14} textAnchor="end">
+                  {stack > 0
+                    ? compact
+                      ? "Net up the hill"
+                      : `Net up the hill${CHARTS[chart].dailyNet ? ", each day from 3am" : `, since ${dayName(chart, 0)} 3am`}`
+                    : compact
+                      ? "Each hour: up − home"
+                      : "Each hour's net: cars up minus cars home"}
+                </text>
+              </g>
+            );
+          })()}
 
           {/* net: running westbound − eastbound from 3am, on the right-hand scale */}
           {showNet && now && (
@@ -435,7 +581,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           {[cur, ...(pinYr != null ? [pinYr] : [])].map((yr) => {
             const w = series(yr, "wb")?.[hoverI];
             const e = series(yr, "eb")?.[hoverI];
-            const net = showNet ? netSeries(series(yr, "wb"), series(yr, "eb")) : null;
+            const net = showNet || inFlow ? netSeries(series(yr, "wb"), series(yr, "eb")) : null;
             const n = net ? netAt(net, chart, hoverI) : undefined;
             return (
               <span key={yr} style={yr === cur ? { color: "var(--text-primary)" } : undefined}>

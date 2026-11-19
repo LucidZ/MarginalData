@@ -27,10 +27,11 @@ export const OFFSET = 3;
 // doesn't net to zero (the counter reads westbound high, and January–March
 // catches the season filling up but not all of its drain), and a running line
 // piles that up into the week's end; reset daily, each day carries only its
-// own error. Fri–Sun resets too, so the Wed–Tue chart reads the same way.
+// own error. Fri–Sun runs through: three days is short enough that the drift
+// stays small, and the chain shows when the weekend crowd builds up.
 export const CHARTS: Record<ChartId, { label: string; dows: number[]; dailyNet: boolean }> = {
   sat: { label: "Saturday", dows: [6], dailyNet: false },
-  friSun: { label: "Fri–Sun", dows: [5, 6, 0], dailyNet: true },
+  friSun: { label: "Fri–Sun", dows: [5, 6, 0], dailyNet: false },
   wedTue: { label: "Wed–Tue", dows: [3, 4, 5, 6, 0, 1, 2], dailyNet: true },
 };
 export const CHART_IDS: ChartId[] = ["sat", "friSun", "wedTue"];

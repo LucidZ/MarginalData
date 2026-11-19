@@ -19,6 +19,10 @@ export interface Step {
   scrub?: boolean;
   /** Scrolling from this step to the next widens this chart's days out to the next step's chart. */
   zoom?: boolean;
+  /** The net: 0 none, 1 each hour's net, 2 stacked into the running net, 3 with 1996's drawn in. */
+  flow?: number;
+  /** Scrolling from this step to the next plays `flow` from this step's to the next's. */
+  play?: boolean;
   text: (f: Facts, yrs: { first: number; last: number }) => ReactNode;
 }
 
@@ -142,16 +146,31 @@ export const STEPS: Step[] = [
     chart: "friSun",
     season: "today",
     hl: null,
+    play: true,
     text: () => <>We can see more evidence of this when we expand our look to the whole weekend.</>,
   },
   {
     chart: "friSun",
     season: "today",
-    hl: { kind: "net" },
+    hl: null,
+    flow: 1,
+    play: true,
     text: () => (
       <>
-        The gold line is the net: each car heading up adds one, each car heading home takes one away, starting over at
-        3am each day.
+        Take each hour's cars heading home away from its cars heading up, and what's left is that hour's{" "}
+        <Gold>net</Gold>: more staying up the hill, or more coming home.
+      </>
+    ),
+  },
+  {
+    chart: "friSun",
+    season: "today",
+    hl: null,
+    flow: 2,
+    play: true,
+    text: () => (
+      <>
+        Stack those hours end to end, starting over at 3am, and you get each day's <Gold>net up the hill</Gold>.
       </>
     ),
   },
@@ -159,6 +178,7 @@ export const STEPS: Step[] = [
     chart: "friSun",
     season: "today",
     hl: { kind: "net", days: [0] },
+    flow: 3,
     text: (f, { first }) => (
       <>
         More and more people go up early and stay starting Friday night: Friday now leaves{" "}
