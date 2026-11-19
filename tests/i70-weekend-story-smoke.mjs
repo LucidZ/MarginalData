@@ -27,7 +27,8 @@ const EXPECT = [
   [L, "sat", "", 0],
   [L, "sat", "gap", 0],
   [L, "sat", "gap", 0],
-  [L, "friSun", "peak", 0],
+  [L, "sat", "gap", 0],
+  [L, "friSun", "", 0],
   [L, "friSun", "net", 0],
   [L, "friSun", "net", 0],
   [L, "wedTue", "gap", 1],
@@ -36,6 +37,8 @@ const EXPECT = [
 ];
 // The scrub runs from this step to the next.
 const SCRUB = 2;
+// The zoom from Saturday out to Fri–Sun runs from this step to the next.
+const ZOOM = 6;
 // The gold layer each highlight draws.
 const LAYER = { peak: ".i70s-peak-bar", gap: ".i70s-gap path", net: ".i70s-net path" };
 
@@ -95,6 +98,16 @@ for (const [name, viewport] of [
   const mid = await state();
   check(Number(mid.season) > 1996 && Number(mid.season) < L, `scrub mid-way plays forward (season ${mid.season})`);
   await page.screenshot({ path: `${OUT}/i70-weekend-story-scrub-${name}.png` });
+
+  // Mid-zoom: Fri–Sun drawn, partly widened, no highlight; screenshots along the way.
+  for (const f of [0.1, 0.4, 0.7]) {
+    await scrollTo(ZOOM, f);
+    await page.waitForTimeout(250);
+    const z = await state();
+    const t = Number(z.zoom);
+    check(z.chart === "friSun" && t > 0 && t < 1 && z.hl === "", `zoom at ${f}: chart=${z.chart} t=${z.zoom} hl=${z.hl}`);
+    await page.screenshot({ path: `${OUT}/i70-weekend-story-zoom-${Math.round(f * 10)}-${name}.png` });
+  }
 
   // Somewhere in the scrub the drift seasons flag westbound's clock.
   let sawDrift = false;

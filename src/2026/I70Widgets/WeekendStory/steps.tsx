@@ -17,6 +17,8 @@ export interface Step {
   hl: Highlight | null;
   /** Scrolling from this step to the next plays the seasons from 1996 to today. */
   scrub?: boolean;
+  /** Scrolling from this step to the next widens this chart's days out to the next step's chart. */
+  zoom?: boolean;
   text: (f: Facts, yrs: { first: number; last: number }) => ReactNode;
 }
 
@@ -35,6 +37,8 @@ const Gold = ({ children }: { children: ReactNode }) => <span className="i70s-go
 // Saturday hours westbound (index 0 = 3am): 7am–5pm, the high plateau, and 6–7am, the early start.
 const SAT_DAY: [number, number][] = [[4, 14]];
 const SAT_EARLY: [number, number][] = [[3, 4]];
+// Saturday eastbound: 10am–6pm, the day's return leaving early.
+const SAT_EB_MID: [number, number][] = [[7, 15]];
 // Wed–Tue: Friday 3pm to the end of Sunday's day (3am Monday), and the rest of the week.
 const WEEKEND: [number, number][] = [[2 * 24 + 12, 5 * 24]];
 const REST: [number, number][] = [
@@ -42,7 +46,6 @@ const REST: [number, number][] = [
   [5 * 24, 7 * 24],
 ];
 const WT = { thu: 1, fri: 2, sun: 4 };
-const FRI_SUN = ["Friday", "Saturday", "Sunday"];
 
 /** City of Denver, the one population series that reaches back to 1996. */
 export const popGrowth = (first: number) => {
@@ -124,20 +127,22 @@ export const STEPS: Step[] = [
     },
   },
   {
+    chart: "sat",
+    season: "today",
+    hl: { kind: "gap", dirs: ["eb"], ranges: SAT_EB_MID, shade: false },
+    zoom: true,
+    text: () => (
+      <>
+        Curiously, traffic away from the mountains also begins peaking by mid morning, suggesting traffic going up and
+        staying in the mountains has started overshadowing single-day trippers.
+      </>
+    ),
+  },
+  {
     chart: "friSun",
     season: "today",
-    hl: { kind: "peak", dirs: ["wb"] },
-    text: (f) => {
-      const [t, n] = [topPeak(f.friSun.then, "wb").i, topPeak(f.friSun.now, "wb").i];
-      const at = (i: number) => `${FRI_SUN[Math.floor(i / 24)]} at ${clock(i)}`;
-      return (
-        <>
-          Widen to the whole weekend: the busiest hour heading up moved from <Gold>{at(t)}</Gold> to{" "}
-          <Gold>{at(n)}</Gold>
-          {FRI_SUN[Math.floor(n / 24)] === "Friday" && clockHour(n) >= 15 ? ", after work" : ""}.
-        </>
-      );
-    },
+    hl: null,
+    text: () => <>We can see more evidence of this when we expand our look to the whole weekend.</>,
   },
   {
     chart: "friSun",

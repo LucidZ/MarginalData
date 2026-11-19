@@ -43,14 +43,18 @@ export default function WeekendStory() {
   const i = Math.floor(progress);
   const u = progress - i;
   const scrubbing = !!STEPS[i]?.scrub && u > 0;
-  const view = scrubbing ? STEPS[i] : STEPS[activeStep];
+  // Between a zoom step and the next, the view widens out to the next step's
+  // chart with the scroll, done at the same point the scrub lands.
+  const zooming = !!STEPS[i]?.zoom && u > 0 && !!STEPS[i + 1];
+  const zoom = zooming ? { from: STEPS[i].chart, t: clamp01(u / 0.85) } : null;
+  const view = scrubbing ? STEPS[i] : zooming ? STEPS[i + 1] : STEPS[activeStep];
   const season = scrubbing
     ? Math.round(first + (last - first) * clamp01(u / 0.85))
     : view.season === "first"
       ? first
       : last;
   const pin = scrubbing || view.season === "today" ? first : null;
-  const hl = scrubbing ? null : view.hl;
+  const hl = scrubbing || zooming ? null : view.hl;
 
   const phone = vizWidth > 0 && vizWidth < 560;
   const showPin = pin != null && season !== first;
@@ -77,6 +81,7 @@ export default function WeekendStory() {
             data-season={season}
             data-chart={view.chart}
             data-hl={hl?.kind ?? ""}
+            data-zoom={zoom ? zoom.t.toFixed(2) : ""}
             hidden
           />
           <div className="i70s-key" aria-hidden>
@@ -91,6 +96,7 @@ export default function WeekendStory() {
               pin={pin}
               showTrail={scrubbing}
               hl={hl}
+              zoom={zoom}
               height={phone ? 270 : 420}
             />
           )}

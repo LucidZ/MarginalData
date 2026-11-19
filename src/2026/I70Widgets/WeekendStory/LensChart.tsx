@@ -1,5 +1,5 @@
 import { area, curveStepAfter, line, scaleLinear } from "d3";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { fmtInt, hourLabel } from "../../I70Crossfilter/format";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
 import { DOW_SHORT, DRIFT_WB, fmtPct, isDrift, type Dir, type Profiles } from "../HeroCurve/heroData";
@@ -12,7 +12,9 @@ import { CHARTS, clockHour, dayName, lensSeries, netAt, netSegments, netSeries, 
 // one, optionally with westbound's change per day above the chart and
 // eastbound's below it), or the net up the hill on its own right-hand scale:
 // running from the chart's start, or starting over each day where the chart
-// resets daily, with the step's days drawn strong.
+// resets daily, with the step's days drawn strong. While zooming, the
+// view widens from one chart's days (Saturday) out to this chart's, the
+// hour and vehicle scales easing between the two.
 
 interface Props {
   profiles: Profiles;
@@ -23,6 +25,8 @@ interface Props {
   showTrail: boolean;
   hl: Highlight | null;
   height: number;
+  /** Mid-zoom: t = 0 frames just `from`'s days (a run within this chart's), t = 1 the whole chart. */
+  zoom?: { from: ChartId; t: number } | null;
 }
 
 const fmtK = (v: number) => {
@@ -33,9 +37,12 @@ const fmtK = (v: number) => {
 
 const signed = (v: number) => `${v > 0.5 ? "+" : v < -0.5 ? "−" : ""}${fmtInt(Math.abs(v))}`;
 
-export default function LensChart({ profiles, chart, season: cur, pin, showTrail, hl, height }: Props) {
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+export default function LensChart({ profiles, chart, season: cur, pin, showTrail, hl, height, zoom = null }: Props) {
   const [hoverX, setHoverX] = useState<number | null>(null);
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
+  const clipId = `i70s-clip-${useId().replace(/:/g, "")}`;
   const years = useMemo(() => [...profiles.keys()], [profiles]);
   const first = years[0] ?? 1996;
 
@@ -53,19 +60,38 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   // Net days drawn strong (all of them unless the step names some).
   const strong = (k: number) => hl?.kind !== "net" || !hl.days || !dailyNet || hl.days.includes(k);
   // Room up top for day names and the highlight's per-day row, and below the hour ticks for eastbound's row.
-  const m = { top: multi ? 46 : 30, right: compact ? (showNet ? 34 : 10) : 56, bottom: 42, left: compact ? 54 : 68 };
+  const topFor = (n: number) => (n > 1 ? 46 : 30);
+  const zt = zoom?.t ?? 1;
+  const fromDows = zoom ? CHARTS[zoom.from].dows : dows;
+  const m = {
+    top: lerp(topFor(fromDows.length), topFor(nDays), zt),
+    right: compact ? (showNet ? 34 : 10) : 56,
+    bottom: 42,
+    left: compact ? 54 : 68,
+  };
 
   // Hourly scale fixed per chart over every season, so it holds still during the scrub.
-  const yMax = useMemo(() => {
-    let mx = 1;
-    for (const yr of years)
-      for (const dir of ["wb", "eb"] as const) for (const v of lensSeries(profiles, yr, dows, dir) ?? []) mx = Math.max(mx, v);
-    return mx * 1.08;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profiles, chart]);
+  const yMaxOf = useMemo(() => {
+    const out = {} as Record<ChartId, number>;
+    for (const id of Object.keys(CHARTS) as ChartId[]) {
+      let mx = 1;
+      for (const yr of years)
+        for (const dir of ["wb", "eb"] as const)
+          for (const v of lensSeries(profiles, yr, CHARTS[id].dows, dir) ?? []) mx = Math.max(mx, v);
+      out[id] = mx * 1.08;
+    }
+    return out;
+  }, [profiles, years]);
+  const niceTop = (id: ChartId) => scaleLinear([-yMaxOf[id], yMaxOf[id]], [1, 0]).nice().domain()[1];
 
-  const x = scaleLinear([0, nHours], [m.left, width - m.right]);
-  const y = scaleLinear([-yMax, yMax], [height - m.bottom, m.top]).nice();
+  // The hours in view: all of them, or mid-zoom, `from`'s days widening out to the chart's.
+  const off = zoom ? dows.indexOf(fromDows[0]) * 24 : 0;
+  const lo = lerp(off, 0, zt);
+  const hi = lerp(off + fromDows.length * 24, nHours, zt);
+  const x = scaleLinear([lo, hi], [m.left, width - m.right]);
+  const y = zoom
+    ? scaleLinear([-1, 1].map((k) => k * lerp(niceTop(zoom.from), niceTop(chart), zt)), [height - m.bottom, m.top])
+    : scaleLinear([-yMaxOf[chart], yMaxOf[chart]], [height - m.bottom, m.top]).nice();
   const yTop = y.domain()[1];
   // Each hour's count is drawn flat across its hour, since that's what it counts: a step per hour,
   // the last value repeated at the end so the final hour gets its full width.
@@ -155,9 +181,10 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   })();
 
   const hourTicks = (() => {
-    const every = nDays === 1 ? 3 : nDays <= 3 ? 6 : compact ? 24 : 12;
+    const shown = (hi - lo) / 24;
+    const every = shown <= 1.5 ? 3 : shown <= 3 ? 6 : compact ? 24 : 12;
     const out: number[] = [];
-    for (let i = 0; i <= nHours; i++) if (clockHour(i) % every === (every === 24 ? 12 : 0)) out.push(i);
+    for (let i = Math.ceil(lo - 1e-6); i <= hi + 1e-6; i++) if (clockHour(i) % every === (every === 24 ? 12 : 0)) out.push(i);
     return out;
   })();
   const hoverI = hoverX == null ? null : Math.max(0, Math.min(nHours - 1, Math.floor(hoverX)));
@@ -185,38 +212,45 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           }}
           onPointerLeave={() => setHoverX(null)}
         >
-          {/* gap: shaded window when it has one, under everything */}
-          {gap?.shade !== false &&
-            gap?.ranges?.map(([from, to]) => (
-              <rect key={from} className="i70s-window" x={x(from)} width={x(to) - x(from)} y={m.top} height={height - m.bottom - m.top} />
-            ))}
+          {/* mid-zoom, the days outside the view run off the plot's sides */}
+          <clipPath id={clipId}>
+            {/* a little past the plot's sides, so the edge hours' step lines keep their full stroke */}
+            <rect x={m.left - 2} y={0} width={Math.max(0, width - m.right - m.left + 4)} height={height} />
+          </clipPath>
+          <g clipPath={`url(#${clipId})`}>
+            {/* gap: shaded window when it has one, under everything */}
+            {gap?.shade !== false &&
+              gap?.ranges?.map(([from, to]) => (
+                <rect key={from} className="i70s-window" x={x(from)} width={x(to) - x(from)} y={m.top} height={height - m.bottom - m.top} />
+              ))}
 
-          {/* today's bars: light green, gold over the hours the step is about */}
-          <g className="i70s-bars">
-            {(["wb", "eb"] as const).map((dir) => (
-              <path key={dir} d={bars(dir, [0, nHours])} />
-            ))}
-          </g>
-          {gap && (
-            <g className="i70s-gap">
-              {gap.dirs.map((dir) => gapRanges.map((r) => <path key={`${dir}${r[0]}`} d={bars(dir, r)} />))}
+            {/* today's bars: light green, gold over the hours the step is about */}
+            <g className="i70s-bars">
+              {(["wb", "eb"] as const).map((dir) => (
+                <path key={dir} d={bars(dir, [0, nHours])} />
+              ))}
             </g>
-          )}
+            {gap && (
+              <g className="i70s-gap">
+                {gap.dirs.map((dir) => gapRanges.map((r) => <path key={`${dir}${r[0]}`} d={bars(dir, r)} />))}
+              </g>
+            )}
 
-          {/* peak: the busiest hour's whole bar, axis to count; pale and dashed on 1996 */}
-          {peakDots.map(({ p, then: isThen }, k) => {
-            const top = y((p.dir === "wb" ? 1 : -1) * p.v);
-            return (
-              <rect
-                key={k}
-                className={`i70s-peak-bar${isThen ? " is-then" : ""}`}
-                x={x(p.i)}
-                width={x(p.i + 1) - x(p.i)}
-                y={Math.min(top, y(0))}
-                height={Math.abs(y(0) - top)}
-              />
-            );
-          })}
+            {/* peak: the busiest hour's whole bar, axis to count; pale and dashed on 1996 */}
+            {peakDots.map(({ p, then: isThen }, k) => {
+              const top = y((p.dir === "wb" ? 1 : -1) * p.v);
+              return (
+                <rect
+                  key={k}
+                  className={`i70s-peak-bar${isThen ? " is-then" : ""}`}
+                  x={x(p.i)}
+                  width={x(p.i + 1) - x(p.i)}
+                  y={Math.min(top, y(0))}
+                  height={Math.abs(y(0) - top)}
+                />
+              );
+            })}
+          </g>
 
           {y.ticks(compact ? 6 : 8).map((t) => (
             <g key={t}>
@@ -241,6 +275,8 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           >
             Avg. vehicles per hour
           </text>
+          {/* day dividers and names; mid-zoom the names fade in as the other days arrive */}
+          <g clipPath={`url(#${clipId})`} opacity={zoom ? zt : 1}>
           {dows.map((_, d) => (
             <g key={d}>
               {d > 0 && <line x1={x(d * 24)} x2={x(d * 24)} y1={m.top} y2={height - m.bottom} stroke="var(--baseline)" />}
@@ -266,6 +302,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
               )}
             </g>
           ))}
+          </g>
           {/* which row is which, where the days share one */}
           {multi && ebRow.length > 0 && (
             <g className="i70s-dayrow">
@@ -296,6 +333,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
             ↓ Eastbound, home
           </text>
 
+          <g clipPath={`url(#${clipId})`}>
           {/* trail: every earlier season, fading out with age */}
           {showTrail &&
             years
@@ -318,6 +356,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           )}
           <path d={path(curWb, 1)} fill="none" stroke="var(--now)" strokeWidth={2.5} strokeLinejoin="round" />
           <path d={path(curEb, -1)} fill="none" stroke="var(--now)" strokeWidth={2.5} strokeLinejoin="round" />
+          </g>
 
           {/* net: running westbound − eastbound from 3am, on the right-hand scale */}
           {showNet && now && (
