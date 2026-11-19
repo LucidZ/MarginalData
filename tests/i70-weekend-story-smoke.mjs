@@ -24,7 +24,7 @@ const EXPECT = [
   [1996, "sat", "", 0],
   [1996, "sat", "peak", 0],
   [1996, "sat", "", 0],
-  [L, "sat", "gap", 0],
+  [L, "sat", "", 0],
   [L, "sat", "gap", 0],
   [L, "sat", "gap", 0],
   [L, "friSun", "peak", 0],

@@ -545,13 +545,15 @@
   }
 }
 
-/* WeekendStory: green base (today solid, 1996 dashed), gold for the one
-   highlight being read. Greens and gold are Shape of the Electorate's
+/* WeekendStory: green base (today light bars under a solid step, 1996 a dark
+   dashed step), gold for the one highlight being read. Greens and gold are Shape of the Electorate's
    (--series-3 #1baf7a family, --gap #e0a11c / --gap-edge #a97407). */
 .i70s-root {
   --now: #0f8a5f;
-  --then: #7cc9a8;
+  --now-fill: #cdeadb;
+  --then: #2b2a27;
   --gold: #e0a11c;
+  --gold-fill: #efc970;
   --gold-ink: #a97407;
 }
 .i70s-key {
@@ -598,10 +600,17 @@
   font-weight: 500;
   fill: var(--text-secondary);
 }
-/* A peak highlight: the busiest hour's whole bar, same gold as the gap fill. */
+/* Today's bars; a gap highlight turns its hours gold. Opaque, so gold over
+   green stays gold. */
+.i70s-bars path {
+  fill: var(--now-fill);
+}
+.i70s-gap path {
+  fill: var(--gold-fill);
+}
+/* A peak highlight: the busiest hour's whole bar, same gold as the gap bars. */
 .i70s-peak-bar {
-  fill: var(--gold);
-  opacity: 0.55;
+  fill: var(--gold-fill);
 }
 .i70s-peak-bar.is-then {
   opacity: 0.18;

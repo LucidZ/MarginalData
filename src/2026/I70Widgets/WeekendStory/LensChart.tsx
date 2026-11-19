@@ -6,12 +6,13 @@ import { DOW_SHORT, DRIFT_WB, fmtPct, isDrift, type Dir, type Profiles } from ".
 import { CHARTS, clockHour, dayName, lensSeries, netAt, netSegments, netSeries, season as seasonOf, topPeak, type ChartId, type Highlight, type Peak } from "./lensData";
 
 // The story's chart: 3am to 3am, westbound above the axis and eastbound
-// below, today in green over a dashed green 1996. A highlight adds one gold
-// layer: the busiest hour's whole bar, the gap between the two seasons filled (over a
-// shaded window when it has one, optionally with westbound's change per day
-// above the chart and eastbound's below it), or the net up the hill on its
-// own right-hand scale: running from the chart's start, or starting over each
-// day where the chart resets daily, with the step's days drawn strong.
+// below, today as light green bars under a green step, 1996 as a dark dashed
+// step. A highlight adds one gold layer: the busiest hour's whole bar, today's
+// bars over the step's hours turned gold (over a shaded window when it has
+// one, optionally with westbound's change per day above the chart and
+// eastbound's below it), or the net up the hill on its own right-hand scale:
+// running from the chart's start, or starting over each day where the chart
+// resets daily, with the step's days drawn strong.
 
 interface Props {
   profiles: Profiles;
@@ -86,25 +87,22 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   // Segment k starts at hour k × 24 (there's only one segment on a running line).
   const netPath = (vals: number[], k: number) => line<number>((_, i) => x(k * 24 + i), (v) => yNet(v))(vals) ?? "";
 
-  // Gap: the gap between the pin and today, gold where today is higher, pale where lower. Stepped
-  // like the lines, so the gold is one rectangle per hour and its area is the hours' summed counts.
-  const gapArea = (dir: Dir, gain: boolean, [from, to]: [number, number]) => {
-    const a = series(pinYr ?? cur, dir);
-    const b = series(cur, dir);
-    if (!a || !b) return "";
+  // Today's bars, axis to count, over hours [from, to): stepped like the lines, so each hour is one
+  // rectangle and a range's area is its summed counts. Green by default, gold where a step points.
+  const bars = (dir: Dir, [from, to]: [number, number]) => {
+    const v = series(cur, dir);
+    if (!v) return "";
     const ts: number[] = [];
-    for (let t = Math.max(from, 0); t <= Math.min(to, a.length); t++) ts.push(t);
+    for (let t = Math.max(from, 0); t <= Math.min(to, v.length); t++) ts.push(t);
     // The closing point repeats the range's last hour.
-    const hr = (t: number) => Math.min(t, to - 1);
+    const hr = (t: number) => Math.min(t, to - 1, v.length - 1);
     const sign = dir === "wb" ? 1 : -1;
-    const lo = (t: number) => (gain ? a[hr(t)] : Math.min(a[hr(t)], b[hr(t)]));
-    const hi = (t: number) => (gain ? Math.max(a[hr(t)], b[hr(t)]) : a[hr(t)]);
     return (
       area<number>()
         .curve(curveStepAfter)
         .x((t) => x(t))
-        .y0((t) => y(sign * lo(t)))
-        .y1((t) => y(sign * hi(t)))(ts) ?? ""
+        .y0(y(0))
+        .y1((t) => y(sign * v[hr(t)]))(ts) ?? ""
     );
   };
 
@@ -187,20 +185,21 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           }}
           onPointerLeave={() => setHoverX(null)}
         >
-          {/* gap: the added cars, under everything, over a shaded window when it has one */}
-          {gap && pinYr != null && (
+          {/* gap: shaded window when it has one, under everything */}
+          {gap?.shade !== false &&
+            gap?.ranges?.map(([from, to]) => (
+              <rect key={from} className="i70s-window" x={x(from)} width={x(to) - x(from)} y={m.top} height={height - m.bottom - m.top} />
+            ))}
+
+          {/* today's bars: light green, gold over the hours the step is about */}
+          <g className="i70s-bars">
+            {(["wb", "eb"] as const).map((dir) => (
+              <path key={dir} d={bars(dir, [0, nHours])} />
+            ))}
+          </g>
+          {gap && (
             <g className="i70s-gap">
-              {gap.shade !== false && gap.ranges?.map(([from, to]) => (
-                <rect key={from} className="i70s-window" x={x(from)} width={x(to) - x(from)} y={m.top} height={height - m.bottom - m.top} />
-              ))}
-              {gap.dirs.map((dir) =>
-                gapRanges.map((r) => (
-                  <g key={`${dir}${r[0]}`}>
-                    <path d={gapArea(dir, true, r)} fill="var(--gold)" opacity={0.55} />
-                    <path d={gapArea(dir, false, r)} fill="var(--gold)" opacity={0.18} />
-                  </g>
-                )),
-              )}
+              {gap.dirs.map((dir) => gapRanges.map((r) => <path key={`${dir}${r[0]}`} d={bars(dir, r)} />))}
             </g>
           )}
 
@@ -367,9 +366,11 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
             if (!label) return null;
             const cx = x(p.i + 0.5);
             const cy = y((p.dir === "wb" ? 1 : -1) * p.v);
-            const anchor = peakAnchor({ p, then: isThen });
-            const lx = anchor === "end" ? cx - 4 : anchor === "start" ? cx + 4 : cx;
-            const ly = p.dir === "wb" ? cy - 7 : cy + 16;
+            // A westbound top that would run into the direction label goes beside the bar instead.
+            const beside = p.dir === "wb" && cy - 7 < m.top + 24;
+            const anchor = beside ? "start" : peakAnchor({ p, then: isThen });
+            const lx = beside ? x(p.i + 1) + 4 : anchor === "end" ? cx - 4 : anchor === "start" ? cx + 4 : cx;
+            const ly = beside ? cy + 12 : p.dir === "wb" ? cy - 7 : cy + 16;
             return (
               <g key={k} className={`i70s-peak${isThen ? " is-then" : ""}`}>
                 <text x={lx} y={ly} textAnchor={anchor}>

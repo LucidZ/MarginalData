@@ -32,9 +32,9 @@ const bothWays = (s: Season, ranges: [number, number][]) =>
   ranges.reduce((t, r) => t + sumRange(s.wb, r) + sumRange(s.eb, r), 0);
 const Gold = ({ children }: { children: ReactNode }) => <span className="i70s-gold">{children}</span>;
 
-// Saturday hours westbound: 7am to 3am, the rest of the day, and 3am–7am, the early start.
-const SAT_DAY: [number, number][] = [[4, 24]];
-const SAT_EARLY: [number, number][] = [[0, 4]];
+// Saturday hours westbound (index 0 = 3am): 7am–5pm, the high plateau, and 6–7am, the early start.
+const SAT_DAY: [number, number][] = [[4, 14]];
+const SAT_EARLY: [number, number][] = [[3, 4]];
 // Wed–Tue: Friday 3pm to the end of Sunday's day (3am Monday), and the rest of the week.
 const WEEKEND: [number, number][] = [[2 * 24 + 12, 5 * 24]];
 const REST: [number, number][] = [
@@ -89,7 +89,7 @@ export const STEPS: Step[] = [
   {
     chart: "sat",
     season: "today",
-    hl: { kind: "gap", dirs: ["wb", "eb"] },
+    hl: null,
     text: () => (
       <>
         ...but the shape of that traffic changed as well.
@@ -116,8 +116,9 @@ export const STEPS: Step[] = [
       const r = f.sat.now.wb[3] / f.sat.then.wb[3];
       return (
         <>
-          And some of it starts earlier, ahead of the traffic: the 6am hour now carries{" "}
-          <Gold>{r >= 1.95 ? `${Math.round(r)} times` : `${pctWord(1, r)} more`}</Gold> {r >= 1.95 ? "as many cars" : "cars"}.
+          And more early birds are trying to beat traffic: by 7am there are already{" "}
+          <Gold>{r >= 1.95 ? `${Math.round(r)} times` : `${pctWord(1, r)} more`}</Gold> {r >= 1.95 ? "as many vehicles" : "vehicles"}{" "}
+          going through the tunnel.
         </>
       );
     },
