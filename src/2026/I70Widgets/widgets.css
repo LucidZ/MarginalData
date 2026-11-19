@@ -598,6 +598,16 @@
   font-weight: 500;
   fill: var(--text-secondary);
 }
+/* A peak highlight: the busiest hour's whole bar, same gold as the gap fill. */
+.i70s-peak-bar {
+  fill: var(--gold);
+  opacity: 0.55;
+}
+.i70s-peak-bar.is-then {
+  opacity: 0.18;
+  stroke: var(--gold-ink);
+  stroke-dasharray: 3 2;
+}
 /* A gap highlight's window. */
 .i70s-window {
   fill: var(--gold);

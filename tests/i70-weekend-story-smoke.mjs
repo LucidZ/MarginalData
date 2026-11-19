@@ -37,7 +37,7 @@ const EXPECT = [
 // The scrub runs from this step to the next.
 const SCRUB = 2;
 // The gold layer each highlight draws.
-const LAYER = { peak: ".i70s-peak", gap: ".i70s-gap path", net: ".i70s-net path" };
+const LAYER = { peak: ".i70s-peak-bar", gap: ".i70s-gap path", net: ".i70s-net path" };
 
 const browser = await chromium.launch();
 for (const [name, viewport] of [

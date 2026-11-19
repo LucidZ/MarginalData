@@ -7,7 +7,7 @@ import { CHARTS, clockHour, dayName, lensSeries, netAt, netSegments, netSeries, 
 
 // The story's chart: 3am to 3am, westbound above the axis and eastbound
 // below, today in green over a dashed green 1996. A highlight adds one gold
-// layer: busiest-hour dots, the gap between the two seasons filled (over a
+// layer: the busiest hour's whole bar, the gap between the two seasons filled (over a
 // shaded window when it has one, optionally with westbound's change per day
 // above the chart and eastbound's below it), or the net up the hill on its
 // own right-hand scale: running from the chart's start, or starting over each
@@ -108,7 +108,7 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
     );
   };
 
-  // Peak: today's dots all labeled (just each direction's top on phones and on 1996).
+  // Peak: today's bars all labeled (just each direction's top on phones and on 1996).
   const peakDots = (() => {
     if (hl?.kind !== "peak" || !now) return [];
     const out: { p: Peak; then: boolean; label: boolean }[] = [];
@@ -203,6 +203,21 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
               )}
             </g>
           )}
+
+          {/* peak: the busiest hour's whole bar, axis to count; pale and dashed on 1996 */}
+          {peakDots.map(({ p, then: isThen }, k) => {
+            const top = y((p.dir === "wb" ? 1 : -1) * p.v);
+            return (
+              <rect
+                key={k}
+                className={`i70s-peak-bar${isThen ? " is-then" : ""}`}
+                x={x(p.i)}
+                width={x(p.i + 1) - x(p.i)}
+                y={Math.min(top, y(0))}
+                height={Math.abs(y(0) - top)}
+              />
+            );
+          })}
 
           {y.ticks(compact ? 6 : 8).map((t) => (
             <g key={t}>
@@ -347,30 +362,20 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
             </g>
           )}
 
-          {/* peak: busiest hour per day and direction, hollow on 1996, filled today */}
+          {/* peak labels, over the lines */}
           {peakDots.map(({ p, then: isThen, label }, k) => {
-            const sign = p.dir === "wb" ? 1 : -1;
+            if (!label) return null;
             const cx = x(p.i + 0.5);
-            const cy = y(sign * p.v);
+            const cy = y((p.dir === "wb" ? 1 : -1) * p.v);
             const anchor = peakAnchor({ p, then: isThen });
             const lx = anchor === "end" ? cx - 4 : anchor === "start" ? cx + 4 : cx;
-            const ly = p.dir === "wb" ? cy - 9 : cy + 18;
+            const ly = p.dir === "wb" ? cy - 7 : cy + 16;
             return (
               <g key={k} className={`i70s-peak${isThen ? " is-then" : ""}`}>
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={isThen ? 4 : 5}
-                  fill={isThen ? "var(--surface-1)" : "var(--gold)"}
-                  stroke={isThen ? "var(--gold-ink)" : "var(--surface-1)"}
-                  strokeWidth={1.5}
-                />
-                {label && (
-                  <text x={lx} y={ly} textAnchor={anchor}>
-                    {fmtInt(p.v)}
-                    {!multi && ` · ${hourLabel(clockHour(p.i))}`}
-                  </text>
-                )}
+                <text x={lx} y={ly} textAnchor={anchor}>
+                  {fmtInt(p.v)}
+                  {!multi && ` · ${hourLabel(clockHour(p.i))}`}
+                </text>
               </g>
             );
           })}
