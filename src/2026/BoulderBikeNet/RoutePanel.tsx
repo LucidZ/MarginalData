@@ -1,9 +1,9 @@
 import type { LatLng, Routes } from "./routing";
-import type { BikeClass, ProfileId } from "./types";
+import type { BikeClass, ProfileId, SidewalkPref } from "./types";
 import type { Place, PlaceIndex } from "./search";
 import type { Slots } from "./routeLayers";
 import { PIN_COLORS } from "./routeLayers";
-import { CLASS_COLOR, CLASS_LABEL, PROFILES, SPEED_KMH } from "./style";
+import { CLASS_COLOR, CLASS_LABEL, PROFILES, SIDEWALK_PREFS, SPEED_KMH } from "./style";
 import SearchBox from "./SearchBox";
 
 // Rough neighborhood points (same as scripts/boulder_bikenet/route_test.py)
@@ -32,12 +32,15 @@ interface Props {
   setProfile: (p: ProfileId) => void;
   ghosts: boolean;
   setGhosts: (on: boolean) => void;
+  sidewalkPref: SidewalkPref;
+  setSidewalkPref: (p: SidewalkPref) => void;
 }
 
 const pct = (x: number, of: number) => `${Math.round((100 * x) / of)}%`;
 
 export default function RoutePanel(props: Props) {
-  const { status, classes, routes, places, pins, labels, setPin, swap, locate, locateMsg, example, profile, setProfile, ghosts, setGhosts } = props;
+  const { status, classes, routes, places, pins, labels, setPin, swap, locate, locateMsg, example, profile, setProfile, ghosts, setGhosts, sidewalkPref, setSidewalkPref } =
+    props;
   const R = routes?.byProfile[profile];
   const direct = routes?.byProfile.direct;
 
@@ -72,6 +75,15 @@ export default function RoutePanel(props: Props) {
         ))}
       </div>
       <p className="bbn-muted">{PROFILES[profile].desc}</p>
+      <h2>Where bikes may use the sidewalk, prefer</h2>
+      <div className="bbn-seg">
+        {(Object.keys(SIDEWALK_PREFS) as SidewalkPref[]).map((p) => (
+          <button key={p} className={p === sidewalkPref ? "on" : ""} onClick={() => setSidewalkPref(p)}>
+            {SIDEWALK_PREFS[p].name}
+          </button>
+        ))}
+      </div>
+      <p className="bbn-muted">{SIDEWALK_PREFS[sidewalkPref].desc}</p>
 
       {prompt && <div className="bbn-empty">{prompt}</div>}
 
@@ -95,6 +107,17 @@ export default function RoutePanel(props: Props) {
               </div>
             ))}
           </div>
+          {R.by["shared path/sidewalk"] > 0 && (
+            <p className="bbn-muted bbn-small">
+              {(R.by["shared path/sidewalk"] / 1000).toFixed(1)} km is on sidewalks or walking paths where bikes are allowed: off
+              the road, but shared with people on foot, so expect to slow down.
+            </p>
+          )}
+          {R.by.dismount > 0 && (
+            <p className="bbn-muted bbn-small">
+              {Math.round(R.by.dismount)} m where riding isn't allowed (dismount zones, no-bikes paths): walk your bike there.
+            </p>
+          )}
 
           <h2>Compare styles</h2>
           <table className="bbn-table">
@@ -111,7 +134,7 @@ export default function RoutePanel(props: Props) {
                     <td>{PROFILES[p].name}</td>
                     <td>{(x.m / 1000).toFixed(1)}</td>
                     <td>{extra < 0.5 ? "—" : `+${Math.round(extra)}%`}</td>
-                    <td>{pct(x.by.protected, x.m)}</td>
+                    <td>{pct(x.by.protected + x.by["shared path/sidewalk"], x.m)}</td>
                     <td>{pct(x.by["busy street"], x.m)}</td>
                   </tr>
                 );

@@ -1,7 +1,7 @@
 // Client-side bike routing on the packed street graph (graph.json). Ported from the
 // commute prototype in scripts/boulder_bikenet/build_commute_proto.py; results match
 // route_test.py. Nothing leaves the browser.
-import type { BikeClass, GraphData, ProfileId } from "./types";
+import type { BikeClass, GraphData, ProfileId, SidewalkPref } from "./types";
 
 const LAT0 = 40.015;
 const MX = 111320 * Math.cos((LAT0 * Math.PI) / 180);
@@ -85,13 +85,19 @@ export class BikeGraph {
       if (ow[k] !== 2) this.ADJ[fill[this.EA[k]]++] = k;
       if (ow[k] !== 1) this.ADJ[fill[this.EB[k]]++] = -k - 1;
     }
+    // Sidewalks / walking paths where bikes are allowed: a rider preference. "road" prices them
+    // like an untagged path (used to get through, not sought out); "sidewalk" like a bike path.
     for (const p of Object.keys(D.profiles)) {
-      const m = D.profiles[p as ProfileId], c = new Float64Array(E);
-      for (let k = 0; k < E; k++) {
-        const cls = D.classes[this.ECLS[k]];
-        c[k] = this.ELEN[k] * m[cls === "painted" && this.EART[k] ? "arterial_painted" : cls];
+      for (const pref of ["road", "sidewalk"] as SidewalkPref[]) {
+        const m = D.profiles[p as ProfileId], c = new Float64Array(E);
+        for (let k = 0; k < E; k++) {
+          let cls: string = D.classes[this.ECLS[k]];
+          if (cls === "painted" && this.EART[k]) cls = "arterial_painted";
+          else if (cls === "shared path/sidewalk" && pref === "road") cls = "path/sidewalk (untagged)";
+          c[k] = this.ELEN[k] * m[cls];
+        }
+        this.costs[`${p}|${pref}`] = c;
       }
-      this.costs[p] = c;
     }
     for (let i = 0; i < N; i++) {
       const key = this.cellKey(Math.floor(this.X[i] / CELL), Math.floor(this.Y[i] / CELL));
@@ -218,12 +224,12 @@ export class BikeGraph {
     return { steps, m, by, via };
   }
 
-  route(a: LatLng, b: LatLng): Routes | null {
+  route(a: LatLng, b: LatLng, pref: SidewalkPref): Routes | null {
     const s = this.snap(a), t = this.snap(b);
     if (s < 0 || t < 0 || s === t) return null;
     const byProfile: Routes["byProfile"] = {};
     for (const p of Object.keys(this.D.profiles) as ProfileId[]) {
-      const steps = this.astar(s, t, this.costs[p]);
+      const steps = this.astar(s, t, this.costs[`${p}|${pref}`]);
       if (steps) byProfile[p] = this.summarize(steps);
     }
     return { s, t, byProfile };

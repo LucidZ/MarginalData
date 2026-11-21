@@ -9,10 +9,12 @@
                   Geofabrik extract, for the in-page From/To search (no geocoding service).
 
 Usage:
-    python -I export_site_data.py <work_dir> <audit_dir> <out_dir>
+    python -I export_site_data.py <work_dir> <out_dir>
 
 Same inputs as build_preview_map.py (work_dir = data/boulder_bikenet) plus the routing graph cache
-route_test.py builds in <work_dir>/routing/.
+route_test.py builds in <work_dir>/routing/ and the City of Boulder inventory in <work_dir>/city/
+(fetch_city_inventory.py), whose facility types win over OSM's where the city has data
+(city_facilities.py). The painted-lane map layer comes from the same graph classes.
 """
 
 import gzip
@@ -22,21 +24,46 @@ from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import Point
+from shapely.geometry import LineString, Point
 
 sys.path.insert(0, str(Path(__file__).parent))
 import build_commute_proto as proto  # noqa: E402
 import build_preview_map as bpm  # noqa: E402
 import route_test as rt  # noqa: E402
 
+# Advanced choices on the page: what counts as protected x data fed to the tools (run_bikenetkit.py)
+VERSIONS = {"bike": "Bike facilities only, no data", "bike_crashes": "Bike facilities only, crashes",
+            "shared": "+ shared sidewalks, no data", "shared_crashes": "+ shared sidewalks, crashes"}
+DEFAULT = "bike"
 NOTES = {
-    "v0": "BikeNetKit out of the box. A tag bug hides designated multi-use paths and cycle tracks: "
-          "the tools see ~95 km of protected network instead of ~205 km.",
-    "v1": "Tag bug patched, no extra data. Baseline for comparison.",
-    "v2": "Bike crashes (Boulder PD, 2018–24) reweight Grow ordering and Fix gap ranking. Link unchanged.",
-    "v3": "Intra-city commute flows (LODES 2024) reweight Grow ordering. Fix and Link unchanged.",
-    "v4": "Crashes + commutes, 50/50 blend, reweight Grow ordering. Fix uses crashes (= v2). Link unchanged.",
+    "bike": "Protected = multi-use paths, protected bike lanes and open-space bike trails (City of Boulder "
+            "inventory, OpenStreetMap where the city has no data). Painted lanes and sidewalks don't count.",
+    "bike_crashes": "Same network; bike crashes (Boulder PD, 2018–24) reweight Grow ordering and Fix gap ranking. "
+                    "Link unchanged.",
+    "shared": "Sidewalks and walking paths where bikes are allowed (residential and park areas only) also count "
+              "as protected, so streets with one look covered. Fix isn't run: with most streets covered, its "
+              "gaps mean little.",
+    "shared_crashes": "Sidewalks count as protected, and bike crashes reweight Grow. Link unchanged; Fix not run.",
 }
+
+
+def tool_source(run, tool):
+    """Run directory holding a run's results for one tool. Grow from scratch ignores the existing
+    network (old v1 / v2 runs); Link ignores crashes; Fix isn't run with shared sidewalks (None)."""
+    crashes = run.endswith("_crashes")
+    if tool == "fix" and run.startswith("shared"):
+        return None
+    if tool == "grow":
+        return "v2" if crashes else "v1"
+    if tool == "link":
+        return run.split("_")[0]
+    return run
+
+
+def edges_layer(path):
+    return gpd.read_file(path, layer="edges")
+
+
 
 
 def rounded(c, nd=5):
@@ -57,34 +84,58 @@ def dump(obj, path):
     print(f"wrote {path}: {len(s) / 1e6:.2f} MB raw, {gz / 1e6:.2f} MB gzip")
 
 
-def network(work, audit_dir):
-    out ={"versions": bpm.VERSIONS, "notes": NOTES, "differs": bpm.DIFFERS, "tools": {}, "geoms": []}
+def painted_lanes(g, boundary):
+    """Streets inside the city with a painted lane every way you can ride them (the lesser of the
+    directions, as on the route context map), from the routing graph's classes."""
+    by_street = {}
+    for u, v, d in g.edges(data=True):
+        by_street.setdefault((min(u, v), max(u, v), round(d["length"], 1)), []).append((u, v, d))
+    rows = []
+    for edges in by_street.values():
+        if all(d["cls"] == "painted" for _, _, d in edges):
+            u, v, d = edges[0]
+            geom = d.get("geometry") or LineString([(g.nodes[u]["x"], g.nodes[u]["y"]), (g.nodes[v]["x"], g.nodes[v]["y"])])
+            rows.append({"name": rt.first(d.get("name")) or "", "geometry": geom})
+    lanes = gpd.GeoDataFrame(rows, crs=4326)
+    return lanes[lanes.intersects(boundary)]
 
-    audit = gpd.read_file(audit_dir / "boulder-osm-bike-audit.gpkg")
-    audit["name"] = audit["name"].fillna("")
-    out["painted"] = compact(bpm.to_geojson(audit[audit["category"] == "painted lane (ignored)"].copy(), ["name"]))
+
+def network(work, g):
+    differs = {v: [t for t in bpm.FILES if tool_source(v, t) != tool_source(DEFAULT, t)] for v in VERSIONS}
+    out = {"versions": VERSIONS, "default": DEFAULT, "notes": NOTES, "differs": differs, "tools": {}, "geoms": []}
+
     fix_v1 = bpm.find(work / "v1" / "results", bpm.FILES["fix"][0])
-    out["protected"] = compact(bpm.to_geojson(gpd.read_file(fix_v1, layer="Existing bike network"), []))
-    fix_v0 = bpm.find(work / "v0" / "results", bpm.FILES["fix"][0])
-    out["protected_v0"] = compact(bpm.to_geojson(gpd.read_file(fix_v0, layer="Existing bike network"), []))
+    boundary = gpd.read_file(fix_v1, layer="City boundary").to_crs(4326).union_all()
+    out["painted"] = compact(bpm.to_geojson(painted_lanes(g, boundary), ["name"]))
+    nets = work / "data" / "networks"  # build_tool_networks.py: what the tools were told is protected
+    bike, shared = edges_layer(nets / "bike" / "bike_network.gpkg"), edges_layer(nets / "shared" / "bike_network.gpkg")
+    out["protected"] = compact(bpm.to_geojson(bike, []))
+    in_bike = set(zip(bike["u"], bike["v"], bike["key"]))
+    extra = shared[[e not in in_bike for e in zip(shared["u"], shared["v"], shared["key"])]]
+    out["protected_shared"] = compact(bpm.to_geojson(extra, []))  # added on top in the "shared" runs
     out["boundary"] = compact(bpm.to_geojson(gpd.read_file(fix_v1, layer="City boundary"), [], 5))
     streets = gpd.read_file(fix_v1, layer="Existing street network")
 
     # Shared geometry table: identical lines across versions/tools are stored once
     geom_id = {}
-    for v in bpm.VERSIONS:
+    for v in VERSIONS:
         out["tools"][v] = {}
-        for tool in bpm.FILES:
-            g, src = bpm.load_tool(work, v, tool)
-            if g is None:
+        for tool, (pattern, layer) in bpm.FILES.items():
+            src = tool_source(v, tool)
+            if src is None:
                 continue
+            path = bpm.find(work / src / "results", pattern)
+            if path is None:
+                print(f"warning: no {tool} results in {src}")
+                continue
+            t = gpd.read_file(path, layer=layer)
             if tool == "link":  # as bpm.tool_layer, plus street names for the panel's list
-                g = g[g["link_length"] > 0].copy()
-                g["share_after"] = (g["lcc_share"] * 100).round(1)
-                g["streets"] = bpm.street_names(g, streets)
-                fc = bpm.to_geojson(g, ["ordering", "link_length", "share_after", "streets"], 0)
+                t = t[t["link_length"] > 0].copy()
+                t["share_after"] = (t["lcc_share"] * 100).round(1)
+                t["streets"] = bpm.street_names(t, streets)
+                fc = bpm.to_geojson(t, ["ordering", "link_length", "share_after", "streets"], 0)
             else:
-                fc = bpm.tool_layer(g, tool, streets)
+                fc = bpm.tool_layer(t, tool, streets)
             feats = []
             for f in fc["features"]:
                 geom = {"type": f["geometry"]["type"], "coordinates": rounded(f["geometry"]["coordinates"])}
@@ -109,13 +160,13 @@ def network(work, audit_dir):
 
 
 def graph(work, simplify_deg=1.5e-5):
-    g = rt.prepare(rt.load_graph(work, work / "routing"))
+    g = rt.prepare(rt.load_graph(work, work / "routing"), work / "city")
     for _, _, d in g.edges(data=True):  # ~1.5 m tolerance; endpoints are kept, so topology is unchanged
         if "geometry" in d:
             d["geometry"] = d["geometry"].simplify(simplify_deg)
     D = proto.export(g)
     D.update(classes=rt.CLASSES, profiles=rt.PROFILES, osm_source=g.graph.get("osm_source", ""))
-    return D
+    return g, D
 
 
 PLACE_KEYS = ["place", "amenity", "shop", "leisure", "tourism", "office", "craft", "healthcare", "building", "landuse",
@@ -182,15 +233,16 @@ def places(work):
     return {"streets": streets, "a": addrs, "p": named}
 
 
-def main(work, audit_dir, out_dir):
-    work, audit_dir, out_dir = Path(work), Path(audit_dir), Path(out_dir)
+def main(work, out_dir):
+    work, out_dir = Path(work), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    dump(network(work, audit_dir), out_dir / "network.json")
-    dump(graph(work), out_dir / "graph.json")
+    g, D = graph(work)
+    dump(network(work, g), out_dir / "network.json")
+    dump(D, out_dir / "graph.json")
     dump(places(work), out_dir / "places.json")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 3:
         raise SystemExit(__doc__)
-    main(*sys.argv[1:4])
+    main(*sys.argv[1:3])

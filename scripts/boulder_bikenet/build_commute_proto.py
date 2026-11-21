@@ -131,7 +131,7 @@ cycle tracks; painted = on-street bike lanes; busy street = arterial with no bik
 </div><div id="map"></div></div>
 <script>
 const D = __DATA__;
-const COL = {'protected': '#2f6fb3', 'painted': '#e9a23b', 'quiet street': '#8a8f98', 'busy street': '#d62728', 'path/sidewalk (untagged)': '#9b59b6'};
+const COL = {'protected': '#2f6fb3', 'shared path/sidewalk': '#7fb2e0', 'painted': '#e9a23b', 'quiet street': '#8a8f98', 'busy street': '#d62728', 'path/sidewalk (untagged)': '#9b59b6'};
 const LABEL = {'protected': 'Protected path / track', 'painted': 'Painted bike lane', 'quiet street': 'Quiet street, no lane',
   'busy street': 'Busy street, no lane', 'path/sidewalk (untagged)': 'Path or sidewalk (bike access untagged)'};
 const PROFS = {direct: ['Direct', 'near-shortest'], balanced: ['Balanced', 'avoids busy streets'], cautious: ['Cautious', 'protected first']};

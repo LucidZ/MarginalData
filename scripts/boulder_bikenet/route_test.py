@@ -8,7 +8,8 @@ Usage:
 
 <work_dir> = data/boulder_bikenet (city boundary from v1's Fix gpkg). The street graph is built from
 the local Geofabrik extract in data/osm/ (see osm_extract.py; no Overpass calls) and cached in
-<out_dir>/boulder-street-graph-v3.graphml (v3: built from the extract; v2 was Overpass + footway tag).
+<out_dir>/boulder-street-graph-v4.graphml (v4: + foot tag; v3: built from the extract; v2 was Overpass +
+footway tag).
 """
 
 import json
@@ -25,8 +26,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from osm_extract import PBF_NAME, graph_from_extract  # noqa: E402
 from audit_osm_tagging import (CYCLEWAY_COLS, categorize, direction_level, is_true,  # noqa: E402
                                undirected_level)  # (importing also extends ox.settings.useful_tags_way)
+import city_facilities  # noqa: E402
 
-ox.settings.useful_tags_way += ["oneway:bicycle", "maxspeed", "lanes", "footway"]
+ox.settings.useful_tags_way += ["oneway:bicycle", "maxspeed", "lanes", "footway", "foot"]
 
 # Rough neighborhood centroids; Lucas to adjust to real start/end points
 ORIGINS = {
@@ -43,19 +45,24 @@ DESTS = {
 EXCLUDE_HW = {"motorway", "motorway_link", "trunk", "trunk_link", "steps", "construction",
               "proposed", "raceway", "bridleway", "corridor", "elevator", "platform"}
 ARTERIAL = {"primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link"}
-CLASSES = ["protected", "painted", "quiet street", "busy street", "path/sidewalk (untagged)"]
+CLASSES = ["protected", "shared path/sidewalk", "painted", "quiet street", "busy street", "path/sidewalk (untagged)",
+           "dismount"]
+WALK_HW = {"footway", "pedestrian"}
 
 # Multipliers on length. "painted" on an arterial gets the arterial_painted value.
 # "direct" is near-shortest: the small penalties only break near-ties, so a side path running
 # next to a busy road wins over the road (pure distance picked the road on a few meters of
-# mapping noise; the x1.1 weights add at most 70 m / 1.5% on the test pairs).
+# mapping noise; the x1.1 weights add at most 70 m / 1.5% on the test pairs). A sidewalk or walking
+# path where bikes are allowed costs the same as a bike path (Lucas: protected, if a little funky);
+# it is its own class so the route breakdown can tell them apart. "dismount" (no riding, walk the
+# bike) costs about walking pace against riding, 5 vs 16 km/h: used to bridge a gap, not sought out.
 PROFILES = {
-    "direct": {"protected": 1, "painted": 1.02, "arterial_painted": 1.05, "quiet street": 1.03,
-               "busy street": 1.1, "path/sidewalk (untagged)": 1.05},
-    "balanced": {"protected": 1, "painted": 1.2, "arterial_painted": 1.5, "quiet street": 1.3,
-                 "busy street": 3, "path/sidewalk (untagged)": 1.6},
-    "cautious": {"protected": 1, "painted": 1.5, "arterial_painted": 2.2, "quiet street": 1.6,
-                 "busy street": 6, "path/sidewalk (untagged)": 2.2},
+    "direct": {"protected": 1, "shared path/sidewalk": 1, "painted": 1.02, "arterial_painted": 1.05, "quiet street": 1.03,
+               "busy street": 1.1, "path/sidewalk (untagged)": 1.05, "dismount": 3.5},
+    "balanced": {"protected": 1, "shared path/sidewalk": 1, "painted": 1.2, "arterial_painted": 1.5, "quiet street": 1.3,
+                 "busy street": 3, "path/sidewalk (untagged)": 1.6, "dismount": 3.5},
+    "cautious": {"protected": 1, "shared path/sidewalk": 1, "painted": 1.5, "arterial_painted": 2.2, "quiet street": 1.6,
+                 "busy street": 6, "path/sidewalk (untagged)": 2.2, "dismount": 3.5},
 }
 
 
@@ -64,7 +71,7 @@ def first(v):
 
 
 def load_graph(work, out):
-    cache = out / "boulder-street-graph-v3.graphml"
+    cache = out / "boulder-street-graph-v4.graphml"
     if cache.exists():
         return ox.load_graphml(cache)
     fix = next((work / "v1" / "results").glob("boulder-fixbikenet-gaps.gpkg"))
@@ -96,7 +103,8 @@ def bike_class(d):
     # Off-street classes come from the way itself; on-street lanes depend on direction of travel
     cat = categorize({**row, **{c: None for c in CYCLEWAY_COLS}})
     if cat == "protected (counted)":
-        return "protected"
+        walk = row["highway"] in WALK_HW or row["highway"] == "path" and row["bicycle"] != "designated"
+        return "shared path/sidewalk" if walk else "protected"
     if cat == "path, bike access untagged (ignored)":
         return "path/sidewalk (untagged)"
     direction = travel_direction(d)
@@ -108,14 +116,24 @@ def bike_class(d):
     return "busy street" if row["highway"] in ARTERIAL else "quiet street"
 
 
-def prepare(g):
+def prepare(g, city_dir=None):
+    """Bike classes + per-profile costs. With city_dir (fetch_city_inventory.py output), the City of
+    Boulder's facility types win wherever the city has data (city_facilities.py); elsewhere OSM.
+    Riding against a one-way street is only allowed in a contraflow lane.
+
+    OSM decides which edges exist; the city only relabels them. An edge is removed only where a
+    bike can't go at all, ridden or walked: excluded road types, private access, or no bikes and
+    no feet. Where riding isn't allowed but walking is (bicycle=no / dismount, or city no-bikes),
+    the edge stays as "dismount"."""
     drop = []
     for u, v, k, d in g.edges(keys=True, data=True):
-        hw, bike, access = first(d.get("highway")), first(d.get("bicycle")), first(d.get("access"))
-        if hw in EXCLUDE_HW or bike in ("no", "dismount") or access in ("private", "no") and bike not in ("yes", "designated"):
+        hw, bike, access, foot = (first(d.get(t)) for t in ("highway", "bicycle", "access", "foot"))
+        no_ride = bike in ("no", "dismount")
+        if (hw in EXCLUDE_HW or no_ride and foot == "no"
+                or access in ("private", "no") and bike not in ("yes", "designated")):
             drop.append((u, v, k))
             continue
-        d["cls"] = bike_class(d)
+        d["cls"] = "dismount" if no_ride else bike_class(d)
         d["arterial"] = first(d.get("highway")) in ARTERIAL
     g.remove_edges_from(drop)
     # Contraflow: oneway streets where bikes may ride both ways
@@ -129,6 +147,14 @@ def prepare(g):
             add.append((v, u, r))
     for v, u, r in add:
         g.add_edge(v, u, **r)
+    if city_dir is not None:
+        changes = city_facilities.apply(g, city_dir, lambda d: d["arterial"])
+        for change, km in sorted(changes.items()):
+            print(f"city: {change}: {km:.1f} km (directed edges)")
+    no_lane = [(u, v, k) for u, v, k, d in g.edges(keys=True, data=True)
+               if d.get("contraflow") and d["cls"] not in ("painted", "protected")]
+    g.remove_edges_from(no_lane)
+    print(f"contraflow: {len(add) - len(no_lane)} of {len(add)} edges kept (the rest have no contraflow lane)")
     g = g.subgraph(max(nx.strongly_connected_components(g), key=len)).copy()
     for _, _, d in g.edges(data=True):
         for name, m in PROFILES.items():
@@ -222,7 +248,7 @@ tr.r{cursor:pointer}tr.r:hover{background:#f6f6f8}tr.sel{background:#eef3fb}
 </div><div id="map"></div></div>
 <script>
 const D = __DATA__;
-const COL = {'protected': '#2f6fb3', 'painted': '#e9a23b', 'quiet street': '#8a8f98', 'busy street': '#d62728', 'path/sidewalk (untagged)': '#9b59b6'};
+const COL = {'protected': '#2f6fb3', 'shared path/sidewalk': '#7fb2e0', 'painted': '#e9a23b', 'quiet street': '#8a8f98', 'busy street': '#d62728', 'path/sidewalk (untagged)': '#9b59b6'};
 const map = L.map('map', {preferCanvas: true}).setView([40.015, -105.258], 13);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
   {attribution: 'Tiles &copy; Esri | Data &copy; OpenStreetMap contributors', maxZoom: 19, maxNativeZoom: 16}).addTo(map);

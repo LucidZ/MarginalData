@@ -1,19 +1,23 @@
-import type { BikeClass, ProfileId, ToolId, ToolProps } from "./types";
+import type { BikeClass, ProfileId, SidewalkPref, ToolId, ToolProps } from "./types";
 
 export const CLASS_COLOR: Record<BikeClass, string> = {
   protected: "#2f6fb3",
+  "shared path/sidewalk": "#7fb2e0",
   painted: "#e9a23b",
   "quiet street": "#8a8f98",
   "busy street": "#d62728",
   "path/sidewalk (untagged)": "#9b59b6",
+  dismount: "#7a4a1e",
 };
 
 export const CLASS_LABEL: Record<BikeClass, string> = {
   protected: "Protected path / track",
+  "shared path/sidewalk": "Sidewalk or walking path, bikes allowed",
   painted: "Painted bike lane",
   "quiet street": "Quiet street, no lane",
   "busy street": "Busy street, no lane",
   "path/sidewalk (untagged)": "Path or sidewalk (bike access untagged)",
+  dismount: "Walk your bike (no riding)",
 };
 
 // One color for every recommendation method: distinct from protected blue, painted amber,
@@ -50,7 +54,7 @@ export const TOOLS: Record<ToolId, { label: string; listTitle: string; desc: str
 
 export const DEFAULT_TOOL: ToolId = "grow_existing";
 
-export const ACCENT = "#e8590c"; // "new vs v1"
+export const ACCENT = "#e8590c"; // "new vs default"
 export const CRASH_COLOR = "#c2255c";
 export const COMMUTE_COLOR = "#5f3dc4";
 
@@ -69,6 +73,17 @@ export const PROFILES: Record<ProfileId, { name: string; short: string; desc: st
     name: "Cautious",
     short: "protected first",
     desc: "A busy street without a lane counts as 6× its length; stays on protected paths even for longer detours.",
+  },
+};
+
+export const SIDEWALK_PREFS: Record<SidewalkPref, { name: string; desc: string }> = {
+  road: {
+    name: "The road",
+    desc: "Bike lanes and quiet streets first. Sidewalks are used only where they're the better way through.",
+  },
+  sidewalk: {
+    name: "The sidewalk",
+    desc: "Sidewalks and walking paths where bikes are allowed count like a bike path: off the road, but slower, with people on foot.",
   },
 };
 

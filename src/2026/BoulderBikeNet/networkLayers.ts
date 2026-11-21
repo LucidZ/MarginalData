@@ -3,13 +3,13 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import type { Feature, Geometry } from "geojson";
-import type { NetworkData, ToolId, ToolProps, VersionId } from "./types";
+import { DEFAULT_VERSION, type NetworkData, type ToolId, type ToolProps, type VersionId } from "./types";
 import { ACCENT, COMMUTE_COLOR, CRASH_COLOR, CLASS_COLOR, TOOLS, toolTitle, toolTooltip } from "./style";
 
 export interface NetworkView {
   version: VersionId;
   tool: ToolId;
-  diff: boolean; // highlight changes vs v1 (other versions only)
+  diff: boolean; // highlight changes vs the default version (other versions only)
   km: number; // Grow: first N km of build order
   layers: { protected: boolean; painted: boolean; crashes: boolean; commutes: boolean };
 }
@@ -37,9 +37,9 @@ export function inBudget(tool: ToolId, p: ToolProps, km: number): boolean {
 
 export const featureKey = (p: ToolProps) => ("key" in p ? p.key : `g${p.g}`);
 
-/** Is this version's output compared against v1 on the map? */
+/** Is this version's output compared against the default on the map? */
 export function showsDiff(data: NetworkData, view: NetworkView) {
-  return view.diff && view.version !== "v1" && view.tool !== "link" && data.differs[view.version].includes(view.tool);
+  return view.diff && view.version !== DEFAULT_VERSION && view.tool !== "link" && data.differs[view.version].includes(view.tool);
 }
 
 export function useNetworkLayers(
@@ -67,7 +67,10 @@ export function useNetworkLayers(
     const maxW = Math.max(...data.commutes.features.map((f) => f.properties.workers));
     const built: Record<string, L.GeoJSON> = {
       protected: L.geoJSON(data.protected, { style: { color: CLASS_COLOR.protected, weight: 2.2, opacity: 0.7 }, interactive: false }),
-      protected_v0: L.geoJSON(data.protected_v0, { style: { color: CLASS_COLOR.protected, weight: 2.2, opacity: 0.7 }, interactive: false }),
+      protected_shared: L.geoJSON(data.protected_shared, {
+        style: { color: CLASS_COLOR["shared path/sidewalk"], weight: 2.2, opacity: 0.7 },
+        interactive: false,
+      }),
       painted: L.geoJSON(data.painted, {
         style: { color: CLASS_COLOR.painted, weight: 2, opacity: 0.8 },
         onEachFeature: (f, l) => {
@@ -106,7 +109,7 @@ export function useNetworkLayers(
       const all = toolFeatures(data, view.version, t);
       const feats = all.filter((p) => inBudget(t, p, view.km));
       const changed = showsDiff(data, view);
-      const base = changed ? new Set(toolFeatures(data, "v1", t).filter((p) => inBudget(t, p, view.km)).map(featureKey)) : null;
+      const base = changed ? new Set(toolFeatures(data, DEFAULT_VERSION, t).filter((p) => inBudget(t, p, view.km)).map(featureKey)) : null;
       const n = Math.max(1, feats.length);
       const dim = selected !== null;
       feats.forEach((p, i) => {
@@ -121,7 +124,7 @@ export function useNetworkLayers(
             opacity: isSel ? 1 : dim ? 0.3 : changed && !isNew ? 0.45 : 0.95,
           },
         });
-        line.bindTooltip((isNew ? "<b>New vs v1</b><br>" : "") + toolTooltip(t, p, i + 1), { sticky: true });
+        line.bindTooltip((isNew ? "<b>New vs default</b><br>" : "") + toolTooltip(t, p, i + 1), { sticky: true });
         line.on("click", (e: L.LeafletMouseEvent) => {
           L.DomEvent.stopPropagation(e);
           cb.current.onSelect({ tool: t, p, rank: i + 1 });
@@ -130,15 +133,15 @@ export function useNetworkLayers(
         group.addLayer(line);
       });
       if (changed) {
-        // In v1 but not in this version: dashed gray
+        // In the default but not in this version: dashed gray
         const cur = new Set(feats.map(featureKey));
-        toolFeatures(data, "v1", t).forEach((p, i) => {
+        toolFeatures(data, DEFAULT_VERSION, t).forEach((p, i) => {
           if (!inBudget(t, p, view.km) || cur.has(featureKey(p))) return;
           const line = L.geoJSON(data.geoms[p.g], { style: { color: "#555", weight: 2.5, dashArray: "3 5", opacity: 0.9 } });
-          line.bindTooltip("<b>Dropped vs v1</b><br>" + toolTooltip(t, p, i + 1), { sticky: true });
+          line.bindTooltip("<b>Dropped vs default</b><br>" + toolTooltip(t, p, i + 1), { sticky: true });
           line.on("click", (e: L.LeafletMouseEvent) => {
             L.DomEvent.stopPropagation(e);
-            cb.current.onInspect(data.geoms[p.g], e.latlng.lat, e.latlng.lng, "Dropped vs v1: " + toolTitle(t, p, i + 1));
+            cb.current.onInspect(data.geoms[p.g], e.latlng.lat, e.latlng.lng, "Dropped vs default: " + toolTitle(t, p, i + 1));
           });
           group.addLayer(line);
         });
@@ -150,10 +153,9 @@ export function useNetworkLayers(
     show(ins.commutes, active && view.layers.commutes);
     if (map.hasLayer(ins.commutes)) ins.commutes.bringToBack();
     // The protected network stays on in route mode, as faint context under the route
-    const useV0 = active && view.version === "v0";
-    show(ins.protected_v0, view.layers.protected && useV0);
-    show(ins.protected, view.layers.protected && !useV0);
-    for (const p of [ins.protected, ins.protected_v0]) {
+    show(ins.protected, view.layers.protected);
+    show(ins.protected_shared, view.layers.protected && active && view.version.startsWith("shared"));
+    for (const p of [ins.protected, ins.protected_shared]) {
       p.setStyle({ opacity: active ? 0.7 : 0.35, weight: active ? 2.2 : 1.6 });
       if (map.hasLayer(p)) p.bringToBack();
     }

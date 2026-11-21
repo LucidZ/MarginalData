@@ -67,9 +67,9 @@ for v in v0 v1 v2 v3 v4; do (cd $W/$v && python -I ../../../scripts/boulder_bike
 # asks scripted clients not to). Refresh = re-download + delete the v3 graphml. BikeNetKit is fine
 # as is: bikenetlib points osmnx at the toolkit's own server, overpass.bikenetkit.org.
 python -I scripts/boulder_bikenet/osm_extract.py download data/osm      # Colorado .pbf, md5-checked
-python -I scripts/boulder_bikenet/route_test.py $W $W/routing           # builds routing/boulder-street-graph-v3.graphml
+python -I scripts/boulder_bikenet/route_test.py $W $W/routing           # builds routing/boulder-street-graph-v4.graphml
 python -I scripts/boulder_bikenet/build_commute_proto.py $W $W/routing/commute-proto.html
-(cd <tmp> && python -I .../audit_osm_tagging.py $W/routing/boulder-street-graph-v3.graphml \
+(cd <tmp> && python -I .../audit_osm_tagging.py $W/routing/boulder-street-graph-v4.graphml \
    $W/v1/results/boulder-fixbikenet-gaps.gpkg)                           # writes ./results -> copy to $W/audit
 python -I scripts/boulder_bikenet/build_preview_map.py $W $W/audit $W/boulder-versions.html
 ```
@@ -122,7 +122,7 @@ Grow km slider, inputs, top-10 Fix / Grow lists) and **Your route** (prototype p
 split bar, compare table, examples). Shared Mapillary photo panel (`VITE_MAPILLARY_TOKEN`, inlined into
 the page chunk at build: client token, acceptable; consider a separate site token restricted by domain).
 Code: `src/2026/BoulderBikeNet/` (routing.ts = A* port, photos.ts, networkLayers.ts, routeLayers.ts).
-Data: `python -I scripts/boulder_bikenet/export_site_data.py $W $W/audit public/data/boulder-bikenet`.
+Data: `python -I scripts/boulder_bikenet/export_site_data.py $W public/data/boulder-bikenet` (2026-11-19: audit arg dropped).
 Payload (gzip, GitHub Pages compresses JSON): network.json 0.25 MB (5 versions share 758 geometries),
 graph.json 0.71 MB (fetched on first route-mode open; shapes simplified 1.5e-5°), page JS 10 KB,
 leaflet 42 KB, + Esri tiles and Mapillary images (~100–300 KB per photo). Smoke test:
@@ -229,3 +229,90 @@ Revisions after Lucas's first look (2026-11-18):
 - [ ] MVP port to site
 - [ ] next experiment: real-destination seed points (CU, Pearl, schools, transit) as a new axis
 - [ ] decide whether to report the bikenetlib tag bug upstream (ask Lucas first)
+
+## City of Boulder inventory vs OSM (2026-11-19)
+
+Lucas asked whether the city's Bike Map (experience.arcgis.com/.../7654aa43144b4406bd803c7c332ca13a,
+web map `cb1108c741a24c85b6e1fd94a40dd12b`) uses our data: no, it draws the city's own GIS
+(`gis.bouldercolorado.gov/ags_svr3/rest/services/trans/`). Public, no login. Useful layers:
+`BikePedALL/1` on-street inventory (FACILITYTYPE, BUFFERED/BUFFERTYPE, SNOWROUTE, ONEWAY,
+NBRHDGRNWY, INSTALLDATE), `BikePedALL/0` off-street (MUP, sidewalk, ped path; BICYCLES, EBIKE,
+SNOWROUTE, MATERIAL, WIDTH), `osmp/TrailsNEW/4` OSMP trails (BICYCLES/EBIKES). Also a full
+`StreetCenterline` (SPEEDLIMIT, NUMLANES, ONEWAY, STREETCLASS) and `HighRiskNetwork` (HRN).
+Scripts: `fetch_city_inventory.py <out>` -> `data/boulder_bikenet/city/`; `compare_city_inventory.py`
+(10 m pieces, nearest aligned match within 15 m / 30 deg, city boundary) -> `city-vs-osm.gpkg` + CSVs.
+
+City km (Active, in city boundary) -> what OSM has there:
+- Multi-use path 136: OSM protected 122 (90%), untagged path 12, nothing 2.
+- Protected/separated lane 9.7: OSM protected 9.0.
+- Painted lane 130: OSM painted 74, OSM protected 20 (side path / track), no OSM lane ~31
+  (shows as "path untagged" = nearest sidewalk, or no match), sharrow 5. OSM painted 73 -> 69 confirmed.
+- Designated route 182: OSM sharrow 132; rest untagged in OSM. OSM sharrow 90 -> 80 confirmed.
+- Bikeable shoulder 21: mostly nothing in OSM (no OSM equivalent in our audit).
+- OSM protected with no city facility: 62 km, mostly city "Pedestrian Path" (28) or sidewalk (10)
+  where OSM says path/footway + bicycle=designated/yes, plus Valmont Bike Park trails.
+Reading: the two agree on the core (MUPs, protected lanes); the city adds ~55 km of painted lanes
+and ~50 km of designated routes OSM lacks, plus shoulders; OSM's "protected" is looser on paths.
+Winter: SNOWROUTE codes undocumented — on-street E/R/F + tier 1–3 (e.g. "E1, R1, F1"), off-street
+T1–T3/TL1–TL2 (52 km of 136 km MUP tiered, 70 Unknown). The web app's winter filter uses
+RP/RS/RC (small/medium/large storm), which match nothing in current data — find the key before
+building a winter toggle.
+- 2026-11-19 Lucas: winter toggle dropped (not MVP). Hybrid adopted: OSM stays the street graph,
+  city facility types fill in what OSM leaves blank (`city_facilities.py`, called from
+  `route_test.prepare(g, city_dir)`; `export_site_data.py` passes `<work>/city`). Rules: untagged
+  street (or only cycleway=shoulder) along city lane/shoulder -> painted, along city protected lane
+  -> protected; untagged path along city MUP / OSMP bike trail -> protected; edge needs >=50% of its
+  length matched; OSM direction-specific tags win (no downgrades). Directed-edge km filled:
+  busy->painted 24.5, quiet->painted 10.4, path->protected 42.9, street->protected 6.0.
+  network.json painted layer = OSM painted + city-filled (1638 -> 1989 features). Test pairs: mean
+  protected share +1.6–3.2 pts per profile, South Boulder routes +5–10 pts. Not changed: the
+  "protected" network BikeNetKit (Grow/Link/Fix) runs on — still OSM-only.
+- 2026-11-19 (later) Lucas decisions, superseding the fill-in rules above:
+  - **City is the default classification** where it has data, OSM elsewhere (`city_facilities.py`
+    rewritten: direction-aware — city on-street lines are one per side, ONEWAY FT = direction of
+    travel; city bicycles=No removes the edge, e.g. downtown sidewalks). The city's data does record
+    direction (Table Mesa: lane one way, designated route the other) — earlier claim it didn't was wrong.
+  - **No riding against traffic**: contraflow edges kept only with an actual contraflow lane
+    (13 of 24 kept: Pleasant St, Grove St).
+  - New class **"shared path/sidewalk"** (city ped path / sidewalk with bikes allowed; OSM footway or
+    non-designated path with bike access). Lucas: protected-ish but a rider preference. Route mode:
+    "Where bikes may use the sidewalk, prefer: The road (default) / The sidewalk"; road prices
+    shared like an untagged path, sidewalk like protected. Note under the breakdown shows km on them.
+    City allows bikes on 807 km of sidewalk (all but downtown), so this matters.
+  - 30th & Walnut: city has both the painted lane (per side) and the 12 ft 30th St Path (MUP,
+    protected); route style picks.
+  - **Tools get our network** (`build_tool_networks.py` -> `data/networks/<baseline>/`): Grow/Link
+    via import_files bike_network, Fix via a street_network with tags rewritten (baseline edges ->
+    highway=cycleway, others lose bike tags, living_street -> residential). Baselines: `bike`
+    (protected class only, 196 km) and `shared` (+ shared path/sidewalk, 559 km).
+  - **Versions replaced**: v0 (tag bug moot with imported networks), v3/v4 (commutes changed little)
+    dropped. Runs = baseline x data: bike, bike_crashes, shared, shared_crashes (run dirs under
+    `data/boulder_bikenet/`). Grow from scratch reuses old v1/v2 (no existing network); Link only
+    per baseline. Page Advanced: "What counts as protected today" + "Data fed to the tools".
+    Folsom example (why sidewalks can't be default): riders use the lane; with sidewalks counted the
+    tools see the corridor as covered.
+  - Shared-baseline Fix: 1.33M candidate gaps (vs ~4k) — every sidewalk end is a contact node.
+- 2026-11-20 Lucas: the city bike guide says sidewalk riding is legal only in residential and park
+  zones, never in the Downtown / Hill dismount zones (multi-use paths exempt). `city_facilities.py`
+  now marks bikes-allowed Sidewalk / Plaza Path as no bikes when their nearest zoning within 40 m
+  (by length, 10 m pieces) is B* / DT* / I* / MU* (89 km), plus any bikes-allowed walking path
+  mostly inside a dismount zone (0.7 km; city already has 7.8 km of sidewalk there as bicycles=No).
+  Sidewalks with no zoning within 40 m (~77 km) keep the city's flag (Lucas). Fetch layers `zoning`
+  (plan/ZoningDistricts/0) and `dismount` (trans/DismountZones/0). Shared baseline now 504 km.
+- 2026-11-20 Lucas: **Fix not run with the shared baseline** (~3 h per run, and gaps mean little
+  when nearly every street counts as covered); sidewalks are an advanced turn-on, not a default.
+  Runs: shared = link + grow_existing, shared_crashes = grow_existing. Page disables "Close the
+  worst gaps" there (picking sidewalks while on Fix switches to Extend). The earlier shared
+  grow_existing KeyError went away with the rebuilt network. Results 2026-11-20: bike fix 50 /
+  link 162 / grow_existing 131; bike_crashes fix 50 / grow_existing 131; shared link 241 /
+  grow_existing ~219 edges; shared_crashes grow_existing 117 rows. Site data regenerated, page
+  test passes.
+- 2026-11-20 Lucas: **OSM decides what exists, the city only labels.** Bug: Broadway Path was split
+  at 13th St because a 6.6 m OSM cycleway piece matched a commercial-zone city sidewalk (no bikes)
+  and was deleted, forcing routes onto Broadway. Now nothing city-derived removes an edge: no bikes
+  -> new route class **"dismount"** (walk the bike, 3.5x length in every profile, brown, note with
+  metres walked). OSM bicycle=no/dismount also -> dismount (were dropped). Still dropped: EXCLUDE_HW,
+  access=private/no without bike permission, and bicycle=no/dismount with foot=no (foot=no alone is
+  common on bikeable roads, e.g. Broadway). `foot` added to kept/simplify tags -> graph cache v4.
+  Known quirk, accepted by Lucas ("people bike there anyway"): that 6.6 m piece is labelled dismount
+  because short edges can match the nearest sidewalk over a 0.4 m-away MUP (piece-midpoint matching).

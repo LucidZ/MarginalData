@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useJsonData } from "../../hooks/useJsonData";
-import type { GraphData, NetworkData, PhotoTarget, ProfileId } from "./types";
+import { DEFAULT_VERSION, type GraphData, type NetworkData, type PhotoTarget, type ProfileId, type SidewalkPref } from "./types";
 import { BikeGraph, type LatLng } from "./routing";
 import { bearingAt, midpoint } from "./photos";
 import { useNetworkLayers, type Inspect, type NetworkView, type Pick } from "./networkLayers";
@@ -17,7 +17,7 @@ import "./App.css";
 type Mode = "network" | "route";
 
 const INITIAL_VIEW: NetworkView = {
-  version: "v1",
+  version: DEFAULT_VERSION,
   tool: DEFAULT_TOOL,
   diff: true,
   km: 30,
@@ -44,6 +44,7 @@ export default function App() {
   const [locateMsg, setLocateMsg] = useState("");
   const [profile, setProfile] = useState<ProfileId>("balanced");
   const [ghosts, setGhosts] = useState(true);
+  const [sidewalkPref, setSidewalkPref] = useState<SidewalkPref>("road");
   useEffect(() => {
     if (mode !== "route" || graph) return;
     let cancelled = false;
@@ -70,7 +71,7 @@ export default function App() {
       cancelled = true;
     };
   }, [mode, graph]);
-  const routes = useMemo(() => (graph && pins[0] && pins[1] ? graph.route(pins[0], pins[1]) : null), [graph, pins]);
+  const routes = useMemo(() => (graph && pins[0] && pins[1] ? graph.route(pins[0], pins[1], sidewalkPref) : null), [graph, pins, sidewalkPref]);
 
   // Pin edits. `label` defaults to the nearest address.
   const placesRef = useRef(places);
@@ -227,6 +228,8 @@ export default function App() {
             setProfile={setProfile}
             ghosts={ghosts}
             setGhosts={setGhosts}
+            sidewalkPref={sidewalkPref}
+            setSidewalkPref={setSidewalkPref}
           />
         )}
       </aside>

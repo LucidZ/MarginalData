@@ -2,7 +2,9 @@
 // scripts/boulder_bikenet/export_site_data.py.
 import type { FeatureCollection, Geometry, LineString, MultiLineString, Point } from "geojson";
 
-export type VersionId = "v0" | "v1" | "v2" | "v3" | "v4";
+// What counts as protected (bike facilities only / + shared sidewalks) x data fed to the tools
+export type VersionId = "bike" | "bike_crashes" | "shared" | "shared_crashes";
+export const DEFAULT_VERSION: VersionId = "bike";
 export type ToolId = "fix" | "link" | "grow" | "grow_existing";
 
 export interface FixProps { g: number; key: string; ordering: number; name: string; length: number; benefit: number }
@@ -18,15 +20,16 @@ export interface NetworkData {
   geoms: (LineString | MultiLineString)[];
   painted: FeatureCollection<LineString | MultiLineString, { name: string }>;
   protected: FeatureCollection<LineString | MultiLineString>;
-  protected_v0: FeatureCollection<LineString | MultiLineString>;
+  protected_shared: FeatureCollection<LineString | MultiLineString>; // added in the "shared" versions
   boundary: FeatureCollection<Geometry>;
   crashes: FeatureCollection<Point, { year: number; severity: string }>;
   commutes: FeatureCollection<LineString, { workers: number }>;
   commute_total: number;
 }
 
-export type BikeClass = "protected" | "painted" | "quiet street" | "busy street" | "path/sidewalk (untagged)";
+export type BikeClass = "protected" | "shared path/sidewalk" | "painted" | "quiet street" | "busy street" | "path/sidewalk (untagged)" | "dismount";
 export type ProfileId = "direct" | "balanced" | "cautious";
+export type SidewalkPref = "road" | "sidewalk";
 
 export interface GraphData {
   xy: number[]; // node x,y in micro-degrees

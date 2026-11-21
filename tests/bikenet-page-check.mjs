@@ -52,6 +52,13 @@ await page.getByRole("button", { name: "Crashes", exact: true }).click();
 await page.waitForTimeout(500);
 console.log("fix list (crashes):", (await page.locator(".bbn-list").innerText()).replace(/\s+/g, " ").slice(0, 120));
 await page.screenshot({ path: `${out}/3-advanced-fix-crashes.png` });
+// Shared sidewalks: Fix isn't run, so picking it moves the method to Extend
+await page.getByRole("button", { name: "+ Shared sidewalks" }).click();
+await page.waitForTimeout(500);
+console.log("shared: fix disabled", await page.getByLabel(/Close the worst gaps/).isDisabled(), "| list:",
+  (await page.locator(".bbn-list").innerText()).replace(/\s+/g, " ").slice(0, 120));
+await page.screenshot({ path: `${out}/3a-advanced-shared.png` });
+await page.getByRole("button", { name: "Bike facilities only" }).click();
 
 await page.getByRole("tab", { name: "Your route" }).click();
 const t0 = Date.now();
@@ -63,6 +70,14 @@ await page.waitForTimeout(1200);
 console.log("example route:", (await page.locator(".bbn-big").textContent()).trim());
 console.log("compare:", (await page.locator(".bbn-table tbody").innerText()).replace(/\s+/g, " "));
 await page.screenshot({ path: `${out}/4-route-example.png` });
+const legend = async () => (await page.locator(".bbn-legend").innerText()).replace(/\s+/g, " ");
+console.log("  legend (prefer road):", await legend());
+await page.getByRole("button", { name: "The sidewalk" }).click();
+await page.waitForTimeout(600);
+console.log("  prefer sidewalk:", (await page.locator(".bbn-big").textContent()).trim(), "|", await legend());
+console.log("  sidewalk note:", await page.locator(".bbn-legend + p").textContent().catch(() => "(none)"));
+await page.screenshot({ path: `${out}/4a-route-prefer-sidewalk.png` });
+await page.getByRole("button", { name: "The road" }).click();
 
 // Search: address in From, place name in To
 await page.getByRole("button", { name: "Clear route" }).click();

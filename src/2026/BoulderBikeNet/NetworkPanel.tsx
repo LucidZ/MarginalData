@@ -1,4 +1,4 @@
-import type { NetworkData, ToolId, VersionId } from "./types";
+import { DEFAULT_VERSION, type NetworkData, type ToolId, type VersionId } from "./types";
 import { CLASS_COLOR, COMMUTE_COLOR, CRASH_COLOR, TOOLS, toolName } from "./style";
 import { featureKey, isGrow, showsDiff, toolFeatures, type NetworkView, type Pick } from "./networkLayers";
 
@@ -14,11 +14,14 @@ const TOOL_ORDER: ToolId[] = ["grow_existing", "grow", "fix", "link"];
 
 export default function NetworkPanel({ data, view, setView, selected, onPick }: Props) {
   const set = (patch: Partial<NetworkView>) => setView({ ...view, ...patch });
-  const versions = Object.keys(data.versions) as VersionId[];
+  const shared = view.version.startsWith("shared"), crashes = view.version.endsWith("_crashes");
+  // Fix isn't run with shared sidewalks counted as protected
+  const pickVersion = (s: boolean, c: boolean) =>
+    set({ version: `${s ? "shared" : "bike"}${c ? "_crashes" : ""}` as VersionId, ...(s && view.tool === "fix" ? { tool: "grow_existing" } : {}) });
   const tool = TOOLS[view.tool];
 
   const feats = toolFeatures(data, view.version, view.tool).slice(0, 10);
-  const base = new Set(toolFeatures(data, "v1", view.tool).slice(0, 10).map(featureKey));
+  const base = new Set(toolFeatures(data, DEFAULT_VERSION, view.tool).slice(0, 10).map(featureKey));
   const mark = showsDiff(data, view);
 
   return (
@@ -54,7 +57,7 @@ export default function NetworkPanel({ data, view, setView, selected, onPick }: 
 
       <h2>Map layers</h2>
       {([
-        ["protected", CLASS_COLOR.protected, "Protected paths today"],
+        ["protected", CLASS_COLOR.protected, shared ? "Protected paths today (+ shared sidewalks, light blue)" : "Protected paths today"],
         ["painted", CLASS_COLOR.painted, "Painted bike lanes"],
         ["crashes", CRASH_COLOR, `Bike crashes 2018–24 (${data.crashes.features.length})`],
         ["commutes", COMMUTE_COLOR, "Commutes within Boulder (2024)"],
@@ -71,21 +74,32 @@ export default function NetworkPanel({ data, view, setView, selected, onPick }: 
         <h2>Recommendation method</h2>
         {TOOL_ORDER.map((t) => (
           <label className="bbn-check" key={t}>
-            <input type="radio" name="bbn-tool" checked={view.tool === t} onChange={() => set({ tool: t })} />
+            <input type="radio" name="bbn-tool" checked={view.tool === t} disabled={!data.tools[view.version][t]} onChange={() => set({ tool: t })} />
             <span className="bbn-sw" style={{ background: TOOLS[t].color }} />
             {TOOLS[t].label}
           </label>
         ))}
+        {!data.tools[view.version].fix && <p className="bbn-muted">Gap closing isn't run with shared sidewalks counted.</p>}
+        <h2>What counts as protected today</h2>
+        <div className="bbn-seg">
+          <button className={!shared ? "on" : ""} onClick={() => pickVersion(false, crashes)}>
+            Bike facilities only
+          </button>
+          <button className={shared ? "on" : ""} onClick={() => pickVersion(true, crashes)}>
+            + Shared sidewalks
+          </button>
+        </div>
         <h2>Data fed to the tools</h2>
-        <div className="bbn-seg bbn-seg-wrap">
-          {versions.map((v) => (
-            <button key={v} className={v === view.version ? "on" : ""} onClick={() => set({ version: v })}>
-              {data.versions[v]}
-            </button>
-          ))}
+        <div className="bbn-seg">
+          <button className={!crashes ? "on" : ""} onClick={() => pickVersion(shared, false)}>
+            None
+          </button>
+          <button className={crashes ? "on" : ""} onClick={() => pickVersion(shared, true)}>
+            Crashes
+          </button>
         </div>
         <p className="bbn-muted">{data.notes[view.version]}</p>
-        {view.version !== "v1" && (
+        {view.version !== DEFAULT_VERSION && (
           <label className="bbn-check">
             <input type="checkbox" checked={view.diff} onChange={(e) => set({ diff: e.target.checked })} />
             Highlight changes vs the default

@@ -27,7 +27,7 @@ PBF_NAME = "colorado-latest.osm.pbf"
 EXCLUDED_HIGHWAY = {"abandoned", "construction", "no", "planned", "platform", "proposed", "raceway",
                     "razed", "rest_area", "services"}
 # Tags the bike classes read; ways that differ in any of these stay separate edges
-CLASS_TAGS = ["highway", "bicycle", "access", "footway", "cyclestreet", "bicycle_road", "oneway:bicycle",
+CLASS_TAGS = ["highway", "bicycle", "access", "foot", "footway", "cyclestreet", "bicycle_road", "oneway:bicycle",
               "cycleway", "cycleway:right", "cycleway:left", "cycleway:both"]
 
 
