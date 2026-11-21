@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { fmtInt } from "../../I70Crossfilter/format";
 import { fmtPct } from "../HeroCurve/heroData";
 import { POPULATION } from "../PopVsWeekend/population";
-import { clockHour, topPeak, type ChartId, type Facts, type Highlight, type Season } from "./lensData";
+import { clockHour, dayName, topPeak, type ChartId, type Facts, type Highlight, type Season } from "./lensData";
 
 // What the chart shows at each step and the one sentence beside it. Three
 // charts (Saturday → Fri–Sun → Wed–Tue), 1996 against today; each step adds
@@ -36,6 +36,9 @@ const hundreds = (v: number) => fmtInt(Math.round(v / 100) * 100);
 const sumRange = (vals: number[], [lo, hi]: [number, number]) => vals.slice(lo, hi).reduce((t, v) => t + v, 0);
 const bothWays = (s: Season, ranges: [number, number][]) =>
   ranges.reduce((t, r) => t + sumRange(s.wb, r) + sumRange(s.eb, r), 0);
+const DAY_LONG: Record<string, string> = { Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
+/** A Fri–Sun day index as a full name. */
+const dayLong = (d: number) => DAY_LONG[dayName("friSun", d)] ?? dayName("friSun", d);
 const Gold = ({ children }: { children: ReactNode }) => <span className="i70s-gold">{children}</span>;
 
 // Saturday hours westbound (index 0 = 3am): 7am–5pm, the high plateau, and 6–7am, the early start.
@@ -146,8 +149,43 @@ export const STEPS: Step[] = [
     chart: "friSun",
     season: "today",
     hl: null,
-    play: true,
     text: () => <>We can see more evidence of this when we expand our look to the whole weekend.</>,
+  },
+  {
+    chart: "friSun",
+    season: "today",
+    hl: { kind: "peak", dirs: ["wb"], top: true },
+    text: (f, { first }) => {
+      const [t, n] = [topPeak(f.friSun.then, "wb"), topPeak(f.friSun.now, "wb")];
+      return (
+        <>
+          In {first}, the busiest hour heading up was {dayLong(t.day)} at {clock(t.i)}. Today it's{" "}
+          <Gold>
+            {dayLong(n.day)} at {clock(n.i)}
+          </Gold>
+          : the weekend now starts right after work.
+        </>
+      );
+    },
+  },
+  {
+    chart: "friSun",
+    season: "today",
+    hl: { kind: "peak", dirs: ["eb"], top: true },
+    play: true,
+    text: (f) => {
+      const [t, n] = [topPeak(f.friSun.then, "eb"), topPeak(f.friSun.now, "eb")];
+      return (
+        <>
+          The busiest hour heading home used to be {dayLong(t.day)} at {clock(t.i)}, after a last day on the slopes.
+          Today it's{" "}
+          <Gold>
+            {dayLong(n.day)} at {clock(n.i)}
+          </Gold>
+          , as weekenders head down before the rush.
+        </>
+      );
+    },
   },
   {
     chart: "friSun",

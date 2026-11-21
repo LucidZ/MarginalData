@@ -1,5 +1,5 @@
-import { area, curveStepAfter, line, scaleLinear } from "d3";
-import { useId, useMemo, useState } from "react";
+import { area, curveStepAfter, easeCubicInOut, line, scaleLinear } from "d3";
+import { useEffect, useId, useMemo, useState } from "react";
 import { fmtInt, hourLabel } from "../../I70Crossfilter/format";
 import { useContainerWidth } from "../../I70Crossfilter/useContainerWidth";
 import { DOW_SHORT, DRIFT_WB, fmtPct, isDrift, type Dir, type Profiles } from "../HeroCurve/heroData";
@@ -70,6 +70,29 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   const series = (yr: number, dir: Dir) => lensSeries(profiles, yr, dows, dir);
 
   const compact = width < 560;
+
+  // A `top` peak highlight slides the gold bar from 1996's busiest hour over
+  // to today's, leaving 1996's pale bar behind: a beat at 1996, then the move.
+  const slideKey = hl?.kind === "peak" && hl.top ? `${chart}:${hl.dirs.join()}` : null;
+  const [slide, setSlide] = useState(1);
+  useEffect(() => {
+    if (!slideKey || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setSlide(1);
+      return;
+    }
+    const HOLD = 450;
+    const MOVE = 1100;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (t: number) => {
+      const u = clamp01((t - t0 - HOLD) / MOVE);
+      setSlide(easeCubicInOut(u));
+      if (u < 1) raf = requestAnimationFrame(tick);
+    };
+    setSlide(0);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [slideKey]);
   // The net line is the plain view's; with flow on, the green net carries it.
   const showNet = hl?.kind === "net" && flow === 0;
   const cancel = clamp01(flow);
@@ -187,25 +210,35 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
   // Peak: today's bars all labeled (just each direction's top on phones and on 1996).
   const peakDots = (() => {
     if (hl?.kind !== "peak" || !now) return [];
-    const out: { p: Peak; then: boolean; label: boolean }[] = [];
+    const out: { p: Peak; then: boolean; label: boolean; moving?: boolean }[] = [];
     for (const dir of hl.dirs) {
+      if (hl.top && then && slide < 1) {
+        // Mid-slide: today's bar on its way from 1996's top hour (rounded hour for the label).
+        const [a, b] = [topPeak(then, dir), topPeak(now, dir)];
+        const moving = { ...b, i: a.i + (b.i - a.i) * slide, v: a.v + (b.v - a.v) * slide };
+        // 1996's own label comes in once the gold one has left it.
+        out.push({ p: moving, then: false, label: true, moving: true }, { p: a, then: true, label: slide > 0.3 });
+        continue;
+      }
       const topNow = topPeak(now, dir);
       for (const p of now.peaks.filter((q) => q.dir === dir))
-        out.push({ p, then: false, label: !multi || !compact || p === topNow });
+        if (!hl.top || p === topNow) out.push({ p, then: false, label: !multi || !compact || p === topNow });
       if (then) {
         const topThen = topPeak(then, dir);
-        for (const p of then.peaks.filter((q) => q.dir === dir)) out.push({ p, then: true, label: p === topThen });
+        for (const p of then.peaks.filter((q) => q.dir === dir))
+          if (!hl.top || p === topThen) out.push({ p, then: true, label: p === topThen });
       }
     }
     return out;
   })();
   // Pull a direction's two top labels apart when they'd collide.
-  const peakAnchor = (d: { p: Peak; then: boolean }) => {
+  // A sliding label takes today's anchor from the start, so it doesn't jump when it lands.
+  const peakAnchor = (d: { p: Peak; then: boolean; moving?: boolean }) => {
     if (!now || !then) return "middle";
     const a = topPeak(then, d.p.dir);
     const b = topPeak(now, d.p.dir);
     const mine = d.then ? a : b;
-    if (mine !== d.p || Math.abs(x(a.i) - x(b.i)) > 80) return "middle";
+    if ((mine !== d.p && !d.moving) || Math.abs(x(a.i) - x(b.i)) > 80) return "middle";
     const left = d.then ? a.i <= b.i : b.i < a.i;
     return left ? "end" : "start";
   };
@@ -547,20 +580,26 @@ export default function LensChart({ profiles, chart, season: cur, pin, showTrail
           )}
 
           {/* peak labels, over the lines */}
-          {peakDots.map(({ p, then: isThen, label }, k) => {
+          {peakDots.map(({ p, then: isThen, label, moving }, k) => {
             if (!label) return null;
             const cx = x(p.i + 0.5);
             const cy = y((p.dir === "wb" ? 1 : -1) * p.v);
             // A westbound top that would run into the direction label goes beside the bar instead.
             const beside = p.dir === "wb" && cy - 7 < m.top + 24;
-            const anchor = beside ? "start" : peakAnchor({ p, then: isThen });
+            // The hour where there's room for it (the step's sentence names it anyway).
+            const withHour = !multi || (hl?.kind === "peak" && !!hl.top && !compact);
+            const text = `${fmtInt(p.v)}${withHour ? ` · ${hourLabel(clockHour(Math.round(p.i)))}` : ""}`;
+            // Labels near the chart's ends read inward rather than run off it (~6.5px a character).
+            const w = text.length * 6.5;
+            const pref = peakAnchor({ p, then: isThen, moving });
+            const [l, r] = pref === "start" ? [cx, cx + w] : pref === "end" ? [cx - w, cx] : [cx - w / 2, cx + w / 2];
+            const anchor = beside ? "start" : r > width - 2 ? "end" : l < m.left ? "start" : pref;
             const lx = beside ? x(p.i + 1) + 4 : anchor === "end" ? cx - 4 : anchor === "start" ? cx + 4 : cx;
             const ly = beside ? cy + 12 : p.dir === "wb" ? cy - 7 : cy + 16;
             return (
               <g key={k} className={`i70s-peak${isThen ? " is-then" : ""}`}>
                 <text x={lx} y={ly} textAnchor={anchor}>
-                  {fmtInt(p.v)}
-                  {!multi && ` · ${hourLabel(clockHour(p.i))}`}
+                  {text}
                 </text>
               </g>
             );

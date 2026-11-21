@@ -8,14 +8,15 @@ import { DOW_SHORT, sum, type Dir, type Profiles } from "../HeroCurve/heroData";
 export type ChartId = "sat" | "friSun" | "wedTue";
 
 /**
- * One step's gold layer. peak: busiest-hour dots. gap: the cars today adds
+ * One step's gold layer. peak: each day's busiest-hour bar, or with `top`
+ * just the chart's busiest hour for today and 1996. gap: the cars today adds
  * over 1996, limited to `ranges` (series hours [from, to)) when given (over a
  * shaded window unless `shade` is false), with
  * each day's change per direction printed when `rows`. net: the net up the
  * hill, with `days` (indices into the chart's days) drawn strong and the rest faint.
  */
 export type Highlight =
-  | { kind: "peak"; dirs: Dir[] }
+  | { kind: "peak"; dirs: Dir[]; top?: boolean }
   | { kind: "gap"; dirs: Dir[]; ranges?: [number, number][]; shade?: boolean; rows?: boolean }
   | { kind: "net"; days?: number[] };
 

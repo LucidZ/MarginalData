@@ -29,6 +29,8 @@ const EXPECT = [
   [L, "sat", "gap", 0, 0, "gap"],
   [L, "sat", "gap", 0, 0, "gap"],
   [L, "friSun", "", 0, 0, ""],
+  [L, "friSun", "peak", 0, 0, "peak"],
+  [L, "friSun", "peak", 0, 0, "peak"],
   [L, "friSun", "", 0, 1, "flow"],
   [L, "friSun", "", 0, 2, "flow"],
   [L, "friSun", "net", 0, 3, "flow"],
@@ -37,7 +39,7 @@ const EXPECT = [
   [L, "wedTue", "net", 0, 0, "net"],
 ];
 // The net plays from these steps to the next: cancel (0 → 1), stack (1 → 2), 1996 drawn in (2 → 3).
-const PLAY = [7, 8, 9];
+const PLAY = [9, 10, 11];
 // The scrub runs from this step to the next.
 const SCRUB = 2;
 // The zoom from Saturday out to Fri–Sun runs from this step to the next.
@@ -119,7 +121,7 @@ for (const [name, viewport] of [
       await page.waitForTimeout(250);
       const p = await state();
       const v = Number(p.flow);
-      check(v > k - 7 && v < k - 6 && p.hl === "", `play ${k} at ${f}: flow=${p.flow} hl=${p.hl}`);
+      check(v > k - PLAY[0] && v < k - PLAY[0] + 1 && p.hl === "", `play ${k} at ${f}: flow=${p.flow} hl=${p.hl}`);
       await page.screenshot({ path: `${OUT}/i70-weekend-story-flow-${k}-${Math.round(f * 10)}-${name}.png` });
     }
 
