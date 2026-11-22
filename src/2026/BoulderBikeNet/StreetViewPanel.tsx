@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import L from "leaflet";
 import type { PhotoTarget } from "./types";
 import { streetViewUrl } from "./streetview";
+import { osmNoteUrl, osmQueryUrl } from "./osm";
 
 interface Props {
   map: L.Map | null;
@@ -35,6 +36,13 @@ export default function StreetViewPanel({ map, target, onClose }: Props) {
             Facing the other way ↗
           </a>
         )}
+      </div>
+      <div className="bbn-osm">
+        <span>Looks wrong? The map data is from OpenStreetMap:</span>
+        <div className="bbn-photo-ctl">
+          <a href={osmQueryUrl(lat, lng)} target="_blank" rel="noopener noreferrer">See the data ↗</a>
+          <a href={osmNoteUrl(lat, lng)} target="_blank" rel="noopener noreferrer">Leave a note ↗</a>
+        </div>
       </div>
     </div>
   );

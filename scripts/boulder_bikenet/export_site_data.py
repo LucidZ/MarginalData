@@ -12,9 +12,9 @@ Usage:
     python -I export_site_data.py <work_dir> <out_dir>
 
 Same inputs as build_preview_map.py (work_dir = data/boulder_bikenet) plus the routing graph cache
-route_test.py builds in <work_dir>/routing/ and the City of Boulder inventory in <work_dir>/city/
-(fetch_city_inventory.py), whose facility types win over OSM's where the city has data
-(city_facilities.py). The painted-lane map layer comes from the same graph classes.
+route_test.py builds in <work_dir>/routing/. Classes come from OpenStreetMap only (2026-11-22: the
+City of Boulder inventory is no longer mixed in; fixes go to OSM). The painted-lane map layer comes
+from the same graph classes.
 """
 
 import gzip
@@ -36,11 +36,11 @@ VERSIONS = {"bike": "Bike facilities only, no data", "bike_crashes": "Bike facil
             "shared": "+ shared sidewalks, no data", "shared_crashes": "+ shared sidewalks, crashes"}
 DEFAULT = "bike"
 NOTES = {
-    "bike": "Protected = multi-use paths, protected bike lanes and open-space bike trails (City of Boulder "
-            "inventory, OpenStreetMap where the city has no data). Painted lanes and sidewalks don't count.",
+    "bike": "Protected = bike paths, multi-use paths and protected bike lanes, as mapped in OpenStreetMap. "
+            "Painted lanes and sidewalks don't count.",
     "bike_crashes": "Same network; bike crashes (Boulder PD, 2018–24) reweight Grow ordering and Fix gap ranking. "
                     "Link unchanged.",
-    "shared": "Sidewalks and walking paths where bikes are allowed (residential and park areas only) also count "
+    "shared": "Sidewalks and walking paths that OpenStreetMap marks as open to bikes also count "
               "as protected, so streets with one look covered. Fix isn't run: with most streets covered, its "
               "gaps mean little.",
     "shared_crashes": "Sidewalks count as protected, and bike crashes reweight Grow. Link unchanged; Fix not run.",
@@ -160,7 +160,7 @@ def network(work, g):
 
 
 def graph(work, simplify_deg=1.5e-5):
-    g = rt.prepare(rt.load_graph(work, work / "routing"), work / "city")
+    g = rt.prepare(rt.load_graph(work, work / "routing"))
     for _, _, d in g.edges(data=True):  # ~1.5 m tolerance; endpoints are kept, so topology is unchanged
         if "geometry" in d:
             d["geometry"] = d["geometry"].simplify(simplify_deg)

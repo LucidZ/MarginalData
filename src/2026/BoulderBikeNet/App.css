@@ -467,6 +467,18 @@
   color: var(--bbn-link);
 }
 
+.bbn-osm {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--bbn-line);
+  font-size: 12px;
+  color: var(--bbn-muted);
+}
+
+.bbn-osm .bbn-photo-ctl {
+  margin-top: 3px;
+}
+
 /* Phone: map on top, panel below */
 @media (max-width: 760px) {
   .bbn-root {

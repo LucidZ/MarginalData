@@ -316,3 +316,29 @@ building a winter toggle.
   common on bikeable roads, e.g. Broadway). `foot` added to kept/simplify tags -> graph cache v4.
   Known quirk, accepted by Lucas ("people bike there anyway"): that 6.6 m piece is labelled dismount
   because short edges can match the nearest sidewalk over a 0.4 m-away MUP (piece-midpoint matching).
+
+## OSM only (2026-11-22), supersedes the city-as-default rules above
+- Trigger: 13th St downtown showed "quiet street" though it has a southbound contraflow lane. OSM
+  and the city both had it (OSM: street `cycleway:left=separate` + a one-way `highway=cycleway`
+  way 534549768 / 416472796; city: on-street "Contra Flow Bike Lane"). Our join compared OSM paths
+  only to the city's off-street layer, so the lane matched a no-bikes downtown sidewalk -> dismount.
+- Measured: only 1.9 km of street is tagged `cycleway:*=separate` (Baseline, 13th, Folsom), but
+  ~31 km of OSM cycleways sit within 15 m of a city lane. Rules tried (scratch scripts, not kept):
+  "city walk features never label OSM bike ways" flips 60 km shared->protected (undoes city-wins);
+  "nearest city line from either layer" lets ~9 km of plain sidewalks become lanes; best was
+  "city path first, then nearer of lane / sidewalk, for OSM bike ways only" (13.6 km changes).
+- Lucas: no one-off judgement calls; connectivity tool, not trip planner; re-runs must stay simple.
+  Chose **OSM only**; corrections go to OSM, not our pipeline. `export_site_data.py` and
+  `build_tool_networks.py` call `rt.prepare(g)` with no city dir. `city_facilities.py`,
+  `fetch_city_inventory.py`, `compare_city_inventory.py` kept (unused by the build; compare is the
+  starting point if a city-vs-OSM disagreement list for mappers is ever wanted).
+- What OSM-only loses (directed km, OSM vs city-hybrid): painted 167 vs 244, shared path/sidewalk
+  120 vs 657 (OSM is silent on bikes for ~850 km of sidewalk; city zoning/dismount-zone sidewalk
+  rules gone), protected 433 vs 438 (same size, ~60 km swapped each way). Tool baselines: bike
+  196 -> 202 km, shared 504 -> 255 km. Attribution keeps "City of Boulder" (crash layer).
+- Page: the click card (Street View) has an OSM section: "See the data" (openstreetmap.org/query
+  at the spot: the ways and tags behind the class), "Leave a note" (note/new); no Edit link (the OSM page has one). `osm.ts`.
+- GrowBikeNet KeyError `(u, v) not in index` (seen before on the shared network, "went away" on a
+  rebuild): GrowBikeNet looks edges up as (u, v, 0), and `build_tool_networks.py` numbered parallel
+  edges before filtering, so a pair whose key-0 twin wasn't in the baseline kept only key 1 (3 pairs
+  OSM-only, e.g. Boulder Creek Path 388008322-12569138455). `save()` now renumbers keys from 0.

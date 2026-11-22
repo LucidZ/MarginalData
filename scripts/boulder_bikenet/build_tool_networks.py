@@ -1,10 +1,9 @@
 """Feed BikeNetKit our own idea of "the existing protected network" instead of letting it read OSM
-tags. Built from the routing graph after city_facilities.py, so the tools, the map and "Your
-route" agree on what counts.
+tags. Built from the routing graph's classes (OSM only), so the tools, the map and "Your route"
+agree on what counts.
 
 Baselines:
-    bike    bike facilities only: protected class (city multi-use paths and protected lanes, OSMP
-            bike trails; OSM cycleways/designated paths where the city has no data)
+    bike    bike facilities only: protected class (OSM cycleways, designated paths, protected lanes)
     shared  bike + sidewalks / walking paths where bikes are allowed ("shared path/sidewalk")
 
 A street counts only if every direction you can ride it is in the baseline (the lesser of the
@@ -77,7 +76,12 @@ def in_baseline(d, base):
 
 def save(h, path):
     path.parent.mkdir(parents=True, exist_ok=True)
-    h = h.copy()
+    # Renumber parallel edges from key 0: filtering can drop a pair's key-0 edge and keep key 1, and
+    # GrowBikeNet looks edges up as (u, v, 0) (KeyError otherwise)
+    r = nx.MultiGraph(**h.graph)
+    r.add_nodes_from(h.nodes(data=True))
+    r.add_edges_from((u, v, d) for u, v, d in h.edges(data=True))
+    h = r
     h.remove_nodes_from([n for n in list(h.nodes) if h.degree(n) == 0])
     ox.io.save_graph_geopackage(h, path)
     km = sum(d["length"] for _, _, d in h.edges(data=True)) / 1000
@@ -86,7 +90,7 @@ def save(h, path):
 
 def main(work, data_dir):
     work, data_dir = Path(work), Path(data_dir)
-    g = rt.prepare(rt.load_graph(work, work / "routing"), work / "city")
+    g = rt.prepare(rt.load_graph(work, work / "routing"))
     fix = next((work / "v1" / "results").glob("boulder-fixbikenet-gaps.gpkg"))
     boundary = gpd.read_file(fix, layer="City boundary").to_crs(4326).union_all()
     h = undirected(g, boundary)
