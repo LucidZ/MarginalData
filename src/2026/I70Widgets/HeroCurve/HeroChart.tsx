@@ -25,19 +25,21 @@ interface Props {
   marks?: Mark[];
   /** Overrides the default height (380 compact, 480 wide). */
   height?: number;
-  /** Red running total of westbound minus eastbound from the span's start, on its own right-hand scale. */
-  showNet?: boolean;
+  /** Red running total of westbound minus eastbound on its own right-hand scale: from each midnight ("daily") or from the span's start ("full"). */
+  net?: NetMode;
 }
 
-/** Cumulative WB − EB, starting at 0 at the span's start: one more point than hours. */
-const netSeries = (wb: number[] | null, eb: number[] | null) => {
+export type NetMode = "off" | "daily" | "full";
+
+/** Cumulative WB − EB, starting at 0 at the span's start (or each midnight when daily): one more point than hours. */
+const netSeries = (wb: number[] | null, eb: number[] | null, daily = false) => {
   if (!wb || !eb) return null;
   const out = [0];
-  for (let i = 0; i < wb.length; i++) out.push(out[i] + wb[i] - eb[i]);
+  for (let i = 0; i < wb.length; i++) out.push((daily && i % 24 === 0 ? 0 : out[i]) + wb[i] - eb[i]);
   return out;
 };
 
-export default function HeroChart({ profiles, span, season: cur, pins, showTrail, marks = [], height: heightProp, showNet = false }: Props) {
+export default function HeroChart({ profiles, span, season: cur, pins, showTrail, marks = [], height: heightProp, net = "off" }: Props) {
   const [hoverX, setHoverX] = useState<number | null>(null);
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
   const years = useMemo(() => [...profiles.keys()], [profiles]);
@@ -46,6 +48,9 @@ export default function HeroChart({ profiles, span, season: cur, pins, showTrail
   const dows = SPANS[span].dows;
   const nHours = dows.length * 24;
   const series = (y: number, dir: Dir) => spanSeries(profiles.get(y), dows, dir);
+  const showNet = net !== "off";
+  const daily = net === "daily" && dows.length > 1;
+  const netOf = (yr: number) => netSeries(series(yr, "wb"), series(yr, "eb"), daily);
 
   const compact = width < 560;
   const height = heightProp ?? (compact ? 380 : 480);
@@ -60,16 +65,24 @@ export default function HeroChart({ profiles, span, season: cur, pins, showTrail
   // Net scale fixed per span over every season, so it holds still during playback.
   const netMax = useMemo(() => {
     let mx = 1;
-    for (const yr of years) for (const v of netSeries(series(yr, "wb"), series(yr, "eb")) ?? []) mx = Math.max(mx, Math.abs(v));
+    for (const yr of years) for (const v of netOf(yr) ?? []) mx = Math.max(mx, Math.abs(v));
     return mx * 1.08;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profiles, span]);
+  }, [profiles, span, daily]);
   const x = scaleLinear([0, nHours], [m.left, width - m.right]);
   const y = scaleLinear([-yMax, yMax], [height - m.bottom, m.top]).nice();
   // Shares the hourly axis's zero line.
   const yTop = y.domain()[1];
   const yNet = scaleLinear([-netMax, netMax], [y(-yTop), y(yTop)]).nice();
-  const netPath = (vals: number[] | null) => (vals ? (line<number>((_, i) => x(i), (v) => yNet(v))(vals) ?? "") : "");
+  // Daily: one segment per day, each climbing from zero at midnight.
+  const netPath = (vals: number[] | null) => {
+    if (!vals) return "";
+    const ln = line<number>((_, i) => x(i), (v) => yNet(v));
+    if (!daily) return ln(vals) ?? "";
+    return dows
+      .map((_, d) => line<number>((_, i) => x(d * 24 + i), (v) => yNet(v))([0, ...vals.slice(d * 24 + 1, d * 24 + 25)]) ?? "")
+      .join("");
+  };
   // Each hour's count is drawn flat across its hour, since that's what it counts: a step per hour,
   // the last value repeated at the end so the final hour gets its full width.
   const path = (vals: number[] | null, sign: 1 | -1) =>
@@ -80,7 +93,7 @@ export default function HeroChart({ profiles, span, season: cur, pins, showTrail
   const curWb = series(cur, "wb");
   const curEb = series(cur, "eb");
   const shownPins = pins.filter((yr) => yr !== cur && profiles.has(yr));
-  const curNet = showNet ? netSeries(curWb, curEb) : null;
+  const curNet = showNet ? netSeries(curWb, curEb, daily) : null;
   const curNetPeak = curNet ? curNet.indexOf(Math.max(...curNet)) : -1;
 
   // Pinned-season labels at each WB peak (EB trough when WB is hidden), stacked so they don't overlap.
@@ -189,7 +202,13 @@ export default function HeroChart({ profiles, span, season: cur, pins, showTrail
               ))}
               {/* Phones: bottom right, clear of the westbound label. */}
               <text className="i70w-direct" x={width - m.right - 6} y={compact ? height - m.bottom - 8 : m.top + 14} textAnchor="end">
-                {compact ? "Net up the hill" : `Net up the hill since ${dows.length > 1 ? `${DOW_SHORT[dows[0]]} ` : ""}midnight`}
+                {compact
+                  ? daily
+                    ? "Net up the hill, daily"
+                    : "Net up the hill"
+                  : daily
+                    ? "Net up the hill, each day since midnight"
+                    : `Net up the hill since ${dows.length > 1 ? `${DOW_SHORT[dows[0]]} ` : ""}midnight`}
               </text>
             </g>
           )}
@@ -226,7 +245,7 @@ export default function HeroChart({ profiles, span, season: cur, pins, showTrail
             shownPins.map((yr) => (
               <path
                 key={`net-${yr}`}
-                d={netPath(netSeries(series(yr, "wb"), series(yr, "eb")))}
+                d={netPath(netOf(yr))}
                 fill="none"
                 stroke="var(--net)"
                 strokeWidth={1.5}
@@ -302,7 +321,7 @@ export default function HeroChart({ profiles, span, season: cur, pins, showTrail
           })}
           {showNet &&
             [cur, ...shownPins].map((yr) => {
-              const v = netSeries(series(yr, "wb"), series(yr, "eb"))?.[hoverI + 1];
+              const v = netOf(yr)?.[hoverI + 1];
               return v == null ? null : (
                 <span key={`net-${yr}`} style={{ color: "var(--net)" }}>
                   {yr}: net {v >= 0 ? "+" : "−"}{fmtInt(Math.abs(v))} up the hill

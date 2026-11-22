@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { fmtInt } from "../../I70Crossfilter/format";
 import { useData } from "../../I70Crossfilter/useData";
 import "../widgets.css";
-import HeroChart from "./HeroChart";
+import HeroChart, { type NetMode } from "./HeroChart";
 import { buildProfiles, DOW_SHORT, DRIFT_WB, fmtPct, seasonLabel as fmtSeason, spanTotal, SPANS, type Mode, type Span } from "./heroData";
 
 // The hero chart candidate for the weekend-warrior story: the average
@@ -21,6 +21,7 @@ export default function HeroCurve() {
   const [year, setYear] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [pins, setPins] = useState<number[]>(DEFAULT_PINS);
+  const [net, setNet] = useState<NetMode>("off");
 
   const ds = data?.find((d) => d.days.id === "tunnel") ?? null;
   const profiles = useMemo(() => (ds ? buildProfiles(ds, mode) : null), [ds, mode]);
@@ -111,6 +112,17 @@ export default function HeroCurve() {
             Single season
           </button>
         </div>
+        <div className="i70w-seg" role="group" aria-label="Net up the hill">
+          <button aria-pressed={net === "off"} onClick={() => setNet("off")}>
+            No net
+          </button>
+          <button aria-pressed={net === "daily"} onClick={() => setNet("daily")}>
+            Net, daily
+          </button>
+          <button aria-pressed={net === "full"} onClick={() => setNet("full")}>
+            Net, whole span
+          </button>
+        </div>
       </div>
 
       {error && <p className="i70w-note">Couldn't load data: {error.message}</p>}
@@ -135,7 +147,7 @@ export default function HeroCurve() {
         </span>
       </p>
 
-      {profiles && <HeroChart profiles={profiles} span={span} season={cur} pins={pins} showTrail />}
+      {profiles && <HeroChart profiles={profiles} span={span} season={cur} pins={pins} showTrail net={net} />}
 
       <div className="i70w-legend" style={{ marginTop: "0.5rem" }}>
         <span>
@@ -150,6 +162,12 @@ export default function HeroCurve() {
           <i style={{ background: "var(--off)" }} />
           Earlier seasons
         </span>
+        {net !== "off" && (
+          <span>
+            <i style={{ background: "var(--net)" }} />
+            Net up the hill (westbound − eastbound, {net === "daily" && SPANS[span].dows.length > 1 ? "from each midnight" : "running total"})
+          </span>
+        )}
       </div>
 
       <p className="i70w-note">

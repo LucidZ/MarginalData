@@ -5,7 +5,8 @@
 // At 1000px and 390px: the chart draws, the season slider moves the current
 // curve, the drift seasons draw westbound with an asterisk note, Play advances the
 // season, the span control widens the x-axis to Wed–Wed, no horizontal
-// scroll. Fails on console errors.
+// scroll, the net line draws per day (daily) or as one running total
+// (whole span). Fails on console errors.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -70,6 +71,19 @@ for (const [name, viewport] of [
   const dayLabels = await page.locator(".i70w-scatter svg text.i70w-direct").allTextContents();
   check(dayLabels.filter((t) => /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/.test(t)).length === 8, "Wed–Wed shows 8 day labels");
   await page.screenshot({ path: `${OUT}/i70-hero-curve-week-${name}.png`, fullPage: true });
+
+  // Net line: daily resets at each midnight, whole span runs from the first midnight.
+  await page.getByRole("button", { name: "Fri–Sun" }).click();
+  const netPaths = () => page.locator('.i70w-scatter svg path[stroke="var(--net)"]').count();
+  check((await netPaths()) === 0, "no net line by default");
+  await page.getByRole("button", { name: "Net, daily" }).click();
+  const dailyD = await page.locator('.i70w-scatter svg path[stroke="var(--net)"][stroke-width="2.5"]').getAttribute("d");
+  check((dailyD?.match(/M/g) ?? []).length === 3, `daily net: 3 day segments (${(dailyD?.match(/M/g) ?? []).length})`);
+  await page.screenshot({ path: `${OUT}/i70-hero-curve-net-daily-${name}.png`, fullPage: true });
+  await page.getByRole("button", { name: "Net, whole span" }).click();
+  const fullD = await page.locator('.i70w-scatter svg path[stroke="var(--net)"][stroke-width="2.5"]').getAttribute("d");
+  check((fullD?.match(/M/g) ?? []).length === 1, "whole-span net: one running line");
+  await page.screenshot({ path: `${OUT}/i70-hero-curve-net-full-${name}.png`, fullPage: true });
 
   const sw = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check(sw <= 0, `no horizontal scroll (${sw}px)`);
