@@ -1,4 +1,4 @@
-// Smoke test for /2026/BoulderBikeNet: network mode, a Fix gap's photo, route mode with an
+// Smoke test for /2026/BoulderBikeNet: network mode, a Fix gap's Street View card, route mode with an
 // example and with dropped pins, phone layout. Records transferred bytes per data file.
 //   node tests/bikenet-page-check.mjs <base_url> <shot_dir>
 // e.g. node tests/bikenet-page-check.mjs http://localhost:5191 tests/screenshots/bikenet
@@ -38,9 +38,10 @@ await page.waitForTimeout(1500); // tiles
 await page.screenshot({ path: `${out}/1-network.png` });
 
 await page.locator(".bbn-list").first().locator("li button").first().click();
-await page.waitForSelector(".bbn-photo-img img, .bbn-photo-img:not(:has-text('Looking'))", { timeout: 15000 });
+await page.waitForSelector(".bbn-photo-ctl a", { timeout: 15000 });
 await page.waitForTimeout(1500);
-console.log("photo panel:", (await page.locator(".bbn-photo-head b").textContent()), "|", (await page.locator(".bbn-photo-meta").textContent().catch(() => "no photo")));
+console.log("street view card:", (await page.locator(".bbn-photo-head b").textContent()), "|",
+  (await page.locator(".bbn-photo-ctl a").evaluateAll((as) => as.map((a) => a.href))).join(" , "));
 await page.screenshot({ path: `${out}/2-fix-photo.png` });
 
 console.log("selected list item:", await page.locator(".bbn-list li.bbn-sel").textContent());

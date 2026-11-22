@@ -4,14 +4,14 @@ import "leaflet/dist/leaflet.css";
 import { useJsonData } from "../../hooks/useJsonData";
 import { DEFAULT_VERSION, type GraphData, type NetworkData, type PhotoTarget, type ProfileId, type SidewalkPref } from "./types";
 import { BikeGraph, type LatLng } from "./routing";
-import { bearingAt, midpoint } from "./photos";
+import { bearingAt, midpoint } from "./streetview";
 import { useNetworkLayers, type Inspect, type NetworkView, type Pick } from "./networkLayers";
 import { usePins, useRouteLayers, type Slots } from "./routeLayers";
 import { PlaceIndex, type Place, type PlacesData } from "./search";
 import { DEFAULT_TOOL, toolTitle } from "./style";
 import NetworkPanel from "./NetworkPanel";
 import RoutePanel, { EXAMPLES, type GraphStatus } from "./RoutePanel";
-import PhotoPanel from "./PhotoPanel";
+import StreetViewPanel from "./StreetViewPanel";
 import "./App.css";
 
 type Mode = "network" | "route";
@@ -95,7 +95,7 @@ export default function App() {
     if (!mapDiv.current) return;
     const m = L.map(mapDiv.current, { preferCanvas: true, zoomControl: true }).setView([40.015, -105.255], 13);
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-      attribution: "Tiles &copy; Esri | Data &copy; OpenStreetMap contributors, City of Boulder, US Census LODES, Mapillary",
+      attribution: "Tiles &copy; Esri | Data &copy; OpenStreetMap contributors, City of Boulder, US Census LODES",
       maxZoom: 19,
       maxNativeZoom: 16,
     }).addTo(m);
@@ -118,7 +118,7 @@ export default function App() {
   usePins(map, pins, movePin, mode === "route");
   useRouteLayers(map, graph, routes, profile, ghosts, pins, mode === "route", inspect);
 
-  // Empty-map clicks: drop pins in route mode (until there are two), otherwise look for photos
+  // Empty-map clicks: drop pins in route mode (until there are two), otherwise offer Street View there
   const clickState = useRef({ mode, pins, graphStatus });
   clickState.current = { mode, pins, graphStatus };
   useEffect(() => {
@@ -173,7 +173,7 @@ export default function App() {
     );
   };
 
-  // List click: highlight it on the map, frame it, and show a photo from its middle
+  // List click: highlight it on the map, frame it, and offer Street View from its middle
   const pick = (k: Pick | null) => {
     setSelected(k ? k.p.g : null);
     if (!k) {
@@ -197,8 +197,8 @@ export default function App() {
       <aside className="bbn-panel">
         <h1>Boulder's bike network</h1>
         <p className="bbn-muted">
-          Where should Boulder build next, and how does your own ride look today? Click any line or spot for the nearest
-          street-level photo.
+          Where should Boulder build next, and how does your own ride look today? Click any line or spot to open it in
+          Google Street View.
         </p>
         <div className="bbn-seg bbn-modes" role="tablist">
           <button role="tab" aria-selected={mode === "network"} className={mode === "network" ? "on" : ""} onClick={() => switchMode("network")}>
@@ -235,7 +235,7 @@ export default function App() {
       </aside>
       <div className="bbn-mapwrap">
         <div ref={mapDiv} className="bbn-map" />
-        {photo && <PhotoPanel map={map} target={photo} onClose={() => setPhoto(null)} />}
+        {photo && <StreetViewPanel map={map} target={photo} onClose={() => setPhoto(null)} />}
       </div>
     </div>
   );
