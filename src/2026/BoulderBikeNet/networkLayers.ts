@@ -60,6 +60,7 @@ export function useNetworkLayers(
   active: boolean,
   onInspect: Inspect,
   onSelect: (pick: Pick) => void,
+  recs = true, // false: inputs only (the tour's opening steps)
 ) {
   const cb = useRef({ onInspect, onSelect });
   cb.current = { onInspect, onSelect };
@@ -109,7 +110,7 @@ export function useNetworkLayers(
     if (!map || !data || !inputs.current) return;
     const ins = inputs.current;
     const group = L.featureGroup().addTo(map);
-    if (active) {
+    if (active && recs) {
       const t = view.tool;
       const all = toolFeatures(data, view.version, t);
       const feats = all.filter((p) => inBudget(t, p, view.mi));
@@ -183,5 +184,5 @@ export function useNetworkLayers(
     return () => {
       group.remove();
     };
-  }, [map, data, view, selected, active]);
+  }, [map, data, view, selected, active, recs]);
 }

@@ -369,3 +369,28 @@ building a winter toggle.
   "Path, bike access unknown" + OSM note invite, sidewalk/dismount notes in feet with a 50 m floor,
   styles-tie note, LODES dropped from attribution, list numbers aligned on wrapped names.
 - Tests: `tests/bikenet-plan-check.mjs` (new) + `tests/bikenet-page-check.mjs`, both pass, no errors.
+
+## Guided tour (2026-11-23, uncommitted)
+- Lucas: offer a tour for the generic Boulder redditor (offered via a button, not auto-launched), credit the BikeNetKit
+  authors as the intro, explain how/why each method recommends, end on an **empty** route so people plot their own.
+  Crash data stays under Advanced (not in the tour).
+- `Tour.tsx` (card) + `goTour`/`endTour` in `App.tsx` (each step sets the map from scratch, so Back = same picture).
+  Steps: credits → today (recs hidden: `useNetworkLayers(..., recs)`) → Extend (slider grows 0.5 → 19 mi over 2.4 s,
+  skipped with reduced motion) → Fix (#1 gap selected + Street View card) → Link → agree → North Boulder → CU
+  with the plan built (60% → 96% off road). "Plot your own route" = route mode, inputs empty, From focused (desktop);
+  Skip / Esc = network defaults. Graph prefetched when the tour opens. Nav row sticky (phone half sheet).
+  City steps frame a fixed core box (the boundary includes outlying open space -> zoom 12).
+- "How it decides" copy checked against the installed package source (growbikenet 0.17.0, fixbikenet 0.10.1,
+  linkbikenet 0.10.1), since the docs say "TBA" for Fix/Link:
+  - Grow: seed grid 1707 m (+ 854 m on the existing network, `existing_network_spacing="auto"`), Delaunay mesh,
+    links routed with a penalty off bike infra, ranked by edge betweenness on the abstract mesh (static, computed once).
+  - Fix: contact nodes (protected meets unprotected), pairs within 800 m straight-line whose shortest path is fully
+    unprotected (>= 20 m); score = length-weighted mean of local edge betweenness along the gap; local betweenness =
+    300 random source nodes to all nodes within 2.5 km, unprotected edges weighted 1.5x.
+  - Link (`largest_to_second`): components sorted by total length; repeatedly connect largest to second largest via the
+    shortest street path among the closest node-pair candidates; pieces crossed on the way join too.
+- Credits: team per bikenetkit.org (Szell lead, Büth, Knepper, Pessoa, Sebastiao, Vybornova; NERDS, ITU Copenhagen);
+  each method card cites the paper the tool's README asks users to cite (Grow: Szell et al. 2022 Sci Rep; Fix:
+  Vybornova et al. 2023 Geogr Anal; Link: Natera Orozco et al. 2020 RSOS). The intro line links bikenetkit.org.
+  Caveat line adapted from their legal page ("algorithmic outputs, not professional planning ... advice").
+- Test: `node tests/bikenet-tour-check.mjs <base> <shots>` (all steps desktop + phone, Back, finish, Esc skip).

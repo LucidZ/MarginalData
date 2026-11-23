@@ -57,7 +57,7 @@ interface Props {
 }
 
 const pct = (x: number, of: number) => `${Math.round((100 * x) / of)}%`;
-const offRoad = (x: RouteResult) => x.by.protected + x.by["shared path/sidewalk"];
+export const offRoad = (x: RouteResult) => x.by.protected + x.by["shared path/sidewalk"];
 const PLAN_TOOLS: ToolId[] = ["grow_existing", "agree", "fix", "link", "grow"];
 
 /** Route split by class; in plan mode, the protected share is split into today's and the plan's new links. */

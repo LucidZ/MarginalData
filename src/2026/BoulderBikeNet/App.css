@@ -649,3 +649,94 @@ html.bbn-shell .site-footer {
     max-width: none;
   }
 }
+
+/* Tour */
+.bbn-btn-go {
+  background: var(--bbn-link);
+  border-color: var(--bbn-link);
+  color: #fff;
+  font-weight: 600;
+}
+
+.bbn-btn-go:hover:not(:disabled) {
+  background: #174f8c;
+}
+
+.bbn-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bbn-tour-offer {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  margin: 4px 0 10px;
+}
+
+.bbn-tour {
+  margin-top: 8px;
+}
+
+.bbn-tour-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bbn-panel .bbn-tour h2 {
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--bbn-ink);
+  margin: 6px 0 4px;
+}
+
+.bbn-panel .bbn-tour-ask {
+  font-style: italic;
+  color: var(--bbn-muted);
+  margin-bottom: 10px;
+}
+
+.bbn-tour-cite {
+  border-top: 1px solid var(--bbn-line);
+  padding-top: 8px;
+  margin-top: 12px !important;
+}
+
+.bbn-tour-nav {
+  position: sticky;
+  bottom: -24px; /* the panel body's bottom padding */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 4px -16px 0;
+  padding: 2px 16px 14px;
+  background: var(--bbn-bg);
+}
+
+.bbn-tour-nav .bbn-btn {
+  margin-top: 8px;
+}
+
+.bbn-tour-nav .bbn-btn {
+  padding: 6px 14px;
+}
+
+.bbn-tour-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bbn-tour-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bbn-line);
+}
+
+.bbn-tour-dots i.on {
+  background: var(--bbn-link);
+}

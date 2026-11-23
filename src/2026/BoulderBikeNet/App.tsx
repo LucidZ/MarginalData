@@ -12,6 +12,7 @@ import { DEFAULT_TOOL, toolName, toolTitle } from "./style";
 import NetworkPanel from "./NetworkPanel";
 import RoutePanel, { EXAMPLES, type GraphStatus, type PlanInfo } from "./RoutePanel";
 import StreetViewPanel from "./StreetViewPanel";
+import Tour, { TOUR, TOUR_MI, TOUR_RIDE } from "./Tour";
 import "./App.css";
 
 type Mode = "network" | "route";
@@ -126,8 +127,10 @@ export default function App() {
   const [ghosts, setGhosts] = useState(true);
   const [sidewalkPref, setSidewalkPref] = useState<SidewalkPref>("road");
   const [planOn, setPlanOn] = useState(false);
+  const [tour, setTour] = useState<number | null>(null); // step index while the tour is open
+  const wantGraph = mode === "route" || tour !== null; // the tour ends on a ride, so fetch early
   useEffect(() => {
-    if (mode !== "route" || graph) return;
+    if (!wantGraph || graph) return;
     let cancelled = false;
     setGraphStatus("loading");
     fetch("/data/boulder-bikenet/graph.json")
@@ -151,7 +154,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [mode, graph]);
+  }, [wantGraph, graph]);
   const today = useMemo(() => (graph && pins[0] && pins[1] ? graph.route(pins[0], pins[1], sidewalkPref) : null), [graph, pins, sidewalkPref]);
 
   // "With the plan built": the network view's recommendations become protected edges
@@ -217,7 +220,9 @@ export default function App() {
 
   const inspect: Inspect = useCallback((geom, lat, lng, title) => setPhoto({ lat, lng, bearing: bearingAt(geom, lat, lng), title }), []);
   const select = useCallback((p: Pick) => setSelected(p.p.g), []);
-  useNetworkLayers(map, data, view, selected, mode === "network", inspect, select);
+  const tourStep = tour === null ? null : TOUR[tour];
+  const recs = tourStep !== "credits" && tourStep !== "today";
+  useNetworkLayers(map, data, view, selected, mode === "network", inspect, select, recs);
   usePins(map, pins, movePin, mode === "route");
   const planGeoms = useMemo(() => (mask && data ? planFeatures(data, view).map((p) => data.geoms[p.g]) : null), [mask, data, view]);
   useRouteLayers(map, graph, routes, profile, ghosts, pins, mode === "route", inspect, mask, mask ? today : null, planGeoms);
@@ -292,6 +297,67 @@ export default function App() {
     setPhoto({ lat, lng, bearing: bearingAt(geom, lat, lng), title: toolTitle(k.tool, k.p, k.rank) });
   };
 
+  // Tour: each step sets the map from scratch, so Back and Next land on the same picture
+  const anim = useRef(0);
+  // Core of town (the city boundary also takes in outlying open space and the reservoir)
+  const fitCity = () => map?.fitBounds(L.latLngBounds([39.978, -105.285], [40.06, -105.212]), reveal());
+  const goTour = (i: number) => {
+    if (!data) return;
+    cancelAnimationFrame(anim.current);
+    const step = TOUR[i];
+    setTour(i);
+    setPhoto(null);
+    setSelected(null);
+    setPlanOn(step === "ride");
+    setMode(step === "ride" ? "route" : "network");
+    const tool = step === "fix" ? "fix" : step === "link" ? "link" : step === "agree" ? "agree" : DEFAULT_TOOL;
+    setViewRaw({ ...INITIAL_VIEW, tool, mi: TOUR_MI });
+    if (step === "fix") {
+      const p = toolFeatures(data, DEFAULT_VERSION, "fix")[0];
+      if (p) return pick({ tool: "fix", p, rank: 1 });
+    }
+    if (step === "ride") {
+      setProfile("balanced");
+      setSidewalkPref("road");
+      setGhosts(true);
+      return example(TOUR_RIDE);
+    }
+    fitCity();
+    if (step === "extend" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Grow the build order in, half a mile at a time
+      const t0 = performance.now(), ms = 2400;
+      const tick = (t: number) => {
+        const mi = Math.max(0.5, Math.round(2 * TOUR_MI * Math.min(1, (t - t0) / ms)) / 2);
+        setViewRaw((v) => (v.mi === mi ? v : { ...v, mi }));
+        if (mi < TOUR_MI) anim.current = requestAnimationFrame(tick);
+      };
+      setViewRaw((v) => ({ ...v, mi: 0.5 }));
+      anim.current = requestAnimationFrame(tick);
+    }
+  };
+  const startTour = () => {
+    if (phone) setSnap("half");
+    goTour(0);
+  };
+  // Leaving the tour puts everything back to the page defaults; finishing opens an empty route
+  const endTour = (toRoute: boolean) => {
+    cancelAnimationFrame(anim.current);
+    setTour(null);
+    setPhoto(null);
+    setSelected(null);
+    setViewRaw(INITIAL_VIEW);
+    setPlanOn(false);
+    setPins([null, null]);
+    setLabels(["", ""]);
+    setProfile("balanced");
+    setSidewalkPref("road");
+    setGhosts(true);
+    setMode(toRoute ? "route" : "network");
+    fitCity();
+    if (toRoute && !phone) setTimeout(() => document.querySelector<HTMLInputElement>(".bbn-search input:not([disabled])")?.focus(), 0);
+  };
+  useEffect(() => () => cancelAnimationFrame(anim.current), []);
+
   const switchMode = (m: Mode) => {
     setMode(m);
     setPhoto(null);
@@ -313,10 +379,29 @@ export default function App() {
         </button>
         <div className="bbn-panel-body">
           <h1>Boulder's bike network</h1>
+          {tour !== null && data ? (
+            <Tour
+              step={tour}
+              go={goTour}
+              skip={() => endTour(false)}
+              finish={() => endTour(true)}
+              data={data}
+              ride={{
+                today: today?.byProfile.balanced ?? null,
+                plan: planned?.byProfile.balanced ?? null,
+                loading: graphStatus === "loading",
+              }}
+            />
+          ) : (
+          <>
           <p className="bbn-muted">
-            Where should Boulder build next, and how does your own ride look today? Click any line or spot to open it in
-            Google Street View.
+            Where should Boulder build next, and how does your own ride look today? Recommendations from{" "}
+            <a href="https://bikenetkit.org" target="_blank" rel="noopener noreferrer">BikeNetKit</a>. Click any line or spot to
+            open it in Google Street View.
           </p>
+          <button className="bbn-btn bbn-btn-go bbn-tour-offer" onClick={startTour} disabled={!data}>
+            New here? Take the 1-minute tour
+          </button>
           <div ref={tabsRef} className="bbn-seg bbn-modes" role="tablist">
             <button role="tab" aria-selected={mode === "network"} className={mode === "network" ? "on" : ""} onClick={() => switchMode("network")}>
               The network
@@ -360,6 +445,8 @@ export default function App() {
                 used,
               } satisfies PlanInfo}
             />
+          )}
+          </>
           )}
         </div>
       </aside>
