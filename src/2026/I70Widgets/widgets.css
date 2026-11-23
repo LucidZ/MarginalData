@@ -555,6 +555,10 @@
   --gold: #e0a11c;
   --gold-fill: #efc970;
   --gold-ink: #a97407;
+  /* The sandbox's second trip. */
+  --b: #3f6db3;
+  --b-fill: #bccfea;
+  --b-ink: #2f5a96;
 }
 .i70s-key {
   display: flex;
@@ -576,16 +580,6 @@
 }
 .i70s-key-then::before {
   border-top: 2px dashed var(--then);
-}
-.i70s-dayrow {
-  font-size: 11.5px;
-  font-weight: 600;
-  fill: var(--gold-ink);
-  font-variant-numeric: tabular-nums;
-}
-.i70s-net-tick,
-.i70s-net-label {
-  fill: var(--gold-ink);
 }
 .i70s-peak text {
   font-size: 11.5px;
@@ -617,8 +611,95 @@
   stroke: var(--gold-ink);
   stroke-dasharray: 3 2;
 }
+/* A pick: a departure hour's whole bar; trip B in blue. */
+.i70s-peak-bar.is-b {
+  fill: var(--b-fill);
+}
+.i70s-pick-label.is-b text {
+  fill: var(--b-ink);
+}
+.i70s-pick-label .i70s-pick-when {
+  font-weight: 500;
+}
+/* The holiday weekend's line over the days it's about. */
+.i70s-holiday {
+  fill: none;
+  stroke: var(--gold-ink);
+  stroke-width: 2.25;
+  stroke-linejoin: round;
+}
+.i70s-key-hol {
+  color: var(--gold-ink);
+  font-weight: 600;
+}
+.i70s-key-hol::before {
+  border-top: 2.25px solid var(--gold-ink);
+}
 /* A gap highlight's window. */
 .i70s-window {
   fill: var(--gold);
   opacity: 0.08;
+}
+
+/* WeekendStory's closing sandbox: two trips side by side, then the chart and
+   one verdict line per direction. */
+.i70s-compare {
+  margin: 1rem 0 2rem;
+}
+.i70s-compare h2 {
+  margin-bottom: 0.25rem;
+}
+.i70s-trips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.i70s-trip {
+  flex: 1 1 300px;
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  border-radius: 6px;
+}
+.i70s-trip.is-b {
+  border-left-color: var(--b);
+}
+.i70s-trip legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0 0.3rem;
+}
+.i70s-trip .i70w-controls {
+  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+}
+.i70s-trip-dir {
+  width: 2.8rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.i70s-compare select {
+  font: inherit;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+.i70s-verdicts {
+  margin: 0.5rem 0;
+}
+.i70s-verdict {
+  margin: 0.25rem 0;
+  font-variant-numeric: tabular-nums;
+}
+.i70s-tag-a,
+.i70s-tag-b {
+  font-weight: 700;
+  color: var(--gold-ink);
+}
+.i70s-tag-b {
+  color: var(--b-ink);
 }

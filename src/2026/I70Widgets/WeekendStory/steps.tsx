@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { fmtInt } from "../../I70Crossfilter/format";
 import { fmtPct } from "../HeroCurve/heroData";
 import { POPULATION } from "../PopVsWeekend/population";
-import { clockHour, dayName, topPeak, type ChartId, type Facts, type Highlight, type Season } from "./lensData";
+import { clockHour, dayName, departures, TM, topPeak, type ChartId, type Facts, type Highlight } from "./lensData";
 
 // What the chart shows at each step and the one sentence beside it. Three
-// charts (Saturday → Fri–Sun → Wed–Tue), 1996 against today; each step adds
+// charts (Saturday → Fri–Sun → Thu–Mon), 1996 against today; each step adds
 // at most one gold highlight. Copy numbers come from the data (`Facts`: 1996
 // and today on each chart, 3am to 3am), so they follow whichever season
 // `last` is in index.tsx.
@@ -14,15 +14,12 @@ export interface Step {
   chart: ChartId;
   /** "today" keeps 1996 as the dashed reference. */
   season: "first" | "today";
-  hl: Highlight | null;
+  /** A function where the hours it picks out come from the data. */
+  hl: Highlight | null | ((f: Facts) => Highlight);
   /** Scrolling from this step to the next plays the seasons from 1996 to today. */
   scrub?: boolean;
   /** Scrolling from this step to the next widens this chart's days out to the next step's chart. */
   zoom?: boolean;
-  /** The net: 0 none, 1 each hour's net, 2 stacked into the running net, 3 with 1996's drawn in. */
-  flow?: number;
-  /** Scrolling from this step to the next plays `flow` from this step's to the next's. */
-  play?: boolean;
   text: (f: Facts, yrs: { first: number; last: number }) => ReactNode;
 }
 
@@ -32,10 +29,15 @@ const clock = (i: number) => {
 };
 /** For prose ("30%"): no plus sign. */
 const pctWord = (a: number, b: number) => fmtPct((b / a - 1) * 100).replace("+", "");
-const hundreds = (v: number) => fmtInt(Math.round(v / 100) * 100);
-const sumRange = (vals: number[], [lo, hi]: [number, number]) => vals.slice(lo, hi).reduce((t, v) => t + v, 0);
-const bothWays = (s: Season, ranges: [number, number][]) =>
-  ranges.reduce((t, r) => t + sumRange(s.wb, r) + sumRange(s.eb, r), 0);
+/** "26% fewer" for b against a. */
+const fewer = (a: number, b: number) => `${fmtPct((1 - b / a) * 100).replace("+", "")} fewer`;
+/** Growth from a to b as prose: "more than doubled", "nearly tripled", else "grew 69%". */
+const grew = (a: number, b: number) => {
+  const r = b / a;
+  if (r >= 2.9) return `${r < 3 ? "nearly" : "more than"} tripled`;
+  if (r >= 1.9) return `${r < 2 ? "nearly" : "more than"} doubled`;
+  return `grew ${pctWord(a, b)}`;
+};
 const DAY_LONG: Record<string, string> = { Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
 /** A Fri–Sun day index as a full name. */
 const dayLong = (d: number) => DAY_LONG[dayName("friSun", d)] ?? dayName("friSun", d);
@@ -46,13 +48,6 @@ const SAT_DAY: [number, number][] = [[4, 14]];
 const SAT_EARLY: [number, number][] = [[3, 4]];
 // Saturday eastbound: 10am–6pm, the day's return leaving early.
 const SAT_EB_MID: [number, number][] = [[7, 15]];
-// Wed–Tue: Friday 3pm to the end of Sunday's day (3am Monday), and the rest of the week.
-const WEEKEND: [number, number][] = [[2 * 24 + 12, 5 * 24]];
-const REST: [number, number][] = [
-  [0, 2 * 24 + 12],
-  [5 * 24, 7 * 24],
-];
-const WT = { thu: 1, fri: 2, sun: 4 };
 
 /** City of Denver, the one population series that reaches back to 1996. */
 export const popGrowth = (first: number) => {
@@ -172,7 +167,7 @@ export const STEPS: Step[] = [
     chart: "friSun",
     season: "today",
     hl: { kind: "peak", dirs: ["eb"], top: true },
-    play: true,
+    zoom: true,
     text: (f) => {
       const [t, n] = [topPeak(f.friSun.then, "eb"), topPeak(f.friSun.now, "eb")];
       return (
@@ -188,77 +183,94 @@ export const STEPS: Step[] = [
     },
   },
   {
-    chart: "friSun",
+    chart: "thuMon",
     season: "today",
     hl: null,
-    flow: 1,
-    play: true,
     text: () => (
       <>
-        Take each hour's cars heading home away from its cars heading up, and what's left is that hour's{" "}
-        <Gold>net</Gold>: more staying up the hill, or more coming home.
+        Plenty of skiers stretch the weekend with a day off. So which day should you take: Friday or Monday?
       </>
     ),
   },
   {
-    chart: "friSun",
+    chart: "thuMon",
     season: "today",
-    hl: null,
-    flow: 2,
-    play: true,
-    text: () => (
-      <>
-        Stack those hours end to end, starting over at 3am, and you get each day's <Gold>net up the hill</Gold>.
-      </>
-    ),
-  },
-  {
-    chart: "friSun",
-    season: "today",
-    hl: { kind: "net", days: [0] },
-    flow: 3,
-    text: (f, { first }) => (
-      <>
-        More and more people go up early and stay starting Friday night: Friday now leaves{" "}
-        <Gold>{hundreds(f.friSun.now.dayNet[0])}</Gold> more in the mountains than it brings home, up from{" "}
-        {hundreds(f.friSun.then.dayNet[0])} in {first}.
-      </>
-    ),
-  },
-  {
-    chart: "wedTue",
-    season: "today",
-    hl: { kind: "gap", dirs: ["wb", "eb"], ranges: WEEKEND },
-    text: (f) => (
-      <>
-        Over the whole week, traffic from Friday after work through Sunday grew{" "}
-        <Gold>{pctWord(bothWays(f.wedTue.then, WEEKEND), bothWays(f.wedTue.now, WEEKEND))}</Gold>…
-      </>
-    ),
-  },
-  {
-    chart: "wedTue",
-    season: "today",
-    hl: { kind: "gap", dirs: ["wb", "eb"], ranges: REST },
-    text: (f) => (
-      <>
-        …and the rest of the week grew <Gold>{pctWord(bothWays(f.wedTue.then, REST), bothWays(f.wedTue.now, REST))}</Gold>.
-      </>
-    ),
-  },
-  {
-    chart: "wedTue",
-    season: "today",
-    hl: { kind: "net", days: [WT.thu, WT.fri, WT.sun] },
-    text: (f, { first }) => {
-      const [t, n] = [f.wedTue.then.dayNet[WT.sun], f.wedTue.now.dayNet[WT.sun]];
-      const sameSunday = Math.abs(n - t) < Math.abs(t) * 0.1;
+    hl: (f) => {
+      const d = departures(f);
+      return { kind: "pick", picks: [{ dir: "wb", i: d.thuUp }, { dir: "wb", i: d.friUp }] };
+    },
+    text: (f) => {
+      const d = departures(f);
+      const s = f.thuMon.now;
       return (
         <>
-          Way more people now stay up Thursday and Friday night, but{" "}
-          {sameSunday
-            ? `Sunday sends no more home than it did in ${first}?`
-            : `Sunday's net trip home only went from ${hundreds(-t)} to ${hundreds(-n)}?`}
+          Take Friday off and you can head up Thursday after work. Reach the tunnel at {clock(d.thuUp)} and there are{" "}
+          <Gold>{fewer(s.wb[d.friUp], s.wb[d.thuUp])}</Gold> cars than at the same hour on Friday.
+        </>
+      );
+    },
+  },
+  {
+    chart: "thuMon",
+    season: "today",
+    hl: (f) => {
+      const d = departures(f);
+      return { kind: "pick", picks: [{ dir: "eb", i: d.sunHome }, { dir: "eb", i: d.monHome }] };
+    },
+    text: (f) => {
+      const d = departures(f);
+      const s = f.thuMon.now;
+      const upSaving = 1 - s.wb[d.thuUp] / s.wb[d.friUp];
+      const homeSaving = 1 - s.eb[d.monHome] / s.eb[d.sunHome];
+      return (
+        <>
+          Take Monday off and you skip Sunday's rush home: at {clock(d.monHome)}, Monday has{" "}
+          <Gold>{fewer(s.eb[d.sunHome], s.eb[d.monHome])}</Gold> cars than Sunday
+          {homeSaving > upSaving ? ", the bigger of the two savings." : "."}
+        </>
+      );
+    },
+  },
+  {
+    chart: "thuMon",
+    season: "today",
+    hl: (f) => {
+      const d = departures(f);
+      return {
+        kind: "pick",
+        picks: [{ dir: "eb", i: d.sunHome }, { dir: "eb", i: d.monHome, holiday: true }],
+        holidayLine: { dir: "eb", days: [TM.sun, TM.mon] },
+      };
+    },
+    text: (f) => {
+      const d = departures(f);
+      const hol = f.holiday.now.eb[d.monHome];
+      const sun = f.thuMon.now.eb[d.sunHome];
+      const r = hol / sun;
+      return (
+        <>
+          Unless everyone has the same idea. On MLK and Presidents' Day weekends, Monday at {clock(d.monHome)} brings{" "}
+          <Gold>{fmtInt(hol)}</Gold> cars an hour home,{" "}
+          {Math.abs(r - 1) < 0.08 ? "about as many as an ordinary Sunday." : `${Math.round(r * 100)}% of an ordinary Sunday.`}
+        </>
+      );
+    },
+  },
+  {
+    chart: "thuMon",
+    season: "today",
+    hl: (f) => {
+      const d = departures(f);
+      return { kind: "pick", picks: [{ dir: "wb", i: d.thuUp }, { dir: "eb", i: d.monHome }], then: true };
+    },
+    text: (f, { first }) => {
+      const d = departures(f);
+      const [t, n] = [f.thuMon.then, f.thuMon.now];
+      return (
+        <>
+          And the quiet days are filling up. Since {first}, Thursday at {clock(d.thuUp)} heading up has{" "}
+          <Gold>{grew(t.wb[d.thuUp], n.wb[d.thuUp])}</Gold>, and Monday at {clock(d.monHome)} heading home{" "}
+          <Gold>{grew(t.eb[d.monHome], n.eb[d.monHome])}</Gold>.
         </>
       );
     },

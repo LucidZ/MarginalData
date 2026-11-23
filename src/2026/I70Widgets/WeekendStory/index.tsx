@@ -5,13 +5,14 @@ import { useData } from "../../I70Crossfilter/useData";
 import "../widgets.css";
 import { buildProfiles, DRIFT_WB } from "../HeroCurve/heroData";
 import LensChart from "./LensChart";
-import { buildFacts } from "./lensData";
+import { buildFacts, buildHolidayProfiles, clockHour, departures, holidayLabel, HOLIDAY_POOL } from "./lensData";
 import { popGrowth, STEPS } from "./steps";
+import TripCompare from "./TripCompare";
 import { useStepProgress } from "./useStepProgress";
 
 // Scrollyteller for "the evolution of the winter weekend warrior": three
-// charts (Saturday, Fri–Sun, Wed–Tue), 1996 against today, one sentence and
-// at most one gold highlight per step.
+// charts (Saturday, Fri–Sun, Thu–Mon), 1996 against today, one sentence and
+// at most one gold highlight per step; then a sandbox comparing two trips.
 // Gameplan: .claude/i70-weekend-warrior-spec.md (main worktree).
 
 const PHONE_QUERY = "(max-width: 720px)";
@@ -29,7 +30,12 @@ export default function WeekendStory() {
   const first = years[0] ?? 1996;
   // "Today" is the latest season on its own, weather and all.
   const last = years[years.length - 1] ?? 2026;
-  const facts = useMemo(() => (profiles ? buildFacts(profiles, first, last) : null), [profiles, first, last]);
+  const holiday = useMemo(() => (ds && profiles ? buildHolidayProfiles(ds, first, last) : null), [ds, profiles, first, last]);
+  const facts = useMemo(
+    () => (profiles && holiday ? buildFacts(profiles, holiday, first, last) : null),
+    [profiles, holiday, first, last],
+  );
+  const dep = facts ? departures(facts) : null;
 
   // On phones the chart is pinned across the top, so measure steps against
   // the middle of the band below it (same as the voter-age story).
@@ -54,17 +60,13 @@ export default function WeekendStory() {
   // Between a zoom step and the next, the view widens out to the next step's chart.
   const zooming = !!STEPS[i]?.zoom && moving;
   const zoom = zooming ? { from: STEPS[i].chart, t } : null;
-  // Between a play step and the next, the gold net bars play from one step's flow to the next's.
-  const playing = !!STEPS[i]?.play && moving;
-  const view = scrubbing || playing ? STEPS[i] : zooming ? STEPS[i + 1] : STEPS[activeStep];
-  const flow = playing ? (STEPS[i].flow ?? 0) + ((STEPS[i + 1].flow ?? 0) - (STEPS[i].flow ?? 0)) * t : (view.flow ?? 0);
+  const view = scrubbing ? STEPS[i] : zooming ? STEPS[i + 1] : STEPS[activeStep];
   const season = scrubbing ? Math.round(first + (last - first) * t) : view.season === "first" ? first : last;
   const pin = scrubbing || view.season === "today" ? first : null;
-  const hl = scrubbing || zooming || playing ? null : view.hl;
+  const hl = scrubbing || zooming || !facts ? null : typeof view.hl === "function" ? view.hl(facts) : view.hl;
 
   const phone = vizWidth > 0 && vizWidth < 560;
-  // 1996 steps out while today's net is built, and comes back with its own.
-  const showPin = pin != null && season !== first && (flow === 0 || flow > 2);
+  const showPin = pin != null && season !== first;
 
   return (
     <div className="i70w-root i70s-root">
@@ -89,12 +91,14 @@ export default function WeekendStory() {
             data-chart={view.chart}
             data-hl={hl?.kind ?? ""}
             data-zoom={zoom ? zoom.t.toFixed(2) : ""}
-            data-flow={flow.toFixed(2)}
             hidden
           />
           <div className="i70s-key" aria-hidden>
             <span className="i70s-key-now">{season}</span>
             {showPin && <span className="i70s-key-then">{first}</span>}
+            {hl?.kind === "pick" && hl.holidayLine && (
+              <span className="i70s-key-hol">MLK & Presidents' Day weekends, {holidayLabel(last, first)}</span>
+            )}
           </div>
           {profiles && (
             <LensChart
@@ -105,7 +109,8 @@ export default function WeekendStory() {
               showTrail={scrubbing}
               hl={hl}
               zoom={zoom}
-              flow={flow}
+              holiday={holiday}
+              holidayName={`MLK & Presidents' Day weekends, ${holidayLabel(last, first)}`}
               height={phone ? 270 : 420}
             />
           )}
@@ -121,6 +126,10 @@ export default function WeekendStory() {
         </div>
       </section>
 
+      {profiles && holiday && dep && (
+        <TripCompare profiles={profiles} holiday={holiday} first={first} last={last} up={clockHour(dep.thuUp)} home={clockHour(dep.monHome)} />
+      )}
+
       <p className="i70w-note">
         Try other seasons and spans in the <Link to="/2026/I70Widgets/HeroCurve">full chart</Link>.
       </p>
@@ -128,11 +137,11 @@ export default function WeekendStory() {
         Eisenhower Tunnel (CDOT counter 000106), cars per hour averaged over each season's January–March days, one season
         at a time, so a big or thin snow year shows up as it was; days missing any hour and flagged closures are left
         out. "Today" is {last}. Each chart runs 3am to 3am, so the night's last cars count with the day they belong to,
-        and multi-day charts lay each weekday's average end to end: a typical week, not a real one. The net line is
-        westbound minus eastbound, the change in vehicles west of the tunnel, not the total up there, and it starts over
-        at 3am each day. A typical week doesn't net to zero: the counter's
-        westbound side reads 1–2% above eastbound lately (about 2% below in {first}), and January–March catches the
-        season filling up but not all of its drain in late March and April. Population: City and County of Denver,
+        and multi-day charts lay each weekday's average end to end: a typical weekend, not a real one. Holiday weekends
+        (Thursday through Monday around MLK and Presidents' Day) are too few in one season to stand alone, so they're
+        averaged over {HOLIDAY_POOL} seasons: {holidayLabel(last, first)}, and {holidayLabel(first, first)} for{" "}
+        {first}; the ordinary averages include them. Counts are cars through the tunnel each hour, not travel time:
+        when traffic backs up, the count stops at what the road can pass. Population: City and County of Denver,
         Census Bureau estimates via FRED, {first}–{popGrowth(first).latest}. *Westbound {DRIFT_WB.from}–{DRIFT_WB.to} is
         shown as recorded, but the counter's clock appears to have run up to 1¼ hours early until it was serviced in
         May 2010.

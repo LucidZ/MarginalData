@@ -1,9 +1,11 @@
-// Smoke test for the WeekendStory scrollyteller (sticky LensChart, 3 charts, one sentence + one gold highlight per step).
+// Smoke test for the WeekendStory scrollyteller (sticky LensChart, 3 charts, one sentence + one gold highlight per step)
+// and its closing two-trip sandbox.
 // Run with: BASE_URL=http://localhost:<port> node tests/i70-weekend-story-smoke.mjs
 //
 // At 1000px and 390px: scrolls each step's centre to the reading line and checks
 // the chart state (step, season, chart, highlight and its gold layer); checks the scrub
-// plays seasons forward mid-way and that the drift seasons flag westbound; no
+// plays seasons forward mid-way, both zooms widen, the drift seasons flag westbound, and the
+// sandbox draws and redraws its two trips; no
 // horizontal scroll, no console errors. Screenshots each step.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -18,34 +20,37 @@ const check = (ok, msg) => {
   if (!ok) failures.push(msg);
 };
 
-// Expected chart state when each step is centred: [season, chart, highlight, shaded windows, flow, gold layer].
+// Expected chart state when each step is centred: [season, chart, highlight, shaded windows, gold layers].
 const L = 2026;
 const EXPECT = [
-  [1996, "sat", "", 0, 0, ""],
-  [1996, "sat", "peak", 0, 0, "peak"],
-  [1996, "sat", "", 0, 0, ""],
-  [L, "sat", "", 0, 0, ""],
-  [L, "sat", "gap", 0, 0, "gap"],
-  [L, "sat", "gap", 0, 0, "gap"],
-  [L, "sat", "gap", 0, 0, "gap"],
-  [L, "friSun", "", 0, 0, ""],
-  [L, "friSun", "peak", 0, 0, "peak"],
-  [L, "friSun", "peak", 0, 0, "peak"],
-  [L, "friSun", "", 0, 1, "flow"],
-  [L, "friSun", "", 0, 2, "flow"],
-  [L, "friSun", "net", 0, 3, "flow"],
-  [L, "wedTue", "gap", 1, 0, "gap"],
-  [L, "wedTue", "gap", 2, 0, "gap"],
-  [L, "wedTue", "net", 0, 0, "net"],
+  [1996, "sat", "", 0, []],
+  [1996, "sat", "peak", 0, ["peak"]],
+  [1996, "sat", "", 0, []],
+  [L, "sat", "", 0, []],
+  [L, "sat", "gap", 0, ["gap"]],
+  [L, "sat", "gap", 0, ["gap"]],
+  [L, "sat", "gap", 0, ["gap"]],
+  [L, "friSun", "", 0, []],
+  [L, "friSun", "peak", 0, ["peak"]],
+  [L, "friSun", "peak", 0, ["peak"]],
+  [L, "thuMon", "", 0, []],
+  [L, "thuMon", "pick", 0, ["pick"]],
+  [L, "thuMon", "pick", 0, ["pick"]],
+  [L, "thuMon", "pick", 0, ["pick", "holiday"]],
+  [L, "thuMon", "pick", 0, ["pick", "then"]],
 ];
-// The net plays from these steps to the next: cancel (0 → 1), stack (1 → 2), 1996 drawn in (2 → 3).
-const PLAY = [9, 10, 11];
 // The scrub runs from this step to the next.
 const SCRUB = 2;
-// The zoom from Saturday out to Fri–Sun runs from this step to the next.
-const ZOOM = 6;
+// The zooms (Saturday out to Fri–Sun, Fri–Sun out to Thu–Mon) run from these steps to the next.
+const ZOOMS = [6, 9];
 // The gold layer each highlight draws.
-const LAYER = { peak: ".i70s-peak-bar", gap: ".i70s-gap path", net: ".i70s-net path", flow: ".i70s-flow rect" };
+const LAYER = {
+  peak: ".i70s-peak-bar:not(.i70s-pick *)",
+  gap: ".i70s-gap path",
+  pick: ".i70s-pick rect",
+  holiday: ".i70s-holiday",
+  then: ".i70s-pick .is-then",
+};
 
 const browser = await chromium.launch();
 for (const [name, viewport] of [
@@ -86,14 +91,14 @@ for (const [name, viewport] of [
     await scrollTo(k);
     await page.waitForTimeout(250);
     const s = await state();
-    const [season, chart, hl, windows, flow, layer] = EXPECT[k];
+    const [season, chart, hl, windows, want] = EXPECT[k];
     const layers = {};
     for (const [l, sel] of Object.entries(LAYER)) layers[l] = await page.locator(`.i70s-viz svg ${sel}`).count();
-    const layersOk = Object.entries(layers).every(([l, n]) => (n > 0) === (l === layer));
+    const layersOk = Object.entries(layers).every(([l, n]) => (n > 0) === want.includes(l));
     const win = await page.locator(".i70s-viz svg .i70s-window").count();
     check(
-      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && layersOk && win === windows && Number(s.flow) === flow,
-      `step ${k}: step=${s.step} season=${s.season} chart=${s.chart} hl=${s.hl} flow=${s.flow} layers=${JSON.stringify(layers)} windows=${win}`,
+      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && layersOk && win === windows,
+      `step ${k}: step=${s.step} season=${s.season} chart=${s.chart} hl=${s.hl} layers=${JSON.stringify(layers)} windows=${win}`,
     );
     await page.screenshot({ path: `${OUT}/i70-weekend-story-${k}-${name}.png` });
   }
@@ -104,36 +109,26 @@ for (const [name, viewport] of [
   check(Number(mid.season) > 1996 && Number(mid.season) < L, `scrub mid-way plays forward (season ${mid.season})`);
   await page.screenshot({ path: `${OUT}/i70-weekend-story-scrub-${name}.png` });
 
-  // Mid-zoom: Fri–Sun drawn, partly widened, no highlight; screenshots along the way.
-  for (const f of [0.35, 0.5, 0.65]) {
-    await scrollTo(ZOOM, f);
-    await page.waitForTimeout(250);
-    const z = await state();
-    const t = Number(z.zoom);
-    check(z.chart === "friSun" && t > 0 && t < 1 && z.hl === "", `zoom at ${f}: chart=${z.chart} t=${z.zoom} hl=${z.hl}`);
-    await page.screenshot({ path: `${OUT}/i70-weekend-story-zoom-${Math.round(f * 10)}-${name}.png` });
-  }
-
-  // Mid-play: the flow between its two steps, no highlight; screenshots along the way.
-  for (const k of PLAY)
+  // Mid-zoom: the next chart drawn, partly widened, no highlight; screenshots along the way.
+  for (const k of ZOOMS)
     for (const f of [0.35, 0.5, 0.65]) {
       await scrollTo(k, f);
       await page.waitForTimeout(250);
-      const p = await state();
-      const v = Number(p.flow);
-      check(v > k - PLAY[0] && v < k - PLAY[0] + 1 && p.hl === "", `play ${k} at ${f}: flow=${p.flow} hl=${p.hl}`);
-      await page.screenshot({ path: `${OUT}/i70-weekend-story-flow-${k}-${Math.round(f * 10)}-${name}.png` });
+      const z = await state();
+      const t = Number(z.zoom);
+      check(z.chart === EXPECT[k + 1][1] && t > 0 && t < 1 && z.hl === "", `zoom ${k} at ${f}: chart=${z.chart} t=${z.zoom} hl=${z.hl}`);
+      await page.screenshot({ path: `${OUT}/i70-weekend-story-zoom-${k}-${Math.round(f * 10)}-${name}.png` });
     }
 
   // While a step's text is still being read (past centre, before the gap), nothing has started moving.
-  for (const k of [SCRUB, ZOOM, ...PLAY]) {
+  for (const k of [SCRUB, ...ZOOMS]) {
     await scrollTo(k, 0.2);
     await page.waitForTimeout(250);
     const s = await state();
-    const [season, chart, hl, , flow] = EXPECT[k];
+    const [season, chart, hl] = EXPECT[k];
     check(
-      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && Number(s.flow) === flow && s.zoom === "",
-      `step ${k} at 0.2 still holds: season=${s.season} chart=${s.chart} hl=${s.hl} flow=${s.flow} zoom=${s.zoom}`,
+      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && s.zoom === "",
+      `step ${k} at 0.2 still holds: season=${s.season} chart=${s.chart} hl=${s.hl} zoom=${s.zoom}`,
     );
   }
 
@@ -147,6 +142,29 @@ for (const [name, viewport] of [
       sawDrift = await page.locator(".i70s-viz svg text", { hasText: "clock likely ran" }).count() > 0;
   }
   check(sawDrift, "drift seasons show the clock note during the scrub");
+
+  // The sandbox: four bars (two trips, both ways), a verdict per direction; the toggles redraw it.
+  const box = page.locator(".i70s-compare");
+  await box.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(250);
+  const bars = () => box.locator(".i70s-pick rect").count();
+  check((await bars()) === 4, `sandbox draws 4 trip bars (${await bars()})`);
+  const verdicts = await box.locator(".i70s-verdict").allTextContents();
+  check(verdicts.length === 2 && verdicts.every((v) => /fewer|same/.test(v)), `sandbox verdicts: ${verdicts.join(" / ")}`);
+  await box.screenshot({ path: `${OUT}/i70-weekend-story-sandbox-${name}.png` });
+  // Trip A up on Friday at B's hour: same bar, so heading up is about the same.
+  await box.getByRole("group", { name: "Trip A day up" }).getByRole("button", { name: "Fri" }).click();
+  const up = await box.locator(".i70s-verdict").first().textContent();
+  check(/About the same/.test(up), `same departure reads as the same: ${up}`);
+  await box.getByRole("button", { name: /Presidents/ }).click();
+  await page.waitForTimeout(150);
+  const key = await box.locator(".i70s-key-now").textContent();
+  check(/\d{4}–\d{2}/.test(key) && (await bars()) === 4, `holiday weekend: key=${key}, bars=${await bars()}`);
+  await box.screenshot({ path: `${OUT}/i70-weekend-story-sandbox-holiday-${name}.png` });
+  await box.getByRole("group", { name: "Season" }).getByRole("button").nth(1).click();
+  await page.waitForTimeout(150);
+  check((await bars()) === 4 && (await box.locator(".i70s-key-then").count()) === 0, "1996 season: 4 bars, no 1996 reference");
+  await box.screenshot({ path: `${OUT}/i70-weekend-story-sandbox-1996-${name}.png` });
 
   const sw = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check(sw <= 0, `no horizontal scroll (${sw}px)`);

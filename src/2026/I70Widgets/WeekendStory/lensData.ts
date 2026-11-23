@@ -1,44 +1,54 @@
-import { DOW_SHORT, sum, type Dir, type Profiles } from "../HeroCurve/heroData";
+import type { Dataset } from "../../I70Crossfilter/types";
+import { DOW_SHORT, sum, type Dir, type Prof, type Profiles } from "../HeroCurve/heroData";
 
-// The story's three charts (Saturday, Fri–Sun, Wed–Tue) and the gold
-// highlights a step can lay over them. Every chart runs
-// 3am to 3am, so a day's net is the change in its own window and the night's
+// The story's charts (Saturday, Fri–Sun, Thu–Mon) and the gold highlights a
+// step can lay over them. Every chart runs 3am to 3am, so the night's
 // stragglers count with the day they belong to.
 
-export type ChartId = "sat" | "friSun" | "wedTue";
+export type ChartId = "sat" | "friSun" | "thuMon";
+
+/**
+ * One hour's bar picked out: a departure. `tag` names it on the chart in
+ * place of its day and hour; `tone` b is the sandbox's second trip; `holiday`
+ * reads the hour from the holiday-weekend profile instead of the plain one.
+ */
+export interface Pick {
+  dir: Dir;
+  i: number;
+  tag?: string;
+  tone?: "a" | "b";
+  holiday?: boolean;
+}
 
 /**
  * One step's gold layer. peak: each day's busiest-hour bar, or with `top`
  * just the chart's busiest hour for today and 1996. gap: the cars today adds
  * over 1996, limited to `ranges` (series hours [from, to)) when given (over a
- * shaded window unless `shade` is false), with
- * each day's change per direction printed when `rows`. net: the net up the
- * hill, with `days` (indices into the chart's days) drawn strong and the rest faint.
+ * shaded window unless `shade` is false). pick: whole bars at chosen hours,
+ * with 1996's bar at the same hour behind each when `then`, and the holiday
+ * weekend's line over `holidayLine.days` one way.
  */
 export type Highlight =
   | { kind: "peak"; dirs: Dir[]; top?: boolean }
-  | { kind: "gap"; dirs: Dir[]; ranges?: [number, number][]; shade?: boolean; rows?: boolean }
-  | { kind: "net"; days?: number[] };
+  | { kind: "gap"; dirs: Dir[]; ranges?: [number, number][]; shade?: boolean }
+  | { kind: "pick"; picks: Pick[]; then?: boolean; holidayLine?: { dir: Dir; days: number[] } };
 
 /** Hours each chart starts after midnight. */
 export const OFFSET = 3;
 
-// getUTCDay() order: 0 = Sunday. `dailyNet`: the net line starts over at
-// 3am each day instead of running from the chart's start. A typical week
-// doesn't net to zero (the counter reads westbound high, and January–March
-// catches the season filling up but not all of its drain), and a running line
-// piles that up into the week's end; reset daily, each day carries only its
-// own error. Fri–Sun runs through: three days is short enough that the drift
-// stays small, and the chain shows when the weekend crowd builds up.
-export const CHARTS: Record<ChartId, { label: string; dows: number[]; dailyNet: boolean }> = {
-  sat: { label: "Saturday", dows: [6], dailyNet: false },
-  friSun: { label: "Fri–Sun", dows: [5, 6, 0], dailyNet: false },
-  wedTue: { label: "Wed–Tue", dows: [3, 4, 5, 6, 0, 1, 2], dailyNet: true },
+// getUTCDay() order: 0 = Sunday.
+export const CHARTS: Record<ChartId, { label: string; dows: number[] }> = {
+  sat: { label: "Saturday", dows: [6] },
+  friSun: { label: "Fri–Sun", dows: [5, 6, 0] },
+  thuMon: { label: "Thu–Mon", dows: [4, 5, 6, 0, 1] },
 };
-export const CHART_IDS: ChartId[] = ["sat", "friSun", "wedTue"];
+export const CHART_IDS: ChartId[] = ["sat", "friSun", "thuMon"];
 
 /** Clock hour (0–23) of an index into a chart's series. */
 export const clockHour = (i: number) => (i + OFFSET) % 24;
+
+/** The series index of a clock hour on one of the chart's days (hours before 3am belong to the day before). */
+export const hourIndex = (day: number, clock: number) => day * 24 + ((clock - OFFSET + 24) % 24);
 
 /** The chart's hours, 3am of its first day to 3am after its last, or null where a day isn't usable. */
 export const lensSeries = (profiles: Profiles, yr: number, dows: number[], dir: Dir) => {
@@ -47,31 +57,12 @@ export const lensSeries = (profiles: Profiles, yr: number, dows: number[], dir: 
   const days = [...dows, (dows[dows.length - 1] + 1) % 7];
   const out: number[] = [];
   for (const dow of days) {
-    const v = p[dow][dir];
+    const v = p[dow]?.[dir];
     if (!v) return null;
     out.push(...v);
   }
   return out.slice(OFFSET, OFFSET + dows.length * 24);
 };
-
-/** Running westbound minus eastbound from the chart's start: one more point than hours. */
-export const netSeries = (wb: number[] | null, eb: number[] | null) => {
-  if (!wb || !eb) return null;
-  const out = [0];
-  for (let i = 0; i < wb.length; i++) out.push(out[i] + wb[i] - eb[i]);
-  return out;
-};
-
-/** Net up the hill through one day, from 0 at its 3am: 25 points. */
-export const dayNetLine = (net: number[], d: number) => net.slice(d * 24, d * 24 + 25).map((v) => v - net[d * 24]);
-
-/** The net line as drawn: one running segment, or one per day where the chart resets daily. Segment k starts at hour k × 24. */
-export const netSegments = (net: number[], chart: ChartId) =>
-  CHARTS[chart].dailyNet ? CHARTS[chart].dows.map((_, d) => dayNetLine(net, d)) : [net];
-
-/** The drawn net at the end of hour i. */
-export const netAt = (net: number[], chart: ChartId, i: number) =>
-  net[i + 1] - (CHARTS[chart].dailyNet ? net[Math.floor(i / 24) * 24] : 0);
 
 export interface Peak {
   day: number; // index into the chart's days
@@ -84,26 +75,18 @@ export interface Season {
   yr: number;
   wb: number[];
   eb: number[];
-  net: number[];
-  /** Each day's total, both ways, 3am to 3am. */
-  dayTotal: number[];
   /** Each day's total one way, 3am to 3am. */
   dayDir: Record<Dir, number[]>;
-  /** Each day's net up the hill, 3am to 3am. */
-  dayNet: number[];
   /** Busiest hour per day and direction. */
   peaks: Peak[];
   total: number;
-  /** The chart's total one way. */
-  totalDir: Record<Dir, number>;
 }
 
 export const season = (profiles: Profiles, yr: number, chart: ChartId): Season | null => {
   const { dows } = CHARTS[chart];
   const wb = lensSeries(profiles, yr, dows, "wb");
   const eb = lensSeries(profiles, yr, dows, "eb");
-  const net = netSeries(wb, eb);
-  if (!wb || !eb || !net) return null;
+  if (!wb || !eb) return null;
   const peaks: Peak[] = [];
   dows.forEach((_, d) => {
     for (const [dir, vals] of [["wb", wb], ["eb", eb]] as const) {
@@ -113,41 +96,111 @@ export const season = (profiles: Profiles, yr: number, chart: ChartId): Season |
     }
   });
   const daySum = (vals: number[], d: number) => vals.slice(d * 24, (d + 1) * 24).reduce((s, v) => s + v, 0);
-  const dayDir = { wb: dows.map((_, d) => daySum(wb, d)), eb: dows.map((_, d) => daySum(eb, d)) };
   return {
     yr,
     wb,
     eb,
-    net,
-    dayTotal: dows.map((_, d) => dayDir.wb[d] + dayDir.eb[d]),
-    dayDir,
-    dayNet: dows.map((_, d) => net[(d + 1) * 24] - net[d * 24]),
+    dayDir: { wb: dows.map((_, d) => daySum(wb, d)), eb: dows.map((_, d) => daySum(eb, d)) },
     peaks,
     total: (sum(wb) ?? 0) + (sum(eb) ?? 0),
-    totalDir: { wb: sum(wb) ?? 0, eb: sum(eb) ?? 0 },
   };
-};
-
-/** 1996 and today on each chart: the numbers the copy quotes. */
-export type Facts = Record<ChartId, { then: Season; now: Season }>;
-
-export const buildFacts = (profiles: Profiles, first: number, last: number): Facts | null => {
-  const out = {} as Facts;
-  for (const id of CHART_IDS) {
-    const then = season(profiles, first, id);
-    const now = season(profiles, last, id);
-    if (!then || !now) return null;
-    out[id] = { then, now };
-  }
-  return out;
 };
 
 /** Busiest hour over the whole chart in one direction. */
 export const topPeak = (s: Season, dir: Dir) =>
   s.peaks.filter((p) => p.dir === dir).reduce((a, b) => (b.v > a.v ? b : a));
 
-/** Busiest hour of one day, either direction. */
-export const dayPeak = (s: Season, day: number) =>
-  s.peaks.filter((p) => p.day === day).reduce((a, b) => (b.v > a.v ? b : a));
+/** Busiest hour of one day in one direction. */
+export const dayTop = (s: Season, day: number, dir: Dir) => s.peaks.find((p) => p.day === day && p.dir === dir)!;
 
 export const dayName = (chart: ChartId, day: number) => DOW_SHORT[CHARTS[chart].dows[day]];
+
+// --- Holiday weekends -------------------------------------------------------
+
+/** Seasons the holiday weekend pools: two weekends a season is too few on their own. */
+export const HOLIDAY_POOL = 3;
+// days.json holiday codes for the two January–March Monday holidays.
+const MLK = 1;
+const PRESIDENTS = 2;
+
+/**
+ * The average MLK and Presidents' Day weekend, Thursday through the Tuesday
+ * after (Tuesday for its 3am spill), stored by weekday like a season's
+ * profile so the charts read it the same way. Keyed `last` for today's pool
+ * (`last` and the seasons before it) and `first` for 1996's (`first` and
+ * the seasons after).
+ */
+export const buildHolidayProfiles = (ds: Dataset, first: number, last: number): Profiles => {
+  const pool = (years: number[]) => {
+    const acc = new Map<number, { wb: number[]; eb: number[]; n: number }>();
+    for (let i = 0; i < ds.n; i++) {
+      const d = ds.dates[i];
+      const h = ds.days.holiday[i];
+      if ((h !== MLK && h !== PRESIDENTS) || d.getUTCDay() !== 1 || !years.includes(d.getUTCFullYear())) continue;
+      for (let off = -4; off <= 1; off++) {
+        const k = i + off;
+        if (k < 0 || k >= ds.n || !ds.days.complete[k] || ds.days.closure[k]) continue;
+        const dow = ds.dates[k].getUTCDay();
+        let s = acc.get(dow);
+        if (!s) acc.set(dow, (s = { wb: new Array(24).fill(0), eb: new Array(24).fill(0), n: 0 }));
+        for (let hr = 0; hr < 24; hr++) {
+          s.wb[hr] += ds.wb[k * 24 + hr];
+          s.eb[hr] += ds.eb[k * 24 + hr];
+        }
+        s.n++;
+      }
+    }
+    return Array.from({ length: 7 }, (_, dow): Prof => {
+      const s = acc.get(dow);
+      if (!s?.n) return { wb: null, eb: null, n: 0 };
+      return { wb: s.wb.map((v) => v / s.n), eb: s.eb.map((v) => v / s.n), n: s.n };
+    });
+  };
+  const span = (from: number) => Array.from({ length: HOLIDAY_POOL }, (_, k) => from + k);
+  return new Map([
+    [first, pool(span(first))],
+    [last, pool(span(last - HOLIDAY_POOL + 1))],
+  ]);
+};
+
+/** "2024–26" for the pool keyed by `yr`. */
+export const holidayLabel = (yr: number, first: number) => {
+  const [lo, hi] = yr === first ? [yr, yr + HOLIDAY_POOL - 1] : [yr - HOLIDAY_POOL + 1, yr];
+  return `${lo}–${String(hi).slice(2)}`;
+};
+
+// --- What the copy quotes ----------------------------------------------------
+
+/** 1996 and today on each chart, and the holiday weekend's Thu–Mon. */
+export type Facts = Record<ChartId | "holiday", { then: Season; now: Season }>;
+
+export const buildFacts = (profiles: Profiles, holiday: Profiles, first: number, last: number): Facts | null => {
+  const out = {} as Facts;
+  for (const [id, src, chart] of [...CHART_IDS.map((c) => [c, profiles, c] as const), ["holiday", holiday, "thuMon"] as const]) {
+    const then = season(src, first, chart);
+    const now = season(src, last, chart);
+    if (!then || !now) return null;
+    out[id] = { then, now };
+  }
+  return out;
+};
+
+// Thu–Mon days.
+export const TM = { thu: 0, fri: 1, sat: 2, sun: 3, mon: 4 };
+
+/**
+ * The departure hours the day-off beats compare (series hours on Thu–Mon):
+ * Friday's busiest hour heading up against the same hour Thursday, and
+ * Sunday's busiest heading home against the same hour Monday, both today.
+ */
+export const departures = (f: Facts) => {
+  const s = f.thuMon.now;
+  const up = clockHour(dayTop(s, TM.fri, "wb").i);
+  const home = clockHour(dayTop(s, TM.sun, "eb").i);
+  return {
+    thuUp: hourIndex(TM.thu, up),
+    friUp: hourIndex(TM.fri, up),
+    sunHome: hourIndex(TM.sun, home),
+    monHome: hourIndex(TM.mon, home),
+  };
+};
