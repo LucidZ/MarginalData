@@ -5,12 +5,12 @@ import { useJsonData } from "../../hooks/useJsonData";
 import { DEFAULT_VERSION, type GraphData, type NetworkData, type PhotoTarget, type ProfileId, type SidewalkPref } from "./types";
 import { BikeGraph, type LatLng } from "./routing";
 import { bearingAt, midpoint } from "./streetview";
-import { useNetworkLayers, type Inspect, type NetworkView, type Pick } from "./networkLayers";
+import { planFeatures, toolFeatures, useNetworkLayers, type Inspect, type NetworkView, type Pick } from "./networkLayers";
 import { usePins, useRouteLayers, type Slots } from "./routeLayers";
 import { PlaceIndex, type Place, type PlacesData } from "./search";
-import { DEFAULT_TOOL, toolTitle } from "./style";
+import { DEFAULT_TOOL, toolName, toolTitle } from "./style";
 import NetworkPanel from "./NetworkPanel";
-import RoutePanel, { EXAMPLES, type GraphStatus } from "./RoutePanel";
+import RoutePanel, { EXAMPLES, type GraphStatus, type PlanInfo } from "./RoutePanel";
 import StreetViewPanel from "./StreetViewPanel";
 import "./App.css";
 
@@ -20,7 +20,7 @@ const INITIAL_VIEW: NetworkView = {
   version: DEFAULT_VERSION,
   tool: DEFAULT_TOOL,
   diff: true,
-  km: 30,
+  mi: 19,
   layers: { protected: true, painted: false, crashes: false },
 };
 
@@ -45,6 +45,7 @@ export default function App() {
   const [profile, setProfile] = useState<ProfileId>("balanced");
   const [ghosts, setGhosts] = useState(true);
   const [sidewalkPref, setSidewalkPref] = useState<SidewalkPref>("road");
+  const [planOn, setPlanOn] = useState(false);
   useEffect(() => {
     if (mode !== "route" || graph) return;
     let cancelled = false;
@@ -71,7 +72,29 @@ export default function App() {
       cancelled = true;
     };
   }, [mode, graph]);
-  const routes = useMemo(() => (graph && pins[0] && pins[1] ? graph.route(pins[0], pins[1], sidewalkPref) : null), [graph, pins, sidewalkPref]);
+  const today = useMemo(() => (graph && pins[0] && pins[1] ? graph.route(pins[0], pins[1], sidewalkPref) : null), [graph, pins, sidewalkPref]);
+
+  // "With the plan built": the network view's recommendations become protected edges
+  const planOnRoute = planOn && mode === "route" && !!graph && !!data;
+  const allRecs = useMemo(() => (data ? toolFeatures(data, view.version, view.tool) : []), [data, view.version, view.tool]);
+  const inPlan = useMemo(() => (data ? planFeatures(data, view).length : 0), [data, view]);
+  const recEdges = useMemo(() => (graph ? allRecs.map((p) => graph.D.plan?.[p.g] ?? []) : []), [graph, allRecs]);
+  const mask = useMemo(() => (planOnRoute && graph ? graph.planMask(recEdges.slice(0, inPlan)) : undefined), [planOnRoute, graph, recEdges, inPlan]);
+  const planned = useMemo(() => (graph && mask && pins[0] && pins[1] ? graph.route(pins[0], pins[1], sidewalkPref, mask) : null), [graph, mask, pins, sidewalkPref]);
+  const routes = mask ? planned : today;
+  const firstK = useMemo(
+    () => (planOnRoute && graph && today ? graph.improvesAt(today, profile, sidewalkPref, recEdges) : null),
+    [planOnRoute, graph, today, profile, sidewalkPref, recEdges],
+  );
+  const used = useMemo(() => {
+    const R = planned?.byProfile[profile];
+    if (!graph || !mask || !R) return [];
+    const onRoute = new Set(R.steps.filter((r) => graph.isNew(r, mask)).map((r) => graph.edgeId(r)));
+    return allRecs
+      .slice(0, inPlan)
+      .map((p, i) => ({ rank: i + 1, name: toolName(p), hit: recEdges[i].some((k) => onRoute.has(k)) }))
+      .filter((u) => u.hit);
+  }, [graph, mask, planned, profile, allRecs, inPlan, recEdges]);
 
   // Pin edits. `label` defaults to the nearest address.
   const placesRef = useRef(places);
@@ -95,7 +118,7 @@ export default function App() {
     if (!mapDiv.current) return;
     const m = L.map(mapDiv.current, { preferCanvas: true, zoomControl: true }).setView([40.015, -105.255], 13);
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-      attribution: "Tiles &copy; Esri | Data &copy; OpenStreetMap contributors, City of Boulder, US Census LODES",
+      attribution: "Tiles &copy; Esri | Data &copy; OpenStreetMap contributors, City of Boulder",
       maxZoom: 19,
       maxNativeZoom: 16,
     }).addTo(m);
@@ -116,7 +139,8 @@ export default function App() {
   const select = useCallback((p: Pick) => setSelected(p.p.g), []);
   useNetworkLayers(map, data, view, selected, mode === "network", inspect, select);
   usePins(map, pins, movePin, mode === "route");
-  useRouteLayers(map, graph, routes, profile, ghosts, pins, mode === "route", inspect);
+  const planGeoms = useMemo(() => (mask && data ? planFeatures(data, view).map((p) => data.geoms[p.g]) : null), [mask, data, view]);
+  useRouteLayers(map, graph, routes, profile, ghosts, pins, mode === "route", inspect, mask, mask ? today : null, planGeoms);
 
   // Empty-map clicks: drop pins in route mode (until there are two), otherwise offer Street View there
   const clickState = useRef({ mode, pins, graphStatus });
@@ -230,6 +254,18 @@ export default function App() {
             setGhosts={setGhosts}
             sidewalkPref={sidewalkPref}
             setSidewalkPref={setSidewalkPref}
+            plan={{
+              on: planOn,
+              setOn: setPlanOn,
+              data: data ?? null,
+              view,
+              set: (patch) => setView({ ...view, ...patch }),
+              today,
+              feats: allRecs,
+              inPlan,
+              firstK,
+              used,
+            } satisfies PlanInfo}
           />
         )}
       </aside>

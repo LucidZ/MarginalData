@@ -1,10 +1,10 @@
 // "Your route" mode: draggable A/B pins and the route drawn by street class.
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import type { LineString } from "geojson";
-import type { BikeGraph, LatLng, Routes } from "./routing";
+import type { Geometry, LineString } from "geojson";
+import type { BikeGraph, LatLng, PlanMask, Routes } from "./routing";
 import type { ProfileId } from "./types";
-import { CLASS_COLOR, CLASS_LABEL } from "./style";
+import { CLASS_COLOR, CLASS_LABEL, REC_COLOR } from "./style";
 import type { Inspect } from "./networkLayers";
 
 const pinIcon = (txt: string, fill: string) =>
@@ -70,36 +70,55 @@ export function useRouteLayers(
   pins: Slots,
   active: boolean,
   onInspect: Inspect,
+  plan?: PlanMask, // routes were found with the plan built
+  today?: Routes | null, // with a plan: the same ride on today's network, drawn as the ghost
+  planGeoms?: Geometry[] | null, // with a plan: its recommendations, faint context
 ) {
   const inspect = useRef(onInspect);
   inspect.current = onInspect;
+
+  // The plan's links, under everything else
+  useEffect(() => {
+    if (!map || !active || !planGeoms) return;
+    const l = L.geoJSON({ type: "GeometryCollection", geometries: planGeoms } as Geometry, {
+      style: { color: REC_COLOR, weight: 3, opacity: 0.35 },
+      interactive: false,
+    }).addTo(map);
+    return () => {
+      l.remove();
+    };
+  }, [map, active, planGeoms]);
 
   useEffect(() => {
     if (!map || !graph || !routes || !active) return;
     const R = routes.byProfile[profile];
     if (!R) return;
     const group = L.layerGroup().addTo(map);
-    if (ghosts)
-      for (const [p, x] of Object.entries(routes.byProfile))
-        if (p !== profile && x)
-          L.polyline(x.steps.map((r) => graph.edgeCoords(r)), { color: "#444", weight: 2.5, opacity: 0.55, dashArray: "2 6", interactive: false }).addTo(group);
+    const ghost = (steps: number[], color: string) =>
+      L.polyline(steps.map((r) => graph.edgeCoords(r)), { color, weight: 2.5, opacity: 0.55, dashArray: "2 6", interactive: false }).addTo(group);
+    if (ghosts && plan) {
+      const T = today?.byProfile[profile];
+      if (T) ghost(T.steps, "#111").setStyle({ weight: 3, opacity: 0.75 }).bindTooltip("Today's route");
+    } else if (ghosts)
+      for (const [p, x] of Object.entries(routes.byProfile)) if (p !== profile && x) ghost(x.steps, "#444");
     // White casing, then one polyline per run of the same class (clickable for photos)
     L.polyline(R.steps.map((r) => graph.edgeCoords(r)), { color: "#fff", weight: 10, opacity: 0.9, interactive: false }).addTo(group);
     let run: LatLng[] = [];
     let cls: string | null = null;
     const flush = () => {
       if (!run.length || !cls) return;
-      const c = cls as keyof typeof CLASS_COLOR, pts = run;
-      const line = L.polyline(pts, { color: CLASS_COLOR[c], weight: 6, opacity: 0.95 }).addTo(group);
-      line.bindTooltip(CLASS_LABEL[c], { sticky: true });
+      const isNew = cls === "new", pts = run;
+      const label = isNew ? "New protected link (the plan)" : CLASS_LABEL[cls as keyof typeof CLASS_LABEL];
+      const line = L.polyline(pts, { color: isNew ? REC_COLOR : CLASS_COLOR[cls as keyof typeof CLASS_COLOR], weight: 6, opacity: 0.95 }).addTo(group);
+      line.bindTooltip(label, { sticky: true });
       line.on("click", (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
         const geom: LineString = { type: "LineString", coordinates: pts.map(([la, ln]) => [ln, la]) };
-        inspect.current(geom, e.latlng.lat, e.latlng.lng, `Your route: ${CLASS_LABEL[c].toLowerCase()}`);
+        inspect.current(geom, e.latlng.lat, e.latlng.lng, `Your route: ${label.toLowerCase()}`);
       });
     };
     for (const r of R.steps) {
-      const c = graph.classOf(r), pts = graph.edgeCoords(r);
+      const c = graph.isNew(r, plan) ? "new" : graph.classOf(r, plan), pts = graph.edgeCoords(r);
       if (c !== cls) {
         flush();
         run = [pts[0]];
@@ -116,5 +135,5 @@ export function useRouteLayers(
     return () => {
       group.remove();
     };
-  }, [map, graph, routes, profile, ghosts, pins, active]);
+  }, [map, graph, routes, profile, ghosts, pins, active, plan, today]);
 }

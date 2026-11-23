@@ -13,9 +13,14 @@ export type LatLng = [number, number];
 export interface RouteResult {
   steps: number[]; // edge ids, negated-1 when traversed b -> a
   m: number;
-  by: Record<BikeClass, number>;
+  cost: number; // under the profile it was found with
+  by: Record<BikeClass, number>; // planned edges count as protected
+  planned: number; // metres on edges the plan would make protected
   via: string[];
 }
+
+/** Edges a plan would make protected (1 = planned). */
+export type PlanMask = Uint8Array;
 
 export interface Routes {
   s: number;
@@ -141,7 +146,7 @@ export class BikeGraph {
 
   // A*: multipliers are >= 1 and edges are at least as long as the straight line, so
   // straight-line distance is an admissible heuristic.
-  private astar(s: number, t: number, cost: Float64Array): number[] | null {
+  private astar(s: number, t: number, cost: Float64Array): { steps: number[]; cost: number } | null {
     const { X, Y, G, PREV, SEEN, deg, ADJ, EA, EB } = this;
     const stamp = ++this.stamp;
     const hk: number[] = [], hv: number[] = []; // binary heap of (f, node), lazy deletion
@@ -206,33 +211,70 @@ export class BikeGraph {
       steps.push(r);
       v = r >= 0 ? EA[k] : EB[k];
     }
-    return steps.reverse();
+    return { steps: steps.reverse(), cost: G[t] };
   }
 
-  private summarize(steps: number[]): RouteResult {
+  private summarize(steps: number[], cost: number, plan?: PlanMask): RouteResult {
     const by = Object.fromEntries(this.D.classes.map((c) => [c, 0])) as Record<BikeClass, number>;
     const names: Record<string, number> = {};
-    let m = 0;
+    let m = 0, planned = 0;
     for (const r of steps) {
       const k = r >= 0 ? r : -r - 1, len = this.ELEN[k];
       m += len;
-      by[this.D.classes[this.ECLS[k]]] += len;
+      const cls = this.classOf(r, plan);
+      by[cls] += len;
+      if (plan?.[k] && this.D.classes[this.ECLS[k]] !== "protected") planned += len;
       const nm = this.D.names[this.ENAME[k]];
       if (nm) names[nm] = (names[nm] ?? 0) + len;
     }
     const via = Object.entries(names).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n]) => n);
-    return { steps, m, by, via };
+    return { steps, m, cost, by, planned, via };
   }
 
-  route(a: LatLng, b: LatLng, pref: SidewalkPref): Routes | null {
+  /** Edge costs for a profile, with the plan's edges priced as protected (never dearer than today,
+   * so adding to a plan can only lower a route's cost). */
+  private costFor(p: ProfileId, pref: SidewalkPref, plan?: PlanMask): Float64Array {
+    const base = this.costs[`${p}|${pref}`];
+    if (!plan) return base;
+    const c = base.slice(), mult = this.D.profiles[p].protected;
+    for (let k = 0; k < this.E; k++) if (plan[k]) c[k] = Math.min(c[k], this.ELEN[k] * mult);
+    return c;
+  }
+
+  /** Mask of the edges under a set of recommendations (GraphData.plan lists). */
+  planMask(edgeLists: number[][]): PlanMask {
+    const m = new Uint8Array(this.E);
+    for (const l of edgeLists) for (const k of l) m[k] = 1;
+    return m;
+  }
+
+  route(a: LatLng, b: LatLng, pref: SidewalkPref, plan?: PlanMask): Routes | null {
     const s = this.snap(a), t = this.snap(b);
     if (s < 0 || t < 0 || s === t) return null;
     const byProfile: Routes["byProfile"] = {};
     for (const p of Object.keys(this.D.profiles) as ProfileId[]) {
-      const steps = this.astar(s, t, this.costs[`${p}|${pref}`]);
-      if (steps) byProfile[p] = this.summarize(steps);
+      const r = this.astar(s, t, this.costFor(p, pref, plan));
+      if (r) byProfile[p] = this.summarize(r.steps, r.cost, plan);
     }
     return { s, t, byProfile };
+  }
+
+  /** Smallest k such that building the first k recommendations lowers the s -> t route cost by
+   * more than `minGain` (fraction), or null if even all of them don't. Route cost only falls as
+   * recommendations are added, so a binary search over k is enough. */
+  improvesAt(routes: Routes, p: ProfileId, pref: SidewalkPref, recs: number[][], minGain = 0.005): number | null {
+    const today = routes.byProfile[p];
+    if (!today || !recs.length) return null;
+    const target = today.cost * (1 - minGain);
+    const costWith = (k: number) => this.astar(routes.s, routes.t, this.costFor(p, pref, this.planMask(recs.slice(0, k))))?.cost ?? Infinity;
+    if (costWith(recs.length) > target) return null;
+    let lo = 1, hi = recs.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (costWith(mid) <= target) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo;
   }
 
   nodeLatLng(i: number): LatLng {
@@ -248,8 +290,18 @@ export class BikeGraph {
     return r >= 0 ? pts : pts.reverse();
   }
 
-  classOf(r: number): BikeClass {
+  classOf(r: number, plan?: PlanMask): BikeClass {
     const k = r >= 0 ? r : -r - 1;
-    return this.D.classes[this.ECLS[k]];
+    return plan?.[k] ? "protected" : this.D.classes[this.ECLS[k]];
+  }
+
+  /** Planned and not protected today: drawn as a new link. */
+  isNew(r: number, plan?: PlanMask): boolean {
+    const k = r >= 0 ? r : -r - 1;
+    return !!plan?.[k] && this.D.classes[this.ECLS[k]] !== "protected";
+  }
+
+  edgeId(r: number): number {
+    return r >= 0 ? r : -r - 1;
   }
 }

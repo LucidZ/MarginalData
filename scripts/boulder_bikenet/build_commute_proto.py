@@ -19,17 +19,18 @@ import route_test as rt  # noqa: E402
 COORD = 1e6  # coordinates stored as integer micro-degrees
 
 
-def export(g):
+def export(g, index=None):
+    """Pack the graph. If `index` is a dict, it's filled with (u, v, key) -> packed edge id."""
     nodes = list(g.nodes)
     idx = {n: i for i, n in enumerate(nodes)}
     cls_i = {c: i for i, c in enumerate(rt.CLASSES)}
     names, name_i = [""], {"": 0}
     # Merge each directed edge with its reverse twin (same ends, length, class); parallel ways that
     # differ (e.g. a road and its side path) stay separate edges.
-    merged = {}
-    for u, v, d in g.edges(data=True):
+    merged, merged_key = {}, {}
+    for u, v, k, d in g.edges(keys=True, data=True):
         a, b = idx[u], idx[v]
-        key = (min(a, b), max(a, b), round(d["length"], 1), d["cls"], d["arterial"])
+        key = merged_key[(u, v, k)] = (min(a, b), max(a, b), round(d["length"], 1), d["cls"], d["arterial"])
         e = merged.get(key)
         if e is None:
             geom = d.get("geometry")
@@ -57,6 +58,9 @@ def export(g):
         for x, y in e["pts"]:
             SP += [round(x * COORD), round(y * COORD)]
         SO.append(len(SP) // 2)
+    if index is not None:
+        pos = {key: i for i, key in enumerate(merged)}  # E is written in `merged` order
+        index.update({e: pos[key] for e, key in merged_key.items()})
     XY = [round(g.nodes[n][c] * COORD) for n in nodes for c in ("x", "y")]
     print(f"export: {len(nodes)} nodes, {len(merged)} edges, {len(SP) // 2} shape points, {len(names)} names")
     return {"xy": XY, "e": E, "so": SO, "sp": SP, "names": names}

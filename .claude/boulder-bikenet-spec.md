@@ -344,3 +344,28 @@ building a winter toggle.
   OSM-only, e.g. Boulder Creek Path 388008322-12569138455). `save()` now renumbers keys from 0.
 
 - 2026-11-23 Lucas: **commutes map layer removed** ("looks weird", and v3/v4 showed LODES commutes changed little for the tools). Dropped from the page (layer toggle, types, style) and from `export_site_data.py`; `network.json` stripped of `commutes`/`commute_total` (-35 KB). `lodes_trips.csv` and `build_commute_proto.py` (routing prototype, unrelated to LODES) stay.
+
+## Plan-on-your-route, agreement view, US units (2026-11-23, uncommitted)
+- Lucas: start from a user's route and show where the methods would change it; keep the network tab
+  for exploration. Units are miles / feet everywhere (helpers `fmtLen`, `fmtMi`, `rideMin`, 10 mph).
+- **Plan edges**: the tools' node ids don't match our graph (they re-index), so `export_site_data.plan_edges`
+  matches by geometry: a graph edge counts when >= 70% of it is within 8 m of a recommendation line.
+  Stored as `graph.json` `plan` (parallel to `network.json` `geoms`). Median matched length 1.2x the line
+  (parallel side paths); 8 of 779 lines (all < 60 m) match nothing. `proto.export(g, index)` now fills
+  (u, v, key) -> packed edge id.
+- Route mode "Today / With the plan built": plan = the network view's method (+ slider for Grow) applied
+  as protected edges (cost = min(today, protected); one-ways stay one-way). Panel shows Today vs Plan
+  bars, off-road and busy-street shares, recs ridden on, and `improvesAt` = fewest recs that lower the
+  route cost > 0.5% (binary search: cost only falls as recs are added). Grow: "It gets better at X mi
+  of build order. Show that" jumps the slider. Map: new links green, today's route dashed black,
+  plan's links faint green.
+- Example rides (Extend, first 19 mi): North Boulder -> CU 60% -> 96% off road (first helps at 6.5 mi);
+  South Boulder -> Pearl unchanged until 36.5 mi; East Boulder -> Pearl 85% -> 9x%.
+- **Agreement** ("Where the methods agree", tool id `agree`, `export_site_data.agreement`): graph edges
+  picked by >= 2 of Extend / Fix / Link (full outputs), joined into stretches >= 50 m. bike: 6 stretches
+  all 3 agree (1.2 mi; 13th St / Mapleton, Kalmia / 19th, Folsom, Eisenhower...), 57 with two (~12 mi).
+  Shared versions compare 2 methods (no Fix). Not made the default view (Extend still is).
+- Also: top-10 rank badges on the network map, slider context ("125.7 mi today, adds 19.6 mi, +16%"),
+  "Path, bike access unknown" + OSM note invite, sidewalk/dismount notes in feet with a 50 m floor,
+  styles-tie note, LODES dropped from attribution, list numbers aligned on wrapped names.
+- Tests: `tests/bikenet-plan-check.mjs` (new) + `tests/bikenet-page-check.mjs`, both pass, no errors.

@@ -169,6 +169,15 @@
   margin: 2px 0;
 }
 
+/* Buttons are inline-block, which puts the list number on their last line; top-align instead */
+.bbn-list .bbn-link {
+  vertical-align: top;
+}
+
+.bbn-nowrap {
+  white-space: nowrap;
+}
+
 .bbn-rec {
   display: flex;
   align-items: center;
@@ -408,6 +417,71 @@
 
 .bbn-pin-inline {
   flex: none;
+}
+
+/* Top-10 rank badges on the network map (Leaflet divIcon) */
+.bbn-rank {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid #0f6b30;
+  color: #0f6b30;
+  font: 700 10px/15px system-ui, sans-serif;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.bbn-rank.on {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+/* Today / with the plan */
+.bbn-plan {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--bbn-line);
+  border-radius: 8px;
+  background: var(--bbn-soft);
+}
+
+.bbn-plan h2 {
+  margin-top: 0;
+}
+
+.bbn-plan select {
+  font: inherit;
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--bbn-line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.bbn-delta {
+  font-variant-numeric: tabular-nums;
+  margin: 6px 0;
+}
+
+.bbn-delta b {
+  color: #0f6b30;
+}
+
+.bbn-bars {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 12px;
+}
+
+.bbn-bars .bbn-bar {
+  margin: 0;
 }
 
 /* Map pins (Leaflet divIcon) */

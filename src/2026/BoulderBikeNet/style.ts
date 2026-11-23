@@ -16,13 +16,14 @@ export const CLASS_LABEL: Record<BikeClass, string> = {
   painted: "Painted bike lane",
   "quiet street": "Quiet street, no lane",
   "busy street": "Busy street, no lane",
-  "path/sidewalk (untagged)": "Path or sidewalk (bike access untagged)",
+  "path/sidewalk (untagged)": "Path, bike access unknown",
   dismount: "Walk your bike (no riding)",
 };
 
 // One color for every recommendation method: distinct from protected blue, painted amber,
 // and crash magenta
 export const REC_COLOR = "#16a34a";
+export const REC_DARK = "#0f6b30"; // agree: stretches every method picked
 
 // Plain-language names first; the BikeNetKit tool name goes in the description
 export const TOOLS: Record<ToolId, { label: string; listTitle: string; desc: string; color: string }> = {
@@ -48,6 +49,12 @@ export const TOOLS: Record<ToolId, { label: string; listTitle: string; desc: str
     label: "Connect isolated pieces",
     listTitle: "First 10 connections",
     desc: "LinkBikeNet: the shortest links that join stranded stretches of path to the main network.",
+    color: REC_COLOR,
+  },
+  agree: {
+    label: "Where the methods agree",
+    listTitle: "Stretches they agree on",
+    desc: "Streets picked by at least two of Extend, Close the gaps and Connect. Dark green: all of them.",
     color: REC_COLOR,
   },
 };
@@ -86,7 +93,21 @@ export const SIDEWALK_PREFS: Record<SidewalkPref, { name: string; desc: string }
   },
 };
 
-export const SPEED_KMH = 16;
+export const SPEED_MPH = 10;
+
+export const M_PER_MI = 1609.344;
+const FT_PER_M = 3.28084;
+
+/** A distance in metres for display: feet under a tenth of a mile, miles above. */
+export function fmtLen(m: number): string {
+  if (m < M_PER_MI / 10) return `${Math.max(10, Math.round((m * FT_PER_M) / 10) * 10).toLocaleString()} ft`;
+  return `${(m / M_PER_MI).toFixed(1)} mi`;
+}
+
+export const fmtMi = (m: number) => (m / M_PER_MI).toFixed(1);
+
+/** Minutes to ride `m` metres at SPEED_MPH. */
+export const rideMin = (m: number) => Math.max(1, Math.round((m / M_PER_MI / SPEED_MPH) * 60));
 
 /** Display name of one recommendation; `rank` is its 1-based position in build order. */
 export function toolName(p: ToolProps): string {
@@ -94,14 +115,23 @@ export function toolName(p: ToolProps): string {
 }
 
 export function toolTitle(tool: ToolId, p: ToolProps, rank: number): string {
-  const what = tool === "fix" ? "Gap" : tool === "link" ? "Connection" : "Link";
+  const what = tool === "fix" ? "Gap" : tool === "link" ? "Connection" : tool === "agree" ? "Stretch" : "Link";
   return `${what} #${rank}: ${toolName(p)}`;
 }
 
-export function toolTooltip(tool: ToolId, p: ToolProps, rank: number): string {
+/** Length shown next to a recommendation in the list. */
+export function toolLength(p: ToolProps): string {
+  return fmtLen("link_length" in p ? p.link_length : p.length);
+}
+
+/** "All 3 methods" / "2 of 3 methods" for an agreement stretch. */
+export const agreeLabel = (n: number, of: number) => (n >= of ? `All ${of} methods` : `${n} of ${of} methods`);
+
+export function toolTooltip(tool: ToolId, p: ToolProps, rank: number, of = 3): string {
   const lines = [toolTitle(tool, p, rank)];
-  if ("benefit" in p) lines.push(`${p.length} m missing`);
-  if ("length_cumulative" in p) lines.push(`${(p.length / 1000).toFixed(1)} km · ${(p.length_cumulative / 1000).toFixed(1)} km built by this point`);
-  if ("share_after" in p) lines.push(`${p.link_length} m · ${p.share_after}% of paths connected after this`);
+  if ("benefit" in p) lines.push(`${fmtLen(p.length)} missing`);
+  if ("length_cumulative" in p) lines.push(`${fmtLen(p.length)} · ${fmtMi(p.length_cumulative)} mi built by this point`);
+  if ("share_after" in p) lines.push(`${fmtLen(p.link_length)} · ${p.share_after}% of paths connected after this`);
+  if ("n" in p) lines.push(`${fmtLen(p.length)} · ${agreeLabel(p.n, of)}`);
   return lines.join("<br>");
 }

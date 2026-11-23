@@ -23,7 +23,10 @@ import sys
 from pathlib import Path
 
 import geopandas as gpd
-from shapely.geometry import LineString, Point
+import numpy as np
+import osmnx as ox
+from shapely.geometry import LineString, Point, shape
+from shapely.ops import linemerge
 
 sys.path.insert(0, str(Path(__file__).parent))
 import build_commute_proto as proto  # noqa: E402
@@ -112,6 +115,8 @@ def network(work, g):
     in_bike = set(zip(bike["u"], bike["v"], bike["key"]))
     extra = shared[[e not in in_bike for e in zip(shared["u"], shared["v"], shared["key"])]]
     out["protected_shared"] = compact(bpm.to_geojson(extra, []))  # added on top in the "shared" runs
+    # Protected length today (m) behind each baseline, for the build-order slider's context
+    out["protected_m"] = {b: round(n.to_crs(26913).length.sum()) for b, n in (("bike", bike), ("shared", shared))}
     out["boundary"] = compact(bpm.to_geojson(gpd.read_file(fix_v1, layer="City boundary"), [], 5))
     streets = gpd.read_file(fix_v1, layer="Existing street network")
 
@@ -160,9 +165,95 @@ def graph(work, simplify_deg=1.5e-5):
     for _, _, d in g.edges(data=True):  # ~1.5 m tolerance; endpoints are kept, so topology is unchanged
         if "geometry" in d:
             d["geometry"] = d["geometry"].simplify(simplify_deg)
-    D = proto.export(g)
+    index = {}
+    D = proto.export(g, index)
     D.update(classes=rt.CLASSES, profiles=rt.PROFILES, osm_source=g.graph.get("osm_source", ""))
-    return g, D
+    return g, D, index
+
+
+def plan_edges(geoms, g, index, buffer_m=8, inside=0.7):
+    """Routing-graph edges under each recommendation line (network.json `geoms`, same order), for
+    route mode's "with the plan built". The tools re-index the street network, so their node ids
+    don't match ours; match by geometry instead: an edge counts when >= 70% of it lies within 8 m
+    of the line. Where a side path runs next to the street, both are taken (either becomes the
+    protected way through)."""
+    E = ox.graph_to_gdfs(g, nodes=False)[["geometry"]].to_crs(26913)
+    packed = np.array([index[e] for e in E.index])
+    lines = gpd.GeoSeries([shape(x) for x in geoms], crs=4326).to_crs(26913)
+    out, missed = [], 0
+    for line in lines:
+        zone = line.buffer(buffer_m)
+        near = E.iloc[E.sindex.query(zone, predicate="intersects")]
+        frac = near.geometry.intersection(zone).length / near.geometry.length.clip(lower=0.1)
+        hit = sorted({int(i) for i in packed[E.index.get_indexer(near.index[frac.values >= inside])]})
+        missed += not hit
+        out.append(hit)
+    print(f"plan edges: {len(out)} lines, {sum(map(len, out))} edge refs, {missed} lines with no edge")
+    return out
+
+
+AGREE_TOOLS = ["grow_existing", "fix", "link"]  # from scratch ignores today's network, so it's left out
+
+
+def agreement(net, D, g, index, min_m=50):
+    """"Where the methods agree": street-graph edges picked by at least two of Extend / Fix / Link
+    (full outputs, no slider budget), joined into connected stretches. Added to each version as an
+    extra tool, "agree", so the page lists, maps and plans it like the others. Stretches where every
+    method agrees come first (n = 3, or 2 for the shared versions, which have no Fix run), then the
+    stretches with two. Geometries go in the shared table, with their edges appended to D["plan"]."""
+    E, plan = D["e"], D["plan"]
+    edge_of = {}
+    for e, k in index.items():
+        edge_of.setdefault(k, e)
+    geom_of = lambda k: (lambda u, v, key: g.edges[u, v, key].get("geometry") or LineString(
+        [(g.nodes[u]["x"], g.nodes[u]["y"]), (g.nodes[v]["x"], g.nodes[v]["y"])]))(*edge_of[k])
+
+    def stretches(ks):
+        parent = {}
+        def find(x):
+            while parent.setdefault(x, x) != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+        for k in ks:
+            parent[find(E[5 * k])] = find(E[5 * k + 1])
+        groups = {}
+        for k in ks:
+            groups.setdefault(find(E[5 * k]), []).append(k)
+        return list(groups.values())
+
+    def feature(ks, n):
+        m = sum(E[5 * k + 2] / 10 for k in ks)
+        names = {}
+        for k in ks:
+            nm = D["names"][E[5 * k + 4]]
+            if nm:
+                names[nm] = names.get(nm, 0) + E[5 * k + 2] / 10
+        top = sorted(names, key=names.get, reverse=True)[:2]
+        geom = gpd.GeoSeries([linemerge([geom_of(k) for k in ks])], crs=4326).to_crs(26913).simplify(2).to_crs(4326)[0]
+        gj = json.loads(gpd.GeoSeries([geom]).to_json())["features"][0]["geometry"]
+        net["geoms"].append({"type": gj["type"], "coordinates": rounded(gj["coordinates"])})
+        plan.append(sorted(ks))
+        return {"g": len(net["geoms"]) - 1, "n": n, "streets": " / ".join(top) or "unnamed path", "length": round(m)}
+
+    for v, tools in net["tools"].items():
+        have = [t for t in AGREE_TOOLS if t in tools]
+        count = {}
+        for t in have:
+            for k in {k for p in tools[t]["features"] for k in plan[p["g"]]}:
+                count[k] = count.get(k, 0) + 1
+        feats = []
+        for n in (len(have), 2):
+            ks = [k for k, c in count.items() if c >= n]
+            parts = [p for p in stretches(ks) if sum(E[5 * k + 2] / 10 for k in p) >= min_m]
+            feats += sorted((feature(p, n) for p in parts), key=lambda f: -f["length"])
+            if n == 2:
+                break
+        for i, f in enumerate(feats):
+            f["ordering"] = i
+        tools["agree"] = {"src": v, "features": feats, "of": len(have)}
+        print(f"agree {v}: {len(have)} methods, {sum(f['n'] == len(have) for f in feats)} stretches all agree, "
+              f"{sum(f['n'] == 2 for f in feats)} with two")
 
 
 PLACE_KEYS = ["place", "amenity", "shop", "leisure", "tourism", "office", "craft", "healthcare", "building", "landuse",
@@ -232,8 +323,11 @@ def places(work):
 def main(work, out_dir):
     work, out_dir = Path(work), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    g, D = graph(work)
-    dump(network(work, g), out_dir / "network.json")
+    g, D, index = graph(work)
+    net = network(work, g)
+    D["plan"] = plan_edges(net["geoms"], g, index)
+    agreement(net, D, g, index)
+    dump(net, out_dir / "network.json")
     dump(D, out_dir / "graph.json")
     dump(places(work), out_dir / "places.json")
 
