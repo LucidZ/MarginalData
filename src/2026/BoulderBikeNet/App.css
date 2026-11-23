@@ -1,3 +1,16 @@
+/* App shell while this page is open: the page doesn't scroll, only the panel does, so scrolling the
+   panel can't push the map off screen. The site footer is dropped (the header still links home). */
+html.bbn-shell,
+html.bbn-shell body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html.bbn-shell .site-footer {
+  display: none;
+}
+
 .bbn-root {
   color-scheme: light;
   --bbn-ink: #1d1d1f;
@@ -9,9 +22,10 @@
   --bbn-link: #1c5fa8;
 
   display: flex;
-  /* Fill the viewport below the site header; the footer sits below the fold */
+  /* Fill the viewport below the site header (measured in App) */
   height: calc(100dvh - var(--bbn-header-h, 51px));
-  min-height: 520px;
+  position: relative;
+  overflow: hidden;
   background: var(--bbn-bg);
   color: var(--bbn-ink);
   font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -21,10 +35,24 @@
 .bbn-panel {
   width: 340px;
   flex: none;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid var(--bbn-line);
-  padding: 14px 16px 24px;
+  background: var(--bbn-bg);
   box-sizing: border-box;
+}
+
+.bbn-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 24px;
+}
+
+/* Phone sheet grab bar; hidden on desktop */
+.bbn-handle {
+  display: none;
 }
 
 .bbn-panel h1 {
@@ -553,31 +581,71 @@
   margin-top: 3px;
 }
 
-/* Phone: map on top, panel below */
+/* Phone: full-height map with the panel as a bottom sheet over it (peek / half / full, set in App) */
 @media (max-width: 760px) {
   .bbn-root {
-    flex-direction: column-reverse;
-    height: auto;
-    min-height: 0;
+    display: block;
   }
 
   .bbn-mapwrap {
-    height: 58vh;
-    flex: none;
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Keep the zoom buttons' opposite corner (attribution) above the sheet */
+  .bbn-mapwrap .leaflet-bottom {
+    bottom: var(--bbn-sheet-h, 0);
+    transition: bottom 0.25s ease;
   }
 
   .bbn-panel {
-    width: 100%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    z-index: 1001;
     border-right: 0;
-    border-top: 1px solid var(--bbn-line);
-    overflow: visible;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.16);
+    transition: height 0.25s ease;
   }
 
+  .bbn-panel.dragging,
+  .bbn-panel.dragging ~ .bbn-mapwrap .leaflet-bottom {
+    transition: none;
+  }
+
+  .bbn-handle {
+    display: flex;
+    flex: none;
+    justify-content: center;
+    align-items: center;
+    height: 22px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .bbn-handle i {
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: #c9c9cf;
+  }
+
+  .bbn-panel-body {
+    padding-top: 0;
+  }
+
+  /* Street View card sits at the top so the sheet never covers it */
   .bbn-photo {
-    top: auto;
-    bottom: 10px;
-    left: 10px;
+    left: 54px;
     right: 10px;
     width: auto;
+    max-width: none;
   }
 }

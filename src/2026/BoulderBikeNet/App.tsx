@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useJsonData } from "../../hooks/useJsonData";
@@ -15,6 +15,19 @@ import StreetViewPanel from "./StreetViewPanel";
 import "./App.css";
 
 type Mode = "network" | "route";
+type Snap = "peek" | "half" | "full"; // phone bottom-sheet stops
+
+const PHONE = "(max-width: 760px)";
+function useMedia(q: string) {
+  const [on, setOn] = useState(() => window.matchMedia(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia(q);
+    const f = () => setOn(m.matches);
+    m.addEventListener("change", f);
+    return () => m.removeEventListener("change", f);
+  }, [q]);
+  return on;
+}
 
 const INITIAL_VIEW: NetworkView = {
   version: DEFAULT_VERSION,
@@ -25,6 +38,73 @@ const INITIAL_VIEW: NetworkView = {
 };
 
 export default function App() {
+  // Map-first app shell: the page itself doesn't scroll (so panel scrolling never drags the map off
+  // screen) and the app fills the viewport below the site header. On phones the panel is a bottom
+  // sheet over the map.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const phone = useMedia(PHONE);
+  const [rootH, setRootH] = useState(0);
+  const [peekH, setPeekH] = useState(170);
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("bbn-shell");
+    const root = rootRef.current!;
+    const header = document.querySelector(".site-header");
+    const measure = () => {
+      root.style.setProperty("--bbn-header-h", `${header?.getBoundingClientRect().height ?? 0}px`);
+      setRootH(root.clientHeight);
+      const t = tabsRef.current;
+      if (t) setPeekH(t.offsetTop + t.offsetHeight + 12); // title, intro and mode tabs
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    if (header) ro.observe(header);
+    return () => {
+      html.classList.remove("bbn-shell");
+      ro.disconnect();
+    };
+  }, []);
+  const [snap, setSnap] = useState<Snap>("peek");
+  const [dragH, setDragH] = useState<number | null>(null);
+  const stops: Record<Snap, number> = {
+    peek: Math.min(peekH, Math.round(rootH * 0.45)),
+    half: Math.round(rootH * 0.5),
+    full: Math.max(rootH - 56, 0),
+  };
+  const sheetH = phone ? dragH ?? stops[snap] : 0;
+  const dragRef = useRef<{ y0: number; h0: number; moved: boolean } | null>(null);
+  const onHandleDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { y0: e.clientY, h0: sheetH, moved: false };
+  };
+  const onHandleMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dy = e.clientY - d.y0;
+    if (Math.abs(dy) > 4) d.moved = true;
+    if (d.moved) setDragH(Math.min(Math.max(d.h0 - dy, 48), stops.full));
+  };
+  const onHandleUp = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (!d) return;
+    if (!d.moved) setSnap(snap === "peek" ? "half" : snap === "half" ? "full" : "peek"); // tap cycles
+    else if (dragH !== null) {
+      const near = (Object.keys(stops) as Snap[]).reduce((a, b) => (Math.abs(stops[b] - dragH) < Math.abs(stops[a] - dragH) ? b : a));
+      setSnap(near);
+    }
+    setDragH(null);
+  };
+  // Map framing keeps clear of the sheet; a full sheet drops to half so the framed spot is visible
+  const reveal = (): L.FitBoundsOptions => {
+    if (!phone) return { padding: [60, 60] };
+    const s = snap === "full" ? "half" : snap;
+    if (s !== snap) setSnap(s);
+    return { paddingTopLeft: [40, 40], paddingBottomRight: [40, stops[s] + 30] };
+  };
+
   const { data, error } = useJsonData<NetworkData>("/data/boulder-bikenet/network.json");
   const [mode, setMode] = useState<Mode>("network");
   const [view, setViewRaw] = useState<NetworkView>(INITIAL_VIEW);
@@ -163,9 +243,10 @@ export default function App() {
 
   // Frame whatever pins are set
   const frame = (a: LatLng | null, b: LatLng | null) => {
-    if (!map) return;
-    if (a && b) map.fitBounds(L.latLngBounds([a, b]), { padding: [60, 60] });
-    else if (a || b) map.setView((a ?? b)!, Math.max(map.getZoom(), 15));
+    if (!map || !(a || b)) return;
+    const pad = reveal();
+    if (a && b) map.fitBounds(L.latLngBounds([a, b]), pad);
+    else map.fitBounds(L.latLngBounds([(a ?? b)!, (a ?? b)!]), { ...pad, maxZoom: Math.max(map.getZoom(), 15) });
   };
   const pickPlace = (i: number, p: Place | null) => {
     setSlot(i, p ? p.ll : null, p?.label);
@@ -206,7 +287,7 @@ export default function App() {
     }
     if (!map || !data) return;
     const geom = data.geoms[k.p.g];
-    map.fitBounds(L.geoJSON(geom).getBounds(), { maxZoom: 17, padding: [60, 60] });
+    map.fitBounds(L.geoJSON(geom).getBounds(), { maxZoom: 17, ...reveal() });
     const [lat, lng] = midpoint(geom);
     setPhoto({ lat, lng, bearing: bearingAt(geom, lat, lng), title: toolTitle(k.tool, k.p, k.rank) });
   };
@@ -214,60 +295,73 @@ export default function App() {
   const switchMode = (m: Mode) => {
     setMode(m);
     setPhoto(null);
+    if (phone && snap === "peek") setSnap("half");
   };
 
   return (
-    <div className="bbn-root">
-      <aside className="bbn-panel">
-        <h1>Boulder's bike network</h1>
-        <p className="bbn-muted">
-          Where should Boulder build next, and how does your own ride look today? Click any line or spot to open it in
-          Google Street View.
-        </p>
-        <div className="bbn-seg bbn-modes" role="tablist">
-          <button role="tab" aria-selected={mode === "network"} className={mode === "network" ? "on" : ""} onClick={() => switchMode("network")}>
-            The network
-          </button>
-          <button role="tab" aria-selected={mode === "route"} className={mode === "route" ? "on" : ""} onClick={() => switchMode("route")}>
-            Your route
-          </button>
+    <div ref={rootRef} className="bbn-root" style={{ "--bbn-sheet-h": `${sheetH}px` } as React.CSSProperties}>
+      <aside className={`bbn-panel${dragH !== null ? " dragging" : ""}`} style={phone ? { height: sheetH } : undefined}>
+        <button
+          className="bbn-handle"
+          aria-label={snap === "full" ? "Collapse the panel" : "Expand the panel"}
+          onPointerDown={onHandleDown}
+          onPointerMove={onHandleMove}
+          onPointerUp={onHandleUp}
+          onPointerCancel={onHandleUp}
+        >
+          <i />
+        </button>
+        <div className="bbn-panel-body">
+          <h1>Boulder's bike network</h1>
+          <p className="bbn-muted">
+            Where should Boulder build next, and how does your own ride look today? Click any line or spot to open it in
+            Google Street View.
+          </p>
+          <div ref={tabsRef} className="bbn-seg bbn-modes" role="tablist">
+            <button role="tab" aria-selected={mode === "network"} className={mode === "network" ? "on" : ""} onClick={() => switchMode("network")}>
+              The network
+            </button>
+            <button role="tab" aria-selected={mode === "route"} className={mode === "route" ? "on" : ""} onClick={() => switchMode("route")}>
+              Your route
+            </button>
+          </div>
+          {error && <div className="bbn-empty">Couldn't load the map data. Reload to try again.</div>}
+          {!data && !error && <div className="bbn-empty">Loading…</div>}
+          {data && mode === "network" && <NetworkPanel data={data} view={view} setView={setView} selected={selected} onPick={pick} />}
+          {mode === "route" && (
+            <RoutePanel
+              status={graphStatus}
+              classes={graph?.D.classes ?? []}
+              routes={routes}
+              places={places}
+              pins={pins}
+              labels={labels}
+              setPin={pickPlace}
+              swap={swap}
+              locate={locate}
+              locateMsg={locateMsg}
+              example={example}
+              profile={profile}
+              setProfile={setProfile}
+              ghosts={ghosts}
+              setGhosts={setGhosts}
+              sidewalkPref={sidewalkPref}
+              setSidewalkPref={setSidewalkPref}
+              plan={{
+                on: planOn,
+                setOn: setPlanOn,
+                data: data ?? null,
+                view,
+                set: (patch) => setView({ ...view, ...patch }),
+                today,
+                feats: allRecs,
+                inPlan,
+                firstK,
+                used,
+              } satisfies PlanInfo}
+            />
+          )}
         </div>
-        {error && <div className="bbn-empty">Couldn't load the map data. Reload to try again.</div>}
-        {!data && !error && <div className="bbn-empty">Loading…</div>}
-        {data && mode === "network" && <NetworkPanel data={data} view={view} setView={setView} selected={selected} onPick={pick} />}
-        {mode === "route" && (
-          <RoutePanel
-            status={graphStatus}
-            classes={graph?.D.classes ?? []}
-            routes={routes}
-            places={places}
-            pins={pins}
-            labels={labels}
-            setPin={pickPlace}
-            swap={swap}
-            locate={locate}
-            locateMsg={locateMsg}
-            example={example}
-            profile={profile}
-            setProfile={setProfile}
-            ghosts={ghosts}
-            setGhosts={setGhosts}
-            sidewalkPref={sidewalkPref}
-            setSidewalkPref={setSidewalkPref}
-            plan={{
-              on: planOn,
-              setOn: setPlanOn,
-              data: data ?? null,
-              view,
-              set: (patch) => setView({ ...view, ...patch }),
-              today,
-              feats: allRecs,
-              inPlan,
-              firstK,
-              used,
-            } satisfies PlanInfo}
-          />
-        )}
       </aside>
       <div className="bbn-mapwrap">
         <div ref={mapDiv} className="bbn-map" />
