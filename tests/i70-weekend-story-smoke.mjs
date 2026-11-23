@@ -105,7 +105,7 @@ for (const [name, viewport] of [
   await page.screenshot({ path: `${OUT}/i70-weekend-story-scrub-${name}.png` });
 
   // Mid-zoom: Fri–Sun drawn, partly widened, no highlight; screenshots along the way.
-  for (const f of [0.1, 0.4, 0.7]) {
+  for (const f of [0.35, 0.5, 0.65]) {
     await scrollTo(ZOOM, f);
     await page.waitForTimeout(250);
     const z = await state();
@@ -116,7 +116,7 @@ for (const [name, viewport] of [
 
   // Mid-play: the flow between its two steps, no highlight; screenshots along the way.
   for (const k of PLAY)
-    for (const f of [0.2, 0.5, 0.8]) {
+    for (const f of [0.35, 0.5, 0.65]) {
       await scrollTo(k, f);
       await page.waitForTimeout(250);
       const p = await state();
@@ -124,6 +124,18 @@ for (const [name, viewport] of [
       check(v > k - PLAY[0] && v < k - PLAY[0] + 1 && p.hl === "", `play ${k} at ${f}: flow=${p.flow} hl=${p.hl}`);
       await page.screenshot({ path: `${OUT}/i70-weekend-story-flow-${k}-${Math.round(f * 10)}-${name}.png` });
     }
+
+  // While a step's text is still being read (past centre, before the gap), nothing has started moving.
+  for (const k of [SCRUB, ZOOM, ...PLAY]) {
+    await scrollTo(k, 0.2);
+    await page.waitForTimeout(250);
+    const s = await state();
+    const [season, chart, hl, , flow] = EXPECT[k];
+    check(
+      Number(s.step) === k && Number(s.season) === season && s.chart === chart && s.hl === hl && Number(s.flow) === flow && s.zoom === "",
+      `step ${k} at 0.2 still holds: season=${s.season} chart=${s.chart} hl=${s.hl} flow=${s.flow} zoom=${s.zoom}`,
+    );
+  }
 
   // Somewhere in the scrub the drift seasons flag westbound's clock.
   let sawDrift = false;

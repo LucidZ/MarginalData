@@ -16,6 +16,10 @@ import { useStepProgress } from "./useStepProgress";
 
 const PHONE_QUERY = "(max-width: 720px)";
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+// Where, between one step's centre (0) and the next's (1), scroll-driven
+// changes start and finish. Discrete swaps happen at 0.5, inside this gap.
+const GAP_START = 0.25;
+const GAP_END = 0.85;
 
 export default function WeekendStory() {
   const { data, error } = useData();
@@ -38,26 +42,23 @@ export default function WeekendStory() {
   const { progress, activeStep, setStepRef } = useStepProgress(STEPS.length, coveredTop);
   const [vizRef, vizWidth] = useContainerWidth<HTMLDivElement>();
 
-  // Between a scrub step and the next, the season follows the scroll; it
-  // lands on today a little before the next step reaches the reading line.
+  // Scroll-driven changes run in the gap between two steps' text, never while
+  // one is being read: a step's state holds until it has scrolled well past
+  // the reading line, and the change is done before the next step arrives.
   const i = Math.floor(progress);
   const u = progress - i;
-  const scrubbing = !!STEPS[i]?.scrub && u > 0;
-  // Between a zoom step and the next, the view widens out to the next step's
-  // chart with the scroll, done at the same point the scrub lands.
-  const zooming = !!STEPS[i]?.zoom && u > 0 && !!STEPS[i + 1];
-  const zoom = zooming ? { from: STEPS[i].chart, t: clamp01(u / 0.85) } : null;
-  // Between a play step and the next, the gold net bars follow the scroll from one step's flow to the next's.
-  const playing = !!STEPS[i]?.play && u > 0 && !!STEPS[i + 1];
+  const moving = u > GAP_START && !!STEPS[i + 1];
+  const t = clamp01((u - GAP_START) / (GAP_END - GAP_START));
+  // Between a scrub step and the next, the season plays from 1996 to today.
+  const scrubbing = !!STEPS[i]?.scrub && moving;
+  // Between a zoom step and the next, the view widens out to the next step's chart.
+  const zooming = !!STEPS[i]?.zoom && moving;
+  const zoom = zooming ? { from: STEPS[i].chart, t } : null;
+  // Between a play step and the next, the gold net bars play from one step's flow to the next's.
+  const playing = !!STEPS[i]?.play && moving;
   const view = scrubbing || playing ? STEPS[i] : zooming ? STEPS[i + 1] : STEPS[activeStep];
-  const flow = playing
-    ? (STEPS[i].flow ?? 0) + ((STEPS[i + 1].flow ?? 0) - (STEPS[i].flow ?? 0)) * clamp01(u / 0.85)
-    : (view.flow ?? 0);
-  const season = scrubbing
-    ? Math.round(first + (last - first) * clamp01(u / 0.85))
-    : view.season === "first"
-      ? first
-      : last;
+  const flow = playing ? (STEPS[i].flow ?? 0) + ((STEPS[i + 1].flow ?? 0) - (STEPS[i].flow ?? 0)) * t : (view.flow ?? 0);
+  const season = scrubbing ? Math.round(first + (last - first) * t) : view.season === "first" ? first : last;
   const pin = scrubbing || view.season === "today" ? first : null;
   const hl = scrubbing || zooming || playing ? null : view.hl;
 
