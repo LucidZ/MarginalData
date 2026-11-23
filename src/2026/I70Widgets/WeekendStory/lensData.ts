@@ -5,7 +5,7 @@ import { DOW_SHORT, sum, type Dir, type Prof, type Profiles } from "../HeroCurve
 // step can lay over them. Every chart runs 3am to 3am, so the night's
 // stragglers count with the day they belong to.
 
-export type ChartId = "sat" | "friSun" | "thuMon";
+export type ChartId = "sat" | "friSun" | "thuMon" | "week";
 
 /**
  * One hour's bar picked out: a departure. `tag` names it on the chart in
@@ -41,8 +41,12 @@ export const CHARTS: Record<ChartId, { label: string; dows: number[] }> = {
   sat: { label: "Saturday", dows: [6] },
   friSun: { label: "Fri–Sun", dows: [5, 6, 0] },
   thuMon: { label: "Thu–Mon", dows: [4, 5, 6, 0, 1] },
+  // The sandbox's whole week, Wednesday to Tuesday so the weekend sits in the middle.
+  week: { label: "Wed–Tue", dows: [3, 4, 5, 6, 0, 1, 2] },
 };
-export const CHART_IDS: ChartId[] = ["sat", "friSun", "thuMon"];
+/** The story's own charts (the week is the sandbox's). */
+export type StoryChart = Exclude<ChartId, "week">;
+export const CHART_IDS: StoryChart[] = ["sat", "friSun", "thuMon"];
 
 /** Clock hour (0–23) of an index into a chart's series. */
 export const clockHour = (i: number) => (i + OFFSET) % 24;
@@ -124,9 +128,10 @@ const MLK = 1;
 const PRESIDENTS = 2;
 
 /**
- * The average MLK and Presidents' Day weekend, Thursday through the Tuesday
- * after (Tuesday for its 3am spill), stored by weekday like a season's
- * profile so the charts read it the same way. Keyed `last` for today's pool
+ * The average MLK and Presidents' Day weekend, the Wednesday before through
+ * the Tuesday after, stored by weekday like a season's profile so the charts
+ * read it the same way (the week chart's Tuesday spills past 3am into the
+ * Wednesday before, a few hundred night-time cars). Keyed `last` for today's pool
  * (`last` and the seasons before it) and `first` for 1996's (`first` and
  * the seasons after).
  */
@@ -137,7 +142,7 @@ export const buildHolidayProfiles = (ds: Dataset, first: number, last: number): 
       const d = ds.dates[i];
       const h = ds.days.holiday[i];
       if ((h !== MLK && h !== PRESIDENTS) || d.getUTCDay() !== 1 || !years.includes(d.getUTCFullYear())) continue;
-      for (let off = -4; off <= 1; off++) {
+      for (let off = -5; off <= 1; off++) {
         const k = i + off;
         if (k < 0 || k >= ds.n || !ds.days.complete[k] || ds.days.closure[k]) continue;
         const dow = ds.dates[k].getUTCDay();
@@ -172,7 +177,7 @@ export const holidayLabel = (yr: number, first: number) => {
 // --- What the copy quotes ----------------------------------------------------
 
 /** 1996 and today on each chart, and the holiday weekend's Thu–Mon. */
-export type Facts = Record<ChartId | "holiday", { then: Season; now: Season }>;
+export type Facts = Record<StoryChart | "holiday", { then: Season; now: Season }>;
 
 export const buildFacts = (profiles: Profiles, holiday: Profiles, first: number, last: number): Facts | null => {
   const out = {} as Facts;

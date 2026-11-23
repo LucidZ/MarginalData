@@ -143,23 +143,39 @@ for (const [name, viewport] of [
   }
   check(sawDrift, "drift seasons show the clock note during the scrub");
 
-  // The sandbox: four bars (two trips, both ways), a verdict per direction; the toggles redraw it.
+  // The sandbox: four bars on the week chart (two trips, both ways), two clock panels with a bar per
+  // trip each, a scoreboard row per leg (counts only: no percentages, no total); the toggles redraw it.
   const box = page.locator(".i70s-compare");
   await box.scrollIntoViewIfNeeded();
   await page.waitForTimeout(250);
   const bars = () => box.locator(".i70s-pick rect").count();
+  const clockBars = () => box.locator(".i70s-clock rect.i70s-peak-bar").count();
+  const vals = () => box.locator(".i70s-score-val").allTextContents();
   check((await bars()) === 4, `sandbox draws 4 trip bars (${await bars()})`);
-  const verdicts = await box.locator(".i70s-verdict").allTextContents();
-  check(verdicts.length === 2 && verdicts.every((v) => /fewer|same/.test(v)), `sandbox verdicts: ${verdicts.join(" / ")}`);
+  check((await box.locator(".i70s-clock svg").count()) === 2 && (await clockBars()) === 4, `two clock panels, 4 bars (${await clockBars()})`);
+  const scoreText = await box.locator(".i70s-score").textContent();
+  check((await vals()).length === 4 && !/%|fewer|Both ways/.test(scoreText), `scoreboard: ${(await vals()).join(" / ")}`);
+  const days = await box.locator(".i70w-scatter svg text.i70w-direct").allTextContents();
+  check(["Wed", "Tue"].every((d) => days.includes(d)), `week chart runs Wed–Tue: ${days.filter((d) => d.length === 3).join(" ")}`);
   await box.screenshot({ path: `${OUT}/i70-weekend-story-sandbox-${name}.png` });
-  // Trip A up on Friday at B's hour: same bar, so heading up is about the same.
-  await box.getByRole("group", { name: "Trip A day up" }).getByRole("button", { name: "Fri" }).click();
-  const up = await box.locator(".i70s-verdict").first().textContent();
-  check(/About the same/.test(up), `same departure reads as the same: ${up}`);
+  // Trip A up Wednesday, home Tuesday: both ends of the week draw and read out.
+  await box.getByRole("group", { name: "Trip A day up" }).getByRole("button", { name: "Wed" }).click();
+  await box.getByRole("group", { name: "Trip A day home" }).getByRole("button", { name: "Tue" }).click();
+  const wt = await vals();
+  check((await bars()) === 4 && /Wednesday/.test(wt[0]) && /Tuesday/.test(wt[2]) && wt.every((v) => /\d/.test(v)), `Wed up / Tue home: ${wt[0]} / ${wt[2]}`);
+  await box.screenshot({ path: `${OUT}/i70-weekend-story-sandbox-wedtue-${name}.png` });
+  // Any home day goes, even one before the day up (a stay of a week or more): Trip B up Saturday, home Wednesday.
+  await box.getByRole("group", { name: "Trip B day up" }).getByRole("button", { name: "Sat" }).click();
+  const homeDays = box.getByRole("group", { name: "Trip B day home" }).getByRole("button");
+  const disabled = await homeDays.evaluateAll((els) => els.filter((e) => e.disabled).length);
+  await box.getByRole("group", { name: "Trip B day home" }).getByRole("button", { name: "Wed" }).click();
+  const bv = await vals();
+  check(disabled === 0 && /Saturday/.test(bv[1]) && /Wednesday/.test(bv[3]) && (await bars()) === 4, `Sat up / Wed home: ${bv[1]} / ${bv[3]}`);
+  await box.screenshot({ path: `${OUT}/i70-weekend-story-sandbox-anyday-${name}.png` });
   await box.getByRole("button", { name: /Presidents/ }).click();
   await page.waitForTimeout(150);
   const key = await box.locator(".i70s-key-now").textContent();
-  check(/\d{4}–\d{2}/.test(key) && (await bars()) === 4, `holiday weekend: key=${key}, bars=${await bars()}`);
+  check(/\d{4}–\d{2}/.test(key) && (await bars()) === 4 && (await clockBars()) === 4, `holiday weekend: key=${key}, bars=${await bars()}`);
   await box.screenshot({ path: `${OUT}/i70-weekend-story-sandbox-holiday-${name}.png` });
   await box.getByRole("group", { name: "Season" }).getByRole("button").nth(1).click();
   await page.waitForTimeout(150);
