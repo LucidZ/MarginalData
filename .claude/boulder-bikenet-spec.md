@@ -342,3 +342,5 @@ building a winter toggle.
   rebuild): GrowBikeNet looks edges up as (u, v, 0), and `build_tool_networks.py` numbered parallel
   edges before filtering, so a pair whose key-0 twin wasn't in the baseline kept only key 1 (3 pairs
   OSM-only, e.g. Boulder Creek Path 388008322-12569138455). `save()` now renumbers keys from 0.
+
+- 2026-11-23 Lucas: **commutes map layer removed** ("looks weird", and v3/v4 showed LODES commutes changed little for the tools). Dropped from the page (layer toggle, types, style) and from `export_site_data.py`; `network.json` stripped of `commutes`/`commute_total` (-35 KB). `lodes_trips.csv` and `build_commute_proto.py` (routing prototype, unrelated to LODES) stay.

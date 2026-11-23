@@ -23,7 +23,6 @@ import sys
 from pathlib import Path
 
 import geopandas as gpd
-import pandas as pd
 from shapely.geometry import LineString, Point
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -153,9 +152,6 @@ def network(work, g):
     ).str.capitalize()
     crashes["year"] = crashes["ReportedYear"].fillna(0).astype(int)
     out["crashes"] = compact(json.loads(crashes[["year", "severity", "geometry"]].to_json(drop_id=True)))
-    trips = pd.read_csv(work / "data" / "lodes_trips.csv")
-    out["commutes"] = compact(bpm.desire_lines(trips))
-    out["commute_total"] = int(trips.num.sum())
     return out
 
 

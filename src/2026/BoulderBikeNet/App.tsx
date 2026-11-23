@@ -21,7 +21,7 @@ const INITIAL_VIEW: NetworkView = {
   tool: DEFAULT_TOOL,
   diff: true,
   km: 30,
-  layers: { protected: true, painted: false, crashes: false, commutes: false },
+  layers: { protected: true, painted: false, crashes: false },
 };
 
 export default function App() {

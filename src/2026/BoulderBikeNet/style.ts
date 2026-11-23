@@ -21,7 +21,7 @@ export const CLASS_LABEL: Record<BikeClass, string> = {
 };
 
 // One color for every recommendation method: distinct from protected blue, painted amber,
-// crash magenta and commute purple
+// and crash magenta
 export const REC_COLOR = "#16a34a";
 
 // Plain-language names first; the BikeNetKit tool name goes in the description
@@ -56,7 +56,6 @@ export const DEFAULT_TOOL: ToolId = "grow_existing";
 
 export const ACCENT = "#e8590c"; // "new vs default"
 export const CRASH_COLOR = "#c2255c";
-export const COMMUTE_COLOR = "#5f3dc4";
 
 export const PROFILES: Record<ProfileId, { name: string; short: string; desc: string }> = {
   direct: {

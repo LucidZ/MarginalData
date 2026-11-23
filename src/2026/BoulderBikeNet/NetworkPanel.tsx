@@ -1,5 +1,5 @@
 import { DEFAULT_VERSION, type NetworkData, type ToolId, type VersionId } from "./types";
-import { CLASS_COLOR, COMMUTE_COLOR, CRASH_COLOR, TOOLS, toolName } from "./style";
+import { CLASS_COLOR, CRASH_COLOR, TOOLS, toolName } from "./style";
 import { featureKey, isGrow, showsDiff, toolFeatures, type NetworkView, type Pick } from "./networkLayers";
 
 interface Props {
@@ -60,7 +60,6 @@ export default function NetworkPanel({ data, view, setView, selected, onPick }: 
         ["protected", CLASS_COLOR.protected, shared ? "Protected paths today (+ shared sidewalks, light blue)" : "Protected paths today"],
         ["painted", CLASS_COLOR.painted, "Painted bike lanes"],
         ["crashes", CRASH_COLOR, `Bike crashes 2018–24 (${data.crashes.features.length})`],
-        ["commutes", COMMUTE_COLOR, "Commutes within Boulder (2024)"],
       ] as const).map(([k, color, label]) => (
         <label className="bbn-check" key={k}>
           <input type="checkbox" checked={view.layers[k]} onChange={(e) => set({ layers: { ...view.layers, [k]: e.target.checked } })} />

@@ -4,14 +4,14 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import type { Feature, Geometry } from "geojson";
 import { DEFAULT_VERSION, type NetworkData, type ToolId, type ToolProps, type VersionId } from "./types";
-import { ACCENT, COMMUTE_COLOR, CRASH_COLOR, CLASS_COLOR, TOOLS, toolTitle, toolTooltip } from "./style";
+import { ACCENT, CRASH_COLOR, CLASS_COLOR, TOOLS, toolTitle, toolTooltip } from "./style";
 
 export interface NetworkView {
   version: VersionId;
   tool: ToolId;
   diff: boolean; // highlight changes vs the default version (other versions only)
   km: number; // Grow: first N km of build order
-  layers: { protected: boolean; painted: boolean; crashes: boolean; commutes: boolean };
+  layers: { protected: boolean; painted: boolean; crashes: boolean };
 }
 
 export type Inspect = (geom: Geometry, lat: number, lng: number, title: string) => void;
@@ -64,7 +64,6 @@ export function useNetworkLayers(
         cb.current.onInspect(f.geometry, e.latlng.lat, e.latlng.lng, title);
       });
     };
-    const maxW = Math.max(...data.commutes.features.map((f) => f.properties.workers));
     const built: Record<string, L.GeoJSON> = {
       protected: L.geoJSON(data.protected, { style: { color: CLASS_COLOR.protected, weight: 2.2, opacity: 0.7 }, interactive: false }),
       protected_shared: L.geoJSON(data.protected_shared, {
@@ -86,10 +85,6 @@ export function useNetworkLayers(
           l.bindTooltip(t);
           click(t)(f, l);
         },
-      }),
-      commutes: L.geoJSON(data.commutes, {
-        style: (f) => ({ color: COMMUTE_COLOR, weight: 0.6 + (5 * (f?.properties.workers ?? 0)) / maxW, opacity: 0.35 }),
-        onEachFeature: (f, l) => l.bindTooltip(`${f.properties.workers} workers commute between these areas`, { sticky: true }),
       }),
     };
     inputs.current = built;
@@ -150,8 +145,6 @@ export function useNetworkLayers(
     const show = (l: L.Layer, on: boolean) => (on ? l.addTo(map) : l.remove());
     show(ins.painted, active && view.layers.painted);
     show(ins.crashes, active && view.layers.crashes);
-    show(ins.commutes, active && view.layers.commutes);
-    if (map.hasLayer(ins.commutes)) ins.commutes.bringToBack();
     // The protected network stays on in route mode, as faint context under the route
     show(ins.protected, view.layers.protected);
     show(ins.protected_shared, view.layers.protected && active && view.version.startsWith("shared"));

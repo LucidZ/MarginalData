@@ -23,8 +23,6 @@ export interface NetworkData {
   protected_shared: FeatureCollection<LineString | MultiLineString>; // added in the "shared" versions
   boundary: FeatureCollection<Geometry>;
   crashes: FeatureCollection<Point, { year: number; severity: string }>;
-  commutes: FeatureCollection<LineString, { workers: number }>;
-  commute_total: number;
 }
 
 export type BikeClass = "protected" | "shared path/sidewalk" | "painted" | "quiet street" | "busy street" | "path/sidewalk (untagged)" | "dismount";
